@@ -184,8 +184,8 @@ it level with recto.
 
 Then I tried pdfium compiled to WebAssembly. Its fidelity is excellent, and Chrome has been testing it
 for years. I maintained a fork with a queue of patches, built reproducibly in a pinned container, and
-it got materially better, then plateaued. Going single-threaded and changing build flags didn't move
-it. The rest of the gain needed changes at the level of the architecture: an interpreter that only
+it got materially better, then plateaued. It's single-threaded, and build flags didn't change that.
+The rest of the gain needed changes at the level of the architecture: an interpreter that only
 reads text, ranged reads inside the parser, assets that load only when they're needed. That's slow
 going in a large C++ codebase, and a memory bug there traps the whole instance.
 
