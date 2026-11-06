@@ -371,6 +371,27 @@ impl Document {
 }
 
 #[cfg(test)]
+mod sha256_tests {
+    fn hex(data: &[u8]) -> String {
+        hayro::hayro_syntax::sha256(data).iter().map(|b| format!("{b:02x}")).collect()
+    }
+
+    #[test]
+    fn known_answers_at_the_padding_boundaries() {
+        assert_eq!(hex(b""), "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+        assert_eq!(hex(b"abc"), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+        // 56 bytes: the length no longer fits in the block it would end.
+        assert_eq!(
+            hex(b"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"),
+            "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1"
+        );
+        assert_eq!(hex(&[b'a'; 55]), "9f4390f8d30c2dd92ec9f095b65e2b9ae9b0a925a5258e241c9f1e910f734318");
+        assert_eq!(hex(&[b'a'; 64]), "ffe054fe7ae0cb6dc65c3af9b61d5209f439851db43d0ba5997337df154668eb");
+        assert_eq!(hex(&[b'a'; 119]), "31eba51c313a5c08226adf18d4a359cfdfd8d2e816b13f4af952f7ea6584dcfb");
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
 

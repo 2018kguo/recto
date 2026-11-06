@@ -60,17 +60,32 @@ pub(crate) fn calculate(data: &[u8]) -> [u8; 32] {
         0x5be0cd19,
     ];
 
-    let bit_len = data.len() as u64 * 8;
-    let padded_len = (data.len() + 9).div_ceil(64) * 64;
-    let mut padded = vec![0_u8; padded_len];
+    // recto: the file's blocks in place, and only the last ones copied to pad them. Hashing a 4 MB
+    // wasm is why: one call per block also lets the engine's optimizing tier take over midway.
+    let (blocks, rest) = data.as_chunks::<64>();
+    for block in blocks {
+        compress(&mut h, block);
+    }
 
-    padded[..data.len()].copy_from_slice(data);
-    padded[data.len()] = 0x80;
+    let mut last = [0_u8; 128];
+    last[..rest.len()].copy_from_slice(rest);
+    last[rest.len()] = 0x80;
+    let last_len = if rest.len() + 9 <= 64 { 64 } else { 128 };
+    last[last_len - 8..last_len].copy_from_slice(&(data.len() as u64 * 8).to_be_bytes());
+    for block in last[..last_len].as_chunks::<64>().0 {
+        compress(&mut h, block);
+    }
 
-    let len_bytes = bit_len.to_be_bytes();
-    padded[padded_len - 8..].copy_from_slice(&len_bytes);
+    let mut result = [0_u8; 32];
+    for (out, word) in result.as_chunks_mut::<4>().0.iter_mut().zip(h) {
+        *out = word.to_be_bytes();
+    }
+    result
+}
 
-    for chunk in padded.as_chunks::<64>().0 {
+#[inline(never)]
+fn compress(h: &mut [u32; 8], chunk: &[u8; 64]) {
+    {
         let mut w = [0_u32; 64];
 
         for (i, word_bytes) in chunk.as_chunks::<4>().0.iter().enumerate() {
@@ -84,7 +99,7 @@ pub(crate) fn calculate(data: &[u8]) -> [u8; 32] {
                 .wrapping_add(w[i - 16]);
         }
 
-        let [mut a, mut b, mut c, mut d, mut e, mut f, mut g, mut h_var] = h;
+        let [mut a, mut b, mut c, mut d, mut e, mut f, mut g, mut h_var] = *h;
 
         for i in 0..64 {
             let temp1 = h_var
@@ -112,40 +127,5 @@ pub(crate) fn calculate(data: &[u8]) -> [u8; 32] {
         h[5] = h[5].wrapping_add(f);
         h[6] = h[6].wrapping_add(g);
         h[7] = h[7].wrapping_add(h_var);
-    }
-
-    let mut result = [0_u8; 32];
-    for (i, &hash_word) in h.iter().enumerate() {
-        let bytes = hash_word.to_be_bytes();
-        result[i * 4..(i + 1) * 4].copy_from_slice(&bytes);
-    }
-
-    result
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use sha2::{Digest, Sha256};
-
-    #[test]
-    fn correctness() {
-        let test_cases = [
-            b"" as &[u8],
-            b"a",
-            b"abc",
-            b"Hello, World!",
-            &[0xde, 0xad, 0xbe, 0xef],
-        ];
-
-        for test_case in test_cases {
-            let our_result = calculate(test_case);
-            let expected = Sha256::digest(test_case);
-            assert_eq!(
-                our_result,
-                expected.as_slice(),
-                "Failed for input: {test_case:?}"
-            );
-        }
     }
 }
