@@ -1,0 +1,14 @@
+{
+  "name": "recto",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "js"
+  ],
+  "scripts": {
+    "build": "npm run build -w js",
+    "test": "cargo test && npm run build && npm test -w js",
+    "smoke": "node smoke/run.mjs",
+    "bench": "npm install --prefix bench --no-audit --no-fund && node bench/bench.mjs"
+  }
+}

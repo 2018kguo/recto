@@ -1,0 +1,49 @@
+{
+  "name": "@2018kguo/recto",
+  "version": "0.1.0",
+  "description": "A PDF engine for JavaScript: text with boxes, page objects, annotations and rendering, in Rust compiled to WebAssembly.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/2018kguo/recto.git",
+    "directory": "js"
+  },
+  "keywords": [
+    "pdf",
+    "pdf-parser",
+    "pdf-renderer",
+    "text-extraction",
+    "webassembly"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=24"
+  },
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "wasm"
+  ],
+  "scripts": {
+    "build": "sh ../scripts/build-wasm.sh && npm run build:ts",
+    "build:ts": "tsc -p .",
+    "prepack": "npm run build",
+    "test": "node --test --test-concurrency=2 test/*.test.ts",
+    "typecheck": "tsc -p . --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "pdf-lib": "1.17.1",
+    "pdfjs-dist": "4.10.38",
+    "publint": "0.3.15",
+    "typescript": "5.9.3"
+  }
+}

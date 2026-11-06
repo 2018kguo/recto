@@ -1,0 +1,38 @@
+[package]
+name = "recto"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/2018kguo/recto"
+description = "A PDF engine: hayro's parser, interpreter and renderer with a text layer of its own."
+# Depends on patched hayro crates through [patch], which crates.io does not honour.
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+# Native builds embed hayro's Foxit fonts, so `cargo test` needs nothing else.
+# The WASM build turns this off and loads the same fonts lazily from fonts.bin
+# (src/assets.rs).
+default = ["embed-fonts"]
+embed-fonts = ["hayro/embed-fonts"]
+wasm = [
+  "dep:wasm-bindgen",
+  "dep:js-sys",
+  "dep:hayro-cmap",
+  "hayro-cmap/host-cmaps",
+]
+
+[dependencies]
+hayro = { version = "=0.9.0", default-features = false, features = [
+  "embed-cmaps",
+] }
+self_cell = "1"
+# Only to switch on `host-cmaps` in the WASM build (see src/assets.rs).
+hayro-cmap = { version = "0.1.1", optional = true }
+# Already in hayro's tree: a one-multiply hash for packed integer keys.
+rustc-hash = "2.1.3"
+# Must match the installed wasm-bindgen CLI.
+wasm-bindgen = { version = "=0.2.129", optional = true }
+js-sys = { version = "0.3", optional = true }
