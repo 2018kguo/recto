@@ -1,6 +1,7 @@
 use super::xobject_oc;
 use crate::context::Context;
 use crate::device::Device;
+use crate::interpret::page_run::{Close, Frame};
 use crate::{BlendMode, ClipPath, FillRule, interpret};
 use hayro_syntax::content::TypedIter;
 use hayro_syntax::object::Dict;
@@ -48,6 +49,87 @@ impl<'a> FormXObject<'a> {
             bbox,
             dict: dict.clone(),
             resources,
+        })
+    }
+
+    /// recto: `draw`, but when the contents can be run a slice at a time by `PageRun`, this does
+    /// only what comes before them, and says what to do after. A knockout element and a group that
+    /// needs its backdrop go through the contents more than once, so they're drawn here, whole.
+    pub(crate) fn enter(
+        self,
+        parent: &Resources<'a>,
+        context: &mut Context<'a>,
+        device: &mut impl Device<'a>,
+    ) -> Option<Frame<'a>> {
+        if !context.ocg_state.is_visible() {
+            return None;
+        }
+        let resources = self.resources.clone().unwrap_or_else(|| parent.clone());
+        let mut group = false;
+        if self.is_transparency_group {
+            let plain = context.fill_paint().alpha == 1.0
+                && context.compositing_mut().soft_mask.is_none()
+                && matches!(context.compositing_mut().blend_mode, BlendMode::Normal);
+            let direct = !self.isolated && !self.knockout && plain && !device.in_knockout();
+            if !direct {
+                if device.in_knockout() || (!self.isolated && uses_blend_mode(&resources, 0, &mut 0)) {
+                    self.draw(parent, context, device);
+                    return None;
+                }
+                group = true;
+            }
+        }
+
+        if !context.begin_nested_interpretation() {
+            return None;
+        }
+        let has_oc = xobject_oc(&self.dict, context);
+        if !context.ocg_state.is_visible() {
+            if has_oc {
+                context.ocg_state.end_marked_content();
+            }
+            context.end_nested_interpretation();
+            return None;
+        }
+
+        context.clear_path();
+        context.save_state();
+        context.pre_concat_affine(self.matrix);
+        context.push_root_transform();
+
+        if self.is_transparency_group {
+            if group {
+                let opacity = context.fill_paint().alpha;
+                let mask = std::mem::take(&mut context.compositing_mut().soft_mask);
+                let blend_mode = std::mem::take(&mut context.compositing_mut().blend_mode);
+                device.push_transparency_group(opacity, mask, blend_mode);
+                if self.knockout {
+                    device.set_group_knockout();
+                }
+            }
+            context.fill_paint_mut().alpha = 1.0;
+            context.stroke_paint_mut().alpha = 1.0;
+        }
+
+        device.push_clip_path(&ClipPath {
+            path: context.ctm()
+                * Rect::new(
+                    self.bbox[0] as f64,
+                    self.bbox[1] as f64,
+                    self.bbox[2] as f64,
+                    self.bbox[3] as f64,
+                )
+                .to_path(0.1),
+            fill: FillRule::NonZero,
+        });
+        let states = context.num_states();
+        context.save_state();
+        Some(Frame {
+            data: self.decoded,
+            pos: 0,
+            resources,
+            states,
+            close: Close::Form { group, has_oc },
         })
     }
 

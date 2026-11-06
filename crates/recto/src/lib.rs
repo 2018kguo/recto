@@ -316,12 +316,12 @@ impl Document {
     }
 
     #[cfg(feature = "render")]
-    fn pixmap(
+    fn pixmap_settings(
         &self,
         index: usize,
         width: f32,
         max_height: f32,
-    ) -> Result<(hayro::vello_cpu::Pixmap, bool), EngineError> {
+    ) -> Result<PixmapSettings, EngineError> {
         let info = self.page_info(index)?;
         let scale = render_scale(info.width, info.height, width, max_height)?;
         // Each side rounds up, and the page stretches to
@@ -336,7 +336,21 @@ impl Document {
                 exact.next_up()
             }
         };
-        let (x_scale, y_scale) = (fit(info.width), fit(info.height));
+        Ok(PixmapSettings {
+            x_scale: fit(info.width),
+            y_scale: fit(info.height),
+            bg_color: WHITE,
+        })
+    }
+
+    #[cfg(feature = "render")]
+    fn pixmap(
+        &self,
+        index: usize,
+        width: f32,
+        max_height: f32,
+    ) -> Result<(hayro::vello_cpu::Pixmap, bool), EngineError> {
+        let settings = self.pixmap_settings(index, width, max_height)?;
         Ok(self.0.with_dependent(|pdf, caches| {
             let Some(page) = pdf.pages().get(index) else {
                 unreachable!("self.page(index) found it")
@@ -346,11 +360,7 @@ impl Document {
                 &caches.render,
                 &crate::assets::settings(),
                 &RenderSettings::default(),
-                &PixmapSettings {
-                    x_scale,
-                    y_scale,
-                    bg_color: WHITE,
-                },
+                &settings,
             );
             (pixmap, caches.render.take_degraded())
         }))
@@ -367,6 +377,65 @@ impl Document {
             rgba: pixmap.data_as_u8_slice().to_vec(),
             truncated,
         })
+    }
+}
+
+/// A page being drawn a slice at a time, the same pixels as `Document::render`.
+#[cfg(feature = "render")]
+pub struct RenderTask {
+    // Before the document it borrows from, so it's dropped first.
+    job: hayro::PageJob<'static, 'static>,
+    _document: std::rc::Rc<Document>,
+}
+
+#[cfg(feature = "render")]
+impl RenderTask {
+    pub fn new(
+        document: std::rc::Rc<Document>,
+        index: usize,
+        width: f32,
+        max_height: f32,
+    ) -> Result<Self, EngineError> {
+        let settings = document.pixmap_settings(index, width, max_height)?;
+        let job = document.0.with_dependent(|pdf, caches| {
+            let Some(page) = pdf.pages().get(index) else {
+                unreachable!("pixmap_settings found it")
+            };
+            let job = hayro::PageJob::new(
+                page,
+                &caches.render,
+                &crate::assets::settings(),
+                &RenderSettings::default(),
+                &settings,
+            );
+            // SAFETY: the job borrows only from the document's self-cell, whose owner and
+            // dependent live on the heap at a fixed address. `_document` keeps that alive for as
+            // long as the job, and the job goes first. Nothing mutable is borrowed across a return:
+            // the caches it shares with other calls are behind RefCells held only inside a call.
+            unsafe {
+                std::mem::transmute::<hayro::PageJob<'_, '_>, hayro::PageJob<'static, 'static>>(job)
+            }
+        });
+        Ok(Self {
+            job,
+            _document: document,
+        })
+    }
+
+    /// Runs until `expired` says so; true once the page's content is done.
+    pub fn step(&mut self, expired: &dyn Fn() -> bool) -> bool {
+        self.job.step(expired)
+    }
+
+    /// Rasterizes what `step` drew. One call, after `step` returned true.
+    pub fn finish(&mut self) -> Bitmap {
+        let (pixmap, truncated) = self.job.finish();
+        Bitmap {
+            width: u32::from(pixmap.width()),
+            height: u32::from(pixmap.height()),
+            rgba: pixmap.data_as_u8_slice().to_vec(),
+            truncated,
+        }
     }
 }
 

@@ -132,6 +132,11 @@ impl<'a> UntypedIter<'a> {
         }
     }
 
+    /// recto: how far into the data the next instruction starts.
+    pub fn offset(&self) -> usize {
+        self.reader.offset()
+    }
+
     /// Return the next instruction.
     #[allow(clippy::should_implement_trait)]
     pub fn next(&mut self) -> Option<Instruction<'_, 'a>> {
@@ -411,6 +416,11 @@ impl<'a> TypedIter<'a> {
 
     pub(crate) fn from_untyped(untyped: UntypedIter<'a>) -> Self {
         Self { untyped }
+    }
+
+    /// recto: how far into the data the next instruction starts.
+    pub fn offset(&self) -> usize {
+        self.untyped.offset()
     }
 
     /// Return the next typed instruction.

@@ -1,5 +1,5 @@
 mod decode;
-mod form;
+pub(crate) mod form;
 mod image;
 pub(crate) mod soft_mask;
 

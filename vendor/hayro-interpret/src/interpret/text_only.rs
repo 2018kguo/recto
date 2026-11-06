@@ -486,7 +486,7 @@ pub(crate) fn interpret<'a>(
             // the rest of the stream goes to `interpret`'s loop from here.
             b"BI" => {
                 let mut rest = TypedIter::new(&d[lexer.op_start()..]);
-                super::run_ops(&mut rest, resources, context, device);
+                super::run_ops(&mut rest, resources, context, device, None);
                 break;
             }
             // A malformed path operator ends the stream in `interpret`.

@@ -38,7 +38,7 @@ pub fn sha256(bytes: &[u8]) -> Vec<u8> {
 }
 
 #[wasm_bindgen]
-pub struct Document(crate::Document);
+pub struct Document(std::rc::Rc<crate::Document>);
 
 macro_rules! getters {
     ($ty:ident { $($field:ident : $t:ty => $js:literal),* $(,)? }) => {
@@ -362,7 +362,7 @@ impl Document {
     #[wasm_bindgen(constructor)]
     pub fn open(bytes: Vec<u8>, password: Option<String>) -> Result<Document, JsValue> {
         crate::Document::open(bytes, password.as_deref().unwrap_or(""))
-            .map(Document)
+            .map(|document| Document(document.into()))
             .map_err(js_error)
     }
 
@@ -404,7 +404,7 @@ impl Document {
             Box::new(fill),
             password.as_deref().unwrap_or(""),
         )
-        .map(Document)
+        .map(|document| Document(document.into()))
         .map_err(js_error)
     }
 
@@ -472,6 +472,20 @@ impl Document {
         Ok(a.into())
     }
 
+    /// A render that returns to its caller between slices, for as long as it's asked to run.
+    #[cfg(feature = "render")]
+    #[wasm_bindgen(js_name = renderTask)]
+    pub fn render_task(
+        &self,
+        index: usize,
+        width: f32,
+        max_height: f32,
+    ) -> Result<RenderTask, JsValue> {
+        crate::RenderTask::new(self.0.clone(), index, width, max_height)
+            .map(RenderTask)
+            .map_err(js_error)
+    }
+
     #[cfg(feature = "render")]
     pub fn render(
         &self,
@@ -486,5 +500,30 @@ impl Document {
             truncated: b.truncated,
             rgba: b.rgba,
         })
+    }
+}
+
+#[cfg(feature = "render")]
+#[wasm_bindgen]
+pub struct RenderTask(crate::RenderTask);
+
+#[cfg(feature = "render")]
+#[wasm_bindgen]
+impl RenderTask {
+    /// Runs for about `budget_ms`; true once the page's content is done.
+    pub fn step(&mut self, budget_ms: f64) -> bool {
+        let deadline = js_sys::Date::now() + budget_ms;
+        self.0.step(&|| js_sys::Date::now() >= deadline)
+    }
+
+    /// Rasterizes what `step` drew: the rest of the page, in one call.
+    pub fn finish(&mut self) -> RenderedPage {
+        let b = self.0.finish();
+        RenderedPage {
+            width: b.width,
+            height: b.height,
+            truncated: b.truncated,
+            rgba: b.rgba,
+        }
     }
 }

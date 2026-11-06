@@ -21,6 +21,7 @@ export {
   type PdfPageObjects,
   type PdfPageText,
   type PdfPathSegments,
+  type PdfRenderAsyncOptions,
   type PdfRenderOptions,
   type PdfTextRuns,
   type PdfWords,

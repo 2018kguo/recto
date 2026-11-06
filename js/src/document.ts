@@ -203,6 +203,13 @@ export type PdfRenderOptions = {
   maxHeight?: number;
 };
 
+export type PdfRenderAsyncOptions = PdfRenderOptions & {
+  /** Stops the render at the next pause: `aborted`, with the document still usable. */
+  signal?: AbortSignal;
+  /** About how long it runs before giving the thread back. Default 8. */
+  sliceMs?: number;
+};
+
 export type PdfBitmap = {
   width: number;
   height: number;
@@ -255,6 +262,11 @@ export interface PdfDocument {
   objects(index: number): PdfPageObjects;
   annotations(index: number): PdfAnnotation[];
   render(index: number, options: PdfRenderOptions): PdfBitmap;
+  /**
+   * The same pixels as `render`, giving the thread back between slices, and stoppable with a
+   * signal. The last step, rasterizing, is one piece: about a third of a heavy page's time.
+   */
+  renderAsync(index: number, options: PdfRenderAsyncOptions): Promise<PdfBitmap>;
   close(): void;
   [Symbol.dispose](): void;
 }
@@ -401,6 +413,20 @@ function toAnnotations(a: Glue.Annotations): PdfAnnotation[] {
       });
     }
     return out;
+  });
+}
+
+const DEFAULT_SLICE_MS = 8;
+
+/** Back to the event loop, without the 4 ms a nested timer waits in a browser. */
+function nextTask(): Promise<void> {
+  return new Promise((resolve) => {
+    const { port1, port2 } = new MessageChannel();
+    port1.onmessage = () => {
+      port1.close();
+      resolve();
+    };
+    port2.postMessage(0);
   });
 }
 
@@ -569,6 +595,52 @@ export class RectoDocument implements PdfDocument {
         rgba: page.takeRgba(),
       }))
     );
+  }
+
+  async renderAsync(index: number, options: PdfRenderAsyncOptions): Promise<PdfBitmap> {
+    this.#check(index);
+    const maxHeight = options.maxHeight ?? DEFAULT_MAX_HEIGHT;
+    if (
+      !(options.width > 0 && options.width <= MAX_DIMENSION) ||
+      !(maxHeight > 0)
+    ) {
+      throw new RangeError(
+        `render width must be in 1..${MAX_DIMENSION} and maxHeight above 0`
+      );
+    }
+    this.#needsFull();
+    const instance = this.#instance;
+    const sliceMs = options.sliceMs ?? DEFAULT_SLICE_MS;
+    const task = this.#call(() => this.#doc.renderTask(index, options.width, maxHeight));
+    const stopIfAsked = () => {
+      if (options.signal?.aborted) {
+        throw new PdfError("aborted", "the signal was aborted", options.signal.reason);
+      }
+      if (this.#closed) {
+        throw new PdfError("closed", "this document is closed");
+      }
+    };
+    try {
+      stopIfAsked();
+      while (!this.#call(() => task.step(sliceMs))) {
+        await nextTask();
+        stopIfAsked();
+      }
+      await nextTask();
+      stopIfAsked();
+      return this.#call(() =>
+        consume(task.finish(), (page) => ({
+          width: page.width,
+          height: page.height,
+          truncated: page.truncated,
+          rgba: page.takeRgba(),
+        }))
+      );
+    } finally {
+      if (!instance.dead) {
+        task.free();
+      }
+    }
   }
 
   close(): void {
