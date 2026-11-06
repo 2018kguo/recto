@@ -58,6 +58,10 @@ pub struct PageText {
     codepoints: Vec<u32>,
     boxes: Vec<f32>,
     font_sizes: Vec<f32>,
+    tf_sizes: Vec<f32>,
+    font_ascents: Vec<f32>,
+    font_descents: Vec<f32>,
+    truncated: bool,
     angles: Vec<f32>,
     fills: Vec<u32>,
     font_ids: Vec<i32>,
@@ -82,6 +86,10 @@ getters!(PageText {
     codepoints: Vec<u32> => "codepoints",
     boxes: Vec<f32> => "boxes",
     font_sizes: Vec<f32> => "fontSizes",
+    tf_sizes: Vec<f32> => "tfSizes",
+    font_ascents: Vec<f32> => "fontAscents",
+    font_descents: Vec<f32> => "fontDescents",
+    truncated: bool => "truncated",
     angles: Vec<f32> => "angles",
     fills: Vec<u32> => "fills",
     font_ids: Vec<i32> => "fontIds",
@@ -119,6 +127,10 @@ fn page_text(page: &crate::TextPage) -> PageText {
         codepoints: Vec::with_capacity(n),
         boxes: Vec::with_capacity(n * 4),
         font_sizes: Vec::with_capacity(n),
+        tf_sizes: Vec::with_capacity(n),
+        font_ascents: page.fonts.iter().map(|f| f.ascent).collect(),
+        font_descents: page.fonts.iter().map(|f| f.descent).collect(),
+        truncated: page.truncated,
         angles: Vec::with_capacity(n),
         fills: Vec::with_capacity(n),
         font_ids: Vec::with_capacity(n),
@@ -142,6 +154,7 @@ fn page_text(page: &crate::TextPage) -> PageText {
             t.codepoints.push(cp);
             t.boxes.extend_from_slice(&c.bbox);
             t.font_sizes.push(c.em);
+            t.tf_sizes.push(c.tf);
             t.angles.push(c.angle);
             t.fills.push(c.fill);
             t.font_ids.push(c.font);
@@ -193,6 +206,7 @@ pub struct PageObjects {
     path_start: Vec<u32>,
     segment_points: Vec<f32>,
     segment_kinds: Vec<u8>,
+    truncated: bool,
 }
 
 getters!(PageObjects {
@@ -204,6 +218,7 @@ getters!(PageObjects {
     path_start: Vec<u32> => "pathStart",
     segment_points: Vec<f32> => "segmentPoints",
     segment_kinds: Vec<u8> => "segmentKinds",
+    truncated: bool => "truncated",
 });
 
 impl From<crate::PageObjects> for PageObjects {
@@ -217,6 +232,7 @@ impl From<crate::PageObjects> for PageObjects {
             path_start: o.path_start,
             segment_points: o.points,
             segment_kinds: o.kinds,
+            truncated: o.truncated,
         }
     }
 }
@@ -306,6 +322,7 @@ impl PageScan {
 pub struct RenderedPage {
     pub width: u32,
     pub height: u32,
+    pub truncated: bool,
     rgba: Vec<u8>,
 }
 
@@ -420,6 +437,22 @@ impl Document {
         Ok(s.objects.into())
     }
 
+    /// Flat, in order: `[title, url or "", level, page]` per item.
+    pub fn outline(&self) -> js_sys::Array {
+        self.0
+            .outline()
+            .into_iter()
+            .map(|item| {
+                let entry = js_sys::Array::new();
+                entry.push(&JsValue::from_str(&item.title));
+                entry.push(&JsValue::from_str(item.url.as_deref().unwrap_or("")));
+                entry.push(&JsValue::from(item.level));
+                entry.push(&JsValue::from(item.page));
+                JsValue::from(entry)
+            })
+            .collect()
+    }
+
     pub fn annotations(&self, index: usize) -> Result<Annotations, JsValue> {
         let a = self.0.annotations(index).map_err(js_error)?;
         Ok(a.into())
@@ -435,6 +468,7 @@ impl Document {
         Ok(RenderedPage {
             width: b.width,
             height: b.height,
+            truncated: b.truncated,
             rgba: b.rgba,
         })
     }

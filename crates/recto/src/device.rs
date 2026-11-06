@@ -1,8 +1,6 @@
 //! One interpretation pass per page: glyphs for the text layer, plus (when
 //! asked) the page's paths, images and text-object count.
 
-use std::hash::Hasher;
-
 use hayro::hayro_interpret::font::{Glyph as HayroGlyph, GlyphRun};
 use hayro::hayro_interpret::hayro_cmap::{BfString, WritingMode};
 use hayro::hayro_interpret::{
@@ -33,6 +31,8 @@ pub const SEGMENT_RECT: u8 = 8;
 pub struct PageObjects {
     /// One per text-showing operator (Tj, TJ, ', ").
     pub text_objects: u32,
+    /// More images or path segments than one page may collect; the rest aren't here.
+    pub truncated: bool,
     /// x, y, width, height per image.
     pub image_boxes: Vec<f32>,
     /// Pixel width, height per image.
@@ -85,6 +85,8 @@ pub(crate) struct PageDevice {
     rect_starts: Vec<u32>,
     /// Inside the fill that paints `sh` (`Device::shading_fill`).
     in_shading_fill: bool,
+    /// More glyphs than `MAX_PAGE_GLYPHS` were shown.
+    pub text_truncated: bool,
 }
 
 impl PageDevice {
@@ -103,6 +105,7 @@ impl PageDevice {
             seen_fonts: Vec::new(),
             rect_starts: Vec::new(),
             in_shading_fill: false,
+            text_truncated: false,
         }
     }
 
@@ -129,47 +132,58 @@ impl PageDevice {
         id
     }
 
+    /// One id per font dictionary, as the file has them.
     fn font_id(&mut self, glyph: &HayroGlyph<'_>) -> u32 {
-        // Limit: hayro exposes no font object, only each glyph's font
-        // program, so fonts are told apart by program content (two font dicts
-        // over one program, e.g. two non-embedded Helveticas, are one font
-        // here) and every Type3 font is one font.
         let key = match glyph {
-            HayroGlyph::Outline(g) => program_hash(g),
-            HayroGlyph::Type3(_) => u128::MAX,
+            HayroGlyph::Outline(g) => g.font_facts().key,
+            HayroGlyph::Type3(g) => g.font_facts().key,
         };
         if let Some(&id) = self.font_ids.get(&key) {
             return id;
         }
         let font = match glyph {
-            HayroGlyph::Outline(g) => match g.font_data() {
-                // Limit: name, weight and style come from hayro's OutlineFontData,
-                // which it gives only for embedded TrueType and CID fonts. Type1 and
-                // non-embedded fonts read as embedded: false, no name, weight 0.
-                // Descriptor flags are not exposed: these are rebuilt from the
-                // style bits (fixed pitch 1, serif 2, nonsymbolic 32, italic 64).
-                Some(d) => Font {
-                    name: d.postscript_name.unwrap_or_default(),
-                    flags: u32::from(d.is_monospace)
-                        | (u32::from(d.is_serif) << 1)
-                        | 32
-                        | (u32::from(d.is_italic) << 6),
-                    weight: d.weight.unwrap_or(400),
-                    embedded: true,
-                },
-                // Weight 0 for a standard font with no descriptor.
-                None => Font {
-                    name: String::new(),
-                    flags: 32,
-                    weight: 0,
-                    embedded: false,
-                },
-            },
-            HayroGlyph::Type3(_) => Font {
-                name: String::new(),
+            HayroGlyph::Outline(g) => {
+                let facts = g.font_facts();
+                // The dictionary first, then the program for what it leaves out.
+                let program = g.font_data();
+                let name = if facts.name.is_empty() {
+                    program.as_ref().and_then(|d| d.postscript_name.clone()).unwrap_or_default()
+                } else {
+                    facts.name.clone()
+                };
+                let bold_name = name.to_ascii_lowercase().contains("bold");
+                let weight = match (facts.weight, program.as_ref().and_then(|d| d.weight)) {
+                    (0, Some(w)) => w,
+                    (0, None) if bold_name => 700,
+                    (0, None) if !name.is_empty() => 400,
+                    (w, _) => w,
+                };
+                // Descriptor flags, or rebuilt from the program's style bits: fixed pitch 1,
+                // serif 2, nonsymbolic 32, italic 64.
+                let flags = facts.flags.unwrap_or_else(|| {
+                    program.as_ref().map_or(32, |d| {
+                        u32::from(d.is_monospace)
+                            | (u32::from(d.is_serif) << 1)
+                            | 32
+                            | (u32::from(d.is_italic) << 6)
+                    })
+                });
+                Font {
+                    name,
+                    flags,
+                    weight,
+                    embedded: facts.embedded,
+                    ascent: facts.ascent.unwrap_or(crate::text::ASCENT as f32),
+                    descent: facts.descent.unwrap_or(crate::text::DESCENT as f32),
+                }
+            }
+            HayroGlyph::Type3(g) => Font {
+                name: g.font_facts().name.clone(),
                 flags: 0,
-                weight: 400,
+                weight: 0,
                 embedded: true,
+                ascent: crate::text::ASCENT as f32,
+                descent: crate::text::DESCENT as f32,
             },
         };
         let id = self.fonts.len() as u32;
@@ -181,17 +195,18 @@ impl PageDevice {
 
 /// What one page may collect. A form drawn thousands of times multiplies
 /// its glyphs and paths: a 2 KB file once asked for 3.5 GB and trapped.
-/// Real pages stay far below (a dense page is about 10k chars).
-/// Limit: the rest of the page is dropped silently; a `truncated` flag
-/// once a caller needs to tell.
+/// Real pages stay far below (a dense page is about 10k chars). Past these the
+/// rest of the page is left out, and `truncated` says so.
 const MAX_PAGE_GLYPHS: usize = 1 << 19;
 const MAX_PAGE_SEGMENTS: usize = 1 << 21;
+const MAX_PAGE_IMAGES: usize = 1 << 19;
 
 impl PageDevice {
     fn add_path(&mut self, path: &BezPath, t: Affine, flags: u8, stroke: Option<f32>) {
         let last = std::mem::replace(&mut self.last, Last::None);
         let Some(o) = &mut self.objects else { return };
         if o.kinds.len() >= MAX_PAGE_SEGMENTS {
+            o.truncated = true;
             return;
         }
         let from = o.kinds.len();
@@ -219,25 +234,6 @@ impl PageDevice {
             self.last = Last::FillPath(o.path_flags.len() - 1);
         }
     }
-}
-
-/// The font program's content hash: GlyphIdentifier hashes its program
-/// first, as one u128, then the glyph id.
-fn program_hash(glyph: &hayro::hayro_interpret::font::OutlineGlyph) -> u128 {
-    #[derive(Default)]
-    struct First(Option<u128>);
-    impl Hasher for First {
-        fn write(&mut self, _: &[u8]) {}
-        fn write_u128(&mut self, v: u128) {
-            self.0.get_or_insert(v);
-        }
-        fn finish(&self) -> u64 {
-            0
-        }
-    }
-    let mut h = First::default();
-    std::hash::Hash::hash(&glyph.identifier(), &mut h);
-    h.0.unwrap_or(0)
 }
 
 /// 0xRRGGBBAA of a solid paint.
@@ -394,6 +390,10 @@ impl<'a> Device<'a> for PageDevice {
         }
         let run_id = self.runs.len() as u32;
         let font = self.font_of(first);
+        let metrics = {
+            let f = &self.fonts[font as usize];
+            (f64::from(f.ascent), f64::from(f.descent))
+        };
         // Limit: for stroke-only text (`Tr 1`) hayro passes the stroke paint,
         // so this is the stroke colour, not the fill colour.
         let fill = match &props.paint {
@@ -434,9 +434,6 @@ impl<'a> Device<'a> for PageDevice {
             if let Some(t) = &mut run_text {
                 t.push_str(&text);
             }
-            // Limit: for substituted (fallback) fonts hayro's transform includes a
-            // width stretch, so the box is off by that factor; upstream a
-            // PositionedGlyph::advance to fix.
             let advance = advance.unwrap_or(0.0);
             let code = if text.is_empty() {
                 glyph.char_code()
@@ -445,17 +442,28 @@ impl<'a> Device<'a> for PageDevice {
             };
             let transform = props.transform * glyph.transform();
             if self.glyphs.len() >= MAX_PAGE_GLYPHS {
+                self.text_truncated = true;
                 break;
             }
-            if let Some(mut g) = glyph_from(transform, text, f64::from(advance), vertical) {
+            // A substituted font's glyphs are widened to the PDF's width. The advance already is
+            // that width, so the box takes the transform without the widening.
+            let stretch = f64::from(glyph.stretch());
+            let unstretched = if stretch > 0.0 && stretch != 1.0 {
+                let [a, b, c, d, e, f] = transform.as_coeffs();
+                Affine::new([a / stretch, b / stretch, c, d, e, f])
+            } else {
+                transform
+            };
+            if let Some(mut g) = glyph_from(unstretched, text, f64::from(advance), vertical, metrics) {
                 origin.get_or_insert((g.origin, g.em));
                 g.code = code;
+                g.tf = glyph.font_size();
                 if !vertical {
                     let [a, b, ..] = transform.as_coeffs();
                     g.char_space = a.hypot(b) * f64::from(glyph.char_space());
                 }
                 // Limit: this matrix includes Tf and Tz, which only moves the angle of
-                // skewed or turned text drawn with a horizontal scale (or a substituted font's width stretch).
+                // skewed or turned text drawn with a horizontal scale.
                 // atan2 once per matrix: a run's glyphs nearly always share one.
                 // The a and c of `to_page * transform`, as kurbo multiplies.
                 let ([pa, _, pc, ..], [ta, tb, tc, td, ..]) =
@@ -487,6 +495,10 @@ impl<'a> Device<'a> for PageDevice {
     fn draw_image(&mut self, image: Image<'a, '_>, props: ImageDrawProps<'a>) {
         self.last = Last::None;
         let Some(o) = &mut self.objects else { return };
+        if o.image_pixels.len() / 2 >= MAX_PAGE_IMAGES {
+            o.truncated = true;
+            return;
+        }
         let (w, h) = (image.width(), image.height());
         // hayro's image transform maps the pixel grid, 0..w by 0..h.
         o.image_boxes.extend_from_slice(&box_of(

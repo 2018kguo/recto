@@ -26,7 +26,7 @@ pub(crate) struct CodeInfo {
 /// of 256 entries let one small file fill gigabytes: one code per page, per
 /// font.)
 #[derive(Debug, Default)]
-pub(crate) struct CodeTable(RefCell<Table>);
+pub(crate) struct CodeTable(RefCell<Table>, pub(crate) crate::FontFacts);
 
 #[derive(Debug, Default)]
 struct Table {
@@ -48,6 +48,10 @@ impl Table {
 }
 
 impl CodeTable {
+    pub(crate) fn with_facts(facts: crate::FontFacts) -> Self {
+        Self(RefCell::default(), facts)
+    }
+
     /// The entry for `code` if the font already computed it.
     pub(crate) fn peek<R>(&self, code: u32, read: impl FnOnce(&CodeInfo) -> R) -> Option<R> {
         let t = self.0.borrow();

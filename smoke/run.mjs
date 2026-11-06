@@ -21,9 +21,40 @@ const dir = process.env.RECTO_SMOKE_DIR ?? fs.mkdtempSync(path.join(os.tmpdir(),
 fs.rmSync(dir, { recursive: true, force: true });
 fs.mkdirSync(dir, { recursive: true });
 
-const run = (command, args, cwd = dir) =>
-  execFileSync(command, args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] });
-const step = (name) => console.log(`\n== ${name}`);
+// Nothing here may wait for ever. A synchronous child can't be interrupted by a timer, so each has
+// its own limit; everything asynchronous goes through `within`; and the deadline covers the rest,
+// failing with the step it was on.
+const DEADLINE_MS = 20 * 60_000;
+const children = new Set();
+const started = Date.now();
+let current = "starting";
+const stopChildren = () => {
+  for (const child of children) {
+    child.kill("SIGKILL");
+  }
+};
+const deadline = setTimeout(() => {
+  console.error(`smoke: gave up after ${DEADLINE_MS / 60_000} minutes, in step: ${current}`);
+  stopChildren();
+  process.exit(1);
+}, DEADLINE_MS);
+const within = async (ms, what, promise) => {
+  let timer;
+  const expired = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${what}: no result after ${ms / 1000} s (step: ${current})`)), ms);
+  });
+  try {
+    return await Promise.race([promise, expired]);
+  } finally {
+    clearTimeout(timer);
+  }
+};
+const run = (command, args, cwd = dir, timeout = 5 * 60_000) =>
+  execFileSync(command, args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "inherit"], timeout, killSignal: "SIGKILL" });
+const step = (name) => {
+  current = name;
+  console.log(`\n== ${name} (${Math.round((Date.now() - started) / 1000)} s in)`);
+};
 
 step("pack");
 if (!fs.existsSync(path.join(root, "js/wasm/recto.wasm"))) {
@@ -204,20 +235,37 @@ const pdfs = (req, res) => {
   res.writeHead(206, headers).end(mode === "short" ? part.subarray(0, part.byteLength >> 1) : part);
 };
 const listen = (handler) =>
-  new Promise((resolve) => {
-    const server = http.createServer(handler);
-    server.listen(0, "127.0.0.1", () => resolve(server));
-  });
+  within(
+    10_000,
+    "listen",
+    new Promise((resolve) => {
+      const server = http.createServer(handler);
+      server.listen(0, "127.0.0.1", () => resolve(server));
+    }),
+  );
+// A browser's keep-alive connections would hold `close` open.
+const shut = (server) =>
+  within(
+    10_000,
+    "closing a server",
+    new Promise((resolve) => {
+      server.close(resolve);
+      server.closeAllConnections();
+    }),
+  );
 const pdfServer = await listen(pdfs);
 const pdfBase = `http://127.0.0.1:${pdfServer.address().port}`;
 
+step(`install ${browsers.join(", ")}`);
 const playwright = await import(path.join(dir, "node_modules/playwright/index.mjs"));
-run("npx", ["playwright", "install", ...browsers]);
+run("npx", ["playwright", "install", ...browsers], dir, 10 * 60_000);
 
 async function checkPages(browserName, label, origin) {
-  const browser = await playwright[browserName].launch();
+  step(`${browserName}, ${label}`);
+  const browser = await within(120_000, "launching the browser", playwright[browserName].launch());
   try {
     const page = await browser.newPage();
+    page.setDefaultTimeout(60_000);
     const errors = [];
     page.on("pageerror", (error) => errors.push(String(error)));
     const logged = [];
@@ -234,8 +282,13 @@ async function checkPages(browserName, label, origin) {
     const checks = await page.evaluate(() => window.smokeResult);
     assert.deepEqual(errors, [], "no uncaught errors");
     assert.equal(checks.failure, undefined, checks.failure);
-    assert.equal(checks.mainThread.code, "wrong-thread");
-    assert.match(checks.mainThread.message, /Web Worker/u);
+    assert.equal(checks.mainThread.failure, undefined, checks.mainThread.failure);
+    assert.match(checks.mainThread.text, /Hello from recto/u);
+    assert.ok(checks.mainThread.ink > 500, `main thread ink ${checks.mainThread.ink}`);
+    assert.equal(checks.mainThread.ranged, "wrong-thread");
+    assert.equal(checks.serviceWorker.failure, undefined, checks.serviceWorker.failure);
+    assert.match(checks.serviceWorker.text, /Hello from recto/u);
+    assert.ok(checks.serviceWorker.ink > 500, `service worker ink ${checks.serviceWorker.ink}`);
     assert.match(checks.latin.text, /Hello from recto/u);
     assert.deepEqual([checks.latin.width, checks.latin.height], [1024, 1326]);
     assert.ok(checks.latin.ink > 500, `ink ${checks.latin.ink}`);
@@ -252,43 +305,62 @@ async function checkPages(browserName, label, origin) {
     assert.equal(checks.missingAsset.code, "missing-asset");
     console.log(`${browserName}, ${label}: ok (${JSON.stringify({ wasmMs: checks.startMs, ink: checks.latin.ink })})`);
   } finally {
-    await browser.close();
+    await within(30_000, "closing the browser", browser.close());
   }
 }
 
 const preview = await listen(serveFile(path.join(appDir, "dist")));
-let failed = false;
-const devServer = spawn(vite, ["--port", "0", "--strictPort", "false", "--host", "127.0.0.1"], {
+step("start the vite dev server");
+// The port is chosen here and the server asked over HTTP, not read from what vite prints: under
+// CI=true its output is coloured even into a pipe, and an address that never matched once hung this
+// script for an hour.
+const free = await listen(() => {});
+const devPort = free.address().port;
+await shut(free);
+const devOrigin = `http://127.0.0.1:${devPort}`;
+const devServer = spawn(vite, ["--port", String(devPort), "--strictPort", "--host", "127.0.0.1"], {
   cwd: appDir,
-  stdio: ["ignore", "pipe", "inherit"],
+  stdio: ["ignore", "ignore", "inherit"],
 });
-const devOrigin = await new Promise((resolve, reject) => {
-  let seen = "";
-  devServer.stdout.on("data", (chunk) => {
-    seen += chunk;
-    // The address is coloured in a terminal; strip the escapes.
-    const match = /http:\/\/127\.0\.0\.1:\d+/u.exec(seen.replace(/\[[0-9;]*m/gu, ""));
-    if (match) {
-      resolve(match[0]);
-    }
-  });
-  devServer.once("exit", () => reject(new Error(`vite dev exited: ${seen}`)));
-});
+children.add(devServer);
+const devExited = new Promise((resolve) => devServer.once("exit", resolve));
+let failed = false;
 try {
+  await within(
+    60_000,
+    "the vite dev server",
+    (async () => {
+      for (;;) {
+        const up = await fetch(`${devOrigin}/index.html`).then(
+          (response) => response.ok,
+          () => false,
+        );
+        if (up) {
+          return;
+        }
+        if (devServer.exitCode !== null) {
+          throw new Error(`vite dev exited with ${devServer.exitCode}`);
+        }
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      }
+    })(),
+  );
   for (const browser of browsers) {
-    await checkPages(browser, "vite build", `http://127.0.0.1:${preview.address().port}`);
-    await checkPages(browser, "vite dev", devOrigin);
+    await within(3 * 60_000, `${browser} on vite build`, checkPages(browser, "vite build", `http://127.0.0.1:${preview.address().port}`));
+    await within(3 * 60_000, `${browser} on vite dev`, checkPages(browser, "vite dev", devOrigin));
   }
 } catch (error) {
   failed = true;
   console.error(error);
 } finally {
-  devServer.removeAllListeners("exit");
   devServer.kill();
-  preview.close();
-  pdfServer.close();
+  await within(10_000, "stopping vite", devExited).catch(() => devServer.kill("SIGKILL"));
+  children.delete(devServer);
+  await shut(preview).catch(console.error);
+  await shut(pdfServer).catch(console.error);
 }
+clearTimeout(deadline);
 if (failed) {
   process.exit(1);
 }
-console.log("\nsmoke ok");
+console.log(`\nsmoke ok in ${Math.round((Date.now() - started) / 1000)} s`);

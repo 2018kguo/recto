@@ -1,13 +1,50 @@
-// The page's own thread: the engine must refuse it, with a message saying what to do.
-import { openPdf } from "@2018kguo/recto";
+// The page's own thread: no synchronous reads here, so assets are fetched up front, and the engine
+// works. A ranged read still has to refuse. And the same in a service worker.
+import { createPdfEngine, openPdf } from "@2018kguo/recto";
 
-const failure = await openPdf(new Uint8Array(1)).then(
-  () => null,
-  (error) => error
-);
+const ink = ({ rgba }) => {
+  let dark = 0;
+  for (let i = 0; i < rgba.length; i += 4) {
+    dark += rgba[i] < 128 ? 1 : 0;
+  }
+  return dark;
+};
+const mainThread = {};
+try {
+  const report = await (await fetch("/report.pdf")).arrayBuffer();
+  const doc = await openPdf(report);
+  mainThread.text = doc.text(0).text;
+  mainThread.ink = ink(doc.render(0, { width: 1024 }));
+  doc.close();
+  const engine = await createPdfEngine();
+  mainThread.ranged = await engine.openRanged("/report.pdf").then(
+    () => "opened",
+    (error) => error.code
+  );
+} catch (error) {
+  mainThread.failure = String(error);
+}
+
+async function inServiceWorker() {
+  const registration = await navigator.serviceWorker.register("/sw.js", { type: "module", scope: "/" });
+  const active = registration.active ?? registration.waiting ?? registration.installing;
+  if (active.state !== "activated") {
+    await new Promise((resolve) => {
+      active.addEventListener("statechange", () => active.state === "activated" && resolve());
+    });
+  }
+  return await new Promise((resolve, reject) => {
+    const { port1, port2 } = new MessageChannel();
+    port1.onmessage = ({ data }) => resolve(data);
+    active.postMessage("check", [port2]);
+    setTimeout(() => reject(new Error("no answer from the service worker")), 30_000);
+  });
+}
+const serviceWorker = await inServiceWorker().catch((error) => ({ failure: String(error) }));
+
 const worker = new Worker(new URL("./checks-worker.js", import.meta.url), { type: "module" });
 worker.onmessage = ({ data }) => {
-  window.smokeResult = { ...data, mainThread: { code: failure?.code, message: failure?.message } };
+  window.smokeResult = { ...data, mainThread, serviceWorker };
 };
 worker.onerror = (event) => {
   window.smokeResult = { failure: `worker error: ${event.message}` };

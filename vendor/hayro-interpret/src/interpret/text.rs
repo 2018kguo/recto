@@ -62,6 +62,8 @@ pub(crate) fn append_text_string<'a>(
                 glyph,
                 transform,
                 char_space,
+                font_size: state.font_size,
+                stretch: metrics.stretch as f32,
             });
         }
 

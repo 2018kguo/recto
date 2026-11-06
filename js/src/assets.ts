@@ -3,8 +3,8 @@
 //
 // The engine asks for a font or CMap from inside a synchronous call, the first time a
 // document needs one, so reading must be synchronous too: fs in Node, a synchronous
-// XMLHttpRequest in a Web Worker. A page's main thread may not fetch bytes synchronously
-// (and would freeze the page), which is why the engine refuses to start there. The URLs
+// XMLHttpRequest in a Web Worker. A page's main thread may not fetch bytes synchronously, and a
+// service worker has no XMLHttpRequest, so there they are fetched up front instead. The URLs
 // are written out as `new URL("literal", import.meta.url)` because that is the form
 // bundlers recognise and rewrite, emitting the file.
 //
@@ -38,19 +38,12 @@ function nodeFs() {
   return globalThis.process?.getBuiltinModule?.("node:fs");
 }
 
-/** Throws unless this thread can run the engine. */
-export function assertUsableThread(): void {
+/** Whether an asset can be read at the moment the engine asks for it. */
+export function canReadSync(): boolean {
   if (nodeFs()) {
-    return;
+    return true;
   }
-  if (typeof document !== "undefined" || typeof XMLHttpRequest === "undefined") {
-    throw new PdfError(
-      "wrong-thread",
-      "recto blocks its thread and reads fonts synchronously, so in a browser it runs in a " +
-        "dedicated Web Worker, not on a page's main thread or in a service worker. Move this " +
-        'call into a worker: new Worker(new URL("./pdf-worker.js", import.meta.url), { type: "module" }).'
-    );
-  }
+  return typeof document === "undefined" && typeof XMLHttpRequest !== "undefined";
 }
 
 /** `assetBase` as a directory URL, or null for the package's own files. */
@@ -146,6 +139,30 @@ export async function loadWasm(base: URL | null): Promise<Uint8Array<ArrayBuffer
 /** Verified assets by URL: hash and read each once per thread. */
 const loaded = new Map<string, Uint8Array>();
 
+/** Fetches assets ahead of time, for a thread that can't read them when they're needed. */
+export async function preloadAssets(base: URL | null, names: AssetName[]): Promise<void> {
+  await Promise.all(
+    names.map(async (name) => {
+      let url: URL | null = null;
+      let bytes: Uint8Array;
+      try {
+        url = assetUrl(name, base);
+        if (loaded.has(url.href)) {
+          return;
+        }
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        bytes = new Uint8Array(await response.arrayBuffer());
+      } catch (error) {
+        throw loadFailure(name, url, error instanceof Error ? error.message : String(error), error);
+      }
+      loaded.set(url.href, checked(name, url, bytes));
+    })
+  );
+}
+
 /** An asset, read synchronously. Throws a PdfError rather than returning nothing. */
 export function loadAssetSync(name: AssetName, base: URL | null): Uint8Array {
   let url: URL | null = null;
@@ -155,6 +172,9 @@ export function loadAssetSync(name: AssetName, base: URL | null): Uint8Array {
     const cached = loaded.get(url.href);
     if (cached) {
       return cached;
+    }
+    if (!canReadSync()) {
+      throw new Error("this thread can only use assets fetched up front, and it was left out of preloadAssets");
     }
     bytes = nodeFs() ? readFromDisk(url) : readSync(url);
   } catch (error) {

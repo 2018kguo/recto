@@ -1,0 +1,27 @@
+{
+ "date": "2026-11-06T22:05:11.452Z",
+ "documents": 157,
+ "of": 200,
+ "pagesEach": 10,
+ "reference": null,
+ "summary": {
+  "recto": {
+   "precision": 99.01,
+   "recall": 98.63,
+   "medianF1": 99.59,
+   "words": 256991
+  },
+  "pdf.js": {
+   "precision": 99.1,
+   "recall": 98.98,
+   "medianF1": 99.55,
+   "words": 257651
+  },
+  "pdfium": {
+   "precision": 98.91,
+   "recall": 98.68,
+   "medianF1": 99.55,
+   "words": 257375
+  }
+ }
+}

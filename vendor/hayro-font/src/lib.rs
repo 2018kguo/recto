@@ -113,6 +113,66 @@ pub struct CodeMetrics {
     pub displacement: Vec2,
 }
 
+/// recto: what a font's dictionary says about itself, read once per font.
+#[derive(Clone, Debug, Default)]
+pub struct FontFacts {
+    /// `BaseFont` without a subset prefix (Type 3: `Name`). Empty if the dictionary has none.
+    pub name: String,
+    /// `FontWeight` of the descriptor; 0 if it doesn't state one.
+    pub weight: u32,
+    /// `Flags` of the descriptor, if there is one.
+    pub flags: Option<u32>,
+    /// `Ascent` and `Descent` of the descriptor over 1000, where they are usable.
+    pub ascent: Option<f32>,
+    /// See `ascent`. Never positive.
+    pub descent: Option<f32>,
+    /// The descriptor holds a font program (a Type 3 font is its own).
+    pub embedded: bool,
+    /// Tells one font dictionary from another.
+    pub key: u128,
+}
+
+impl FontFacts {
+    fn read(dict: &Dict<'_>) -> Self {
+        use hayro_syntax::object::dict::keys::{
+            ASCENT, DESCENDANT_FONTS, DESCENT, FLAGS, FONT_FILE, FONT_FILE2, FONT_FILE3, FONT_NAME,
+            FONT_WEIGHT, NAME,
+        };
+        let subtype = dict.get::<Name<'_>>(SUBTYPE);
+        let is_type3 = subtype.as_ref().is_some_and(|s| s.deref() == TYPE3);
+        // A Type0 font's descriptor is on its descendant.
+        let descendant = dict
+            .get::<hayro_syntax::object::Array<'_>>(DESCENDANT_FONTS)
+            .and_then(|fonts| fonts.iter::<Dict<'_>>().next());
+        let descriptor = dict
+            .get::<Dict<'_>>(FONT_DESC)
+            .or_else(|| descendant.and_then(|d| d.get::<Dict<'_>>(FONT_DESC)));
+        let name = dict
+            .get::<Name<'_>>(if is_type3 { NAME } else { BASE_FONT })
+            .or_else(|| descriptor.as_ref().and_then(|d| d.get::<Name<'_>>(FONT_NAME)))
+            .map(|n| strip_subset_prefix(n.as_str()).to_string())
+            .unwrap_or_default();
+        let number = |key| descriptor.as_ref().and_then(|d| d.get::<f32>(key));
+        // Producers write zero, or a positive descent, for "don't know" and "below the baseline".
+        let ascent = number(ASCENT).filter(|a| *a > 0.0 && *a <= 3000.0);
+        let descent = number(DESCENT)
+            .map(|d| -d.abs())
+            .filter(|d| *d < 0.0 && *d >= -3000.0);
+        Self {
+            key: dict.cache_key(),
+            name,
+            weight: number(FONT_WEIGHT).map_or(0, |w| w as u32),
+            flags: descriptor.as_ref().and_then(|d| d.get::<u32>(FLAGS)),
+            ascent: ascent.map(|a| a / 1000.0),
+            descent: descent.map(|d| d / 1000.0),
+            embedded: is_type3
+                || descriptor.as_ref().is_some_and(|d| {
+                    d.contains_key(FONT_FILE) || d.contains_key(FONT_FILE2) || d.contains_key(FONT_FILE3)
+                }),
+        }
+    }
+}
+
 /// A PDF font.
 #[derive(Clone, Debug)]
 pub struct Font<'a>(FontType<'a>, Rc<codes::CodeTable>);
@@ -218,7 +278,7 @@ impl<'a> Font<'a> {
             FontType::TrueType(t) => OutlineFont::TrueType(t.clone()),
             FontType::Type0(t) => OutlineFont::Type0(t.clone()),
             FontType::Type3(t) => {
-                return FontGlyph::Type3(Type3Glyph::new(t.clone(), glyph, char_code));
+                return FontGlyph::Type3(Type3Glyph::new(t.clone(), glyph, char_code, self.1.clone()));
             }
         };
 
@@ -315,13 +375,21 @@ impl<'a> Font<'a> {
             _ => return None,
         };
 
-        Some(Self(f_type, Rc::default()))
+        Some(Self(f_type, Rc::new(codes::CodeTable::with_facts(FontFacts::read(dict)))))
     }
 
     fn new_standard(standard_font: StandardFont, loader: &ProgramLoader<'_>) -> Option<Self> {
         let font = Type1Font::new_standard(standard_font, loader)?;
+        let facts = FontFacts {
+            name: standard_font.postscript_name().to_string(),
+            key: standard_font as u128 + 1,
+            ..FontFacts::default()
+        };
 
-        Some(Self(FontType::Type1(Rc::new(font)), Rc::default()))
+        Some(Self(
+            FontType::Type1(Rc::new(font)),
+            Rc::new(codes::CodeTable::with_facts(facts)),
+        ))
     }
 }
 
@@ -488,6 +556,11 @@ impl OutlineGlyph {
         self.codes
             .peek(self.char_code, |i| i.width)
             .unwrap_or_else(|| self.font.glyph_advance_width(self.char_code))
+    }
+
+    /// recto: what the font's dictionary says about it.
+    pub fn font_facts(&self) -> &FontFacts {
+        &self.codes.1
     }
 
     /// recto: whether both glyphs come from one font (the same code table).

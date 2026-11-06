@@ -9,29 +9,34 @@ cargo test             # the Rust crate; embeds its fonts, so nothing else is ne
 npm run build          # js/wasm (the wasm, its glue, assets, pins) and js/dist
 npm test               # cargo test, the build, then the JavaScript package's tests
 npm run smoke          # the packed package in a fresh directory, in Node and in Chromium
+npm run bench -- dir   # recto, pdf.js and pdfium in Node, on a directory of PDFs
+npm run bench:browser -- dir   # the same in Chromium: bytes, time, stutter, memory
+npm run assets         # the film, images and chart under docs/; needs ffmpeg
 ```
 
 `js/wasm` and `js/dist` are built, not committed; the npm package ships them. Rebuilding the
 wasm rewrites `js/wasm/pins.mjs`, so the integrity pins are never edited by hand.
 
 `npm run smoke` takes `RECTO_SMOKE_DIR` (where to install; it is emptied) and
-`RECTO_SMOKE_BROWSERS` (default `chromium`; also `firefox`, `webkit`).
+`RECTO_SMOKE_BROWSERS` (default `chromium`; also `firefox`, `webkit`). Every step in it has a
+time limit and it fails naming the step it was on, so it can't hang.
 
 ## Repository layout
 
 - `crates/recto`: the engine. `lib.rs` is the document; `device.rs` receives what hayro's
   interpreter draws; `text.rs` turns glyphs into chars, spaces, lines and words; `annots.rs`
-  reads annotations; `ranged.rs` is the buffer behind a ranged read; `assets.rs` finds the
+  reads annotations; `outline.rs` reads bookmarks; `ranged.rs` is the buffer behind a ranged read; `assets.rs` finds the
   fonts a document names but does not embed; `wasm.rs` is what the JavaScript package calls.
 - `vendor/`: patched hayro crates; see [vendor/README.md](../vendor/README.md).
 - `assets/`: the CJK fallback font and its notice. The Foxit fonts and CMaps come from the
   vendored crates.
-- `scripts/`: `build-wasm.sh` and `package-wasm.mjs`, which together fill `js/wasm`.
+- `scripts/`: `build-wasm.sh` and `package-wasm.mjs`, which together fill `js/wasm`; `assets/`,
+  which draws what's generated under `docs/`.
 - `js/`: the npm package. `engine.ts` owns the instance, `document.ts` maps its columns,
   `assets.ts` finds and checks the files, `ranged.ts` is the loader. `text-items.ts`,
   `reading-order.ts` and `page-measures.ts` are helpers over a page's columns.
-- `smoke/`: the install test. `bench/`: the comparison behind
-  [benchmarks.md](benchmarks.md); it takes a directory of PDFs and commits none.
+- `smoke/`: the install test. `bench/`: the comparisons behind
+  [benchmarks.md](benchmarks.md); they take a directory of PDFs and commit none.
 
 ## Rust
 

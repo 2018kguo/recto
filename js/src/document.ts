@@ -17,8 +17,13 @@ export type PdfFont = {
   name: string;
   /** PDF font descriptor flags (fixed pitch, serif, symbolic, italic, ...). */
   flags: number;
+  /** 100 to 900 as the file states it, or as its name says; 0 where it says nothing. */
   weight: number;
   embedded: boolean;
+  /** Top of this font's char boxes, in ems above the baseline: the descriptor's, or 0.8. */
+  ascent: number;
+  /** Bottom of this font's char boxes, in ems (negative): the descriptor's, or -0.2. */
+  descent: number;
 };
 
 /** `PdfPageText.flags` bit: a space or line break the engine inferred; not in the content stream. */
@@ -37,9 +42,12 @@ export type PdfPageText = {
   count: number;
   /** Unicode code points (U+FFFD where a glyph's code is no scalar value). */
   codepoints: Uint32Array<ArrayBuffer>;
-  /** x, y, width, height per char: the font box (what pdf.js reports), not glyph ink. */
+  /** x, y, width, height per char: the advance by the font's ascent and descent, not glyph ink. */
   boxes: Float32Array<ArrayBuffer>;
+  /** The size each char is drawn at, in points: `Tf` scaled by the text and page matrices. */
   fontSizes: Float32Array<ArrayBuffer>;
+  /** The `Tf` operand each char was shown with, unscaled. */
+  tfSizes: Float32Array<ArrayBuffer>;
   /** Radians, counter-clockwise. */
   angles: Float32Array<ArrayBuffer>;
   /** Fill colour as 0xRRGGBBAA. */
@@ -48,7 +56,10 @@ export type PdfPageText = {
   fontIds: Int32Array<ArrayBuffer>;
   /** CHAR_GENERATED | CHAR_UNMAPPED. */
   flags: Uint8Array<ArrayBuffer>;
+  /** One per font dictionary used on the page. */
   fonts: PdfFont[];
+  /** The page showed more glyphs than one page may collect (2^19); the rest aren't here. */
+  truncated: boolean;
   /** Runs of non-space chars in content order, as char ranges and boxes. */
   words: PdfWords;
   /**
@@ -134,6 +145,8 @@ export type PdfPathSegments = {
  */
 export type PdfPageObjects = {
   textObjects: number;
+  /** The page held more than one page may collect (2^21 path segments, 2^19 images); the rest aren't here. */
+  truncated: boolean;
   images: {
     count: number;
     /** x, y, width, height per image. */
@@ -195,6 +208,11 @@ export type PdfBitmap = {
   height: number;
   /** Opaque RGBA on a white background, four bytes a pixel. */
   rgba: Uint8Array<ArrayBuffer>;
+  /**
+   * The page passed a limit on what one render may do (more than 32 groups that need the page
+   * redrawn under them), so past that those groups are drawn as if isolated.
+   */
+  truncated: boolean;
 };
 
 export const ANNOT_SUBTYPE = {
@@ -209,8 +227,18 @@ export const ANNOT_SUBTYPE = {
  * An open PDF. Every call is synchronous CPU work on this thread. Closing is idempotent, and
  * every other method throws a PdfError with code "closed" afterwards.
  */
+/** A bookmark. `page` is -1 if it goes nowhere in this file; `url` is set if it links out. */
+export type PdfOutlineItem = {
+  title: string;
+  page: number;
+  url: string | null;
+  children: PdfOutlineItem[];
+};
+
 export interface PdfDocument {
   readonly pageCount: number;
+  /** The document's bookmarks; empty if it has none. */
+  outline(): PdfOutlineItem[];
   pageInfo(index: number): PdfPageInfo;
   text(index: number): PdfPageText;
   /** `text`, `objects` and `annotations` from one interpretation of the page. */
@@ -243,6 +271,8 @@ export type Instance = {
   dead: boolean;
   /** An asset's load failure, rethrown by the call that needed the asset. */
   failure: PdfError | undefined;
+  /** Called when a document on this instance closes. */
+  onClose?: () => void;
 };
 
 /** What a call into the instance threw, as what the caller should see. */
@@ -277,11 +307,15 @@ function toText(t: Glue.PageText): PdfPageText {
     const fontFlags = t.fontFlags;
     const fontWeights = t.fontWeights;
     const fontEmbedded = t.fontEmbedded;
+    const fontAscents = t.fontAscents;
+    const fontDescents = t.fontDescents;
     const fonts: PdfFont[] = t.fontNames.map((name, i) => ({
       name,
       flags: fontFlags[i] ?? 0,
       weight: fontWeights[i] ?? 0,
       embedded: fontEmbedded[i] === 1,
+      ascent: fontAscents[i] ?? 0,
+      descent: fontDescents[i] ?? 0,
     }));
     const wordFirstChar = t.wordFirstChar;
     const runEms = t.runEms;
@@ -291,6 +325,8 @@ function toText(t: Glue.PageText): PdfPageText {
       codepoints: t.codepoints,
       boxes: t.boxes,
       fontSizes: t.fontSizes,
+      tfSizes: t.tfSizes,
+      truncated: t.truncated,
       angles: t.angles,
       fills: t.fills,
       fontIds: t.fontIds,
@@ -315,6 +351,7 @@ function toObjects(o: Glue.PageObjects): PdfPageObjects {
     const segmentKinds = o.segmentKinds;
     return {
       textObjects: o.textObjects,
+      truncated: o.truncated,
       images: {
         count: imageBoxes.length / 4,
         boxes: imageBoxes,
@@ -443,6 +480,23 @@ export class RectoDocument implements PdfDocument {
     return this.#call(() => toObjects(this.#doc.objects(index)));
   }
 
+  outline(): PdfOutlineItem[] {
+    if (this.#closed) {
+      throw new PdfError("closed", "this document is closed");
+    }
+    return this.#call(() => {
+      const top: PdfOutlineItem[] = [];
+      // The open item at each level; an item's parent is the last one a level up.
+      const open: PdfOutlineItem[] = [];
+      for (const [title, url, level, page] of this.#doc.outline() as [string, string, number, number][]) {
+        const item: PdfOutlineItem = { title, page, url: url || null, children: [] };
+        (level === 0 ? top : (open[level - 1]?.children ?? top)).push(item);
+        open[level] = item;
+      }
+      return top;
+    });
+  }
+
   annotations(index: number): PdfAnnotation[] {
     this.#check(index);
     return this.#call(() => toAnnotations(this.#doc.annotations(index)));
@@ -484,6 +538,7 @@ export class RectoDocument implements PdfDocument {
       consume(this.#doc.render(index, options.width, maxHeight), (page) => ({
         width: page.width,
         height: page.height,
+        truncated: page.truncated,
         rgba: page.takeRgba(),
       }))
     );
@@ -498,6 +553,7 @@ export class RectoDocument implements PdfDocument {
     if (!this.#instance.dead) {
       this.#doc.free();
     }
+    this.#instance.onClose?.();
   }
 
   [Symbol.dispose](): void {

@@ -15,7 +15,7 @@ use std::ops::Deref;
 mod type3;
 
 pub use hayro_font::{
-    FallbackFontQuery, FontData, FontQuery, FontStretch, GlyphId, GlyphIdentifier, HintingCache,
+    FallbackFontQuery, FontData, FontFacts, FontQuery, FontStretch, GlyphId, GlyphIdentifier, HintingCache,
     OutlineFontData, OutlineGlyph, StandardFont,
 };
 pub(crate) use hayro_font::{Font, FontCache, FontGlyph, UNITS_PER_EM};
@@ -77,9 +77,24 @@ pub struct PositionedGlyph<'a> {
     /// recto: `Tc` in glyph units, the part of the pen's move past the glyph's
     /// own width that is letter spacing rather than a gap between words.
     pub(crate) char_space: f32,
+    /// recto: the `Tf` operand.
+    pub(crate) font_size: f32,
+    /// recto: how much the transform widens this glyph to fit the PDF's width, when its font was
+    /// substituted. 1 otherwise.
+    pub(crate) stretch: f32,
 }
 
 impl PositionedGlyph<'_> {
+    /// recto: the `Tf` operand.
+    pub fn font_size(&self) -> f32 {
+        self.font_size
+    }
+
+    /// recto: see the field.
+    pub fn stretch(&self) -> f32 {
+        self.stretch
+    }
+
     /// recto: `Tc` in glyph units (1000 to the em).
     pub fn char_space(&self) -> f32 {
         self.char_space
@@ -169,6 +184,13 @@ impl<'a> Type3Glyph<'a> {
     pub fn advance_width(&self) -> Option<f32> {
         Some(self.glyph.advance_width())
     }
+
+    /// recto: what the font's dictionary says about it.
+    pub fn font_facts(&self) -> &FontFacts {
+        self.glyph.font_facts()
+    }
+
+
 }
 
 impl CacheKey for Type3Glyph<'_> {

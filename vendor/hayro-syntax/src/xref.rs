@@ -7,7 +7,7 @@ use crate::object::Name;
 use crate::object::ObjectIdentifier;
 use crate::object::Stream;
 use crate::object::dict::keys::{
-    AUTHOR, CREATION_DATE, CREATOR, ENCRYPT, FIRST, ID, INDEX, INFO, KEYWORDS, MOD_DATE, N,
+    AUTHOR, CREATION_DATE, CREATOR, ENCRYPT, FILTER, FIRST, ID, INDEX, INFO, KEYWORDS, MOD_DATE, N, O, P, R, U,
     OCPROPERTIES, PAGES, PREV, PRODUCER, ROOT, SIZE, SUBJECT, TITLE, TYPE, VERSION, W, XREF_STM,
 };
 use crate::object::dict::probe_dict;
@@ -55,16 +55,44 @@ pub(crate) fn root_xref(data: PdfData, password: &[u8]) -> Result<XRef, XRefErro
 }
 
 /// Try to manually parse the PDF to build an xref table and trailer dictionary.
-pub(crate) fn fallback(data: PdfData, password: &[u8]) -> Option<XRef> {
+pub(crate) fn fallback(data: PdfData, password: &[u8]) -> Result<XRef, XRefError> {
     // recto: a repair scans the whole file.
     data.ensure(0, usize::MAX);
     let (xref_map, xref_input) = fallback_xref_map(&data, password);
 
-    if let Some(xref_input) = xref_input {
-        XRef::new(data.clone(), xref_map, xref_input, true, password).ok()
-    } else {
-        None
+    match xref_input {
+        Some(xref_input) => XRef::new(data.clone(), xref_map, xref_input, true, password),
+        None => Err(XRefError::Unknown),
     }
+}
+
+/// recto: with the trailer gone, nothing points at the encryption dictionary, and reading the file
+/// as unencrypted gives garbage that looks like an empty document. Look for the dictionary itself.
+fn find_encrypt_dict(data: &PdfData, xref_map: &XrefMap, ctx: &ReaderContext<'_>) -> Option<ObjectIdentifier> {
+    let bytes = data.as_ref();
+    let mut from = 0;
+    while let Some(found) = crate::util::find_needle(&bytes[from..], b"/Standard") {
+        let at = from + found;
+        from = at + 1;
+        // The object it lies in: the nearest start before it.
+        let owner = xref_map
+            .iter()
+            .filter_map(|(id, entry)| match entry {
+                EntryType::Normal(offset) if *offset <= at => Some((*offset, *id)),
+                _ => None,
+            })
+            .max_by_key(|(offset, _)| *offset);
+        let Some((offset, id)) = owner else { continue };
+        let mut reader = Reader::new(&bytes[offset..]);
+        let Some(object) = reader.read_with_context::<IndirectObject<Dict<'_>>>(ctx) else {
+            continue;
+        };
+        let dict = object.get();
+        if dict.contains_key(FILTER) && dict.contains_key(O) && dict.contains_key(U) && dict.contains_key(P) {
+            return Some(id);
+        }
+    }
+    None
 }
 
 fn fallback_xref_map<'a>(data: &'a PdfData, password: &[u8]) -> (XrefMap, Option<XRefInput<'a>>) {
@@ -262,7 +290,8 @@ fn fallback_xref_map_inner<'a>(
             Some(XRefInput::TrailerDictData(trailer_dict_data)),
         )
     } else if let Some(root_ref) = root_ref {
-        (xref_map, Some(XRefInput::RootRef(root_ref)))
+        let encrypt = find_encrypt_dict(data, &xref_map, &dummy_ctx);
+        (xref_map, Some(XRefInput::RootRef(root_ref, encrypt)))
     } else {
         (xref_map, None)
     }
@@ -325,7 +354,16 @@ impl XRef {
 
                     get_decryptor(&trailer_dict, password)?
                 }
-                XRefInput::RootRef(_) => Decryptor::None,
+                XRefInput::RootRef(_, None) => Decryptor::None,
+                // recto: the key of revisions before 6 hangs on the trailer's ID, which is gone
+                // with the trailer: a password can't be told from a wrong one, so don't ask for one.
+                XRefInput::RootRef(_, Some(encrypt)) => {
+                    let dict = xref.get::<Dict<'_>>(encrypt).ok_or(XRefError::Unknown)?;
+                    if dict.get::<u8>(R).is_none_or(|r| r < 5) {
+                        return Err(XRefError::Unknown);
+                    }
+                    get(&dict, &[], password).map_err(XRefError::Encryption)?
+                }
             }
         };
 
@@ -367,7 +405,7 @@ impl XRef {
 
                 (td, has_ocgs, metadata)
             }
-            XRefInput::RootRef(root_ref) => {
+            XRefInput::RootRef(root_ref, _) => {
                 let root = xref.get::<Dict<'_>>(root_ref).ok_or(XRefError::Unknown)?;
                 let pages_ref = root.get_ref(PAGES).ok_or(XRefError::Unknown)?;
 
@@ -680,11 +718,11 @@ pub(crate) enum XRefInput<'a> {
     /// In case the trailer dictionary could not be read (for example because
     /// it is cut-off), we just pass the object ID of the root dictionary
     /// in case we have found one, and try our best to build the PDF just
-    /// with the information we have there.
+    /// with the information we have there. recto: and the encryption dictionary, if found.
     ///
     /// Note that this won't work if the document is encrypted, as we
     /// can't access the crypto dictionary.
-    RootRef(ObjectIdentifier),
+    RootRef(ObjectIdentifier, Option<ObjectIdentifier>),
 }
 
 pub(crate) fn find_last_xref_pos(data: &[u8]) -> Option<usize> {
@@ -694,7 +732,8 @@ pub(crate) fn find_last_xref_pos(data: &[u8]) -> Option<usize> {
     finder.jump(pos);
     finder.forward_tag(needle)?;
     finder.skip_white_spaces_and_comments();
-    finder.read_without_context::<i32>()?.try_into().ok()
+    // recto: i64, for offsets past 2 GiB.
+    finder.read_without_context::<i64>()?.try_into().ok()
 }
 
 /// A type of xref entry.
@@ -901,14 +940,14 @@ fn populate_from_xref_table<'a>(
 
     let mut max_obj = 0;
 
-    if let Some(prev) = trailer.get::<i32>(PREV) {
+    if let Some(prev) = trailer.get::<i64>(PREV) {
         // First insert the entries from any previous xref tables.
         populate_xref_impl_inner(data, prev as usize, insert_map, visited)?;
     }
 
     // In hybrid files, entries in `XRefStm` should have higher priority, therefore we insert them
     // after looking at `PREV`.
-    if let Some(xref_stm) = trailer.get::<i32>(XREF_STM) {
+    if let Some(xref_stm) = trailer.get::<i64>(XREF_STM) {
         populate_xref_impl_inner(data, xref_stm as usize, insert_map, visited)?;
     }
 
@@ -947,7 +986,7 @@ fn populate_from_xref_stream<'a>(
         .read_with_context::<IndirectObject<Stream<'_>>>(&ReaderContext::dummy())?
         .get();
 
-    if let Some(prev) = stream.dict().get::<i32>(PREV) {
+    if let Some(prev) = stream.dict().get::<i64>(PREV) {
         // First insert the entries from any previous xref tables.
         let _ = populate_xref_impl_inner(data, prev as usize, insert_map, visited)?;
     }

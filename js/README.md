@@ -16,8 +16,9 @@ const { width, height, rgba } = doc.render(0, { width: 1024 });
 ```
 
 Calls run synchronously on the calling thread, so put heavy work on a `worker_threads` worker. In
-a browser it runs in a dedicated Web Worker: `import` it there and call `openPdf`. Nothing else
-is needed; a page's main thread gets an error that says so.
+a browser, use a dedicated Web Worker: `import` it there and call `openPdf`. Nothing else is
+needed. It also runs on a page's main thread and in a service worker, where it fetches its assets
+up front, but a main thread freezes for the length of each call.
 
 [Documentation](https://github.com/2018kguo/recto#readme) ·
 [Reference](https://github.com/2018kguo/recto/blob/main/docs/reference.md)

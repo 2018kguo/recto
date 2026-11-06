@@ -69,9 +69,11 @@ impl Pdf {
         let xref = match root_xref(data.clone(), password) {
             Ok(x) => x,
             Err(e) => match e {
-                XRefError::Unknown => {
-                    fallback(data.clone(), password).ok_or(LoadPdfError::Invalid)?
-                }
+                XRefError::Unknown => match fallback(data.clone(), password) {
+                    Ok(x) => x,
+                    Err(XRefError::Encryption(e)) => return Err(LoadPdfError::Decryption(e)),
+                    Err(XRefError::Unknown) => return Err(LoadPdfError::Invalid),
+                },
                 XRefError::Encryption(e) => return Err(LoadPdfError::Decryption(e)),
             },
         };

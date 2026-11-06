@@ -14,8 +14,9 @@ pub const CHAR_UNMAPPED: u8 = 2;
 // Loose box in em units, the usual fallback ascent/descent when a font
 // gives none. Limit: fixed metrics; hayro does not expose the descriptor's
 // /Ascent and /Descent.
-const ASCENT: f64 = 0.8;
-const DESCENT: f64 = -0.2;
+/// The box's height where a font doesn't state its own.
+pub(crate) const ASCENT: f64 = 0.8;
+pub(crate) const DESCENT: f64 = -0.2;
 /// A gap wider than this (in em) between two glyphs on a line is a space.
 const SPACE_GAP: f64 = 0.15;
 /// A baseline shift larger than this (in em) is a new line.
@@ -33,6 +34,8 @@ pub(crate) struct Glyph {
     up: Vec2,
     /// Font size in viewer points.
     pub(crate) em: f64,
+    /// The `Tf` operand.
+    pub(crate) tf: f32,
     /// Advance along `dir`, in viewer points.
     advance: f64,
     /// `Tc` along `dir`, in viewer points: letter spacing inside a text run.
@@ -52,6 +55,7 @@ pub(crate) fn glyph_from(
     text: Text,
     advance_units: f64,
     vertical: bool,
+    (ascent, descent): (f64, f64),
 ) -> Option<Glyph> {
     // The matrix's columns, read off rather than mapped as points.
     let [a, b, c, d, e, f] = transform.as_coeffs();
@@ -78,8 +82,8 @@ pub(crate) fn glyph_from(
     // The box's corners: the baseline start moved down to the descent, then
     // across by the advance and up to the ascent.
     let along = x_axis * (advance_units / 1000.0);
-    let low = origin + y_axis * DESCENT;
-    let high = origin + y_axis * ASCENT;
+    let low = origin + y_axis * descent;
+    let high = origin + y_axis * ascent;
     let (mut x0, mut y0, mut x1, mut y1) = (f64::MAX, f64::MAX, f64::MIN, f64::MIN);
     for p in [low, low + along, high + along, high] {
         x0 = x0.min(p.x);
@@ -107,6 +111,7 @@ pub(crate) fn glyph_from(
         dir,
         up,
         em,
+        tf: 0.0,
         advance,
         char_space: 0.0,
         bbox,
@@ -125,11 +130,10 @@ pub struct Char {
     /// x, y, width, height in the viewer frame.
     pub bbox: [f32; 4],
     pub flags: u8,
-    /// Font size as drawn, in points.
-    /// Limit: not the `Tf` operand; hayro hands a device only the composed
-    /// glyph transform (Tf × Tm × CTM), so this is the drawn size. They agree
-    /// wherever Tm and the CTM do not scale.
+    /// Font size as drawn, in points (Tf × Tm × CTM).
     pub em: f32,
+    /// The `Tf` operand itself. The two agree wherever Tm and the CTM don't scale.
+    pub tf: f32,
     /// `atan2(c, a)` of the char's page-space matrix, in [0, 2π). Its `c` is
     /// the y axis's x part, so a skewed italic
     /// reads about 0.18 and text turned θ counter-clockwise reads 2π - θ.
@@ -153,6 +157,9 @@ pub struct Font {
     pub flags: u32,
     pub weight: u32,
     pub embedded: bool,
+    /// Top and bottom of the char boxes, in ems from the baseline.
+    pub ascent: f32,
+    pub descent: f32,
 }
 
 /// One text-showing operator: its text origin on the baseline and drawn size.
@@ -176,6 +183,8 @@ pub struct TextPage {
     pub fonts: Vec<Font>,
     /// Text objects in the order their chars first appear.
     pub runs: Vec<Run>,
+    /// The page held more glyphs than one page may collect; the rest aren't here.
+    pub truncated: bool,
 }
 
 impl TextPage {
@@ -203,6 +212,7 @@ fn generated(text: &str, at: &Glyph) -> Char {
         flags: CHAR_GENERATED,
         // A generated char takes the size and angle of the char before it.
         em: at.em as f32,
+        tf: 0.0,
         angle: at.angle,
         fill: 0,
         font: -1,
@@ -439,6 +449,7 @@ pub(crate) fn build_page(glyphs: &[Glyph], fonts: &[Font], runs: &[Run]) -> Text
             bbox: g.bbox,
             flags,
             em: g.em as f32,
+            tf: g.tf,
             angle: g.angle,
             fill: g.fill,
             font: g.font as i32,
@@ -488,6 +499,7 @@ pub(crate) fn build_page(glyphs: &[Glyph], fonts: &[Font], runs: &[Run]) -> Text
         close(s, chars.len(), &chars, &mut words);
     }
     TextPage {
+        truncated: false,
         chars,
         words,
         fonts,
@@ -884,7 +896,7 @@ mod tests {
     fn at(text: &str, x: f64, y: f64, size: f64) -> Glyph {
         // Viewer frame: y grows down, so glyph "up" is -y.
         let t = Affine::new([size / 1000.0, 0.0, 0.0, -size / 1000.0, x, y]);
-        glyph_from(t, text.into(), 500.0, false).unwrap()
+        glyph_from(t, text.into(), 500.0, false, (ASCENT, DESCENT)).unwrap()
     }
 
     #[test]
@@ -997,7 +1009,7 @@ mod tests {
             .enumerate()
             .map(|(i, c)| {
                 let t = Affine::new([0.01, 0.0, 0.0, -0.01, 50.0, 100.0 + 10.0 * i as f64]);
-                glyph_from(t, Text::from_char(c), 1000.0, true).unwrap()
+                glyph_from(t, Text::from_char(c), 1000.0, true, (ASCENT, DESCENT)).unwrap()
             })
             .collect();
         assert_eq!(build(glyphs).text(), "日本語");
@@ -1012,7 +1024,7 @@ mod tests {
                 .enumerate()
                 .map(|(i, c)| {
                     let t = Affine::new([0.01, 0.0, 0.0, -0.01, 10.0 + 7.0 * i as f64, 100.0]);
-                    let mut g = glyph_from(t, Text::from_char(c), 500.0, false).unwrap();
+                    let mut g = glyph_from(t, Text::from_char(c), 500.0, false, (ASCENT, DESCENT)).unwrap();
                     g.char_space = char_space;
                     g.run = run_of(i);
                     g
@@ -1031,7 +1043,7 @@ mod tests {
             .enumerate()
             .map(|(i, c)| {
                 let t = Affine::new([0.01, 0.0, 0.0, -0.01, 10.0 + 5.0 * i as f64, 100.0]);
-                let mut g = glyph_from(t, Text::from_char(c), 500.0, false).unwrap();
+                let mut g = glyph_from(t, Text::from_char(c), 500.0, false, (ASCENT, DESCENT)).unwrap();
                 g.char_space = -3.0;
                 g
             })
@@ -1043,14 +1055,14 @@ mod tests {
     fn degenerate_transforms() {
         // Past f32: dropped rather than reported with infinite boxes.
         let huge = Affine::new([1e36, 0.0, 0.0, -1e36, 0.0, 0.0]);
-        assert!(glyph_from(huge, "a".into(), 500.0, false).is_none());
+        assert!(glyph_from(huge, "a".into(), 500.0, false, (ASCENT, DESCENT)).is_none());
         // Tz 0: kept, with no width.
         let flat = Affine::new([0.0, 0.0, 0.0, -0.01, 10.0, 100.0]);
-        let g = glyph_from(flat, "a".into(), 500.0, false).unwrap();
+        let g = glyph_from(flat, "a".into(), 500.0, false, (ASCENT, DESCENT)).unwrap();
         assert_eq!(g.bbox[2], 0.0);
         let squeezed = "squeezed"
             .chars()
-            .map(|c| glyph_from(flat, Text::from_char(c), 500.0, false).unwrap())
+            .map(|c| glyph_from(flat, Text::from_char(c), 500.0, false, (ASCENT, DESCENT)).unwrap())
             .collect();
         assert_eq!(build(squeezed).text(), "squeezed");
     }

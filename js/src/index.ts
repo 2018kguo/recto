@@ -16,6 +16,7 @@ export {
   type PdfBox,
   type PdfDocument,
   type PdfFont,
+  type PdfOutlineItem,
   type PdfPageInfo,
   type PdfPageObjects,
   type PdfPageText,

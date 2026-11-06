@@ -1,0 +1,13 @@
+{
+ "withStandardFonts": {
+  "darkPixelsInTopOfPage": 290
+ },
+ "withoutStandardFonts": {
+  "darkPixelsInTopOfPage": 290
+ },
+ "renderWithoutCanvasPackage": "failed: Cannot find module '@napi-rs/canvas'",
+ "modernBuildInNode": "loaded, 6.5.438",
+ "destroyWhileOpening": "{\"lived\":true,\"unhandledRejections\":[]}",
+ "destroyWhileReadingAPage": "{\"lived\":true,\"unhandledRejections\":[]}",
+ "destroyWhileReadingAPageUnguarded": "{\"lived\":true,\"unhandledRejections\":[]}"
+}

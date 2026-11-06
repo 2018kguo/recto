@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@embedpdf/pdfium": "2.15.1",
     "@napi-rs/canvas": "1.1.0",
-    "pdfjs-dist": "6.5.438"
+    "pdfjs-dist": "6.5.438",
+    "playwright": "1.64.1"
   }
 }

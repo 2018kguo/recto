@@ -1,0 +1,1017 @@
+{
+ "date": "2026-11-06T22:12:59.484Z",
+ "machine": "Apple M5 Pro, 18 cores",
+ "loadAverage": 5.86181640625,
+ "slowdown": {
+  "how": "the browser's processes stopped and resumed",
+  "asked": 1,
+  "factor": 1
+ },
+ "width": 800,
+ "documents": 8,
+ "pages": {
+  "read": 41,
+  "rendered": 16,
+  "report": 40
+ },
+ "pdfjsCancel": 2.7,
+ "bundle": {
+  "recto": {
+   "text": {
+    "raw": 4517857,
+    "brotli": 1264055,
+    "files": [
+     {
+      "path": "/recto/dist/index.js",
+      "raw": 794,
+      "brotli": 374
+     },
+     {
+      "path": "/recto/dist/document.js",
+      "raw": 10383,
+      "brotli": 2727
+     },
+     {
+      "path": "/recto/dist/engine.js",
+      "raw": 8136,
+      "brotli": 2401
+     },
+     {
+      "path": "/recto/dist/errors.js",
+      "raw": 493,
+      "brotli": 244
+     },
+     {
+      "path": "/recto/wasm/recto.gen.mjs",
+      "raw": 34228,
+      "brotli": 4853
+     },
+     {
+      "path": "/recto/dist/assets.js",
+      "raw": 6759,
+      "brotli": 2035
+     },
+     {
+      "path": "/recto/dist/page-measures.js",
+      "raw": 6982,
+      "brotli": 1875
+     },
+     {
+      "path": "/recto/dist/sha256.js",
+      "raw": 3645,
+      "brotli": 1383
+     },
+     {
+      "path": "/recto/wasm/pins.mjs",
+      "raw": 409,
+      "brotli": 279
+     },
+     {
+      "path": "/recto/dist/ranged.js",
+      "raw": 20287,
+      "brotli": 5636
+     },
+     {
+      "path": "/recto/dist/reading-order.js",
+      "raw": 7178,
+      "brotli": 2056
+     },
+     {
+      "path": "/recto/dist/text-items.js",
+      "raw": 10701,
+      "brotli": 3222
+     },
+     {
+      "path": "/recto/wasm/recto.wasm",
+      "raw": 4143057,
+      "brotli": 1023773
+     },
+     {
+      "path": "/recto/wasm/fonts.bin",
+      "raw": 264805,
+      "brotli": 213197
+     }
+    ]
+   },
+   "cjk": {
+    "raw": 9578656,
+    "brotli": 3164301,
+    "files": [
+     {
+      "path": "/recto/dist/index.js",
+      "raw": 794,
+      "brotli": 374
+     },
+     {
+      "path": "/recto/dist/document.js",
+      "raw": 10383,
+      "brotli": 2727
+     },
+     {
+      "path": "/recto/dist/engine.js",
+      "raw": 8136,
+      "brotli": 2401
+     },
+     {
+      "path": "/recto/dist/reading-order.js",
+      "raw": 7178,
+      "brotli": 2056
+     },
+     {
+      "path": "/recto/wasm/recto.gen.mjs",
+      "raw": 34228,
+      "brotli": 4853
+     },
+     {
+      "path": "/recto/dist/errors.js",
+      "raw": 493,
+      "brotli": 244
+     },
+     {
+      "path": "/recto/dist/ranged.js",
+      "raw": 20287,
+      "brotli": 5636
+     },
+     {
+      "path": "/recto/dist/page-measures.js",
+      "raw": 6982,
+      "brotli": 1875
+     },
+     {
+      "path": "/recto/dist/text-items.js",
+      "raw": 10701,
+      "brotli": 3222
+     },
+     {
+      "path": "/recto/dist/assets.js",
+      "raw": 6759,
+      "brotli": 2035
+     },
+     {
+      "path": "/recto/wasm/pins.mjs",
+      "raw": 409,
+      "brotli": 279
+     },
+     {
+      "path": "/recto/dist/sha256.js",
+      "raw": 3645,
+      "brotli": 1383
+     },
+     {
+      "path": "/recto/wasm/recto.wasm",
+      "raw": 4143057,
+      "brotli": 1023773
+     },
+     {
+      "path": "/recto/wasm/cmaps.brotli",
+      "raw": 250740,
+      "brotli": 250745
+     },
+     {
+      "path": "/recto/wasm/cjk-fallback.ttf",
+      "raw": 5074864,
+      "brotli": 1862698
+     }
+    ]
+   }
+  },
+  "pdf.js": {
+   "text": {
+    "raw": 1746199,
+    "brotli": 424332,
+    "files": [
+     {
+      "path": "/pdfjs/build/pdf.min.mjs",
+      "raw": 474284,
+      "brotli": 113443
+     },
+     {
+      "path": "/pdfjs/build/pdf.worker.min.mjs",
+      "raw": 1271915,
+      "brotli": 310889
+     }
+    ]
+   },
+   "cjk": {
+    "raw": 1823539,
+    "brotli": 479189,
+    "files": [
+     {
+      "path": "/pdfjs/build/pdf.min.mjs",
+      "raw": 474284,
+      "brotli": 113443
+     },
+     {
+      "path": "/pdfjs/build/pdf.worker.min.mjs",
+      "raw": 1271915,
+      "brotli": 310889
+     },
+     {
+      "path": "/pdfjs/cmaps/UniGB-UCS2-H.bcmap",
+      "raw": 43366,
+      "brotli": 29960
+     },
+     {
+      "path": "/pdfjs/cmaps/Adobe-GB1-UCS2.bcmap",
+      "raw": 33974,
+      "brotli": 24897
+     }
+    ]
+   }
+  },
+  "pdfium": {
+   "text": {
+    "raw": 4940143,
+    "brotli": 1703183,
+    "files": [
+     {
+      "path": "/pdfium/index.browser.js",
+      "raw": 293211,
+      "brotli": 50767
+     },
+     {
+      "path": "/pdfium/pdfium.wasm",
+      "raw": 4646932,
+      "brotli": 1652416
+     }
+    ]
+   },
+   "cjk": {
+    "raw": 4940143,
+    "brotli": 1703183,
+    "files": [
+     {
+      "path": "/pdfium/index.browser.js",
+      "raw": 293211,
+      "brotli": 50767
+     },
+     {
+      "path": "/pdfium/pdfium.wasm",
+      "raw": 4646932,
+      "brotli": 1652416
+     }
+    ]
+   }
+  }
+ },
+ "summary": {
+  "coldText": {
+   "recto": {
+    "median": 107.2,
+    "runs": [
+     99.8,
+     108.2,
+     107.2,
+     133,
+     106.8
+    ]
+   },
+   "pdf.js": {
+    "median": 61.7,
+    "runs": [
+     61.9,
+     62.3,
+     61.7,
+     60.5,
+     59.9
+    ],
+    "ratio": 0.58,
+    "interval": [
+     0.46,
+     0.62
+    ]
+   },
+   "pdfium": {
+    "median": 43.5,
+    "runs": [
+     47.5,
+     43.5,
+     40.9,
+     48.3,
+     40.3
+    ],
+    "ratio": 0.41,
+    "interval": [
+     0.33,
+     0.48
+    ]
+   }
+  },
+  "coldRender": {
+   "recto": {
+    "median": 117.3,
+    "runs": [
+     109.8,
+     117.7,
+     117.3,
+     143.7,
+     117.1
+    ]
+   },
+   "pdf.js": {
+    "median": 99.4,
+    "runs": [
+     99.9,
+     99.4,
+     105.1,
+     97.2,
+     96.1
+    ],
+    "ratio": 0.85,
+    "interval": [
+     0.69,
+     0.91
+    ]
+   },
+   "pdfium": {
+    "median": 55.6,
+    "runs": [
+     59.7,
+     55.6,
+     52.5,
+     60.4,
+     51.9
+    ],
+    "ratio": 0.47,
+    "interval": [
+     0.39,
+     0.52
+    ]
+   }
+  },
+  "warmText": {
+   "recto": {
+    "median": 0.9,
+    "runs": [
+     0.9,
+     0.9,
+     1,
+     1,
+     0.9
+    ]
+   },
+   "pdf.js": {
+    "median": 1.4,
+    "runs": [
+     1.4,
+     1.2,
+     1.5,
+     1.3,
+     1.4
+    ],
+    "ratio": 1.56,
+    "interval": [
+     1.3,
+     1.67
+    ]
+   },
+   "pdfium": {
+    "median": 0.8,
+    "runs": [
+     0.8,
+     1,
+     0.9,
+     0.8,
+     0.8
+    ],
+    "ratio": 0.89,
+    "interval": [
+     0.8,
+     1.11
+    ]
+   }
+  },
+  "warmRender": {
+   "recto": {
+    "median": 3,
+    "runs": [
+     2.7,
+     2.8,
+     3,
+     3.5,
+     3
+    ]
+   },
+   "pdf.js": {
+    "median": 14.3,
+    "runs": [
+     14.1,
+     13.5,
+     14.8,
+     14.6,
+     14.3
+    ],
+    "ratio": 4.77,
+    "interval": [
+     4.09,
+     5.3
+    ]
+   },
+   "pdfium": {
+    "median": 4.7,
+    "runs": [
+     4.5,
+     4.9,
+     4.4,
+     5.1,
+     4.7
+    ],
+    "ratio": 1.57,
+    "interval": [
+     1.34,
+     1.81
+    ]
+   }
+  },
+  "text": {
+   "recto": {
+    "median": 25.7,
+    "runs": [
+     25.7,
+     25.5,
+     25.5,
+     29.7,
+     26
+    ]
+   },
+   "pdf.js": {
+    "median": 70.3,
+    "runs": [
+     68.3,
+     67.8,
+     79.5,
+     73.8,
+     70.3
+    ],
+    "ratio": 2.74,
+    "interval": [
+     2.37,
+     3.09
+    ]
+   },
+   "pdfium": {
+    "median": 54.5,
+    "runs": [
+     53.2,
+     54.9,
+     52.9,
+     54.5,
+     54.8
+    ],
+    "ratio": 2.12,
+    "interval": [
+     1.84,
+     2.15
+    ]
+   }
+  },
+  "render": {
+   "recto": {
+    "median": 93.7,
+    "runs": [
+     93.7,
+     92.3,
+     98.5,
+     114.7,
+     89.6
+    ]
+   },
+   "pdf.js": {
+    "median": 310.7,
+    "runs": [
+     330.7,
+     298.3,
+     319.3,
+     309.1,
+     310.7
+    ],
+    "ratio": 3.32,
+    "interval": [
+     2.71,
+     3.56
+    ]
+   },
+   "pdfium": {
+    "median": 186.4,
+    "runs": [
+     176.4,
+     187.6,
+     186.4,
+     190.7,
+     181.5
+    ],
+    "ratio": 1.99,
+    "interval": [
+     1.63,
+     2.08
+    ]
+   }
+  },
+  "largeOpen": {
+   "recto": {
+    "median": 1,
+    "runs": [
+     1,
+     1,
+     1.1,
+     1.2,
+     0.9
+    ]
+   },
+   "pdf.js": {
+    "median": 1.9,
+    "runs": [
+     1.8,
+     1.8,
+     2.1,
+     1.9,
+     2
+    ],
+    "ratio": 1.9,
+    "interval": [
+     1.58,
+     2.11
+    ]
+   },
+   "pdfium": {
+    "median": 0.3,
+    "runs": [
+     0.2,
+     0.3,
+     0.3,
+     0.3,
+     0.4
+    ],
+    "ratio": 0.3,
+    "interval": [
+     0.2,
+     0.4
+    ]
+   }
+  },
+  "largeText": {
+   "recto": {
+    "median": 139.6,
+    "runs": [
+     137.3,
+     136.5,
+     143.3,
+     178,
+     139.6
+    ]
+   },
+   "pdf.js": {
+    "median": 320.7,
+    "runs": [
+     301,
+     304.1,
+     367.9,
+     330.2,
+     320.7
+    ],
+    "ratio": 2.3,
+    "interval": [
+     1.8,
+     2.64
+    ]
+   },
+   "pdfium": {
+    "median": 225.9,
+    "runs": [
+     216.1,
+     232.1,
+     225.9,
+     234.1,
+     223.4
+    ],
+    "ratio": 1.62,
+    "interval": [
+     1.27,
+     1.7
+    ]
+   }
+  },
+  "largeRender": {
+   "recto": {
+    "median": 11.5,
+    "runs": [
+     11.5,
+     11.1,
+     11.8,
+     13.6,
+     10.9
+    ]
+   },
+   "pdf.js": {
+    "median": 75.8,
+    "runs": [
+     78.3,
+     74.7,
+     75.8,
+     80.8,
+     75.8
+    ],
+    "ratio": 6.59,
+    "interval": [
+     5.57,
+     7.18
+    ]
+   },
+   "pdfium": {
+    "median": 16.6,
+    "runs": [
+     15.4,
+     16.7,
+     15.9,
+     16.6,
+     16.6
+    ],
+    "ratio": 1.44,
+    "interval": [
+     1.22,
+     1.52
+    ]
+   }
+  },
+  "loadDone": {
+   "recto": {
+    "median": 111.9,
+    "runs": [
+     111.9,
+     110.4,
+     122.5,
+     146.3,
+     110.3
+    ]
+   },
+   "pdf.js": {
+    "median": 665.1,
+    "runs": [
+     663.8,
+     667,
+     667.5,
+     663.1,
+     665.1
+    ],
+    "ratio": 5.94,
+    "interval": [
+     4.55,
+     6.05
+    ]
+   },
+   "pdfium": {
+    "median": 150.4,
+    "runs": [
+     147.2,
+     150.4,
+     151.4,
+     155.6,
+     147
+    ],
+    "ratio": 1.34,
+    "interval": [
+     1.03,
+     1.39
+    ]
+   }
+  },
+  "stutter": {
+   "recto": {
+    "median": 0,
+    "runs": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   },
+   "pdf.js": {
+    "median": 0,
+    "runs": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   },
+   "pdfium": {
+    "median": 0,
+    "runs": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   }
+  },
+  "longestTask": {
+   "recto": {
+    "median": 0,
+    "runs": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   },
+   "pdf.js": {
+    "median": 0,
+    "runs": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   },
+   "pdfium": {
+    "median": 0,
+    "runs": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   }
+  },
+  "longestGapInWorker": {
+   "recto": {
+    "median": 6.3,
+    "runs": [
+     6.1,
+     6.2,
+     6.3,
+     9.3,
+     7
+    ]
+   },
+   "pdf.js": {
+    "median": 6.8,
+    "runs": [
+     6.8,
+     6.7,
+     6.8,
+     7,
+     6.8
+    ],
+    "ratio": 1.08,
+    "interval": [
+     0.73,
+     1.11
+    ]
+   },
+   "pdfium": {
+    "median": 7.3,
+    "runs": [
+     8,
+     7.2,
+     7.2,
+     7.4,
+     7.3
+    ],
+    "ratio": 1.16,
+    "interval": [
+     0.78,
+     1.27
+    ]
+   }
+  },
+  "heavyDone": {
+   "recto": {
+    "median": 336.8,
+    "runs": [
+     325.5,
+     325.5,
+     361.3,
+     358.6,
+     336.8
+    ]
+   },
+   "pdf.js": {
+    "median": 1066.3,
+    "runs": [
+     1066.3,
+     1045.4,
+     1185.7,
+     1116.1,
+     1046.4
+    ],
+    "ratio": 3.17,
+    "interval": [
+     2.92,
+     3.52
+    ]
+   },
+   "pdfium": {
+    "median": 814,
+    "runs": [
+     783.1,
+     777.1,
+     830.2,
+     834.6,
+     814
+    ],
+    "ratio": 2.42,
+    "interval": [
+     2.17,
+     2.55
+    ]
+   }
+  },
+  "heavyStutter": {
+   "recto": {
+    "median": 0,
+    "runs": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   },
+   "pdf.js": {
+    "median": 0,
+    "runs": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   },
+   "pdfium": {
+    "median": 0,
+    "runs": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   }
+  },
+  "heavyLongestTask": {
+   "recto": {
+    "median": 0,
+    "runs": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   },
+   "pdf.js": {
+    "median": 0,
+    "runs": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   },
+   "pdfium": {
+    "median": 0,
+    "runs": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   }
+  },
+  "heavyGapInWorker": {
+   "recto": {
+    "median": 258.1,
+    "runs": [
+     248.3,
+     247.7,
+     275.5,
+     272.6,
+     258.1
+    ]
+   },
+   "pdf.js": {
+    "median": 213.5,
+    "runs": [
+     213.4,
+     210.4,
+     235.4,
+     217.6,
+     213.5
+    ],
+    "ratio": 0.83,
+    "interval": [
+     0.77,
+     0.91
+    ]
+   },
+   "pdfium": {
+    "median": 564.2,
+    "runs": [
+     539.5,
+     535.1,
+     566,
+     583.1,
+     564.2
+    ],
+    "ratio": 2.19,
+    "interval": [
+     1.96,
+     2.29
+    ]
+   }
+  },
+  "heap": {
+   "recto": {
+    "median": 1301232,
+    "runs": [
+     1301232,
+     1301256,
+     1301172,
+     1301280,
+     1301172
+    ]
+   },
+   "pdf.js": {
+    "median": 5559444,
+    "runs": [
+     5558340,
+     5558540,
+     5559444,
+     5559548,
+     5562020
+    ],
+    "ratio": 4.27,
+    "interval": [
+     4.27,
+     4.27
+    ]
+   },
+   "pdfium": {
+    "median": 1985752,
+    "runs": [
+     1985800,
+     1985752,
+     1985812,
+     1985752,
+     1985752
+    ],
+    "ratio": 1.53,
+    "interval": [
+     1.53,
+     1.53
+    ]
+   }
+  },
+  "wasm": {
+   "recto": {
+    "median": 15925248,
+    "runs": [
+     15925248,
+     15925248,
+     15925248,
+     15925248,
+     15925248
+    ]
+   },
+   "pdf.js": {
+    "median": 0,
+    "runs": [
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "ratio": 0,
+    "interval": [
+     0,
+     0
+    ]
+   },
+   "pdfium": {
+    "median": 18612224,
+    "runs": [
+     18612224,
+     18612224,
+     18612224,
+     18612224,
+     18612224
+    ],
+    "ratio": 1.17,
+    "interval": [
+     1.17,
+     1.17
+    ]
+   }
+  }
+ }
+}

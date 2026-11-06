@@ -8,10 +8,11 @@ opt-level = 3
 lto = true
 codegen-units = 1
 
-# Vendored hayro crates (MIT/Apache-2.0, licences in each): hot-path changes
-# for text extraction and ranged reads that upstream does not have. Each change
+# Vendored hayro crates (MIT/Apache-2.0, licences in each): hot-path changes for
+# text extraction, ranged reads and transparency groups that upstream does not have. Each change
 # is marked `recto:` in the source; see vendor/README.md.
 [patch.crates-io]
+hayro = { path = "vendor/hayro" }
 hayro-interpret = { path = "vendor/hayro-interpret" }
 hayro-font = { path = "vendor/hayro-font" }
 hayro-cmap = { path = "vendor/hayro-cmap" }

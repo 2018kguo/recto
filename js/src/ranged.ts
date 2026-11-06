@@ -69,11 +69,12 @@ const MAX_READ_AHEAD_BYTES = 8 * 1024 * 1024;
  */
 const HEAD_CHUNKS = 4;
 /**
- * A ranged open reserves the file's length of linear memory (fresh pages, committed only
- * where fetched; reclaimed when the instance recycles), and wasm32 has 4 GiB in all, so cap it.
- * Limit: a sparse page map would lift the cap.
+ * A ranged open reserves the file's length of linear memory: fresh pages, committed only where
+ * fetched, so memory use follows the bytes fetched and not the length (measured in
+ * docs/how-it-works.md). wasm32 has 4 GiB of addresses, and this leaves 512 MiB for everything else.
+ * The parser's zero-copy objects are slices of that one buffer, and its offsets are 32-bit there.
  */
-const MAX_FILE_BYTES = 2 * 1024 * 1024 * 1024;
+const MAX_FILE_BYTES = 3584 * 1024 * 1024;
 
 type Range = { start: number; end: number };
 type Answer = { start: number; bytes: Uint8Array; length: number; etag: string | null };

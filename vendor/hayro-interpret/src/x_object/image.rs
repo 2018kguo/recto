@@ -166,6 +166,30 @@ impl<'a> ImageXObject<'a> {
             soft_mask = None;
         }
 
+        // recto: an image in a knockout group first takes away what the group holds under it.
+        if device.in_knockout() {
+            let image = if self.kind.is_mask() {
+                Image::Stencil(StencilImage {
+                    paint: context.get_paint(false),
+                    image_xobject: self.clone(),
+                })
+            } else {
+                Image::Raster(RasterImage(self.clone()))
+            };
+            device.push_knockout_erase();
+            device.push_transparency_group(1.0, None, BlendMode::default());
+            device.draw_image(
+                image,
+                ImageDrawProps {
+                    transform,
+                    soft_mask: None,
+                    blend_mode: BlendMode::default(),
+                },
+            );
+            device.pop_transparency_group();
+            device.pop_knockout_erase();
+        }
+
         device.push_transparency_group(
             context.fill_paint().alpha,
             std::mem::take(&mut soft_mask),

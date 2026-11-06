@@ -16,9 +16,15 @@ pub struct Type3Glyph<'a> {
     font: Rc<Type3Font<'a>>,
     id: GlyphId,
     char_code: u32,
+    codes: Rc<crate::codes::CodeTable>,
 }
 
 impl<'a> Type3Glyph<'a> {
+    /// recto: what the font's dictionary says about it.
+    pub fn font_facts(&self) -> &crate::FontFacts {
+        &self.codes.1
+    }
+
     /// Return the content stream that draws the glyph.
     pub fn program(&self) -> Option<&Stream<'a>> {
         self.font.glyph_program(self.id)
@@ -54,11 +60,17 @@ impl<'a> Type3Glyph<'a> {
         hash128(&(self.font.cache_key(), self.id))
     }
 
-    pub(crate) fn new(font: Rc<Type3Font<'a>>, id: GlyphId, char_code: u32) -> Self {
+    pub(crate) fn new(
+        font: Rc<Type3Font<'a>>,
+        id: GlyphId,
+        char_code: u32,
+        codes: Rc<crate::codes::CodeTable>,
+    ) -> Self {
         Self {
             font,
             id,
             char_code,
+            codes,
         }
     }
 }

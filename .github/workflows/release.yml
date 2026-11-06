@@ -23,6 +23,7 @@ env:
 jobs:
   npm:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable

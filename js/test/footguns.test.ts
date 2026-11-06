@@ -102,20 +102,29 @@ test("in Node, assetBase cannot name something synchronous reads could not reach
 
 // 2. The wrong thread (a real browser main thread runs in smoke/run.mjs)
 
-test("somewhere without synchronous reads, creating an engine says what to do", async () => {
+test("somewhere without synchronous reads, assets are fetched up front and the engine works", async () => {
   const { getBuiltinModule } = process;
-  // @ts-expect-error As in a browser: no Node builtins, and a document.
+  const realFetch = globalThis.fetch;
+  const asked: string[] = [];
+  // As on a browser's main thread: no Node builtins, a document, assets only by fetch.
+  globalThis.fetch = (async (input: URL) => {
+    asked.push(input.href.split("/").pop() ?? "");
+    return new Response(getBuiltinModule("node:fs").readFileSync(input));
+  }) as typeof fetch;
+  // @ts-expect-error
   process.getBuiltinModule = undefined;
   // @ts-expect-error
   globalThis.document = {};
   try {
-    await assert.rejects(createPdfEngine(), (error: PdfError) => {
-      hasCode("wrong-thread")(error);
-      assert.match(error.message, /Web Worker/u);
-      return true;
-    });
+    const engine = await createPdfEngine({ assetBase: pathToFileURL(`${assetDir()}/`), preloadAssets: ["fonts.bin"] });
+    using doc = await engine.open(pdf());
+    assert.ok(doc.text(0).count > 0);
+    assert.ok(doc.render(0, { width: 100 }).rgba.some((v) => v !== 255), "the page has ink, so the font was there");
+    assert.ok(asked.includes("fonts.bin") && !asked.includes("cjk-fallback.ttf"), `fetched ${asked}`);
+    await assert.rejects(engine.openRanged("https://example.com/a.pdf"), hasCode("wrong-thread"));
   } finally {
     process.getBuiltinModule = getBuiltinModule;
+    globalThis.fetch = realFetch;
     // @ts-expect-error
     delete globalThis.document;
   }
@@ -436,21 +445,22 @@ test("each failure has a code to branch on", async () => {
 });
 
 test("a real trap retires the instance: open documents say so, the next open recovers", async () => {
-  // Three ranged files of 1.9 GiB reserve more than wasm32's 4 GiB of address space, and the
-  // allocation failure aborts: a real trap, for fresh pages that are never touched.
+  // Two ranged files of 1.9 GiB take nearly all of wasm32's 4 GiB of address space. A third is
+  // refused cleanly, and then an allocation with nowhere to go aborts: a real trap.
   const engine = await createPdfEngine({ recycleAboveBytes: Number.POSITIVE_INFINITY });
   const doc = await engine.open(pdf());
   const server = await startRangeServer(new Uint8Array(1));
   server.setMode("huge");
   let crash: unknown;
   try {
-    for (let attempt = 0; attempt < 5 && !crash; attempt++) {
-      await engine.openRanged(server.url, { maxBytes: 1024 * 1024 }).catch((error: PdfError) => {
-        if (error.code === "crash") {
-          crash = error;
-        }
-      });
+    const held = [];
+    for (let attempt = 0; attempt < 2; attempt++) {
+      held.push(await engine.openRanged(server.url, { maxBytes: 1024 * 1024 }).catch((error: PdfError) => error));
     }
+    await assert.rejects(engine.openRanged(server.url, { maxBytes: 1024 * 1024 }), hasCode("too-large"));
+    await engine.open(new Uint8Array(512 * 1024 * 1024)).catch((error: PdfError) => {
+      crash = error.code === "crash" ? error : undefined;
+    });
   } finally {
     await server.close();
   }

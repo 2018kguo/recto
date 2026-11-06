@@ -6,6 +6,7 @@
 //! loose font boxes (advance × em), not glyph ink.
 
 mod annots;
+mod outline;
 mod assets;
 mod ctext;
 mod device;
@@ -29,6 +30,7 @@ pub use ctext::Text;
 pub use device::{
     PATH_FILL, PATH_STROKE, PageObjects, SEGMENT_BEZIER, SEGMENT_CLOSE, SEGMENT_LINE, SEGMENT_MOVE,
 };
+pub use outline::OutlineItem;
 pub use text::{CHAR_GENERATED, CHAR_UNMAPPED, Char, Font, Run, TextPage, Word};
 
 /// What went wrong, for callers that branch on it.
@@ -43,6 +45,8 @@ pub enum ErrorKind {
     /// A valid file this engine cannot read (a security handler other than
     /// Standard, e.g. DRM).
     Unsupported,
+    /// A ranged file longer than the address space left.
+    TooLarge,
     /// Any other refusal: a page with no area, an invalid render size.
     Failed,
 }
@@ -55,6 +59,7 @@ impl ErrorKind {
             Self::PasswordRequired => "password-required",
             Self::WrongPassword => "wrong-password",
             Self::Unsupported => "unsupported",
+            Self::TooLarge => "too-large",
             Self::Failed => "failed",
         }
     }
@@ -95,6 +100,8 @@ pub struct Bitmap {
     pub height: u32,
     /// Premultiplied RGBA on a white background, so effectively opaque RGBA.
     pub rgba: Vec<u8>,
+    /// The page asked for more than one render may do; see `Engine::render`.
+    pub truncated: bool,
 }
 
 /// Font, CMap and glyph caches shared by every page of one document, so a
@@ -157,7 +164,13 @@ impl Document {
         fill: ranged::Fill,
         password: &str,
     ) -> Result<Self, EngineError> {
-        Self::open_data(ranged::data(len, chunk, fill), password)
+        let data = ranged::data(len, chunk, fill).ok_or_else(|| {
+            EngineError::new(
+                ErrorKind::TooLarge,
+                "this instance has no address space left for a file of this length; close other documents",
+            )
+        })?;
+        Self::open_data(data, password)
     }
 
     fn open_data(data: hayro::hayro_syntax::PdfData, password: &str) -> Result<Self, EngineError> {
@@ -261,7 +274,8 @@ impl Document {
             device.glyphs = caches.glyphs.take();
             interpret_page(page, &mut ctx, &mut device);
             let mut device = device.finish();
-            let text = text::build_page(&device.glyphs, &device.fonts, &device.runs);
+            let mut text = text::build_page(&device.glyphs, &device.fonts, &device.runs);
+            text.truncated = device.text_truncated;
             device.glyphs.clear();
             caches.glyphs.replace(device.glyphs);
             Scan {
@@ -274,6 +288,11 @@ impl Document {
                 },
             }
         }))
+    }
+
+    /// The document's outline, in order; each item's children follow it, one level deeper.
+    pub fn outline(&self) -> Vec<outline::OutlineItem> {
+        self.0.with_dependent(|pdf, _| outline::read(pdf))
     }
 
     /// The page's annotations alone, without interpreting its content.
@@ -292,7 +311,7 @@ impl Document {
         index: usize,
         width: f32,
         max_height: f32,
-    ) -> Result<hayro::vello_cpu::Pixmap, EngineError> {
+    ) -> Result<(hayro::vello_cpu::Pixmap, bool), EngineError> {
         let info = self.page_info(index)?;
         let scale = render_scale(info.width, info.height, width, max_height)?;
         // Each side rounds up, and the page stretches to
@@ -312,7 +331,7 @@ impl Document {
             let Some(page) = pdf.pages().get(index) else {
                 unreachable!("self.page(index) found it")
             };
-            render(
+            let pixmap = render(
                 page,
                 &caches.render,
                 &crate::assets::settings(),
@@ -322,18 +341,20 @@ impl Document {
                     y_scale,
                     bg_color: WHITE,
                 },
-            )
+            );
+            (pixmap, caches.render.take_degraded())
         }))
     }
 
     /// Scale is `min(width / pageWidth, maxHeight / pageHeight)`.
     pub fn render(&self, index: usize, width: f32, max_height: f32) -> Result<Bitmap, EngineError> {
-        let pixmap = self.pixmap(index, width, max_height)?;
+        let (pixmap, truncated) = self.pixmap(index, width, max_height)?;
         let (width, height) = (u32::from(pixmap.width()), u32::from(pixmap.height()));
         Ok(Bitmap {
             width,
             height,
             rgba: pixmap.data_as_u8_slice().to_vec(),
+            truncated,
         })
     }
 }
@@ -756,10 +777,12 @@ mod tests {
         assert_eq!(
             t.fonts,
             [Font {
-                name: String::new(),
+                name: "Helvetica".into(),
                 flags: 32,
-                weight: 0,
-                embedded: false
+                weight: 400,
+                embedded: false,
+                ascent: 0.8,
+                descent: -0.2,
             }]
         );
     }

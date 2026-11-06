@@ -1,14 +1,16 @@
 // The per-thread engine: owns one WebAssembly instance and replaces it when it trapped or
-// its memory grew past the recycle mark (WebAssembly memory never shrinks). Documents opened
-// before a recycle keep their instance until they close.
+// its memory grew past the recycle mark (WebAssembly memory never shrinks). Past the mark, the
+// instance goes as soon as its last document closes; documents still open on an instance keep it.
 
 import { createGlue } from "../wasm/recto.gen.mjs";
 import {
-  assertUsableThread,
+  type AssetName,
   assetBaseUrl,
+  canReadSync,
   fontFromBundle,
   loadAssetSync,
   loadWasm,
+  preloadAssets,
 } from "./assets.ts";
 import {
   engineFailure,
@@ -32,8 +34,16 @@ export type PdfEngineOptions = {
    * path or file: URL in Node. Defaults to the package's own wasm/ directory.
    */
   assetBase?: string | URL;
-  /** Start a fresh instance for the next open once linear memory is past this. Default 512 MiB. */
+  /** Past this much linear memory, the instance is dropped when its last document closes, or
+   * replaced at the next open if one is still open. Default 512 MiB. */
   recycleAboveBytes?: number;
+  /**
+   * Where a thread can't read a file synchronously (a page's main thread, a service worker), the
+   * assets are fetched while the engine is created: by default all of them, 5.6 MB. Name fewer to
+   * fetch less, and a document that needs one you left out fails with `missing-asset`. Ignored
+   * where assets can be read when needed.
+   */
+  preloadAssets?: Exclude<AssetName, "recto.wasm">[];
 };
 
 export type PdfOpenOptions = {
@@ -44,7 +54,7 @@ export type PdfOpenOptions = {
 
 export type PdfEngineStats = {
   heapBytes: number;
-  /** Increments every time the instance is replaced. */
+  /** Increments every time the instance is replaced. heapBytes is 0 while there is none. */
   generation: number;
   openDocuments: number;
 };
@@ -149,27 +159,46 @@ function throwIfAborted(signal: AbortSignal | undefined): void {
 }
 
 class RectoEngine implements PdfEngine {
-  #instance: Instance;
+  #instance: Instance | null;
+  #generation: number;
   #starting: Promise<Instance> | null = null;
   readonly #base: URL | null;
   readonly #recycleAboveBytes: number;
 
   constructor(instance: Instance, base: URL | null, recycleAboveBytes: number) {
     this.#instance = instance;
+    this.#generation = instance.generation;
     this.#base = base;
     this.#recycleAboveBytes = recycleAboveBytes;
+    this.#watch(instance);
+  }
+
+  /** Memory only comes back with the instance, so don't keep one past the mark with nothing on it. */
+  #watch(instance: Instance): void {
+    instance.onClose = () => {
+      if (
+        this.#instance === instance &&
+        instance.openDocuments === 0 &&
+        instance.memory.buffer.byteLength > this.#recycleAboveBytes
+      ) {
+        this.#instance = null;
+      }
+    };
   }
 
   async #live(): Promise<Instance> {
     const current = this.#instance;
-    if (!current.dead && current.memory.buffer.byteLength <= this.#recycleAboveBytes) {
+    if (current && !current.dead && current.memory.buffer.byteLength <= this.#recycleAboveBytes) {
       return current;
     }
-    this.#starting ??= instantiate(current.generation + 1, this.#base).finally(() => {
+    this.#starting ??= instantiate(this.#generation + 1, this.#base).finally(() => {
       this.#starting = null;
     });
-    this.#instance = await this.#starting;
-    return this.#instance;
+    const started = await this.#starting;
+    this.#generation = started.generation;
+    this.#instance = started;
+    this.#watch(started);
+    return started;
   }
 
   // Async only so a bad argument rejects; everything up to the copy runs synchronously.
@@ -200,6 +229,13 @@ class RectoEngine implements PdfEngine {
     source: PdfRangeSource,
     options: PdfRangedOpenOptions = {}
   ): Promise<PdfRangedDocument> {
+    if (!canReadSync()) {
+      throw new PdfError(
+        "wrong-thread",
+        "a ranged read blocks its thread on the network, which this thread can't do. Open it in a " +
+          'dedicated Web Worker: new Worker(new URL("./pdf-worker.js", import.meta.url), { type: "module" }).'
+      );
+    }
     const owned = ownedSource(source);
     const instance = await this.#live();
     const loader = startRangeLoader(owned, options);
@@ -234,9 +270,9 @@ class RectoEngine implements PdfEngine {
 
   stats(): PdfEngineStats {
     return {
-      heapBytes: this.#instance.memory.buffer.byteLength,
-      generation: this.#instance.generation,
-      openDocuments: this.#instance.openDocuments,
+      heapBytes: this.#instance?.memory.buffer.byteLength ?? 0,
+      generation: this.#generation,
+      openDocuments: this.#instance?.openDocuments ?? 0,
     };
   }
 }
@@ -246,8 +282,10 @@ export async function createPdfEngine(options: PdfEngineOptions = {}): Promise<P
 }
 
 async function createEngine(options: PdfEngineOptions): Promise<RectoEngine> {
-  assertUsableThread();
   const base = assetBaseUrl(options.assetBase);
+  if (!canReadSync()) {
+    await preloadAssets(base, options.preloadAssets ?? ["fonts.bin", "cmaps.brotli", "cjk-fallback.ttf"]);
+  }
   return new RectoEngine(
     await instantiate(0, base),
     base,

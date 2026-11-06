@@ -84,7 +84,9 @@ impl<'a> SoftMask<'a> {
         parent_resources: Resources<'a>,
     ) -> Option<Self> {
         let group_stream = dict.get::<Stream<'_>>(G)?;
-        let group = FormXObject::new(&group_stream)?;
+        let mut group = FormXObject::new(&group_stream)?;
+        // recto: a soft mask\'s group is isolated whatever its flags say (ISO 32000-2, 11.5.2).
+        group.isolated = true;
         let transfer_function = dict
             .get::<Object<'_>>(TR)
             .and_then(|o| Function::new(&o))

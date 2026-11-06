@@ -7,7 +7,7 @@ frame: top-left origin, with `/Rotate` and the crop box applied.
 
 ```ts
 openPdf(bytes: Uint8Array | ArrayBuffer, options?: { password?: string; signal?: AbortSignal }): Promise<PdfDocument>
-createPdfEngine(options?: { assetBase?: string | URL; recycleAboveBytes?: number }): Promise<PdfEngine>
+createPdfEngine(options?: { assetBase?: string | URL; recycleAboveBytes?: number; preloadAssets?: string[] }): Promise<PdfEngine>
 
 engine.open(bytes, options?): Promise<PdfDocument>
 engine.openRanged(source: string | URL | Uint8Array, options?: PdfRangedOpenOptions): Promise<PdfRangedDocument>
@@ -15,9 +15,11 @@ engine.stats(): { heapBytes: number; generation: number; openDocuments: number }
 ```
 
 `openPdf` uses one shared engine per thread, created on first use. Create your own to set
-options, or to keep a job's memory apart. An engine replaces its WebAssembly instance when
-memory passes `recycleAboveBytes` (512 MiB by default; WebAssembly memory never shrinks) or
-when it crashed. Documents opened earlier keep their instance until they close.
+options, or to keep a job's memory apart. WebAssembly memory never shrinks, so memory comes back
+by dropping the instance: when memory is past `recycleAboveBytes` (512 MiB by default) and the
+last document on it closes, it goes then, and `stats().heapBytes` reads 0 until the next open. If
+a document is still open, the next open gets a fresh instance and the old one goes when its
+documents close. A crashed instance is replaced at the next open.
 
 **The bytes are copied** before the call returns its promise, whether by `open` or by a ranged
 open of bytes, so you can reuse a pooled `Buffer`, change the buffer, or transfer it straight
@@ -30,17 +32,38 @@ twice during the open.
 | Member | What it returns |
 |---|---|
 | `pageCount` | The number of pages |
+| `outline()` | The bookmarks: `PdfOutlineItem[]` of `{ title, page, url, children }`. `page` is -1 if it goes nowhere in this file; `url` is set if it links out. Empty if there are none |
 | `pageInfo(i)` | `{ width, height, rotation }` |
-| `text(i)` | `PdfPageText`: the page's `text`, and columns per char: `codepoints`, `boxes`, `fontSizes`, `angles`, `fills`, `fontIds`, `flags`, `runIds`; plus `fonts`, `words`, `runs` |
-| `objects(i)` | `PdfPageObjects`: image boxes and pixel sizes, path boxes and flags, path segments |
+| `text(i)` | `PdfPageText`: the page's `text`, and columns per char: `codepoints`, `boxes`, `fontSizes`, `tfSizes`, `angles`, `fills`, `fontIds`, `flags`, `runIds`; plus `fonts`, `words`, `runs`, `truncated` |
+| `objects(i)` | `PdfPageObjects`: image boxes and pixel sizes, path boxes and flags, path segments, `truncated` |
 | `annotations(i)` | `PdfAnnotation[]`: subtype, box, contents, form field, appearance text |
 | `scan(i)` | `text`, `objects` and `annotations` from one interpretation of the page |
 | `textAndAnnotations(i)` | `text` and `annotations` from one interpretation of the page |
-| `render(i, { width, maxHeight? })` | `{ width, height, rgba }`: opaque RGBA, four bytes a pixel, on white |
+| `render(i, { width, maxHeight? })` | `{ width, height, rgba, truncated }`: opaque RGBA, four bytes a pixel, on white |
 | `close()`, `[Symbol.dispose]()` | Frees the document. Closing twice does nothing |
 
 Columns are typed arrays, so a page crosses a thread boundary by transfer. Char `i` is entry
 `i` of each column and entries `4i..4i+3` of `boxes`; `boxAt` and `charsText` read them.
+
+What the columns mean:
+
+- **`boxes`** are each char's advance across, by its font's ascent and descent. The font's are in
+  `fonts[fontIds[i]]`: the descriptor's values, or 0.8 and -0.2 em for a font that states none (the
+  standard fonts, Type 3). They are not glyph ink. For a substituted font the width is the one the
+  PDF states.
+- **`fontSizes`** is the size a char is drawn at, in points: `Tf` scaled by the text and page
+  matrices. **`tfSizes`** is the `Tf` operand itself.
+- **`fonts`** has one entry per font dictionary: `{ name, flags, weight, embedded, ascent, descent }`.
+  `name` is `BaseFont` without a subset prefix; `weight` is the descriptor's `FontWeight`, or the
+  program's, or what the name says (bold 700, otherwise 400); 0 for a Type 3 font.
+- **A fill colour** reads as the stroke colour for stroke-only text, and as opaque black for a
+  pattern, since a char has one colour in this column.
+
+**A hostile page** can ask for almost anything by drawing a form thousands of times, so what one
+page collects has limits: 2^19 glyphs, 2^21 path segments, 2^19 images. Past them the rest is left
+out and `truncated` is true on that result. A render has one limit of its own: past 32 groups on a
+page that need the page drawn again under them, the rest draw as isolated, and its `truncated` is
+true. Real pages stay far below all of these.
 
 A render is capped at 16,384 px a side and 64 Mpx, and shrinks to fit. `maxHeight` defaults to
 4096; pass `Infinity` to fit the width alone.
@@ -56,18 +79,18 @@ Every failure is a `PdfError` with a `code`. A bad argument is a `RangeError` or
 
 | `code` | Meaning |
 |---|---|
-| `invalid-file` | Not a PDF the engine can open: garbage, truncated, a broken xref |
+| `invalid-file` | Not a PDF the engine can open: garbage, or too damaged to repair. An encrypted file before revision 6 that lost its trailer lands here, since its key needs the trailer's ID |
 | `password-required` | Encrypted, and no password given |
 | `wrong-password` | Encrypted, and the password does not open it |
-| `unsupported` | A valid file the engine cannot read: a security handler other than Standard |
+| `unsupported` | A valid file the engine cannot read: a security handler other than Standard, such as public-key |
 | `aborted` | The `signal` was aborted; `cause` is its reason |
 | `crash` | The instance trapped. Open documents on it fail with this; the next open gets a fresh instance |
 | `closed` | The document was closed |
 | `missing-asset` | The wasm, a font or CMaps are missing, unreadable, or not this build's |
-| `wrong-thread` | Called on a page's main thread or in a service worker |
+| `wrong-thread` | A ranged read on a thread that can't block for one: a page's main thread, a service worker |
 | `fetch-failed` | A ranged read failed: the network, an HTTP error, a bad Range answer |
 | `timeout` | A ranged fetch waited longer than `timeoutMs` |
-| `too-large` | A ranged read would pass `maxBytes`, or the file is past 2 GiB |
+| `too-large` | A ranged read would pass `maxBytes`, the file is past 3.5 GiB, or the instance has no address space left for it (other open documents hold it) |
 | `failed` | Any other refusal, such as a page with no area |
 
 ```js
@@ -107,7 +130,8 @@ What a server gets wrong:
 - **A wrong length, a shifted range, no `Content-Range` total, a size or ETag that changes**:
   `fetch-failed`, with the reason. A file replaced by one of the same size, from a server that
   sends no ETag, can't be detected, and reads as a mix of the two.
-- **A total past 2 GiB**: `too-large`.
+- **A total past 3.5 GiB**: `too-large`. WebAssembly has 4 GiB of addresses, and a ranged read
+  takes the file's length of them, though memory use follows the bytes fetched.
 - **Cross-origin in a browser**: it must allow the request and send
   `Access-Control-Expose-Headers: Content-Range`, or the read fails with `fetch-failed` and
   says so.
@@ -119,8 +143,9 @@ What a server gets wrong:
 The wasm and assets are found with `new URL("../wasm/…", import.meta.url)`.
 
 - **Node 24 and newer**: nothing to configure.
-- **Vite 8** (dev server and build): nothing to configure. CI runs both in Chromium; both were
-  also run by hand in Firefox and WebKit.
+- **Vite 8** (dev server and build): nothing to configure. CI runs both in Chromium, in a
+  dedicated worker, on the main thread and in a service worker; the same were run by hand in
+  Firefox and WebKit.
 - **Vite 7**: the build works. The dev server's dependency pre-bundling loses the URLs, and the
   worker's first call fails with `missing-asset`. Add
   `optimizeDeps: { exclude: ["@2018kguo/recto"] }`. Run by hand, not in CI.
@@ -133,9 +158,15 @@ The wasm and assets are found with `new URL("../wasm/…", import.meta.url)`.
   ```
 
 - **A Content-Security-Policy** must allow `wasm-unsafe-eval`, and `connect-src` for the assets.
-- **A page's main thread and service workers** cannot run the engine: they cannot read an asset
-  synchronously. `openPdf` and `createPdfEngine` fail there with `wrong-thread`, saying what to
-  do. No headers (COOP, COEP) are needed in a dedicated worker.
+- **A page's main thread and service workers** can't read a file synchronously, so where that's
+  so, the assets are fetched while the engine is created: all of them by default, 5.6 MB, or only
+  what `preloadAssets` names (`fonts.bin` 0.26 MB, `cmaps.brotli` 0.25 MB, `cjk-fallback.ttf`
+  5.1 MB), and a document that needs one you left out fails with `missing-asset`. It works, tested
+  in Chromium, Firefox and WebKit, but **every call blocks that thread**: on a main thread the page
+  freezes for the length of each call, so prefer a dedicated worker, where nothing is fetched
+  until a document needs it. A ranged read still needs a thread that may block: `wrong-thread`.
+- **Edge runtimes** without `XMLHttpRequest` take the same path in principle. None has been run.
+- No headers (COOP, COEP) are needed anywhere.
 
 Every file is pinned by SHA-256, checked when it is first read, so a dev server's HTML fallback
 page cannot read as a font. A missing asset throws from the call that needed it; it never reads

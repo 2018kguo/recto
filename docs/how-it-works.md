@@ -6,7 +6,8 @@ The text layer is recto's, and the JavaScript package is a thin mapping over Web
 ## Text
 
 `crates/recto/src/device.rs` receives each glyph hayro's interpreter draws. `text.rs` turns them
-into chars with loose font boxes (advance × em, not glyph ink), infers the spaces and line
+into chars with loose font boxes (the advance across, the font's ascent and descent up, not
+glyph ink), infers the spaces and line
 breaks the content stream implies but does not draw, rebuilds logical order for right-to-left
 lines, drops copies drawn on top of themselves (faux bold), and splits words.
 
@@ -31,8 +32,30 @@ The wasm leaves out what most files never read: the 14 standard fonts (`fonts.bi
 CJK fallback (`cjk-fallback.ttf`, 5 MB) and the predefined CMaps (`cmaps.brotli`, 0.25 MB). The
 engine asks for each synchronously from inside a call, the first time a document needs it, so
 reading it has to be synchronous as well: `fs` in Node, a synchronous `XMLHttpRequest` in a Web
-Worker. A text pass gives a CID font the document does not embed a font holding only `.notdef`
+Worker. A main thread and a service worker have neither, so there the files are fetched while the
+engine is created. A text pass gives a CID font the document does not embed a font holding only `.notdef`
 instead of the 5 MB fallback, since its Unicode comes from `ToUnicode` and its widths from `/W`.
+
+## Transparency groups
+
+Upstream hayro draws every transparency group as an isolated layer, and a layer can't see what's
+under it. Vendored hayro and hayro-interpret add the rest (`vendor/hayro/src/group.rs`):
+
+- **A non-isolated group at full strength with no mask** is painted directly, with no layer: the
+  spec says it's the same thing, and that's most groups.
+- **A non-isolated group that does need its backdrop** (a blend mode inside, and an opacity, mask or
+  blend mode of its own): the page is drawn again up to the group, and the group twice, over that
+  backdrop for colour and on nothing for alpha. ISO 32000-2 11.4.8 then gives the group's colour
+  without the backdrop's part, and it's painted in place as an image. A limit of 32 on a page bounds
+  the cost; a nested one inside such a group stays isolated.
+- **A knockout group** gives each element a `Copy` layer clipped to its shape, so it replaces what
+  the group holds there. Images and subgroups have no shape to hand, so they're painted once to
+  erase and again for real.
+
+`bench/render-compare.mjs` renders small generated PDFs for each case in recto, poppler and stock
+pdfium (and MuPDF, if PyMuPDF is on `PYTHONPATH`), next to the colour the spec's formulas give.
+recto, MuPDF and the formulas agree on all of them. Poppler and pdfium don't knock out inside an
+isolated knockout group, and pdfium doesn't draw a non-isolated group with a backdrop.
 
 ## Ranged reads
 
@@ -42,8 +65,14 @@ xref section, and the whole file before a repair. So only those chunks are fetch
 
 On wasm32 that buffer is fresh pages from `memory.grow`: zero and uncommitted until written, so
 memory follows the bytes fetched, not the file's length. The allocator's zeroing would commit
-all of it. wasm32 has 4 GiB in all, so a ranged file is capped at 2 GiB, and an instance past its
-recycle mark is replaced.
+all of it. Measured in Node, reading one page by range from a generated file, memory grew 42 MiB
+at 0.5 GiB, 43 MiB at 1.9 GiB and 40 MiB at 3.49 GiB. So the limit is address space, not memory:
+wasm32 has 4 GiB, a ranged file is capped at 3.5 GiB, and an instance past its recycle mark goes
+when its last document closes.
+
+There is no sparse page map. The parser's objects are zero-copy slices of one buffer, addressed by
+file offset, so it would be a change through the whole parser, not this layer; it would save no
+memory, as above, and its offsets on wasm32 would still stop at 4 GiB.
 
 The loader (`js/src/ranged.ts`) keeps chunks in a flat array, so a read costs what it spans. A
 miss that continues the last fetch doubles the read-ahead, so a sequential scan of n chunks costs
@@ -56,3 +85,7 @@ glue closure (`scripts/package-wasm.mjs`), because the stock glue keeps its inst
 scope, and one module record per instance would pin every retired instance's memory. A trap
 retires the instance: `panic = abort` on wasm32, so a panic or a failed allocation arrives as a
 `WebAssembly.RuntimeError`, and its state is unknown after that.
+
+WebAssembly memory never shrinks, so the only way to give it back is to drop the instance. Past the
+recycle mark, the engine drops it when its last document closes, and the next open builds a new one;
+compiling is cached, so that costs only instantiation.

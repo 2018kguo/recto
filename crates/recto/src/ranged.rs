@@ -45,20 +45,16 @@ impl Drop for Ranged {
 /// would commit all of it).
 /// Limit: wasm32 never frees it (linear memory never shrinks anyway); the
 /// host retires the instance once memory passes its recycle threshold.
-fn zeroed(len: usize) -> *mut u8 {
+/// None when the instance has no address space left for it.
+fn zeroed(len: usize) -> Option<*mut u8> {
     #[cfg(target_arch = "wasm32")]
     {
         let old = core::arch::wasm32::memory_grow(0, len.div_ceil(65536).max(1));
-        if old == usize::MAX {
-            std::alloc::handle_alloc_error(
-                std::alloc::Layout::array::<u8>(len).unwrap_or(std::alloc::Layout::new::<u8>()),
-            );
-        }
-        (old * 65536) as *mut u8
+        (old != usize::MAX).then(|| (old * 65536) as *mut u8)
     }
     #[cfg(not(target_arch = "wasm32"))]
     {
-        Box::into_raw(vec![0u8; len].into_boxed_slice()) as *mut u8
+        Some(Box::into_raw(vec![0u8; len].into_boxed_slice()) as *mut u8)
     }
 }
 
@@ -94,9 +90,9 @@ impl Ranged {
     }
 }
 
-pub fn data(len: usize, chunk: usize, fill: Fill) -> PdfData {
+pub fn data(len: usize, chunk: usize, fill: Fill) -> Option<PdfData> {
     let chunk = chunk.max(1);
-    let ptr = zeroed(len);
+    let ptr = zeroed(len)?;
     let ranged = Arc::new(Ranged {
         ptr,
         len,
@@ -105,5 +101,5 @@ pub fn data(len: usize, chunk: usize, fill: Fill) -> PdfData {
         fill,
     });
     let ensure = ranged.clone();
-    PdfData::ranged(ranged, Arc::new(move |a, b| ensure.ensure(a, b)))
+    Some(PdfData::ranged(ranged, Arc::new(move |a, b| ensure.ensure(a, b))))
 }

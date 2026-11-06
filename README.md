@@ -7,16 +7,20 @@
   <a href="docs/how-it-works.md">How it works</a>
 </p>
 
-recto opens a PDF and gives you each page's text, the box and font of every character, its
-images, paths and annotations, and a rendered bitmap. It has no runtime dependencies and no
-install scripts, and the built WebAssembly ships in the package, so you don't need Rust. In the
-benchmark below it reads text **5.2× faster** than pdf.js and renders **4.2× faster**.
+![pdf.js and recto each opening a 240-page report in Chromium with the CPU slowed 3.3×: recto finishes in 3.4 s, pdf.js in 7.4 s](docs/recto-film.gif)
+
+*A real recording of 240 generated report pages drawn at 800 px, each engine alone, side by side
+afterwards, in Chromium with the CPU slowed 3.3×. The counters are measured in the page.*
 
 ## Use it
 
 ```sh
 npm install @2018kguo/recto
 ```
+
+recto opens a PDF and gives you each page's text, the box and font of every character, its images,
+paths, annotations and bookmarks, and a rendered bitmap. It has no runtime dependencies and no install
+scripts, and the built WebAssembly ships in the package, so you don't need Rust.
 
 ```js
 import { readFile } from "node:fs/promises";
@@ -66,8 +70,8 @@ recto has no thread pool of its own; how many threads you want is up to you.
 
 ### In a browser
 
-It runs in a dedicated Web Worker. A bundler that understands `new URL(…, import.meta.url)` finds
-the WebAssembly and fonts by itself ([which ones were tested](docs/reference.md#setup-per-environment)).
+Put it in a dedicated Web Worker. A bundler that understands `new URL(…, import.meta.url)` finds the
+WebAssembly and fonts by itself ([which ones were tested](docs/reference.md#setup-per-environment)).
 No special headers are needed.
 
 ```js
@@ -88,8 +92,8 @@ worker.onmessage = ({ data }) => console.log(data.text);
 worker.postMessage(await (await fetch("/report.pdf")).arrayBuffer());
 ```
 
-On a page's main thread `openPdf` fails with a `PdfError` that says to do this: the engine reads
-fonts synchronously from inside a call, which a main thread can't do.
+It also runs on a page's main thread and in a service worker, where it fetches its assets when the
+engine is created, but on a main thread the page freezes for the length of each call.
 
 ### When things go wrong
 
@@ -130,25 +134,68 @@ A read that misses blocks its thread for the round trip, so run it on a worker t
 that ignores `Range` is read whole, within `maxBytes`; a wrong answer fails clearly. See
 [ranged reads](docs/reference.md#ranged-reads).
 
+## What you get back
+
+<img src="docs/anatomy.png" alt="A report page with a box around every word, image and path: 375 words, 1 image of 480 by 360 pixels, 26 paths" width="560">
+
+A page of the generated report, with what the API returned drawn over it: `text(i)`, `objects(i)` and
+`render(i)`. The boxes are loose font boxes, not glyph ink.
+
 ## How fast
 
-Node 25.9.0 on an Apple M5 Pro (18 cores, 64 GB), which had other work running (load average 9.1 at the end of the run), so compare the ratios. pdf.js 6.5.438 in the same thread, 120 public PDFs (93 MB). Median of 5 alternating passes, after a warm-up pass.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/benchmarks-dark.svg">
+  <img src="docs/benchmarks-light.svg" alt="Bar charts. Read text in Node: recto 275 ms, pdf.js 1.3 s, pdfium 693 ms. Render in Node: recto 649 ms, pdf.js 2.9 s, pdfium 1.2 s. A 40-page report in Chromium slowed 3.3×: recto 430 ms, pdf.js 993 ms, pdfium 598 ms. Peak memory in Node: recto 313 MB, pdf.js 826 MB, pdfium 346 MB.">
+</picture>
 
-| | recto | pdf.js | |
-|---|---:|---:|---:|
-| Text, first 20 pages of each (957 pages) | 593 ms | 3,076 ms | 5.2× |
-| Render at 1024 px, first 2 pages of each (237 pages) | 1,599 ms | 6,676 ms | 4.2× |
-| A fresh process to the first page's text, on the smallest file | 22 ms | 143 ms | 6.5× |
+Medians of 5 alternating runs on an Apple M5 Pro, with 60 public PDFs in Node and 8 in Chromium, against
+pdf.js 6.5.438 and stock pdfium. How much faster recto is than each:
 
-[benchmarks.md](docs/benchmarks.md) has how it's measured and the raw results. To rerun it on PDFs
-of your own (it commits none):
+| | pdf.js | pdfium |
+|---|---:|---:|
+| Text in Node | 4.7× | 2.5× |
+| Render in Node | 4.5× | 1.8× |
+| Text in Chromium | 2.7× | 2.1× |
+| Render in Chromium | 3.3× | 2.0× |
+
+It isn't ahead everywhere. In a browser it's the slowest of the three to a fresh page's first text
+(107 ms, against 62 ms and 44 ms), and it downloads about three times what pdf.js does (1.26 MB
+against 0.42 MB with brotli). pdfium opens a large file faster. pdf.js holds less memory in a page,
+and its renders can be cancelled, where recto's call can only have its worker terminated. On text
+quality against poppler the three tie. [benchmarks.md](docs/benchmarks.md) has all of it, what each
+number means and how it's measured. To rerun it on PDFs of your own (it commits none):
 
 ```sh
 npm run build
 npm run bench -- path/to/pdfs
+npm run bench:browser -- path/to/pdfs
 ```
 
-These numbers say how fast, not how good: this benchmark doesn't compare rendered pixels.
+These numbers say how fast, not how good: they don't compare rendered pixels.
+
+## Why not pdf.js or pdfium
+
+I started with pdf.js. It's the right choice for a viewer: it comes with one, plus annotations, forms,
+a mature text layer and rendering that has seen nearly every odd file there is. I wasn't building a
+viewer. I wanted the text and the pixels of a lot of pages, and that's where it hurt: the time per
+page, a canvas package to render at all in Node (without `@napi-rs/canvas` a render fails with "Cannot
+find module"), and a default that downloads a whole file to read one page, though two options bring
+it level with recto.
+
+Then I tried pdfium compiled to WebAssembly. Its fidelity is excellent, and Chrome has been testing it
+for years. I maintained a fork with a queue of patches, built reproducibly in a pinned container, and
+it got materially better, then plateaued. Going single-threaded and changing build flags didn't move
+it. The rest of the gain needed changes at the level of the architecture: an interpreter that only
+reads text, ranged reads inside the parser, assets that load only when they're needed. That's slow
+going in a large C++ codebase, and a memory bug there traps the whole instance.
+
+So recto is built on [hayro](https://github.com/LaurenzV/hayro), in Rust, where I could make those
+changes. Four of its five vendored crates forbid `unsafe` outright; `hayro-syntax` has a little, and
+so does recto. A panic still takes the instance with it, and recto reports that as `crash`.
+
+What that costs: there's no viewer. It's much younger than either, and less tested on odd files. Some
+rendering is approximate, and char boxes are loose. If you need a viewer or the most faithful pixels
+on anything a user might upload, use one of those two.
 
 ## What's in the package
 
@@ -162,34 +209,39 @@ These numbers say how fast, not how good: this benchmark doesn't compare rendere
 
 ## Limits
 
-- **Browsers:** a dedicated Web Worker only, not a main thread, a service worker or an edge runtime
-  without synchronous requests.
-- **Memory:** `open` copies the file into WebAssembly memory, and that memory only shrinks when an
-  instance is replaced (past 512 MiB by default). A ranged read holds files up to 2 GiB.
-- **Char boxes** are loose font boxes, with a fixed ascent and descent of 0.8 and −0.2 em. They are
-  not glyph ink, and for a substituted font they are off by its width stretch.
-- **`fontSizes`** is the drawn size, not the `Tf` operand. **`fonts`** tells fonts apart by program, so
-  two dictionaries over one program merge; names and weights come only for embedded TrueType and CID
-  fonts. A fill colour reads as the stroke colour for stroke-only text, and as opaque black for a pattern.
-- **Hostile pages:** past 2^19 glyphs or 2^21 path segments on a page, the rest of the page is dropped
-  silently.
-- **Rendering** inherits hayro's gaps: knockout groups, blend isolation, colour-key masks.
-- **Encryption:** the Standard security handler only; a repair of an encrypted file can fail where
-  other readers manage it.
-- **Not here:** writing or editing PDFs, filling forms, outlines, OCR. A scanned page has no text.
+- **Threads:** every call blocks its thread, and a call can't be interrupted, only its worker
+  terminated. A ranged read needs a worker. An edge runtime without synchronous requests should work
+  the way a service worker does, but none has been run.
+- **Memory:** `open` copies the file into WebAssembly memory, which only comes back when an instance is
+  dropped (at the last close, past 512 MiB by default). A ranged file can be up to 3.5 GiB.
+- **Char boxes** are loose font boxes, not glyph ink. A font that states no ascent and descent gets 0.8
+  and −0.2 em. A fill colour reads as the stroke colour for stroke-only text, and as opaque black for a
+  pattern.
+- **Hostile pages:** past 2^19 glyphs, 2^21 path segments or 2^19 images on a page, the rest is left out
+  and `truncated` is true on the result.
+- **Rendering:** transparency follows the spec in the cases [tested](docs/benchmarks.md#rendering), and
+  disagrees with poppler and pdfium on knockout, where they don't follow it. Still approximate: a
+  non-isolated group that needs its backdrop inside another such group stays isolated, and so does any
+  past the 32nd on a page (`truncated` says so), and a subgroup inside a non-isolated blended knockout
+  group is close but not exact. Rendered pixels haven't been compared at scale with other engines.
+- **Encryption:** the Standard security handler only, so a public-key file fails with `unsupported`. An
+  encrypted file before revision 6 that lost its trailer fails with `invalid-file`, since its key needs
+  the trailer's ID. Revision 6 is repaired.
+- **Not here, by choice:** writing or editing PDFs, filling forms, OCR. A scanned page has no text.
 
-Tested on Node 24 and 25, and in Chromium, Firefox and WebKit. CI runs Node 24 and Chromium.
+Tested on Node 24 and 25, and in Chromium, Firefox and WebKit. CI runs Node 24 and Chromium; Firefox
+and WebKit are run by hand.
 
 ## Documentation
 
 - [reference.md](docs/reference.md): the whole API, every error code, ranged reads, setup per environment
 - [benchmarks.md](docs/benchmarks.md): every number, how it's measured, how to rerun it
-- [how-it-works.md](docs/how-it-works.md): the text layer, assets, ranged reads, instances
+- [how-it-works.md](docs/how-it-works.md): the text layer, assets, transparency groups, ranged reads, instances
 - [development.md](docs/development.md): building it, tests, the repository layout
 
 ## License
 
 MIT. recto is built on [hayro](https://github.com/LaurenzV/hayro) (MIT or Apache-2.0). `vendor/` holds
-patched copies of four of its crates, with their licences and a [note on what changed](vendor/README.md).
+patched copies of five of its crates, with their licences and a [note on what changed](vendor/README.md).
 The Foxit fonts are BSD-licensed and the Droid Sans fallback Apache-2.0; `wasm/THIRD_PARTY_NOTICES` in
 the package has these and every compiled crate's licence.

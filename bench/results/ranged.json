@@ -1,0 +1,22 @@
+{
+ "fileBytes": 22800003,
+ "recto": {
+  "pages": 179,
+  "chars": 2277,
+  "rounds": 8,
+  "bytes": 1304195,
+  "requests": 8
+ },
+ "pdfjs": {
+  "pages": 179,
+  "chars": 2251,
+  "bytes": 1500803,
+  "requests": 9
+ },
+ "pdfjsDefaults": {
+  "pages": 179,
+  "chars": 2251,
+  "bytes": 23186694,
+  "requests": 7
+ }
+}

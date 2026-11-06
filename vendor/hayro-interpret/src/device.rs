@@ -49,6 +49,33 @@ pub trait Device<'a> {
     fn draw_rect(&mut self, rect: &Rect, props: DrawProps<'a>, draw_mode: &DrawMode) {
         self.draw_path(&rect.to_path(0.1), props, draw_mode);
     }
+    /// recto: the transparency group just pushed is a knockout group.
+    fn set_group_knockout(&mut self) {}
+    /// recto: the next thing painted is an element of a knockout group.
+    fn in_knockout(&self) -> bool {
+        false
+    }
+    /// recto: a non-isolated group whose result needs its backdrop (see `x_object::form`). A
+    /// device that returns true gets the contents twice, with `next_backdrop_pass` between and
+    /// `end_backdrop_group` after. One that returns false gets an ordinary pushed group.
+    fn begin_backdrop_group(
+        &mut self,
+        _opacity: f32,
+        _mask: &Option<SoftMask<'a>>,
+        _blend_mode: BlendMode,
+        _knockout: bool,
+    ) -> bool {
+        false
+    }
+    /// recto: see `begin_backdrop_group`.
+    fn next_backdrop_pass(&mut self) {}
+    /// recto: see `begin_backdrop_group`.
+    fn end_backdrop_group(&mut self) {}
+    /// recto: what is painted until `pop_knockout_erase` removes what the group holds there, not
+    /// adding to it: how an element too complex for a clip path knocks out what's under it.
+    fn push_knockout_erase(&mut self) {}
+    /// recto: see `push_knockout_erase`.
+    fn pop_knockout_erase(&mut self) {}
     /// Called at the beginning of a marked content sequence (BMC/BDC).
     ///
     /// The tag is the marked content tag (e.g. b"P", b"Span"). The properties are the property list
