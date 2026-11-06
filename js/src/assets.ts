@@ -87,8 +87,14 @@ function loadFailure(name: AssetName, url: URL | null, reason: string, cause?: u
   );
 }
 
+/** Node's hash where there is one: this file's own takes 60 ms over the wasm in a cold browser. */
+function sha256(bytes: Uint8Array): string {
+  const crypto = globalThis.process?.getBuiltinModule?.("node:crypto");
+  return crypto ? crypto.createHash("sha256").update(bytes).digest("hex") : sha256Hex(bytes);
+}
+
 function checked(name: AssetName, url: URL, bytes: Uint8Array): Uint8Array {
-  if (sha256Hex(bytes) !== PINS[name]) {
+  if (sha256(bytes) !== PINS[name]) {
     throw loadFailure(
       name,
       url,
@@ -114,26 +120,79 @@ function readSync(url: URL): Uint8Array {
   return new Uint8Array(xhr.response as ArrayBuffer);
 }
 
-/** The wasm's bytes, for compiling. Asynchronous where it can be. */
-export async function loadWasm(base: URL | null): Promise<Uint8Array<ArrayBuffer>> {
+/** A runtime can take the option and ignore it, and then nothing would be checked. */
+function hasFetchIntegrity(integrity: string): boolean {
+  try {
+    return new Request("https://localhost/", { integrity }).integrity === integrity;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The file, with its pin checked by the browser, so no hashing here. Null means ask again without
+ * it: that way is slower, but it can say what's wrong, which a failed integrity fetch can't, and it
+ * works where this doesn't.
+ */
+async function fetchPinned(name: AssetName, url: URL): Promise<Response | null> {
+  const hex = PINS[name];
+  const integrity = `sha256-${btoa(String.fromCharCode(...hex.match(/../gu)!.map((byte) => parseInt(byte, 16))))}`;
+  if (!hasFetchIntegrity(integrity)) {
+    return null;
+  }
+  try {
+    const response = await fetch(url, { integrity });
+    return response.ok ? response : null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchBytes(name: AssetName, url: URL): Promise<Uint8Array> {
+  const pinned = await fetchPinned(name, url);
+  if (pinned) {
+    return new Uint8Array(await pinned.arrayBuffer());
+  }
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+  return checked(name, url, new Uint8Array(await response.arrayBuffer()));
+}
+
+/** The wasm, verified and compiled. Streaming needs the right MIME type, which not every server sends. */
+export async function compileWasm(base: URL | null): Promise<WebAssembly.Module> {
   let url: URL | null = null;
-  let bytes: Uint8Array;
+  let bytes: Uint8Array<ArrayBuffer>;
   try {
     // Inside the try: under a blob: worker `import.meta.url` is no base for a URL.
     url = assetUrl("recto.wasm", base);
     if (nodeFs()) {
-      bytes = readFromDisk(url);
+      bytes = checked("recto.wasm", url, readFromDisk(url)) as Uint8Array<ArrayBuffer>;
     } else {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+      const pinned = await fetchPinned("recto.wasm", url);
+      if (pinned?.headers.get("content-type") === "application/wasm") {
+        return await compiling(WebAssembly.compileStreaming(pinned));
       }
-      bytes = new Uint8Array(await response.arrayBuffer());
+      bytes = (pinned ? new Uint8Array(await pinned.arrayBuffer()) : await fetchBytes("recto.wasm", url)) as Uint8Array<ArrayBuffer>;
     }
   } catch (error) {
+    if (error instanceof PdfError) {
+      throw error;
+    }
     throw loadFailure("recto.wasm", url, error instanceof Error ? error.message : String(error), error);
   }
-  return checked("recto.wasm", url!, bytes) as Uint8Array<ArrayBuffer>;
+  return await compiling(WebAssembly.compile(bytes));
+}
+
+function compiling(module: Promise<WebAssembly.Module>): Promise<WebAssembly.Module> {
+  return module.catch((error: unknown) => {
+    throw new PdfError(
+      "missing-asset",
+      `recto could not compile recto.wasm: ${String(error)}. A Content-Security-Policy must allow 'wasm-unsafe-eval'.`,
+      error
+    );
+  });
 }
 
 /** Verified assets by URL: hash and read each once per thread. */
@@ -150,15 +209,14 @@ export async function preloadAssets(base: URL | null, names: AssetName[]): Promi
         if (loaded.has(url.href)) {
           return;
         }
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-        bytes = new Uint8Array(await response.arrayBuffer());
+        bytes = await fetchBytes(name, url);
       } catch (error) {
+        if (error instanceof PdfError) {
+          throw error;
+        }
         throw loadFailure(name, url, error instanceof Error ? error.message : String(error), error);
       }
-      loaded.set(url.href, checked(name, url, bytes));
+      loaded.set(url.href, bytes);
     })
   );
 }

@@ -8,8 +8,8 @@ import {
   assetBaseUrl,
   canReadSync,
   fontFromBundle,
+  compileWasm,
   loadAssetSync,
-  loadWasm,
   preloadAssets,
 } from "./assets.ts";
 import {
@@ -85,15 +85,7 @@ function compile(base: URL | null): Promise<WebAssembly.Module> {
   const key = base?.href ?? "";
   let module = compiled.get(key);
   if (!module) {
-    module = loadWasm(base).then((bytes) =>
-      WebAssembly.compile(bytes).catch((error: unknown) => {
-        throw new PdfError(
-          "missing-asset",
-          `recto could not compile recto.wasm: ${String(error)}. A Content-Security-Policy must allow 'wasm-unsafe-eval'.`,
-          error
-        );
-      })
-    );
+    module = compileWasm(base);
     module.catch(() => compiled.delete(key));
     compiled.set(key, module);
   }
