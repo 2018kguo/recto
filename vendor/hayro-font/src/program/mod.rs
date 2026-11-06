@@ -51,12 +51,14 @@ impl FontProgram {
             return None;
         }
 
+        #[cfg(feature = "outlines")]
         let scaler = ScalerFont::unhinted(font.clone(), Some(UNITS_PER_EM));
 
         Some(Self(Arc::new(Inner {
             hash: content_hash(data.as_ref().as_ref(), index),
             data,
             font,
+            #[cfg(feature = "outlines")]
             scaler,
         })))
     }
@@ -202,6 +204,7 @@ impl FontProgram {
         Some(Affine::scale(f64::from(UNITS_PER_EM / ppem)) * path.take())
     }
 
+    #[cfg(feature = "outlines")]
     pub(crate) fn outline(&self, glyph: GlyphId) -> BezPath {
         let mut path = OutlinePath::new();
         if let Some(outline) = self.0.scaler.outline(glyph.to_skrifa()) {
@@ -209,6 +212,12 @@ impl FontProgram {
         }
 
         path.take()
+    }
+
+    // recto: the text-only wasm draws nothing, and this keeps skrifa's scalers out of it.
+    #[cfg(not(feature = "outlines"))]
+    pub(crate) fn outline(&self, _glyph: GlyphId) -> BezPath {
+        BezPath::new()
     }
 
     fn font(&self) -> &Font {
@@ -289,6 +298,7 @@ struct Inner {
     hash: u128,
     data: FontData,
     font: Font,
+    #[cfg(feature = "outlines")]
     scaler: ScalerFont,
 }
 

@@ -28,7 +28,9 @@ repository = "https://github.com/LaurenzV/hayro"
 resolver = "2"
 
 [features]
-default = ["embed-fonts", "embed-cmaps"]
+default = ["embed-fonts", "embed-cmaps", "raster"]
+# recto: image decoders and glyph outlines, which a text pass never reads.
+raster = ["hayro-syntax/images", "hayro-font/outlines"]
 embed-cmaps = ["hayro-cmap/embed-cmaps"]
 embed-fonts = ["hayro-font/embed-fonts"]
 
@@ -57,7 +59,7 @@ default-features = false
 
 [dependencies.hayro-syntax]
 version = "0.9.0"
-features = ["std", "images", "unsafe"]
+features = ["std", "unsafe"]
 default-features = false
 
 [dependencies.kurbo]

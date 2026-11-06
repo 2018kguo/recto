@@ -102,13 +102,17 @@ fn resolve(query: &FontQuery) -> Option<(FontData, u32)> {
 /// A TrueType font holding only `.notdef` (238 bytes, a subset of
 /// cjk-fallback.ttf). A text pass gives a CID font the document does not
 /// embed this instead of the 5 MB CJK fallback: hayro takes its Unicode from
-/// ToUnicode and its widths from /W, so no glyph program is needed. Simple
-/// fonts still get their standard font, whose metrics set char widths.
+/// ToUnicode and its widths from /W, so no glyph program is needed.
 static NOTDEF: &[u8] = include_bytes!("notdef.ttf");
+
+/// A CFF font holding only `.notdef`, which a text pass gives a simple font the
+/// document does not embed: its names, Unicode and widths come from the
+/// encoding tables and the AFM metrics compiled in. A standard font's program
+/// is CFF too, which matters: an sfnt's own advances would count as a substitute's.
+static NOTDEF_CFF: &[u8] = include_bytes!("notdef.cff");
 
 /// Settings for passes that read text, objects and annotations.
 pub fn text_settings() -> InterpreterSettings {
-    let render = settings().font_resolver;
     InterpreterSettings {
         font_resolver: std::sync::Arc::new(move |query| match query {
             hayro::hayro_interpret::font::FontQuery::Fallback(f)
@@ -119,7 +123,10 @@ pub fn text_settings() -> InterpreterSettings {
                     0,
                 ))
             }
-            _ => render(query),
+            _ => Some((
+                std::sync::Arc::new(NOTDEF_CFF) as hayro::hayro_interpret::font::FontData,
+                0,
+            )),
         }),
         ..Default::default()
     }

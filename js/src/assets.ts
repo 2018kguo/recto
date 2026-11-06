@@ -16,17 +16,20 @@ import { PdfError } from "./errors.ts";
 import { sha256Hex } from "./sha256.ts";
 
 export type AssetName = keyof typeof PINS;
+export type WasmName = "recto.wasm" | "recto-text.wasm";
 
 function packagedUrl(name: AssetName): URL {
   switch (name) {
     case "recto.wasm":
       return new URL("../wasm/recto.wasm", import.meta.url);
+    case "recto-text.wasm":
+      return new URL("../wasm/recto-text.wasm", import.meta.url);
     case "fonts.bin":
       return new URL("../wasm/fonts.bin", import.meta.url);
     case "cjk-fallback.ttf":
       return new URL("../wasm/cjk-fallback.ttf", import.meta.url);
-    case "cmaps.brotli":
-      return new URL("../wasm/cmaps.brotli", import.meta.url);
+    case "cmaps.deflate":
+      return new URL("../wasm/cmaps.deflate", import.meta.url);
   }
 }
 
@@ -87,10 +90,19 @@ function loadFailure(name: AssetName, url: URL | null, reason: string, cause?: u
   );
 }
 
-/** Node's hash where there is one: this file's own takes 60 ms over the wasm in a cold browser. */
+let wasmHash: ((bytes: Uint8Array) => string | null) | null = null;
+
+/** A live instance's hash, for assets too large for this file's: that takes 60 ms over the wasm in a cold browser. */
+export function useWasmHash(hash: (bytes: Uint8Array) => string | null): void {
+  wasmHash = hash;
+}
+
 function sha256(bytes: Uint8Array): string {
   const crypto = globalThis.process?.getBuiltinModule?.("node:crypto");
-  return crypto ? crypto.createHash("sha256").update(bytes).digest("hex") : sha256Hex(bytes);
+  if (crypto) {
+    return crypto.createHash("sha256").update(bytes).digest("hex");
+  }
+  return wasmHash?.(bytes) ?? sha256Hex(bytes);
 }
 
 function checked(name: AssetName, url: URL, bytes: Uint8Array): Uint8Array {
@@ -161,35 +173,35 @@ async function fetchBytes(name: AssetName, url: URL): Promise<Uint8Array> {
 }
 
 /** The wasm, verified and compiled. Streaming needs the right MIME type, which not every server sends. */
-export async function compileWasm(base: URL | null): Promise<WebAssembly.Module> {
+export async function compileWasm(name: WasmName, base: URL | null): Promise<WebAssembly.Module> {
   let url: URL | null = null;
   let bytes: Uint8Array<ArrayBuffer>;
   try {
     // Inside the try: under a blob: worker `import.meta.url` is no base for a URL.
-    url = assetUrl("recto.wasm", base);
+    url = assetUrl(name, base);
     if (nodeFs()) {
-      bytes = checked("recto.wasm", url, readFromDisk(url)) as Uint8Array<ArrayBuffer>;
+      bytes = checked(name, url, readFromDisk(url)) as Uint8Array<ArrayBuffer>;
     } else {
-      const pinned = await fetchPinned("recto.wasm", url);
+      const pinned = await fetchPinned(name, url);
       if (pinned?.headers.get("content-type") === "application/wasm") {
-        return await compiling(WebAssembly.compileStreaming(pinned));
+        return await compiling(name, WebAssembly.compileStreaming(pinned));
       }
-      bytes = (pinned ? new Uint8Array(await pinned.arrayBuffer()) : await fetchBytes("recto.wasm", url)) as Uint8Array<ArrayBuffer>;
+      bytes = (pinned ? new Uint8Array(await pinned.arrayBuffer()) : await fetchBytes(name, url)) as Uint8Array<ArrayBuffer>;
     }
   } catch (error) {
     if (error instanceof PdfError) {
       throw error;
     }
-    throw loadFailure("recto.wasm", url, error instanceof Error ? error.message : String(error), error);
+    throw loadFailure(name, url, error instanceof Error ? error.message : String(error), error);
   }
-  return await compiling(WebAssembly.compile(bytes));
+  return await compiling(name, WebAssembly.compile(bytes));
 }
 
-function compiling(module: Promise<WebAssembly.Module>): Promise<WebAssembly.Module> {
+function compiling(name: WasmName, module: Promise<WebAssembly.Module>): Promise<WebAssembly.Module> {
   return module.catch((error: unknown) => {
     throw new PdfError(
       "missing-asset",
-      `recto could not compile recto.wasm: ${String(error)}. A Content-Security-Policy must allow 'wasm-unsafe-eval'.`,
+      `recto could not compile ${name}: ${String(error)}. A Content-Security-Policy must allow 'wasm-unsafe-eval'.`,
       error
     );
   });

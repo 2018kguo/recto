@@ -1,4 +1,4 @@
-// Predefined CJK CMaps come from wasm/cmaps.brotli and CJK glyphs from
+// Predefined CJK CMaps come from wasm/cmaps.deflate and CJK glyphs from
 // wasm/cjk-fallback.ttf, each read only when a document needs it.
 
 import assert from "node:assert/strict";
@@ -65,7 +65,7 @@ function cjkPdf(): Uint8Array {
 /** A directory of the package's assets without those named, for assetBase. */
 function assetsWithout(...missing: string[]): string {
   const dir = mkdtempSync(join(tmpdir(), "recto-assets-"));
-  for (const name of ["recto.wasm", "fonts.bin", "cjk-fallback.ttf", "cmaps.brotli"]) {
+  for (const name of ["recto.wasm", "recto-text.wasm", "fonts.bin", "cjk-fallback.ttf", "cmaps.deflate"]) {
     if (!missing.includes(name)) {
       copyFileSync(new URL(`../wasm/${name}`, import.meta.url), join(dir, name));
     }
@@ -152,7 +152,7 @@ test("nonembedded Chinese, Japanese and Korean have visible glyphs", async () =>
 
 test("CJK assets are lazy: a document that does not need one never reads it", async () => {
   const engine = await createPdfEngine({
-    assetBase: assetsWithout("cjk-fallback.ttf", "cmaps.brotli"),
+    assetBase: assetsWithout("cjk-fallback.ttf", "cmaps.deflate"),
   });
   const latin = await engine.open(syntheticPdf({ pages: 1, charsPerPage: 80 }));
   latin.text(0);
@@ -258,15 +258,15 @@ test("CJK CMaps map codes to Unicode, and a file with a wrong one is refused", a
   );
 
   const dir = assetsWithout();
-  writeFileSync(join(dir, "cmaps.brotli"), "not the CMaps");
+  writeFileSync(join(dir, "cmaps.deflate"), "not the CMaps");
   const tampered = await createPdfEngine({ assetBase: dir });
   const bad = await tampered.open(cjkPdf());
-  assert.throws(() => bad.text(0), { code: "missing-asset", message: /cmaps\.brotli/u });
+  assert.throws(() => bad.text(0), { code: "missing-asset", message: /cmaps\.deflate/u });
   bad.close();
   // The refusal retired that instance; the next open gets a fresh one, and a repaired
   // directory reads.
   assert.equal(tampered.stats().generation, 0);
-  copyFileSync(new URL("../wasm/cmaps.brotli", import.meta.url), join(dir, "cmaps.brotli"));
+  copyFileSync(new URL("../wasm/cmaps.deflate", import.meta.url), join(dir, "cmaps.deflate"));
   const latin = await tampered.open(syntheticPdf({ pages: 1 }));
   assert.equal(tampered.stats().generation, 1);
   latin.close();

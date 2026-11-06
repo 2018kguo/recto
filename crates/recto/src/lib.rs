@@ -22,7 +22,9 @@ use hayro::hayro_interpret::{
 };
 use hayro::hayro_syntax::{LoadPdfError, Pdf};
 use hayro::kurbo::Rect;
+#[cfg(feature = "render")]
 use hayro::vello_cpu::color::palette::css::WHITE;
+#[cfg(feature = "render")]
 use hayro::{PixmapSettings, RenderCache, RenderSettings, render};
 
 pub use annots::{Annotation, Field};
@@ -109,6 +111,7 @@ pub struct Bitmap {
 /// Limit: unbounded for the document's life.
 struct Caches<'a> {
     text: InterpreterCache<'a>,
+    #[cfg(feature = "render")]
     render: RenderCache<'a>,
     /// The last page's glyph buffer, emptied: the next page fills it without
     /// regrowing (and recopying) it from nothing.
@@ -178,6 +181,7 @@ impl Document {
             .map(|pdf| {
                 Self(Inner::new(pdf, |_| Caches {
                     text: InterpreterCache::new(),
+                    #[cfg(feature = "render")]
                     render: RenderCache::new(),
                     glyphs: Default::default(),
                 }))
@@ -290,6 +294,11 @@ impl Document {
         }))
     }
 
+    /// The file as it was opened.
+    pub fn file_bytes(&self) -> Vec<u8> {
+        self.0.borrow_owner().data().as_ref().to_vec()
+    }
+
     /// The document's outline, in order; each item's children follow it, one level deeper.
     pub fn outline(&self) -> Vec<outline::OutlineItem> {
         self.0.with_dependent(|pdf, _| outline::read(pdf))
@@ -306,6 +315,7 @@ impl Document {
         }))
     }
 
+    #[cfg(feature = "render")]
     fn pixmap(
         &self,
         index: usize,
@@ -347,6 +357,7 @@ impl Document {
     }
 
     /// Scale is `min(width / pageWidth, maxHeight / pageHeight)`.
+    #[cfg(feature = "render")]
     pub fn render(&self, index: usize, width: f32, max_height: f32) -> Result<Bitmap, EngineError> {
         let (pixmap, truncated) = self.pixmap(index, width, max_height)?;
         let (width, height) = (u32::from(pixmap.width()), u32::from(pixmap.height()));

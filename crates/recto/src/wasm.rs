@@ -31,6 +31,12 @@ pub fn set_asset_loader(loader: js_sys::Function) {
     crate::assets::set_loader(loader);
 }
 
+/// SHA-256, for the JavaScript side's checks on large assets it read synchronously.
+#[wasm_bindgen]
+pub fn sha256(bytes: &[u8]) -> Vec<u8> {
+    hayro::hayro_syntax::sha256(bytes).to_vec()
+}
+
 #[wasm_bindgen]
 pub struct Document(crate::Document);
 
@@ -402,6 +408,12 @@ impl Document {
         .map_err(js_error)
     }
 
+    /// A copy of the file, to reopen it on the full engine.
+    #[wasm_bindgen(js_name = fileBytes)]
+    pub fn file_bytes(&self) -> Vec<u8> {
+        self.0.file_bytes()
+    }
+
     #[wasm_bindgen(getter, js_name = pageCount)]
     pub fn page_count(&self) -> usize {
         self.0.page_count()
@@ -422,6 +434,7 @@ impl Document {
     }
 
     /// Text, objects and annotations from one interpretation of the page.
+    #[cfg(feature = "render")]
     pub fn scan(&self, index: usize) -> Result<PageScan, JsValue> {
         self.scan_parts(index, true, true)
     }
@@ -432,6 +445,7 @@ impl Document {
         self.scan_parts(index, false, true)
     }
 
+    #[cfg(feature = "render")]
     pub fn objects(&self, index: usize) -> Result<PageObjects, JsValue> {
         let s = self.0.scan(index, true, false).map_err(js_error)?;
         Ok(s.objects.into())
@@ -458,6 +472,7 @@ impl Document {
         Ok(a.into())
     }
 
+    #[cfg(feature = "render")]
     pub fn render(
         &self,
         index: usize,

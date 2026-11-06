@@ -470,19 +470,14 @@ test("memory is recycled once it grows past the mark; open documents keep workin
   const recycling = await createPdfEngine({
     recycleAboveBytes: 48 * 1024 * 1024,
   });
-  const before = recycling.stats().heapBytes;
   const old = await recycling.open(truth.bytes);
   old.render(0, { width: 4000 }); // 4000x3000 RGBA: 48 MB inside WASM
   assert.ok(recycling.stats().heapBytes > 48 * 1024 * 1024);
   const fresh = await recycling.open(truth.bytes);
   const { heapBytes, ...rest } = recycling.stats();
-  assert.deepEqual(rest, { generation: 1, openDocuments: 1 });
-  // A fresh instance: the file copied into WASM memory, at most a page (64 KiB) past the
-  // bytes themselves.
-  assert.ok(
-    heapBytes <= before + truth.bytes.byteLength + 65_536,
-    `fresh heap ${heapBytes}, first ${before}`
-  );
+  // 0 the text engine, 1 the full one that render moved it to, 2 the replacement.
+  assert.deepEqual(rest, { generation: 2, openDocuments: 1 });
+  assert.ok(heapBytes < 16 * 1024 * 1024, `a fresh heap, not the old one's: ${heapBytes}`);
   assert.match(
     old.text(0).text,
     /Alpha/,

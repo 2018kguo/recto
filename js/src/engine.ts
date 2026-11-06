@@ -8,6 +8,8 @@ import {
   assetBaseUrl,
   canReadSync,
   fontFromBundle,
+  useWasmHash,
+  type WasmName,
   compileWasm,
   loadAssetSync,
   preloadAssets,
@@ -39,11 +41,11 @@ export type PdfEngineOptions = {
   recycleAboveBytes?: number;
   /**
    * Where a thread can't read a file synchronously (a page's main thread, a service worker), the
-   * assets are fetched while the engine is created: by default all of them, 5.6 MB. Name fewer to
-   * fetch less, and a document that needs one you left out fails with `missing-asset`. Ignored
-   * where assets can be read when needed.
+   * assets are fetched while the engine is created: by default all of them, 9.7 MB. Name fewer to
+   * fetch less, and a call that needs one you left out fails with `missing-asset`: leave out
+   * `recto.wasm` and `render` and `objects` do. Ignored where assets can be read when needed.
    */
-  preloadAssets?: Exclude<AssetName, "recto.wasm">[];
+  preloadAssets?: Exclude<AssetName, "recto-text.wasm">[];
 };
 
 export type PdfOpenOptions = {
@@ -76,30 +78,47 @@ export interface PdfEngine {
 
 const CJK_FONT_ASSET = 14;
 const CMAPS_ASSET = 15;
+const ALL_ASSETS = ["recto.wasm", "fonts.bin", "cmaps.deflate", "cjk-fallback.ttf"] as const;
 const DEFAULT_RECYCLE_ABOVE_BYTES = 512 * 1024 * 1024;
 
-/** The wasm, verified and compiled once per thread, per location. */
-const compiled = new Map<string, Promise<WebAssembly.Module>>();
+/** Each wasm, verified and compiled once per thread, per location. */
+const compiling = new Map<string, Promise<WebAssembly.Module>>();
+const compiled = new Map<string, WebAssembly.Module>();
+const moduleKey = (name: WasmName, base: URL | null) => `${name} ${base?.href ?? ""}`;
 
-function compile(base: URL | null): Promise<WebAssembly.Module> {
-  const key = base?.href ?? "";
+function compile(name: WasmName, base: URL | null): Promise<WebAssembly.Module> {
+  const key = moduleKey(name, base);
+  let module = compiling.get(key);
+  if (!module) {
+    module = compileWasm(name, base);
+    module.then(
+      (done) => compiled.set(key, done),
+      () => compiling.delete(key)
+    );
+    compiling.set(key, module);
+  }
+  return module;
+}
+
+/** The full engine, from inside a synchronous call: a worker or Node reads it now. */
+function fullModuleSync(base: URL | null): WebAssembly.Module {
+  const key = moduleKey("recto.wasm", base);
   let module = compiled.get(key);
   if (!module) {
-    module = compileWasm(base);
-    module.catch(() => compiled.delete(key));
+    module = new WebAssembly.Module(loadAssetSync("recto.wasm", base) as Uint8Array<ArrayBuffer>);
     compiled.set(key, module);
   }
   return module;
 }
 
-async function instantiate(generation: number, base: URL | null): Promise<Instance> {
-  const module = await compile(base);
+function instantiate(generation: number, base: URL | null, module: WebAssembly.Module, full: boolean): Instance {
   // Each instance gets its own glue closure (scripts/package-wasm.mjs), so a retired
   // instance and its memory are collected with it.
   const glue = createGlue();
   const exports = glue.initSync({ module });
   const instance: Instance = {
     glue,
+    full,
     memory: exports.memory,
     generation,
     openDocuments: 0,
@@ -113,7 +132,7 @@ async function instantiate(generation: number, base: URL | null): Promise<Instan
   glue.setAssetLoader((index) => {
     try {
       if (index === CMAPS_ASSET) {
-        return loadAssetSync("cmaps.brotli", base);
+        return loadAssetSync("cmaps.deflate", base);
       }
       if (index === CJK_FONT_ASSET) {
         return loadAssetSync("cjk-fallback.ttf", base);
@@ -125,6 +144,9 @@ async function instantiate(generation: number, base: URL | null): Promise<Instan
       return;
     }
   });
+  useWasmHash((bytes) =>
+    instance.dead ? null : Array.from(glue.sha256(bytes), (byte) => byte.toString(16).padStart(2, "0")).join("")
+  );
   return instance;
 }
 
@@ -154,11 +176,14 @@ class RectoEngine implements PdfEngine {
   #instance: Instance | null;
   #generation: number;
   #starting: Promise<Instance> | null = null;
+  /** Once something asked for the full engine it's loaded anyway, so later documents start on it. */
+  #full: boolean;
   readonly #base: URL | null;
   readonly #recycleAboveBytes: number;
 
   constructor(instance: Instance, base: URL | null, recycleAboveBytes: number) {
     this.#instance = instance;
+    this.#full = instance.full;
     this.#generation = instance.generation;
     this.#base = base;
     this.#recycleAboveBytes = recycleAboveBytes;
@@ -183,14 +208,33 @@ class RectoEngine implements PdfEngine {
     if (current && !current.dead && current.memory.buffer.byteLength <= this.#recycleAboveBytes) {
       return current;
     }
-    this.#starting ??= instantiate(this.#generation + 1, this.#base).finally(() => {
-      this.#starting = null;
-    });
+    const full = this.#full;
+    this.#starting ??= compile(full ? "recto.wasm" : "recto-text.wasm", this.#base)
+      .then((module) => instantiate(this.#generation + 1, this.#base, module, full))
+      .finally(() => {
+        this.#starting = null;
+      });
     const started = await this.#starting;
-    this.#generation = started.generation;
-    this.#instance = started;
-    this.#watch(started);
+    this.#adopt(started);
     return started;
+  }
+
+  #adopt(instance: Instance): void {
+    this.#generation = instance.generation;
+    this.#instance = instance;
+    this.#watch(instance);
+  }
+
+  /** An instance that can draw, for a document moving onto it. Synchronous: `render` is. */
+  #fullInstance(): Instance {
+    const current = this.#instance;
+    if (current?.full && !current.dead && current.memory.buffer.byteLength <= this.#recycleAboveBytes) {
+      return current;
+    }
+    this.#full = true;
+    const instance = instantiate(this.#generation + 1, this.#base, fullModuleSync(this.#base), true);
+    this.#adopt(instance);
+    return instance;
   }
 
   // Async only so a bad argument rejects; everything up to the copy runs synchronously.
@@ -202,12 +246,13 @@ class RectoEngine implements PdfEngine {
   async openOwned(bytes: Uint8Array, options: PdfOpenOptions): Promise<PdfDocument> {
     throwIfAborted(options.signal);
     const instance = await this.#live();
+    const password = options.password ?? null;
     let doc: RectoDocument;
     try {
-      doc = new RectoDocument(
-        instance,
-        new instance.glue.Document(bytes, options.password ?? null)
-      );
+      doc = new RectoDocument(instance, new instance.glue.Document(bytes, password), (old) => {
+        const full = this.#fullInstance();
+        return { instance: full, doc: new full.glue.Document(old.fileBytes(), password) };
+      });
     } catch (error) {
       throw engineFailure(instance, error);
     }
@@ -235,16 +280,20 @@ class RectoEngine implements PdfEngine {
       const out = new Uint8Array(length);
       return loader.read(offset, out) ? out : undefined;
     };
+    const password = options.password ?? null;
     let doc: RectoDocument;
     try {
       doc = new RectoDocument(
         instance,
-        instance.glue.Document.openRanged(
-          loader.length,
-          loader.chunkBytes,
-          read,
-          options.password ?? null
-        ),
+        instance.glue.Document.openRanged(loader.length, loader.chunkBytes, read, password),
+        () => {
+          // Nothing is fetched twice: the loader keeps what it read.
+          const full = this.#fullInstance();
+          return {
+            instance: full,
+            doc: full.glue.Document.openRanged(loader.length, loader.chunkBytes, read, password),
+          };
+        },
         () => loader.failure
       );
     } catch (error) {
@@ -275,11 +324,17 @@ export async function createPdfEngine(options: PdfEngineOptions = {}): Promise<P
 
 async function createEngine(options: PdfEngineOptions): Promise<RectoEngine> {
   const base = assetBaseUrl(options.assetBase);
+  // With no way to read the full engine later, it's here from the start, unless left out.
+  let name: WasmName = "recto-text.wasm";
   if (!canReadSync()) {
-    await preloadAssets(base, options.preloadAssets ?? ["fonts.bin", "cmaps.brotli", "cjk-fallback.ttf"]);
+    const names = options.preloadAssets ?? ALL_ASSETS;
+    await preloadAssets(base, names.filter((asset) => asset !== "recto.wasm"));
+    if (names.includes("recto.wasm")) {
+      name = "recto.wasm";
+    }
   }
   return new RectoEngine(
-    await instantiate(0, base),
+    instantiate(0, base, await compile(name, base), name === "recto.wasm"),
     base,
     options.recycleAboveBytes ?? DEFAULT_RECYCLE_ABOVE_BYTES
   );

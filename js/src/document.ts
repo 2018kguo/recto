@@ -264,6 +264,8 @@ const MAX_DIMENSION = 16_384;
 
 export type Instance = {
   glue: ReturnType<typeof createGlue>;
+  /** False for the text-only wasm, which has no `render`, `objects` or `scan`. */
+  full: boolean;
   memory: WebAssembly.Memory;
   generation: number;
   openDocuments: number;
@@ -405,18 +407,22 @@ function toAnnotations(a: Glue.Annotations): PdfAnnotation[] {
 export class RectoDocument implements PdfDocument {
   readonly pageCount: number;
   #closed = false;
-  readonly #doc: Glue.Document;
-  readonly #instance: Instance;
+  #doc: Glue.Document;
+  #instance: Instance;
+  /** The same file on the full engine. */
+  readonly #moveToFull: (doc: Glue.Document) => { instance: Instance; doc: Glue.Document };
   /** A ranged read's failure, thrown by the call whose fetch it failed. */
   readonly #fetchFailure: () => PdfError | null;
 
   constructor(
     instance: Instance,
     doc: Glue.Document,
+    moveToFull: (doc: Glue.Document) => { instance: Instance; doc: Glue.Document },
     fetchFailure: () => PdfError | null = () => null
   ) {
     this.#instance = instance;
     this.#doc = doc;
+    this.#moveToFull = moveToFull;
     this.#fetchFailure = fetchFailure;
     this.pageCount = doc.pageCount;
     instance.openDocuments += 1;
@@ -462,6 +468,24 @@ export class RectoDocument implements PdfDocument {
     return result;
   }
 
+  /**
+   * The document starts on the text-only wasm. The first call that needs the rest loads it and
+   * opens the file again there, in this call: a synchronous API can't wait for it any other way.
+   */
+  #needsFull(): void {
+    if (this.#instance.full) {
+      return;
+    }
+    const old = this.#instance;
+    const moved = this.#call(() => this.#moveToFull(this.#doc));
+    old.openDocuments -= 1;
+    this.#doc.free();
+    old.onClose?.();
+    this.#instance = moved.instance;
+    this.#doc = moved.doc;
+    moved.instance.openDocuments += 1;
+  }
+
   pageInfo(index: number): PdfPageInfo {
     this.#check(index);
     return this.#call(() => {
@@ -477,6 +501,7 @@ export class RectoDocument implements PdfDocument {
 
   objects(index: number): PdfPageObjects {
     this.#check(index);
+    this.#needsFull();
     return this.#call(() => toObjects(this.#doc.objects(index)));
   }
 
@@ -504,6 +529,7 @@ export class RectoDocument implements PdfDocument {
 
   scan(index: number) {
     this.#check(index);
+    this.#needsFull();
     return this.#call(() =>
       consume(this.#doc.scan(index), (scan) => ({
         text: toText(scan.takeText()!),
@@ -534,6 +560,7 @@ export class RectoDocument implements PdfDocument {
         `render width must be in 1..${MAX_DIMENSION} and maxHeight above 0`
       );
     }
+    this.#needsFull();
     return this.#call(() =>
       consume(this.#doc.render(index, options.width, maxHeight), (page) => ({
         width: page.width,
