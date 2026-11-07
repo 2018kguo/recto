@@ -417,7 +417,7 @@ impl<'a> Pages<'a> {
 
         for object in xref.objects() {
             if let Some(dict) = object.into_dict()
-                && let Some(page) = Page::new(&dict, &PagesContext::new(), ctx, true)
+                && let Some(page) = Page::new(&dict, &inherited(&dict), ctx, true)
             {
                 pages.push(page);
             }
@@ -460,6 +460,21 @@ impl<'a> Deref for Pages<'a> {
             None => &self.pages,
         }
     }
+}
+
+/// recto: what a page found without its tree gets from the nodes above it, by way of `/Parent`.
+fn inherited<'a>(page: &Dict<'a>) -> PagesContext<'a> {
+    let mut nodes = Vec::new();
+    let mut seen = FxHashSet::default();
+    let mut node = page.get::<Dict<'a>>(PARENT);
+    while let Some(parent) = node.take().filter(|_| nodes.len() < MAX_CHECKED_DEPTH) {
+        if parent.obj_id().is_some_and(|id| !seen.insert(id)) {
+            break;
+        }
+        node = parent.get::<Dict<'a>>(PARENT);
+        nodes.push(parent);
+    }
+    nodes.iter().rev().fold(PagesContext::new(), |context, node| inherit(node, context))
 }
 
 fn inherit<'a>(dict: &Dict<'a>, mut ctx: PagesContext<'a>) -> PagesContext<'a> {

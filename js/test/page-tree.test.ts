@@ -792,3 +792,19 @@ test("page tree: an honestly empty tree in a long file is a document with no pag
   assert.ok(doc.stats().bytesFetched < file.byteLength / 4, `fetched ${doc.stats().bytesFetched}`);
   doc.close();
 });
+
+test("page tree: a scan's pages inherit from their /Parent", async () => {
+  const content = "BT /F 12 Tf 10 10 Td (P1) Tj ET";
+  const file = fileOf("<</Type/Pages/Kids[99 0 R]>>", [
+    "<</Type/Pages/Kids[5 0 R]/MediaBox[0 0 300 200]/Resources<</Font<</F 3 0 R>>>>>>",
+    "<</Type/Page/Parent 4 0 R/Contents 6 0 R>>",
+    `<</Length ${content.length}>>\nstream\n${content}\nendstream`,
+  ]);
+  const engine = await createPdfEngine();
+  const doc = await engine.open(file);
+  assert.equal(doc.pageCount, 1);
+  const { width, height } = doc.pageInfo(0);
+  assert.deepEqual([width, height], [300, 200]);
+  assert.equal(doc.text(0).text.trim(), "P1");
+  doc.close();
+});
