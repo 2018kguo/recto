@@ -348,10 +348,11 @@ it wouldn't against recto: the others are judged on pages where recto is one of 
 pass, which is why the report also ranks pages under the limit that are well past the references' own
 difference. Of 632 pages, 86 aren't judged at all, because no two others agree.
 
-What's left of the 23 pages, from looking at each: 4 where recto is right or the references are wrong
-by the spec (a Type 3 glyph's `ca`, knockout groups), 8 of rounding and thin-line noise, a Brotli stream
-two references can't read, a file with no page tree that recto refuses, the pages listed under Limits
-in the README, and a mesh of smaller differences in masks and images.
+What's left of the 23 pages, from looking at each: 6 of page-tree faults (a repeated kid dropped, an empty
+`/MediaBox`), 3 where recto follows the spec and the references don't (a Type 3 glyph's `ca`, knockout groups), 8 of
+rounding and thin-line noise, a Brotli stream two references can't read, a file with no page tree that recto refuses,
+a tiling pattern on text and a blend against bare paper the references don't agree on either, and 2 small differences in a
+mask and an image's edges.
 
 Reports (side-by-side crops, every rank) go in `--out`, not the repository. References are cached there, so a rerun
 renders recto alone. `bench/api-cases.mjs` writes small PDFs for rotation, boxes, user units and widgets
