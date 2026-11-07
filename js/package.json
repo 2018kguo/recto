@@ -1,6 +1,6 @@
 {
   "name": "@2018kguo/recto",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A PDF engine for JavaScript: text with boxes, page objects, annotations and rendering, in Rust compiled to WebAssembly.",
   "license": "MIT",
   "repository": {
