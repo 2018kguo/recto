@@ -55,7 +55,7 @@ const CASES = {
     }),
   outlineChain: (r) => {
     const key = r.int(2) ? "First" : "Next";
-    const length = 20_000 + r.int(40_000);
+    const length = 70_000 + r.int(10_000);
     return pdf({
       catalog: "/Outlines<</First 5 0 R>>",
       extras: Array.from({ length }, (_, i) => `<</Title(a)${i === length - 1 ? "" : `/${key} ${6 + i} 0 R`}>>`),
@@ -93,19 +93,19 @@ const CASES = {
   quads: (r) => {
     const subtype = ["Underline", "StrikeOut", "Highlight"][r.int(3)];
     const quad = () => `0 ${r.int(400)} 9000 ${r.int(400)} 0 ${r.int(400)} 9000 ${r.int(400)}`;
-    return annotated(`<</Subtype/${subtype}/Rect[0 0 400 400]/QuadPoints[${times(2_000 + r.int(30_000), quad)}]>>`);
+    return annotated(`<</Subtype/${subtype}/Rect[0 0 400 400]/QuadPoints[${times(40_000 + r.int(10_000), quad)}]>>`);
   },
   inkStrokes: (r) => {
-    const strokes = 2_000 + r.int(30_000);
+    const strokes = 50_000 + r.int(30_000);
     return annotated(`<</Subtype/Ink/Rect[0 0 400 400]/InkList[${times(strokes, () => `[${r.int(400)} ${r.int(400)} ${r.int(400)} ${r.int(400)}]`)}]>>`);
   },
   vertices: (r) => {
     const subtype = ["PolyLine", "Polygon"][r.int(2)];
     return annotated(`<</Subtype/${subtype}/Rect[0 0 400 400]/IC[1 0 0]/Vertices[${times(60_000, () => `${r.int(400)} ${r.int(400)}`)}]>>`);
   },
-  repeatedAnnotation: (r) => {
+  repeatedAnnotation: () => {
     const quad = "0 0 9000 0 0 9 9000 9";
-    return annotated(times(50_000, () => "5 0 R"), [`<</Subtype/${["Squiggly", "Ink"][r.int(2)]}/Rect[0 0 400 400]/QuadPoints[${times(2_000, () => quad)}]/InkList[[${times(4_000, (i) => `${i % 400} ${i % 397}`)}]]>>`]);
+    return annotated(times(50_000, () => "5 0 R"), [`<</Subtype/Squiggly/Rect[0 0 400 400]/QuadPoints[${times(2_000, () => quad)}]/InkList[[${times(4_000, (i) => `${i % 400} ${i % 397}`)}]]>>`]);
   },
   manyAnnotations: (r) => annotated(times(40_000, () => `<</Subtype/Square/Rect[${r.int(300)} ${r.int(300)} 400 400]/IC[0 1 0]>>`)),
   freeTextLines: (r) => {
@@ -175,6 +175,39 @@ const CASES = {
 };
 
 export const STRUCTURES = Object.keys(CASES);
+
+/** What each kind trips, as `text`, `objects`, `render` and `doc.structureTruncated()` say. */
+const DRAWN = ["render"];
+const READ = ["text", "objects", "render"];
+export const TRIPS = {
+  labelTree: ["pageLabels"],
+  labelRanges: ["pageLabels"],
+  destTree: ["outline"],
+  dictDests: [],
+  outlineDiamond: [],
+  outlineLoop: [],
+  pageKids: ["pages"],
+  largePageRepeated: ["pages"],
+  fieldParents: [],
+  visibilityTree: READ,
+  squiggles: DRAWN,
+  quads: DRAWN,
+  inkStrokes: DRAWN,
+  vertices: [],
+  repeatedAnnotation: DRAWN,
+  manyAnnotations: [],
+  freeTextLines: DRAWN,
+  fieldLines: DRAWN,
+  listOptions: [],
+  outlineChain: ["outline"],
+  formChain: READ,
+  appearanceChain: DRAWN,
+  formLoop: [],
+  patternChain: DRAWN,
+  softMaskChain: [],
+  type3Chain: DRAWN,
+  stateNesting: [],
+};
 
 /** One file, by a seed: the same seed gives the same bytes. */
 export function structure(seed) {

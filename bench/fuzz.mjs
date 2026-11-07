@@ -53,6 +53,11 @@ async function child() {
         outcome.opened = true;
         outcome.pages = doc.pageCount;
         for (let page = 0; page < Math.min(doc.pageCount, PAGES); page++) {
+          try {
+            await doc.renderAsync(page, { width: RENDER_WIDTH });
+          } catch (error) {
+            note(error);
+          }
           for (const call of [() => doc.text(page), () => doc.objects(page), () => doc.annotations(page), () => doc.render(page, { width: RENDER_WIDTH })]) {
             try {
               call();

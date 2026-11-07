@@ -239,9 +239,9 @@ on anything a user might upload, use one of those two.
   `/MediaBox` is Letter. An empty `/CropBox`, or one outside the media box, gives way to the media box.
 - **Damaged files:** a page whose object header is damaged isn't found by the repair, so the file can open with no pages,
   where another engine may report one from `/Count`. A repair won't bring back what a later revision removed.
-- **Files built to cost:** a page stops drawing at a limit and stays incomplete, with no error: streams that nest and multiply cost
-  four times more each level down (about 262,000 forms in forms on a page), and annotations with no appearance share
-  131,072 points. A `/VE` visits 1,024 nodes, and a number or name tree 65,536 or 262,144.
+- **Files built to cost:** a page stops drawing at a budget and is incomplete, with `truncated` true on what `text`,
+  `objects`, `render` and `renderAsync` return for it. A page tree, labels or an outline cut short shows in
+  `doc.structureTruncated()`. See [the limits](docs/reference.md).
 - **Encryption:** the Standard security handler only, so a public-key file fails with `unsupported`. An
   encrypted file before revision 6 that lost its trailer fails with `invalid-file`, since its key needs
   the trailer's ID. Revision 6 is repaired.

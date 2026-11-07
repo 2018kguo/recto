@@ -16,11 +16,20 @@ struct Range {
     start: i64,
 }
 
-fn collect(node: &Dict<'_>, depth: u32, nodes: &mut usize, out: &mut Vec<Range>) {
-    if depth > MAX_DEPTH || out.len() >= MAX_RANGES || *nodes == 0 {
+/// What a read of the tree found out about itself.
+#[derive(Default, Clone, Copy)]
+pub struct Walked {
+    pub nodes: usize,
+    /// A limit was reached, so labels may be wrong.
+    pub stopped: bool,
+}
+
+fn collect(node: &Dict<'_>, depth: u32, walked: &mut Walked, out: &mut Vec<Range>) {
+    if depth > MAX_DEPTH || out.len() >= MAX_RANGES || walked.nodes == MAX_NODES {
+        walked.stopped = true;
         return;
     }
-    *nodes -= 1;
+    walked.nodes += 1;
     if let Some(nums) = node.get::<Array<'_>>(b"Nums") {
         let mut items = nums.iter::<hayro::hayro_syntax::object::Object<'_>>();
         while let (Some(key), Some(value)) = (items.next(), items.next()) {
@@ -34,13 +43,14 @@ fn collect(node: &Dict<'_>, depth: u32, nodes: &mut usize, out: &mut Vec<Range>)
                 start: label.get::<i64>(b"St").unwrap_or(1).max(1),
             });
             if out.len() >= MAX_RANGES {
+                walked.stopped = true;
                 return;
             }
         }
     }
     if let Some(kids) = node.get::<Array<'_>>(b"Kids") {
         for kid in kids.iter::<Dict<'_>>() {
-            collect(&kid, depth + 1, nodes, out);
+            collect(&kid, depth + 1, walked, out);
         }
     }
 }
@@ -82,11 +92,26 @@ fn number(style: Option<u8>, value: i64) -> String {
 /// A label for every page, or None if the file doesn't give any. A page before the first range is
 /// numbered from 1, as a page with no labels would be.
 pub fn read(pdf: &Pdf, pages: usize) -> Option<Vec<String>> {
+    read_walked(pdf, pages).0
+}
+
+/// How the tree's read went, which is as much work as reading it.
+pub fn walked(pdf: &Pdf) -> Walked {
+    read_walked(pdf, 0).1
+}
+
+fn read_walked(pdf: &Pdf, pages: usize) -> (Option<Vec<String>>, Walked) {
+    let mut walked = Walked::default();
     let xref = pdf.xref();
-    let root = xref.get::<Dict<'_>>(xref.root_id())?;
-    let tree = root.get::<Dict<'_>>(b"PageLabels")?;
+    let tree = xref.get::<Dict<'_>>(xref.root_id()).and_then(|root| root.get::<Dict<'_>>(b"PageLabels"));
     let mut ranges = Vec::new();
-    collect(&tree, 0, &mut MAX_NODES.clone(), &mut ranges);
+    if let Some(tree) = tree {
+        collect(&tree, 0, &mut walked, &mut ranges);
+    }
+    (labels_of(ranges, pages), walked)
+}
+
+fn labels_of(mut ranges: Vec<Range>, pages: usize) -> Option<Vec<String>> {
     if ranges.is_empty() {
         return None;
     }

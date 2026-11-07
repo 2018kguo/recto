@@ -191,6 +191,9 @@ struct PageWalk<'a> {
     read: FxHashMap<ObjectIdentifier, Option<Dict<'a>>>,
     /// A kid was missing or broken, so the tree isn't all the file's pages.
     lost_kid: bool,
+    /// recto: the kids ran out, so pages may be missing.
+    stopped: bool,
+    kids_read: usize,
 }
 
 struct WalkFrame<'a> {
@@ -208,6 +211,8 @@ impl<'a> PageWalk<'a> {
             kids_left: objects.saturating_add(MAX_REPEATED_KIDS),
             read: FxHashMap::default(),
             lost_kid: false,
+            stopped: false,
+            kids_read: 0,
         };
         walk.enter(root, root.obj_id(), 0)?;
         Some(walk)
@@ -249,10 +254,12 @@ impl<'a> PageWalk<'a> {
                 continue;
             };
             if self.kids_left == 0 {
+                self.stopped = true;
                 self.stack.clear();
                 return None;
             }
             self.kids_left -= 1;
+            self.kids_read += 1;
             let (id, dict) = match kid {
                 MaybeRef::Ref(id) => {
                     let id: ObjectIdentifier = id.into();
@@ -373,9 +380,20 @@ impl<'a> Pages<'a> {
         }
     }
 
+    /// recto: whether the walk of the tree stopped at its limit, so pages may be missing.
+    pub fn walk_stopped(&self) -> bool {
+        self.lazy.as_ref().is_some_and(|lazy| lazy.walked.get().walk.stopped)
+    }
+
+    /// recto: how many kids the walk has read, and how many it may: the objects, and this many repeats.
+    pub fn kids_read(&self) -> (usize, usize) {
+        let read = self.lazy.as_ref().map_or(0, |lazy| lazy.walked.get().walk.kids_read);
+        (read, self.xref.len().saturating_add(MAX_REPEATED_KIDS))
+    }
+
     /// recto: whether a kid was lost and no pages were found: the tree is damaged, where one that's
     /// honestly empty, or a document with no pages, isn't.
-    pub(crate) fn lost_everything(&self) -> bool {
+    pub fn lost_everything(&self) -> bool {
         self.is_empty() && self.lazy.as_ref().is_some_and(|lazy| lazy.walked.get().walk.lost_kid)
     }
 

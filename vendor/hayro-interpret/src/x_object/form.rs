@@ -127,8 +127,10 @@ impl<'a> FormXObject<'a> {
         });
         let states = context.num_states();
         context.save_state();
+        // recto: this path doesn't go through `interpret`, which pays for a nested stream.
+        let affordable = context.charge_nested();
         Some(Frame {
-            data: self.decoded,
+            data: if affordable { self.decoded } else { Default::default() },
             pos: 0,
             resources,
             states,

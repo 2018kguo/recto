@@ -42,6 +42,7 @@ start on the full engine with `preloadAssets: ["recto.wasm"]`, which skips the m
 |---|---|
 | `pageCount` | The number of pages |
 | `outline()` | The bookmarks: `PdfOutlineItem[]` of `{ title, page, url, children }`. `page` is -1 if it goes nowhere in this file; `url` is set if it links out. Empty if there are none |
+| `structureTruncated()` | `{ pages, pageLabels, outline }`: whether a limit cut each short. `pages` means `pageCount` may be short. Walks the outline and labels again |
 | `pageLabels()` | What each page is called, one string per page: `"iv"`, `"A-5"`. `null` if the file doesn't say |
 | `pageInfo(i)` | `{ width, height, rotation }`, in the page's own units: `/UserUnit` doesn't scale them. Rendering by `width` doesn't depend on it |
 | `text(i)` | `PdfPageText`: the page's `text`, and columns per char: `codepoints`, `boxes`, `fontSizes`, `tfSizes`, `angles`, `fills`, `fontIds`, `flags`, `runIds`; plus `fonts`, `words`, `runs`, `truncated` |
@@ -74,7 +75,15 @@ What the columns mean:
 page collects has limits: 2^19 glyphs, 2^21 path segments, 2^19 images. Past them the rest is left
 out and `truncated` is true on that result. A render has one limit of its own: past 32 groups on a
 page that need the page drawn again under them, the rest draw as isolated, and its `truncated` is
-true. Real pages stay far below all of these.
+true.
+
+A page can also ask for far more drawing than its size, and a budget per page stops it, with `truncated`
+true on what `text`, `objects`, `render` and `renderAsync` return for that page. Streams nested in
+streams (forms, patterns, Type 3 glyphs, soft masks) cost four times more each level down from the
+second, out of 2^20, and stop at 50 levels; annotations with no appearance share 2^17 points; a `/VE` visits
+2^10 nodes. The document's own trees have limits too, which `structureTruncated()` reports: a page tree's repeats
+stop at 2^18 kids, page labels at 2^16 nodes or ranges, an outline at 2^16 items and 64 levels, its name tree at
+2^18 nodes. [What the costliest real pages use](benchmarks.md#the-scorecard) leaves them far from all of these.
 
 A render is capped at 16,384 px a side and 64 Mpx, and shrinks to fit. `maxHeight` defaults to
 4096; pass `Infinity` to fit the width alone.

@@ -1,10 +1,14 @@
 use hayro_syntax::object::dict::keys::{BASE_STATE, D, OCGS, OCMD, OCPROPERTIES, OFF, ON, P, TYPE, VE};
 use hayro_syntax::object::{Array, Dict, Name, Object, ObjectIdentifier};
+use crate::context::PageBudget;
 use std::collections::HashSet;
+use std::sync::Arc;
 
 pub(crate) struct OcgState {
     inactive_ocgs: HashSet<ObjectIdentifier>,
     visibility_stack: Vec<bool>,
+    /// recto: where a `/VE` that ran out says so.
+    budget: Option<Arc<PageBudget>>,
 }
 
 impl OcgState {
@@ -12,7 +16,13 @@ impl OcgState {
         Self {
             inactive_ocgs: HashSet::default(),
             visibility_stack: vec![],
+            budget: None,
         }
+    }
+
+    pub(crate) fn with_budget(mut self, budget: Arc<PageBudget>) -> Self {
+        self.budget = Some(budget);
+        self
     }
 
     pub(crate) fn from_catalog(catalog: &Dict<'_>) -> Self {
@@ -62,6 +72,7 @@ impl OcgState {
         Self {
             inactive_ocgs: inactive,
             visibility_stack: Vec::new(),
+            budget: None,
         }
     }
 
@@ -78,6 +89,9 @@ impl OcgState {
     fn evaluate_expression(&self, expression: &Array<'_>, depth: usize, nodes: &mut u32) -> Option<bool> {
         const MAX_DEPTH: usize = 32;
         if depth > MAX_DEPTH || *nodes == 0 {
+            if let Some(budget) = &self.budget {
+                budget.trip();
+            }
             return None;
         }
         *nodes -= 1;
@@ -111,7 +125,14 @@ impl OcgState {
         // recto: `/VE` takes the place of `/OCGs` and `/P` for a reader that understands it.
         if let Some(on) = ocmd
             .get::<Array<'_>>(VE)
-            .and_then(|expression| self.evaluate_expression(&expression, 0, &mut 1024))
+            .and_then(|expression| {
+                let mut nodes = PageBudget::EXPRESSION_NODES;
+                let on = self.evaluate_expression(&expression, 0, &mut nodes);
+                if let Some(budget) = &self.budget {
+                    budget.note_expression(PageBudget::EXPRESSION_NODES - nodes);
+                }
+                on
+            })
         {
             let visible = self.is_visible() && on;
             self.visibility_stack.push(visible);

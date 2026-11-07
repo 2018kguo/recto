@@ -14,11 +14,6 @@ use hayro_syntax::object::{Array, Dict, Name, Object, Rect};
 use hayro_syntax::page::Resources;
 use hayro_syntax::reader::{Reader, ReaderContext, ReaderExt};
 
-/// How many points and lines all of a page's annotations with no appearance may draw. Far more than
-/// a real page has; each of a list's items can ask for thousands, and the same one can be listed
-/// thousands of times, so a cap on one list leaves gigabytes of stream.
-pub(crate) const PAGE_POINTS: usize = 1 << 17;
-
 fn spend(left: &Cell<usize>, amount: usize) {
     left.set(left.get().saturating_sub(amount));
 }
@@ -491,13 +486,17 @@ pub(super) fn draw<'a>(
     context: &mut Context<'a>,
     device: &mut impl Device<'a>,
 ) {
-    if context.annot_points == 0 {
+    let budget = context.settings.budget.clone();
+    if budget.annotation_points() == 0 {
+        budget.trip();
         return;
     }
-    // Each costs something, drawing or not: the same one can be listed thousands of times.
-    let left = Cell::new(context.annot_points - 1);
+    let left = Cell::new(budget.annotation_points() - 1);
     let drawn = appearance(annot, &left);
-    context.annot_points = left.get();
+    budget.set_annotation_points(left.get());
+    if left.get() == 0 {
+        budget.trip();
+    }
     let Some((content, multiply)) = drawn else {
         return;
     };

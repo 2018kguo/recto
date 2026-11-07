@@ -29,7 +29,7 @@ pub(crate) mod path;
 pub(crate) mod stack;
 pub(crate) mod state;
 pub(crate) mod text;
-pub(crate) mod annot_fallback;
+mod annot_fallback;
 pub(crate) mod page_run;
 pub(crate) mod text_only;
 
@@ -99,9 +99,8 @@ pub struct InterpreterSettings {
     pub warning_sink: WarningSinkFn,
     /// Which parts of a page should be rendered.
     pub render_content: RenderContent,
-    /// recto: what's left of the page's budget for nested streams. `Context::new` starts it afresh.
-    #[doc(hidden)]
-    pub nested_budget: Arc<core::sync::atomic::AtomicU32>,
+    /// recto: what this interpretation may spend on what multiplies. One per page.
+    pub budget: Arc<crate::context::PageBudget>,
 }
 
 impl Default for InterpreterSettings {
@@ -121,7 +120,7 @@ impl Default for InterpreterSettings {
             warning_sink: Arc::new(|_| {}),
             // recto: not `all()`, which would take in TEXT_ONLY.
             render_content: RenderContent::PAGE | RenderContent::ANNOTATIONS,
-            nested_budget: Arc::default(),
+            budget: Arc::default(),
         }
     }
 }

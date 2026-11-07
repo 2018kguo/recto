@@ -40,6 +40,13 @@ for (let i = 0; i < total && performance.now() - started < budgetMs; i++) {
       check(() => doc.objects(page));
       check(() => doc.annotations(page));
       check(() => doc.render(page, { width: 120 }));
+      try {
+        await doc.renderAsync(page, { width: 120 });
+      } catch (error) {
+        check(() => {
+          throw error;
+        });
+      }
     }
     doc.close();
   } catch (error) {

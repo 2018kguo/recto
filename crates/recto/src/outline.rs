@@ -27,11 +27,25 @@ struct Reader<'a> {
     root: Dict<'a>,
     items: Vec<OutlineItem>,
     seen: FxHashSet<ObjectIdentifier>,
+    walked: Walked,
 }
+
+/// What a read of the outline found out about itself.
+#[derive(Default, Clone, Copy)]
+pub struct Walked {
+    /// Name tree nodes visited.
+    pub names: usize,
+    /// A limit was reached, so items may be missing or go nowhere.
+    pub stopped: bool,
+}
+
+/// A name tree's nodes can name each other twice, so depth alone leaves 2^32 visits.
+pub const MAX_NAME_NODES: usize = MAX_ITEMS * 4;
 
 impl<'a> Reader<'a> {
     fn names(&mut self) -> &FxHashMap<Vec<u8>, Object<'a>> {
         let root = self.root.clone();
+        let walked = &mut self.walked;
         self.names.get_or_insert_with(|| {
             let mut out = FxHashMap::default();
             if let Some(dests) = root.get::<Dict<'_>>(b"Dests") {
@@ -42,7 +56,7 @@ impl<'a> Reader<'a> {
                 }
             }
             if let Some(tree) = root.get::<Dict<'_>>(b"Names").and_then(|n| n.get::<Dict<'_>>(b"Dests")) {
-                name_tree(&tree, 0, &mut (MAX_ITEMS * 4), &mut out);
+                name_tree(&tree, 0, walked, &mut out);
             }
             out
         })
@@ -87,6 +101,7 @@ impl<'a> Reader<'a> {
         while let Some((item, id)) = next.take() {
             // A sibling or child list that loops back on itself ends there.
             if self.items.len() >= MAX_ITEMS || level > MAX_DEPTH {
+                self.walked.stopped = true;
                 return;
             }
             if let Some(id) = id
@@ -122,12 +137,12 @@ impl<'a> Reader<'a> {
     }
 }
 
-fn name_tree<'a>(node: &Dict<'a>, depth: u32, nodes: &mut usize, out: &mut FxHashMap<Vec<u8>, Object<'a>>) {
-    // Kids can name the same node twice, so depth alone leaves 2^32 visits.
-    if depth > 32 || out.len() >= MAX_ITEMS || *nodes == 0 {
+fn name_tree<'a>(node: &Dict<'a>, depth: u32, walked: &mut Walked, out: &mut FxHashMap<Vec<u8>, Object<'a>>) {
+    if depth > 32 || out.len() >= MAX_ITEMS || walked.names == MAX_NAME_NODES {
+        walked.stopped = true;
         return;
     }
-    *nodes -= 1;
+    walked.names += 1;
     if let Some(names) = node.get::<Array<'_>>(b"Names") {
         let mut entries = names.iter::<Object<'_>>();
         while let (Some(key), Some(value)) = (entries.next(), entries.next()) {
@@ -138,21 +153,30 @@ fn name_tree<'a>(node: &Dict<'a>, depth: u32, nodes: &mut usize, out: &mut FxHas
     }
     if let Some(kids) = node.get::<Array<'_>>(b"Kids") {
         for kid in kids.iter::<Dict<'_>>() {
-            name_tree(&kid, depth + 1, nodes, out);
+            name_tree(&kid, depth + 1, walked, out);
         }
     }
 }
 
 pub fn read(pdf: &Pdf) -> Vec<OutlineItem> {
+    read_walked(pdf).0
+}
+
+/// How the outline's read went, which is as much work as reading it.
+pub fn walked(pdf: &Pdf) -> Walked {
+    read_walked(pdf).1
+}
+
+fn read_walked(pdf: &Pdf) -> (Vec<OutlineItem>, Walked) {
     let xref = pdf.xref();
-    let Some(root) = xref.get::<Dict<'_>>(xref.root_id()) else {
-        return Vec::new();
-    };
-    let Some(outlines) = root.get::<Dict<'_>>(b"Outlines") else {
-        return Vec::new();
+    let first = xref
+        .get::<Dict<'_>>(xref.root_id())
+        .and_then(|root| Some((root.get::<Dict<'_>>(b"Outlines")?, root)));
+    let Some((outlines, root)) = first else {
+        return Default::default();
     };
     let Some(first) = outlines.get::<Dict<'_>>(b"First") else {
-        return Vec::new();
+        return Default::default();
     };
     let first_id = outlines.get_ref(b"First").map(Into::into);
     let pages = pdf
@@ -169,7 +193,8 @@ pub fn read(pdf: &Pdf) -> Vec<OutlineItem> {
         root,
         items: Vec::new(),
         seen: FxHashSet::default(),
+        walked: Walked::default(),
     };
     reader.walk(Some((first, first_id)), 0);
-    reader.items
+    (reader.items, reader.walked)
 }

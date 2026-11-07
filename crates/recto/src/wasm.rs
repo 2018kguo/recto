@@ -464,6 +464,13 @@ impl Document {
         })
     }
 
+    /// `[pages, pageLabels, outline]`: whether a limit cut each short.
+    #[wasm_bindgen(js_name = structureTruncated)]
+    pub fn structure_truncated(&self) -> Vec<u8> {
+        let cut = self.0.structure_truncated();
+        vec![cut.pages as u8, cut.page_labels as u8, cut.outline as u8]
+    }
+
     /// Flat, in order: `[title, url or "", level, page]` per item.
     pub fn outline(&self) -> js_sys::Array {
         self.0

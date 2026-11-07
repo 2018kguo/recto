@@ -248,6 +248,12 @@ export interface PdfDocument {
   outline(): PdfOutlineItem[];
   /** What each page is called, one string per page ("iv", "A-5"), or null if the file doesn't say. */
   pageLabels(): string[] | null;
+  /**
+   * Which of the document's trees a limit cut short, which only a file built to cost does: `pages` means
+   * `pageCount` may be short, `pageLabels` and `outline` that those may be wrong or incomplete. A page's own
+   * limits are `truncated` on its results.
+   */
+  structureTruncated(): { pages: boolean; pageLabels: boolean; outline: boolean };
   pageInfo(index: number): PdfPageInfo;
   text(index: number): PdfPageText;
   /** `text`, `objects` and `annotations` from one interpretation of the page. */
@@ -542,6 +548,14 @@ export class RectoDocument implements PdfDocument {
       throw new PdfError("closed", "this document is closed");
     }
     return this.#call(() => this.#doc.pageLabels() as string[] | null);
+  }
+
+  structureTruncated(): { pages: boolean; pageLabels: boolean; outline: boolean } {
+    if (this.#closed) {
+      throw new PdfError("closed", "this document is closed");
+    }
+    const [pages, pageLabels, outline] = this.#call(() => this.#doc.structureTruncated() as Uint8Array);
+    return { pages: pages === 1, pageLabels: pageLabels === 1, outline: outline === 1 };
   }
 
   outline(): PdfOutlineItem[] {

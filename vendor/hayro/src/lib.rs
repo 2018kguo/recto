@@ -530,7 +530,7 @@ impl<'a, 'c> PageJob<'a, 'c> {
                 ..Default::default()
             },
         );
-        (pixmap, self.degraded.replace(false))
+        (pixmap, self.degraded.replace(false) || self.state.budget_tripped())
     }
 }
 
@@ -558,6 +558,10 @@ pub fn render_into<'a>(
         render_settings.background,
     );
     draw_page(page, cache, interpreter_settings, render_settings.aliasing_threshold, ctx, transform, &global, &replay, (0, u32::MAX));
+    // recto: a limit passed is a page incomplete, wherever it was.
+    if interpreter_settings.budget.tripped() {
+        global.degraded.set(true);
+    }
 }
 
 // recto: split from `render_into`, so a group can draw part of the page again for its backdrop.

@@ -18,12 +18,71 @@ use hayro_syntax::object::Name;
 use hayro_syntax::page::Resources;
 use hayro_syntax::xref::XRef;
 use kurbo::{Affine, BezPath, PathEl, Point, Rect, Shape};
-use core::sync::atomic::{AtomicU32, Ordering};
+use core::sync::atomic::{AtomicBool, AtomicU32, AtomicUsize, Ordering};
 use smallvec::smallvec;
-use std::sync::Arc;
 
-/// recto: see `Context::charge_nested`. At a run a form in a form, that's 262,144 on a page.
-pub(crate) const NESTED_BUDGET: u32 = 1 << 20;
+/// recto: what a page may spend on drawing that costs far more than its size. Shared by the contexts
+/// nested in a page's, through their settings, so each page's interpretation needs its own, as
+/// `InterpreterSettings::default` gives it. Past any of these the page is incomplete, and `tripped` says so.
+#[derive(Debug)]
+pub struct PageBudget {
+    nested: AtomicU32,
+    annotation_points: AtomicUsize,
+    expression_nodes: AtomicU32,
+    tripped: AtomicBool,
+}
+
+impl PageBudget {
+    /// See `Context::charge_nested`. At a run a form in a form, that's 262,144 on a page.
+    pub const NESTED: u32 = 1 << 20;
+    /// All of a page's annotations with no appearance. Each of a list's items can ask for
+    /// thousands of points, so a cap on one list leaves gigabytes of stream.
+    pub const ANNOTATION_POINTS: usize = 1 << 17;
+    /// One `/VE`: an operand can name the same expression twice, so depth alone leaves 2^32.
+    pub const EXPRESSION_NODES: u32 = 1 << 10;
+
+    /// Whether anything on the page was left out for this budget.
+    pub fn tripped(&self) -> bool {
+        self.tripped.load(Ordering::Relaxed)
+    }
+
+    pub(crate) fn trip(&self) {
+        self.tripped.store(true, Ordering::Relaxed);
+    }
+
+    /// How much of each limit this page used: nested streams, annotation points, and the most
+    /// any one `/VE` visited.
+    pub fn used(&self) -> (u32, usize, u32) {
+        (
+            Self::NESTED - self.nested.load(Ordering::Relaxed),
+            Self::ANNOTATION_POINTS - self.annotation_points.load(Ordering::Relaxed),
+            self.expression_nodes.load(Ordering::Relaxed),
+        )
+    }
+
+    pub(crate) fn annotation_points(&self) -> usize {
+        self.annotation_points.load(Ordering::Relaxed)
+    }
+
+    pub(crate) fn set_annotation_points(&self, left: usize) {
+        self.annotation_points.store(left, Ordering::Relaxed);
+    }
+
+    pub(crate) fn note_expression(&self, nodes: u32) {
+        self.expression_nodes.fetch_max(nodes, Ordering::Relaxed);
+    }
+}
+
+impl Default for PageBudget {
+    fn default() -> Self {
+        Self {
+            nested: AtomicU32::new(Self::NESTED),
+            annotation_points: AtomicUsize::new(Self::ANNOTATION_POINTS),
+            expression_nodes: AtomicU32::new(0),
+            tripped: AtomicBool::new(false),
+        }
+    }
+}
 
 /// Maximum nesting depth for interpreting `XObject`'s/patterns/streams.
 pub(crate) const MAX_NESTED_INTERPRETATION_DEPTH: u32 = 50;
@@ -74,8 +133,6 @@ pub struct Context<'a> {
     pub(crate) ocg_state: OcgState,
     nesting_depth: u32,
     pub(crate) glyph_scratch: Vec<PositionedGlyph<'a>>,
-    /// recto: what's left of the page's budget for annotations with no appearance.
-    pub(crate) annot_points: usize,
 }
 
 impl<'a> Context<'a> {
@@ -88,9 +145,6 @@ impl<'a> Context<'a> {
         settings: InterpreterSettings,
     ) -> Self {
         let state = State::new(initial_transform);
-        // recto: a page's budget; the contexts nested in this one share it through their settings.
-        let settings = InterpreterSettings { nested_budget: Arc::new(AtomicU32::new(NESTED_BUDGET)), ..settings };
-
         Self::new_with(initial_transform, bbox, cache, xref, settings, state, 0)
     }
 
@@ -108,6 +162,7 @@ impl<'a> Context<'a> {
             xref.get::<Dict<'_>>(root_ref)
                 .map(|catalog| OcgState::from_catalog(&catalog))
                 .unwrap_or_default()
+                .with_budget(settings.budget.clone())
         };
 
         Self {
@@ -125,7 +180,6 @@ impl<'a> Context<'a> {
             ocg_state,
             nesting_depth,
             glyph_scratch: Vec::new(),
-            annot_points: crate::interpret::annot_fallback::PAGE_POINTS,
         }
     }
 
@@ -389,6 +443,7 @@ impl<'a> Context<'a> {
 
     pub(crate) fn begin_nested_interpretation(&mut self) -> bool {
         if self.nesting_depth >= MAX_NESTED_INTERPRETATION_DEPTH {
+            self.settings.budget.trip();
             return false;
         }
 
@@ -406,10 +461,26 @@ impl<'a> Context<'a> {
             return true;
         }
         let cost = 1u32 << (2 * (self.nesting_depth - 1).min(8));
-        self.settings
-            .nested_budget
+        let paid = self
+            .settings
+            .budget
+            .nested
             .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |left| left.checked_sub(cost))
-            .is_ok()
+            .is_ok();
+        if !paid {
+            self.settings.budget.trip();
+        }
+        paid
+    }
+
+    /// recto: what this page has spent of its budget: see `PageBudget::used`.
+    pub fn budget_used(&self) -> (u32, usize, u32) {
+        self.settings.budget.used()
+    }
+
+    /// recto: whether this page left anything out for its budget.
+    pub fn budget_tripped(&self) -> bool {
+        self.settings.budget.tripped()
     }
 
     pub(crate) fn end_nested_interpretation(&mut self) {
