@@ -152,18 +152,13 @@ function instantiate(generation: number, base: URL | null, module: WebAssembly.M
   return instance;
 }
 
-/**
- * A copy of the caller's bytes, taken before anything asynchronous, so the buffer is theirs
- * again the moment the call returns its promise. (The engine then copies them into WebAssembly
- * memory, so the file is held twice for the length of the open.)
- */
-function ownedBytes(input: Uint8Array | ArrayBuffer): Uint8Array {
+function bytesOf(input: Uint8Array | ArrayBuffer): Uint8Array {
   if (ArrayBuffer.isView(input)) {
-    return new Uint8Array(input.buffer, input.byteOffset, input.byteLength).slice();
+    return new Uint8Array(input.buffer, input.byteOffset, input.byteLength);
   }
   // Not instanceof: an ArrayBuffer from another realm (a test runner's sandbox) is just as good.
   if (Object.prototype.toString.call(input) === "[object ArrayBuffer]") {
-    return new Uint8Array(input).slice();
+    return new Uint8Array(input);
   }
   throw new TypeError("expected the PDF's bytes as a Uint8Array, Buffer or ArrayBuffer");
 }
@@ -205,6 +200,13 @@ class RectoEngine implements PdfEngine {
     };
   }
 
+  #ready(): Instance | null {
+    const current = this.#instance;
+    return current && !current.dead && current.memory.buffer.byteLength <= this.#recycleAboveBytes
+      ? current
+      : null;
+  }
+
   async #live(): Promise<Instance> {
     const current = this.#instance;
     if (current && !current.dead && current.memory.buffer.byteLength <= this.#recycleAboveBytes) {
@@ -241,13 +243,24 @@ class RectoEngine implements PdfEngine {
 
   // Async only so a bad argument rejects; everything up to the copy runs synchronously.
   async open(input: Uint8Array | ArrayBuffer, options: PdfOpenOptions = {}): Promise<PdfDocument> {
-    return await this.openOwned(ownedBytes(input), options);
+    // With an instance ready, the bytes go into its memory before the first await, and that's
+    // the copy the promise needs: no second one of what may be a large file.
+    const ready = this.#ready();
+    const bytes = bytesOf(input);
+    if (ready) {
+      throwIfAborted(options.signal);
+      return this.#openOn(ready, bytes, options);
+    }
+    return await this.openOwned(bytes.slice(), options);
   }
 
   /** `bytes` is this call's own: getting an instance can take an await. */
   async openOwned(bytes: Uint8Array, options: PdfOpenOptions): Promise<PdfDocument> {
     throwIfAborted(options.signal);
-    const instance = await this.#live();
+    return this.#openOn(await this.#live(), bytes, options);
+  }
+
+  #openOn(instance: Instance, bytes: Uint8Array, options: PdfOpenOptions): PdfDocument {
     const password = options.password ?? null;
     let doc: RectoDocument;
     try {
@@ -343,6 +356,7 @@ async function createEngine(options: PdfEngineOptions): Promise<RectoEngine> {
 }
 
 let shared: Promise<RectoEngine> | null = null;
+let sharedReady: RectoEngine | null = null;
 
 /**
  * Opens a PDF on this thread's shared engine:
@@ -354,10 +368,17 @@ export async function openPdf(
   bytes: Uint8Array | ArrayBuffer,
   options: PdfOpenOptions = {}
 ): Promise<PdfDocument> {
-  const owned = ownedBytes(bytes);
+  if (sharedReady) {
+    return sharedReady.open(bytes, options);
+  }
+  // Getting the engine takes an await: the buffer has to be the caller's again before it.
+  const owned = bytesOf(bytes).slice();
   if (!shared) {
     const starting = createEngine({});
     shared = starting;
+    starting.then((engine) => {
+      sharedReady = engine;
+    }, () => {});
     // A failure is not kept: the next call tries again.
     starting.catch(() => {
       if (shared === starting) {

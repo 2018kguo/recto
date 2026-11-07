@@ -42,15 +42,15 @@ impl PagesContext<'_> {
 /// A structure holding the pages of a PDF document.
 pub struct Pages<'a> {
     pages: Vec<Page<'a>>,
-    // recto: a ranged file finds page `i` on first use.
+    // recto: page `i` found on first use, when the tree's counts hold up.
     lazy: Option<LazyPages<'a>>,
     xref: &'a XRef,
 }
 
 /// recto: pages found on demand by descending the tree by each kid's
-/// `/Count`, so a ranged file fetches only the nodes on the way to a page.
-/// Equal to the eager walk when every `/Count` is right (other readers
-/// trust them too); `Deref` still builds the eager list for other callers.
+/// `/Count`, so a ranged file fetches only the nodes on the way to a page and
+/// a whole file builds only the pages asked for. Equal to the eager walk when
+/// every `/Count` is right; `Deref` still builds the eager list for other callers.
 struct LazyPages<'a> {
     root: Dict<'a>,
     ctx: ReaderContext<'a>,
@@ -97,10 +97,19 @@ impl<'a> LazyPages<'a> {
                     MaybeRef::Ref(id) => self.ctx.xref().get_with::<Dict<'a>>((*id).into(), &self.ctx)?,
                     MaybeRef::NotRef(object) => object.clone().into_dict()?,
                 };
-                if dict.get::<Name<'_>>(TYPE).as_deref() == Some(PAGES) {
+                if dict.get::<Name<'_>>(TYPE).as_deref() != Some(PAGES) {
+                    return Page::new(&dict, &node.frame.ctx, &self.ctx, false);
+                }
+                // A node of one page takes that page's place. Any other only gets
+                // here by the coincidence `counts_add_up` lists for a ranged file.
+                if dict.get::<usize>(COUNT) != Some(1) {
                     return None;
                 }
-                return Page::new(&dict, &node.frame.ctx, &self.ctx, false);
+                index = 0;
+                let ctx = node.frame.ctx.clone();
+                key = node_key(&dict);
+                nodes.entry(key).or_insert_with(|| new_node(&dict, ctx));
+                continue;
             }
             while node.end <= index {
                 let dict = match node.frame.kids.next()? {
@@ -136,20 +145,27 @@ impl<'a> LazyPages<'a> {
     }
 }
 
-/// recto: a node's `/Count`, if it adds up. A node with as many kids as its
-/// `/Count` is taken as all pages (the usual bottom level) without reading
-/// them; any other has its kids read (nodes recursively) and summed. So the
-/// check reads the tree's inner nodes, not its pages.
-/// Limit: a bottom node whose kid count matches by coincidence (a node of
-/// 2 pages plus a missing page) passes; reading every page would catch it.
+/// recto: a node's `/Count`, if it adds up. A whole file has every kid read,
+/// so a tree that passes holds exactly what the eager walk would find and
+/// anything odd (a missing or repeated kid, a wrong `/Count`) goes to that
+/// walk. A ranged file can't afford that: a node with as many kids as its
+/// `/Count` is taken as all pages (the usual bottom level) without fetching
+/// them, the others have their kids read and summed.
+/// Limit (ranged only): a bottom node whose kid count matches by coincidence
+/// (a node of 2 pages plus a missing page) passes.
 fn counts_add_up<'a>(
     dict: &Dict<'a>,
     ctx: &ReaderContext<'a>,
     visited: &mut FxHashSet<ObjectIdentifier>,
+    depth: usize,
 ) -> Option<usize> {
+    // Not the eager walk's own stack: a chain of nodes mustn't overflow this one.
+    if depth == MAX_CHECKED_DEPTH {
+        return None;
+    }
     let count = dict.get::<usize>(COUNT)?;
     let kids = dict.get::<Array<'a>>(KIDS)?;
-    if kids.raw_iter().count() == count {
+    if ctx.xref().is_ranged() && kids.raw_iter().count() == count {
         return Some(count);
     }
     let mut sum: usize = 0;
@@ -164,13 +180,15 @@ fn counts_add_up<'a>(
             MaybeRef::NotRef(object) => object.into_dict()?,
         };
         sum = sum.checked_add(if kid.get::<Name<'_>>(TYPE).as_deref() == Some(PAGES) {
-            counts_add_up(&kid, ctx, visited)?
+            counts_add_up(&kid, ctx, visited, depth + 1)?
         } else {
             1
         })?;
     }
     (sum == count).then_some(count)
 }
+
+const MAX_CHECKED_DEPTH: usize = 64;
 
 fn new_node<'a>(dict: &Dict<'a>, ctx: PagesContext<'a>) -> Option<Node<'a>> {
     let flat = dict
@@ -192,12 +210,11 @@ impl<'a> Pages<'a> {
         ctx: &ReaderContext<'a>,
         xref: &'a XRef,
     ) -> Option<Self> {
-        // recto: a ranged file trusts the root's `/Count` (when it is no more
-        // than the file's objects) and finds pages on demand.
-        if xref.is_ranged()
-            && let Some(count) = pages_dict.get::<usize>(COUNT)
+        // recto: when the root's `/Count` holds up (see `counts_add_up`), and is
+        // no more than the file's objects, pages are built on demand.
+        if let Some(count) = pages_dict.get::<usize>(COUNT)
             && count <= xref.len()
-            && counts_add_up(pages_dict, ctx, &mut FxHashSet::default()) == Some(count)
+            && counts_add_up(pages_dict, ctx, &mut FxHashSet::default(), 0) == Some(count)
         {
             return Some(Self {
                 pages: vec![],
@@ -223,7 +240,7 @@ impl<'a> Pages<'a> {
         })
     }
 
-    /// recto: the number of pages (the root's `/Count` for a ranged file).
+    /// recto: the number of pages (the root's `/Count` when lazy).
     pub fn len(&self) -> usize {
         match &self.lazy {
             Some(lazy) => lazy.found.len(),
@@ -236,7 +253,7 @@ impl<'a> Pages<'a> {
         self.len() == 0
     }
 
-    /// recto: page `index`, found on first use in a ranged file.
+    /// recto: page `index`, found on first use when lazy.
     pub fn get(&self, index: usize) -> Option<&Page<'a>> {
         match &self.lazy {
             Some(lazy) => lazy.found.get(index)?.get_or_init(|| lazy.find(index)).as_ref(),
