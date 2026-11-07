@@ -46,11 +46,20 @@ async function answer({ doc: id, open, method, args }: PoolRequest): Promise<unk
   return (doc as unknown as Record<string, (...args: unknown[]) => unknown>)[method]!(...args);
 }
 
+function failureOf(error: unknown) {
+  const { name, code, message } = error as { name?: string; code?: string; message?: string };
+  return { name, code, message: message ?? String(error) };
+}
+
 async function handle(message: PoolRequest | PoolStart): Promise<void> {
   if (!("id" in message)) {
     const { assetBase } = message;
-    engine = await createPdfEngine(assetBase ? { assetBase } : {});
-    port.postMessage({ ready: true }, []);
+    try {
+      engine = await createPdfEngine(assetBase ? { assetBase } : {});
+      port.postMessage({ ready: true }, []);
+    } catch (error) {
+      port.postMessage({ startFailed: true, failure: failureOf(error) }, []);
+    }
     return;
   }
   if (message.method === "close") {
@@ -62,10 +71,9 @@ async function handle(message: PoolRequest | PoolStart): Promise<void> {
     const result = await answer(message);
     const buffers = new Set<ArrayBuffer>();
     buffersIn(result, buffers);
-    port.postMessage({ result }, [...buffers]);
+    port.postMessage({ result, opened: docs.has(message.doc) }, [...buffers]);
   } catch (error) {
-    const { name, code, message: text } = error as { name?: string; code?: string; message?: string };
-    port.postMessage({ failure: { name, code, message: text ?? String(error) } }, []);
+    port.postMessage({ failure: failureOf(error), opened: docs.has(message.doc) }, []);
   }
 }
 

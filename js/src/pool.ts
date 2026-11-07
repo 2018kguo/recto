@@ -1,7 +1,11 @@
 // Pages read and drawn across worker threads, from one call per page. Each thread has its own
 // engine and, the first time it's given a page of a document, its own copy of the file; a thread
 // starts only when there's work and none is free, so calls made one at a time stay on one thread.
-// No SharedArrayBuffer and so no special headers.
+// No special headers: SharedArrayBuffer only saves a copy, where it's allowed.
+//
+// No call waits for ever on a thread that's gone: a thread reports a failed start, its death fails its
+// call, and one that has said nothing by START_TIMEOUT_MS counts as dead. A call that's running can't be
+// stopped, only the page budgets end it, or `close()`.
 
 import type {
   PdfAnnotation,
@@ -16,7 +20,7 @@ import { PdfError, type PdfErrorCode } from "./errors.ts";
 import type { PoolRequest, PoolStart } from "./pool-worker.ts";
 
 export type PdfPoolOptions = {
-  /** At most this many threads. Default: one less than the machine's cores, up to 8. */
+  /** At most this many threads, up to 64. Default: one less than the machine's cores, up to 8. */
   threads?: number;
   /** As for `createPdfEngine`. A string: it crosses to the threads. */
   assetBase?: string;
@@ -32,6 +36,7 @@ export interface PdfPoolDocument {
   objects(index: number): Promise<PdfPageObjects>;
   annotations(index: number): Promise<PdfAnnotation[]>;
   outline(): Promise<PdfOutlineItem[]>;
+  /** Takes no `signal`: a call that's running can't be stopped. */
   render(index: number, options: PdfRenderOptions): Promise<PdfBitmap>;
   /** Frees it on every thread, and fails its calls still waiting with `closed`. */
   close(): Promise<void>;
@@ -74,6 +79,10 @@ type Thread = {
   running: Task | null;
 };
 
+/** Longer than a thread's slowest fetch of its wasm (ASSET_TIMEOUT_MS), and its compile. */
+const START_TIMEOUT_MS = 90_000;
+const MAX_THREADS = 64;
+
 function defaultThreads(): number {
   const cores = globalThis.process?.getBuiltinModule?.("node:os")?.availableParallelism() ?? navigator.hardwareConcurrency ?? 2;
   return Math.max(1, Math.min(8, cores - 1));
@@ -92,9 +101,11 @@ const closedError = () => new PdfError("closed", "this document or pool is close
 
 class Pool implements PdfPool {
   #limit: number;
+  readonly #ceiling: number;
   readonly #assetBase: string | undefined;
   readonly #threads: Thread[] = [];
-  #starting = 0;
+  /** Started and not yet ready. */
+  readonly #startingThreads = new Set<Thread>();
   #queue: Task[] = [];
   #nextFile = 0;
   #nextId = 0;
@@ -102,22 +113,33 @@ class Pool implements PdfPool {
 
   constructor(limit: number, assetBase: string | undefined) {
     this.#limit = limit;
+    this.#ceiling = limit;
     this.#assetBase = assetBase;
   }
 
   #spawn(): void {
-    this.#starting += 1;
     const thread: Thread = { worker: null!, running: null };
-    let ready = false;
+    this.#startingThreads.add(thread);
     let dead = false;
-    const onMessage = (message: { ready?: true; result?: unknown; failure?: { message: string } }) => {
+    let waiting: ReturnType<typeof setTimeout> | undefined;
+    const onMessage = (message: {
+      ready?: true;
+      result?: unknown;
+      failure?: { name?: string; code?: string; message: string };
+      startFailed?: boolean;
+      opened?: boolean;
+    }) => {
       if (this.#closed) {
         void thread.worker.terminate();
         return;
       }
+      if (message.startFailed) {
+        onDeath(message.failure!.message, failureOf(message.failure!));
+        return;
+      }
       if (message.ready) {
-        ready = true;
-        this.#starting -= 1;
+        clearTimeout(waiting);
+        this.#startingThreads.delete(thread);
         this.#threads.push(thread);
         // Idle, a thread doesn't keep a Node process alive; a call under way does.
         thread.worker.unref?.();
@@ -125,6 +147,10 @@ class Pool implements PdfPool {
         const task = thread.running!;
         thread.running = null;
         thread.worker.unref?.();
+        // It'll need the file again: this was the call that was to open it.
+        if (!message.opened) {
+          task.file.on.delete(thread);
+        }
         if (message.failure) {
           task.reject(failureOf(message.failure));
         } else {
@@ -134,46 +160,69 @@ class Pool implements PdfPool {
       this.#pump();
     };
     // In Node a failure is an `error` and then an `exit`.
-    const onDeath = (reason: unknown) => {
+    const onDeath = (reason: unknown, typed?: Error) => {
       if (dead || this.#closed) {
         return;
       }
       dead = true;
-      const failure = new PdfError("crash", `a pool thread stopped: ${String(reason)}`, reason);
-      if (ready) {
-        this.#threads.splice(this.#threads.indexOf(thread), 1);
-      } else {
+      clearTimeout(waiting);
+      void thread.worker?.terminate();
+      const failure = typed ?? new PdfError("crash", `a pool thread stopped: ${String(reason)}`, reason);
+      if (this.#startingThreads.delete(thread)) {
         // It couldn't start, so another wouldn't either: run on what's left, or fail what's waiting.
-        this.#starting -= 1;
-        this.#limit = this.#threads.length + this.#starting;
+        this.#limit = this.#threads.length + this.#startingThreads.size;
         if (this.#limit === 0) {
-          this.#limit = 1;
+          // The next call tries again: what stopped it, a missing file say, may be back by then.
+          this.#limit = this.#ceiling;
           for (const task of this.#queue.splice(0)) {
             task.reject(failure);
           }
         }
+      } else {
+        this.#threads.splice(this.#threads.indexOf(thread), 1);
       }
       thread.running?.file.on.delete(thread);
       thread.running?.reject(failure);
       thread.running = null;
       this.#pump();
     };
-    const threads = globalThis.process?.getBuiltinModule?.("node:worker_threads");
-    if (threads) {
-      const worker = new threads.Worker(new URL("./pool-worker.js", import.meta.url), { execArgv: [] });
-      worker.on("message", onMessage);
-      worker.on("error", onDeath);
-      worker.on("exit", onDeath);
-      thread.worker = worker;
-    } else {
-      // Written out in full: this is the form bundlers recognise, and they emit the worker for it.
-      const worker = new Worker(new URL("./pool-worker.js", import.meta.url), { type: "module" });
-      worker.onmessage = ({ data }) => onMessage(data);
-      worker.onerror = (event) => onDeath(event.message);
-      thread.worker = worker;
+    waiting = setTimeout(() => onDeath(`it hadn't started after ${START_TIMEOUT_MS} ms`), START_TIMEOUT_MS);
+    (waiting as { unref?(): void }).unref?.();
+    try {
+      const threads = globalThis.process?.getBuiltinModule?.("node:worker_threads");
+      if (threads) {
+        const worker = new threads.Worker(new URL("./pool-worker.js", import.meta.url), { execArgv: [] });
+        worker.on("message", onMessage);
+        worker.on("messageerror", onDeath);
+        worker.on("error", onDeath);
+        worker.on("exit", onDeath);
+        thread.worker = worker;
+      } else {
+        const script = new URL("./pool-worker.js", import.meta.url);
+        const worker =
+          script.origin === location.origin
+            ? // Written out in full: this is the form bundlers recognise, and they emit the worker for it.
+              new Worker(new URL("./pool-worker.js", import.meta.url), { type: "module" })
+            : // A worker's script has to be of this page's origin, so from a CDN it's one line that imports the
+              // real one, which the CDN has to allow with CORS, as it does the wasm.
+              // ponytail: the blob's URL lives as long as the page; one per thread started.
+              new Worker(
+                URL.createObjectURL(new Blob([`import ${JSON.stringify(script.href)};`], { type: "text/javascript" })),
+                { type: "module" }
+              );
+        worker.onmessage = ({ data }) => onMessage(data);
+        worker.onmessageerror = () => onDeath("a message from it could not be read");
+        worker.onerror = (event) => {
+          event.preventDefault();
+          onDeath(event.message || "its script did not load");
+        };
+        thread.worker = worker;
+      }
+      const start: PoolStart = { assetBase: this.#assetBase };
+      thread.worker.postMessage(start);
+    } catch (error) {
+      onDeath(error);
     }
-    const start: PoolStart = { assetBase: this.#assetBase };
-    thread.worker.postMessage(start);
   }
 
   /** Gives each free thread work, the oldest call on a document it has if there is one. */
@@ -195,11 +244,25 @@ class Pool implements PdfPool {
       thread.running = task;
       thread.worker.ref?.();
       const { file } = task;
-      const open = file.on.has(thread) ? {} : { open: { bytes: file.bytes, password: file.password } };
+      const had = file.on.has(thread);
+      const open = had ? {} : { open: { bytes: file.bytes, password: file.password } };
       file.on.add(thread);
-      thread.worker.postMessage({ ...task.request, id: this.#nextId++, ...open });
+      try {
+        thread.worker.postMessage({ ...task.request, id: this.#nextId++, ...open });
+      } catch (error) {
+        // An argument that can't cross. Nothing reached the thread.
+        thread.running = null;
+        thread.worker.unref?.();
+        if (!had) {
+          file.on.delete(thread);
+        }
+        task.reject(error);
+        // Nothing will come back from the thread to take the next call.
+        this.#pump();
+        return;
+      }
     }
-    const wanted = Math.min(this.#limit - this.#threads.length, this.#queue.length) - this.#starting;
+    const wanted = Math.min(this.#limit - this.#threads.length, this.#queue.length) - this.#startingThreads.size;
     for (let i = 0; i < wanted; i++) {
       this.#spawn();
     }
@@ -250,7 +313,14 @@ class Pool implements PdfPool {
       objects: (index) => call("objects", index) as Promise<PdfPageObjects>,
       annotations: (index) => call("annotations", index) as Promise<PdfAnnotation[]>,
       outline: () => call("outline") as Promise<PdfOutlineItem[]>,
-      render: (index, renderOptions) => call("render", index, renderOptions) as Promise<PdfBitmap>,
+      render: (index, renderOptions) => {
+        if ((renderOptions as { signal?: unknown } | undefined)?.signal) {
+          return Promise.reject(
+            new TypeError("a pool's render takes no signal: a call that's running can't be stopped. pool.close() ends all of them.")
+          );
+        }
+        return call("render", index, { width: renderOptions?.width, maxHeight: renderOptions?.maxHeight }) as Promise<PdfBitmap>;
+      },
       close,
       [Symbol.asyncDispose]: close,
     };
@@ -265,9 +335,9 @@ class Pool implements PdfPool {
       return;
     }
     this.#closed = true;
-    for (const thread of this.#threads) {
+    for (const thread of [...this.#threads, ...this.#startingThreads]) {
       thread.running?.reject(closedError());
-      void thread.worker.terminate();
+      void thread.worker?.terminate();
     }
     for (const task of this.#queue.splice(0)) {
       task.reject(closedError());
@@ -281,8 +351,8 @@ class Pool implements PdfPool {
 
 export function startPool(options: PdfPoolOptions): PdfPool {
   const threads = options.threads ?? defaultThreads();
-  if (!(Number.isInteger(threads) && threads >= 1)) {
-    throw new RangeError(`threads must be a whole number from 1, not ${threads}`);
+  if (!(Number.isInteger(threads) && threads >= 1 && threads <= MAX_THREADS)) {
+    throw new RangeError(`threads must be a whole number from 1 to ${MAX_THREADS}, not ${threads}`);
   }
   if (!globalThis.process?.getBuiltinModule?.("node:worker_threads") && typeof Worker === "undefined") {
     throw new PdfError("wrong-thread", "a pool needs worker threads, which this thread can't start");
