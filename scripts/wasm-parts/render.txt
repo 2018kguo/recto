@@ -4,18 +4,18 @@
 <&read_fonts::model::font::tables::Tables as read_fonts::table_provider::TableProvider>::glyf_extended
 <&read_fonts::model::font::tables::Tables as read_fonts::table_provider::TableProvider>::gsub
 <&read_fonts::model::font::tables::Tables as read_fonts::table_provider::TableProvider>::selected_glyf_loca::<core::option::Option<bool>>
-<&str as core::fmt::Display>::fmt[2]
+<&str as core::fmt::Display>::fmt
 <&u8 as core::fmt::LowerHex>::fmt
 <(&[u8], &read_fonts::ps::cff::index::Index, &read_fonts::ps::cff::index::Index, &read_fonts::ps::cff::index::Index) as read_fonts::ps::charstring::CharstringContext>::global_subr
 <(&[u8], &read_fonts::ps::cff::index::Index, &read_fonts::ps::cff::index::Index, &read_fonts::ps::cff::index::Index) as read_fonts::ps::charstring::CharstringContext>::kind
 <(&[u8], &read_fonts::ps::cff::index::Index, &read_fonts::ps::cff::index::Index, &read_fonts::ps::cff::index::Index) as read_fonts::ps::charstring::CharstringContext>::subr
 <[f32; 6usize] as hayro_syntax::reader::Readable>::read
-<ab_glyph_rasterizer[1dd9bdbda39cad0]::raster::Rasterizer>::draw_cubic
-<ab_glyph_rasterizer[1dd9bdbda39cad0]::raster::Rasterizer>::draw_line
-<ab_glyph_rasterizer[1dd9bdbda39cad0]::raster::Rasterizer>::draw_line_scalar
-<ab_glyph_rasterizer[1dd9bdbda39cad0]::raster::Rasterizer>::draw_quad
-<ab_glyph_rasterizer[1dd9bdbda39cad0]::raster::Rasterizer>::new
-<ab_glyph_rasterizer[1dd9bdbda39cad0]::raster::Rasterizer>::tessellate_cubic
+<ab_glyph_rasterizer::raster::Rasterizer>::draw_cubic
+<ab_glyph_rasterizer::raster::Rasterizer>::draw_line
+<ab_glyph_rasterizer::raster::Rasterizer>::draw_line_scalar
+<ab_glyph_rasterizer::raster::Rasterizer>::draw_quad
+<ab_glyph_rasterizer::raster::Rasterizer>::new
+<ab_glyph_rasterizer::raster::Rasterizer>::tessellate_cubic
 <alloc::boxed::Box<hayro_interpret::pattern::Pattern> as core::clone::Clone>::clone
 <alloc::raw_vec::RawVec<alloc::vec::Vec<u8>>>::grow_one
 <alloc::raw_vec::RawVec<hayro::group::GroupFrame>>::grow_one
@@ -33,33 +33,19 @@
 <alloc::raw_vec::RawVec<vello_cpu::coarse::bucketer::ActiveLayer>>::grow_one
 <alloc::raw_vec::RawVec<vello_cpu::coarse::cmd::DepthFill>>::grow_one
 <alloc::raw_vec::RawVec<vello_cpu::record::RecordedFill>>::grow_one
-<alloc::raw_vec::RawVecInner<_>>::reserve::do_reserve_and_handle::<alloc::alloc::Global>[11]
-<alloc::raw_vec::RawVecInner<_>>::reserve::do_reserve_and_handle::<alloc::alloc::Global>[1]
-<alloc::raw_vec::RawVecInner<_>>::reserve::do_reserve_and_handle::<alloc::alloc::Global>[2]
-<alloc::raw_vec::RawVecInner<_>>::reserve::do_reserve_and_handle::<alloc::alloc::Global>[3]
-<alloc::raw_vec::RawVecInner<_>>::reserve::do_reserve_and_handle::<alloc::alloc::Global>[7]
-<alloc::raw_vec::RawVecInner>::finish_grow[18]
-<alloc::raw_vec::RawVecInner>::finish_grow[2]
-<alloc::raw_vec::RawVecInner>::finish_grow[4]
-<alloc::raw_vec::RawVecInner>::finish_grow[8]
-<alloc::raw_vec::RawVecInner>::try_allocate_in[5]
 <alloc::rc::Rc<hayro::GlobalState>>::drop_slow
 <alloc::rc::Rc<kurbo::bezpath::BezPath>>::drop_slow
 <alloc::rc::Rc<skrifa::scaler::ScalerFont>>::drop_slow
-<alloc::string::String as core::fmt::Display>::fmt[1]
-<alloc::string::String as core::fmt::Write>::write_str
+<alloc::string::String as core::fmt::Display>::fmt
 <alloc::sync::Arc<dyn pic_scale::convolution::ColumnFilter<f32, 1usize> + core::marker::Send + core::marker::Sync>>::drop_slow
 <alloc::sync::Arc<hayro::glyph_cache::CachedGlyph>>::drop_slow
-<alloc::sync::Arc<hayro_syntax::reader::ReaderContextData>>::make_mut[1]
 <alloc::sync::Arc<skrifa::outline::autohint::instance::LocatedState>>::drop_slow
 <alloc::sync::Arc<skrifa::outline::autohint::style::GlyphStyleMap>>::drop_slow
 <alloc::sync::Arc<std::sync::once_lock::OnceLock<core::option::Option<alloc::boxed::Box<[u8; 256usize]>>>>>::drop_slow
 <alloc::sync::Arc<std::sync::poison::rwlock::RwLock<alloc::vec::Vec<core::option::Option<skrifa::outline::autohint::metrics::UnscaledStyleMetrics>>>>>::drop_slow
 <alloc::sync::Arc<vello_common::pixmap::Pixmap>>::drop_slow
 <alloc::vec::Vec<&str> as alloc::vec::spec_from_iter_nested::SpecFromIterNested<&str, core::str::iter::SplitAsciiWhitespace>>::from_iter
-<alloc::vec::Vec<u8> as core::convert::AsRef<[u8]>>::as_ref
 <alloc::vec::Vec<vello_common::flatten_simd::Point32>>::resize
-<alloc::vec::Vec<vello_common::flatten_simd::Point32>>::resize[1]
 <alloc::vec::Vec<vello_cpu::coarse::bucketer::RowState>>::resize_with::<&mut <vello_cpu::coarse::bucketer::RowState>::new>
 <color::dynamic::DynamicColor>::convert
 <core::cell::once::OnceCell<vello_common::encode::GradientLut<u8>>>::try_init::<<core::cell::once::OnceCell<vello_common::encode::GradientLut<u8>>>::get_or_init<<vello_common::encode::EncodedGradient>::u8_lut<fearless_simd::generated::wasm::WasmSimd128>::{closure#0}>::{closure#0}, !>
@@ -76,13 +62,12 @@
 <core::iter::adapters::flatten::FlattenCompat<_, _> as core::iter::traits::iterator::Iterator>::try_fold::flatten::<core::iter::adapters::flatten::FlatMap<core::option::IntoIter<&read_fonts::tables::cmap::CmapSubtable>, read_fonts::tables::cmap::CmapSubtableIter, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#1}::{closure#0}>, (), core::ops::control_flow::ControlFlow<(u32, font_types::glyph_id::GlyphId)>, core::iter::adapters::filter::filter_try_fold<(u32, font_types::glyph_id::GlyphId), (), core::ops::control_flow::ControlFlow<(u32, font_types::glyph_id::GlyphId)>, <read_fonts::model::charmap::SfntUnicodeCharmap>::iter::{closure#1}, &mut core::iter::traits::iterator::Iterator::find::check<(u32, font_types::glyph_id::GlyphId), &mut <read_fonts::model::charmap::Charmap>::unicodes::{closure#1}>::{closure#0}>::{closure#0}>::{closure#0}
 <core::iter::adapters::take::Take<core::iter::adapters::enumerate::Enumerate<core::slice::iter::Iter<u32>>> as core::iter::traits::iterator::Iterator>::nth
 <core::str::iter::SplitInternal<char>>::next
-<core::str::pattern::TwoWaySearcher>::next::<core::str::pattern::MatchOnly>[1]
 <f64 as core::fmt::Display>::fmt
 <f64 as core::str::traits::FromStr>::from_str
 <fearless_simd::generated::wasm::WasmSimd128 as fearless_simd::generated::simd_trait::Simd>::vectorize::<<peniko::blend::BlendMode as vello_cpu::fine::lowp::compose::ComposeExt>::compose<fearless_simd::generated::wasm::WasmSimd128>::{closure#0}, fearless_simd::generated::simd_types::u8x32<fearless_simd::generated::wasm::WasmSimd128>>
 <fearless_simd::generated::wasm::WasmSimd128 as fearless_simd::generated::simd_trait::Simd>::vectorize::<<vello_cpu::fine::lowp::U8Kernel as vello_cpu::fine::FineKernel<fearless_simd::generated::wasm::WasmSimd128>>::apply_tint::{closure#1}, ()>
-<foldhash[5d9ba37d63f7fcf]::seed::SharedSeed>::from_u64
-<foldhash[5d9ba37d63f7fcf]::seed::global::GlobalSeed>::init_slow
+<foldhash::seed::SharedSeed>::from_u64
+<foldhash::seed::global::GlobalSeed>::init_slow
 <hashbrown::map::HashMap<(u128, u32), core::option::Option<alloc::rc::Rc<kurbo::bezpath::BezPath>>, rustc_hash::FxBuildHasher>>::insert
 <hashbrown::map::HashMap<hayro_syntax::object::ObjectIdentifier, (), std::hash::random::RandomState>>::insert
 <hashbrown::map::HashMap<hayro_syntax::object::name::Name, hayro_syntax::object::dict::Dict, rustc_hash::FxBuildHasher>>::insert
@@ -128,7 +113,6 @@
 <hayro_interpret::color::ColorSpace>::inverted_default_decode_arr
 <hayro_interpret::color::ColorSpace>::pattern
 <hayro_interpret::color::ColorSpace>::to_rgba
-<hayro_interpret::color::ColorSpace>::to_rgba[1]
 <hayro_interpret::color::U8Lookup<[u8; 3usize]> as core::default::Default>::default
 <hayro_interpret::color::indexed::Indexed>::new
 <hayro_interpret::context::Context>::compositing
@@ -146,7 +130,6 @@
 <hayro_interpret::x_object::form::FormXObject>::draw::<hayro::Renderer>
 <hayro_interpret::x_object::form::FormXObject>::draw_contents::<hayro::Renderer>
 <hayro_interpret::x_object::image::ImageXObject as core::clone::Clone>::clone
-<hayro_interpret::x_object::image::ImageXObject as core::clone::Clone>::clone[1]
 <hayro_interpret::x_object::image::ImageXObject>::decoded_image
 <hayro_interpret::x_object::image::ImageXObject>::draw::<hayro::Renderer>
 <hayro_interpret::x_object::image::ImageXObject>::draw::<recto::device::PageDevice>
@@ -154,30 +137,12 @@
 <hayro_interpret::x_object::image::ImageXObject>::new::<hayro_interpret::interpret::run_ops<hayro_interpret::pattern::StencilPatternDevice<hayro::Renderer>>::{closure#11}::{closure#0}>
 <hayro_interpret::x_object::image::ImageXObject>::new::<hayro_interpret::interpret::run_ops<recto::device::PageDevice>::{closure#11}::{closure#0}>
 <hayro_interpret::x_object::image::ImageXObject>::new_mask
-<hayro_syntax::object::Object as core::clone::Clone>::clone[1]
 <hayro_syntax::object::array::ArrayIter as core::iter::traits::iterator::Iterator>::next
-<hayro_syntax::object::array::FlexArrayIter>::next::<hayro_syntax::object::Object>
-<hayro_syntax::object::array::FlexArrayIter>::next::<hayro_syntax::object::Object>[1]
-<hayro_syntax::object::array::ResolvedArrayIter<f32> as core::iter::traits::iterator::Iterator>::next
-<hayro_syntax::object::dict::Dict>::contains_key::<&[u8]>
 <hayro_syntax::object::dict::Dict>::get::<[f32; 6usize], &[u8]>
-<hayro_syntax::object::dict::Dict>::get::<bool, &[u8]>
-<hayro_syntax::object::dict::Dict>::get::<bool, &[u8]>[1]
-<hayro_syntax::object::dict::Dict>::get::<hayro_syntax::object::Object, &[u8]>
-<hayro_syntax::object::dict::Dict>::get::<hayro_syntax::object::dict::Dict, hayro_syntax::object::name::Name>[1]
-<hayro_syntax::object::dict::Dict>::get::<hayro_syntax::object::name::Name, &[u8]>[1]
 <hayro_syntax::object::dict::Dict>::get::<hayro_syntax::object::stream::Stream, hayro_syntax::object::name::Name>
-<hayro_syntax::object::dict::Dict>::get::<hayro_syntax::object::string::String, &[u8]>
-<hayro_syntax::object::dict::Dict>::get::<u32, &[u8]>
-<hayro_syntax::object::dict::Dict>::get::<u32, &[u8]>[1]
-<hayro_syntax::object::dict::Dict>::get::<u32, &[u8]>[2]
-<hayro_syntax::object::dict::Dict>::get_raw::<hayro_syntax::object::dict::Dict, &[u8]>[1]
-<hayro_syntax::object::dict::Dict>::get_ref::<&[u8]>[1]
 <hayro_syntax::object::name::Name as core::cmp::PartialEq>::eq
 <hayro_syntax::page::Page>::typed_operations
 <hayro_syntax::page::Resources>::get_shading
-<hayro_syntax::xref::XRef>::get_with::<hayro_syntax::object::Object>[1]
-<hayro_syntax::xref::XRef>::get_with::<hayro_syntax::object::dict::Dict>[1]
 <js_sys::Date>::now
 <kurbo::bezpath::BezPath as kurbo::shape::Shape>::bounding_box
 <kurbo::bezpath::BezPath>::control_box
@@ -190,7 +155,6 @@
 <kurbo::offset::CubicOffset>::apply
 <kurbo::offset::CubicOffset>::eval_err
 <kurbo::offset::CubicOffset>::offset_rec
-<kurbo::rect::RectPathIter as core::iter::traits::iterator::Iterator>::collect::<alloc::vec::Vec<kurbo::bezpath::PathEl>>[1]
 <kurbo::stroke::DashIterator<core::iter::adapters::cloned::Cloned<core::slice::iter::Iter<kurbo::bezpath::PathEl>>>>::get_input
 <kurbo::stroke::DashIterator<core::iter::adapters::cloned::Cloned<core::slice::iter::Iter<kurbo::bezpath::PathEl>>>>::step
 <kurbo::stroke::StrokeCtx>::do_cubic
@@ -266,7 +230,6 @@
 <read_fonts::ps::charstring::Evaluator>::evaluate_operator
 <read_fonts::ps::charstring::Evaluator>::new
 <read_fonts::ps::charstring::NopFilterSink<&mut dyn read_fonts::model::glyph::outline::path::PathSink>>::flush_pending
-<read_fonts::ps::charstring::NopFilterSink<&mut dyn read_fonts::model::glyph::outline::path::PathSink>>::flush_pending[1]
 <read_fonts::ps::charstring::TransformSink<read_fonts::ps::charstring::NopFilterSink<&mut dyn read_fonts::model::glyph::outline::path::PathSink>> as read_fonts::ps::charstring::CommandSink>::close
 <read_fonts::ps::charstring::TransformSink<read_fonts::ps::charstring::NopFilterSink<&mut dyn read_fonts::model::glyph::outline::path::PathSink>> as read_fonts::ps::charstring::CommandSink>::curve_to
 <read_fonts::ps::charstring::TransformSink<read_fonts::ps::charstring::NopFilterSink<&mut dyn read_fonts::model::glyph::outline::path::PathSink>> as read_fonts::ps::charstring::CommandSink>::line_to
@@ -287,7 +250,7 @@
 <read_fonts::tables::cmap::CmapSubtableIter as core::iter::traits::iterator::Iterator>::next
 <read_fonts::tables::glyf::ComponentIter as core::iter::traits::iterator::Iterator>::next
 <read_fonts::tables::glyf::CompositeGlyph>::count_and_instructions
-<read_fonts::tables::glyf::outline::load::Pass<read_fonts::tables::glyf::outline::scale::Scale26Dot6>>::load[1]
+<read_fonts::tables::glyf::outline::load::Pass<read_fonts::tables::glyf::outline::scale::Scale26Dot6>>::load
 <read_fonts::tables::glyf::outline::load::Pass<read_fonts::tables::glyf::outline::scale::Unscaled>>::load
 <read_fonts::tables::glyf::outline::plan::OutlinePlan>::load::<read_fonts::tables::glyf::outline::scale::Scale26Dot6>
 <read_fonts::tables::glyf::outline::plan::OutlinePlan>::load::<read_fonts::tables::glyf::outline::scale::Unscaled>
@@ -329,8 +292,6 @@
 <recto::device::PageDevice as hayro_interpret::device::Device>::draw_image
 <recto::wasm::Document>::objects
 <recto::wasm::RenderTask>::step::{closure#0}
-<rustc_hash::FxBuildHasher as core::hash::BuildHasher>::hash_one::<&[u8]>[1]
-<rustc_hash::FxBuildHasher as core::hash::BuildHasher>::hash_one::<&hayro_syntax::object::name::Name>[1]
 <skrifa::outline::autohint::context::FontContext as skrifa::outline::autohint::context::AutohintContext>::advance_width
 <skrifa::outline::autohint::context::FontContext as skrifa::outline::autohint::context::AutohintContext>::coords
 <skrifa::outline::autohint::context::FontContext as skrifa::outline::autohint::context::AutohintContext>::draw_unscaled
@@ -381,11 +342,9 @@
 <skrifa::scaler::ScalerFont>::outline
 <skrifa::scaler::ScalerOutline>::draw_dyn
 <skrifa::scaler::postscript::HintedSubfont>::new
-<smallvec::SmallVec<[f32; 4usize]> as core::convert::From<&[f32]>>::from[1]
 <smallvec::SmallVec<[kurbo::affine::Affine; 3usize]>>::reserve_one_unchecked
 <smallvec::SmallVec<[peniko::gradient::ColorStop; 4usize]>>::reserve_one_unchecked
 <smallvec::SmallVec<[peniko::gradient::ColorStop; 4usize]>>::try_grow
-<smallvec::SmallVec<[peniko::gradient::ColorStop; 4usize]>>::try_grow[1]
 <smallvec::SmallVec<[skrifa::outline::autohint::outline::Contour; 8usize]>>::reserve_one_unchecked
 <smallvec::SmallVec<[skrifa::outline::autohint::outline::Point; 96usize]>>::reserve_one_unchecked
 <smallvec::SmallVec<[skrifa::outline::autohint::topo::Edge; 12usize]>>::reserve_one_unchecked
@@ -510,7 +469,6 @@ __wbg_get_renderedpage_width
 __wbg_pageobjects_free
 __wbg_renderedpage_free
 __wbg_rendertask_free
-alloc::boxed::box_new_uninit
 compiler_builtins::math::libm_math::cos::cos
 compiler_builtins::math::libm_math::fmod::fmod
 compiler_builtins::math::libm_math::powf::powf
@@ -527,26 +485,17 @@ core::ptr::drop_in_place::<alloc::vec::Vec<vello_common::record::RecordedLayer>>
 core::ptr::drop_in_place::<alloc::vec::Vec<vello_cpu::coarse::bucketer::RowState>>
 core::ptr::drop_in_place::<alloc::vec::Vec<zune_jpeg::components::Components>>
 core::ptr::drop_in_place::<core::cell::RefCell<vello_cpu::coarse::bucketer::CommandBucketer>>
-core::ptr::drop_in_place::<core::option::Option<hayro_interpret::interpret::state::ActiveTransferFunction>>[1]
-core::ptr::drop_in_place::<core::option::Option<hayro_interpret::interpret::state::TextStateFont>>[1]
 core::ptr::drop_in_place::<core::option::Option<skrifa::outline::autohint::metrics::UnscaledStyleMetrics>>
 core::ptr::drop_in_place::<core::result::Result<[u8; 4usize], zune_core::bytestream::reader::ZByteIoError>>
-core::ptr::drop_in_place::<core::result::Result<usize, std::io::error::Error>>[1]
+core::ptr::drop_in_place::<core::result::Result<usize, std::io::error::Error>>
 core::ptr::drop_in_place::<hayro::Kept>
 core::ptr::drop_in_place::<hayro::Renderer>
 core::ptr::drop_in_place::<hayro::group::PageReplay>
-core::ptr::drop_in_place::<hayro_interpret::context::Context>[1]
 core::ptr::drop_in_place::<hayro_interpret::encode::EncodedShadingPattern>
-core::ptr::drop_in_place::<hayro_interpret::font::PositionedGlyph>[1]
 core::ptr::drop_in_place::<hayro_interpret::interpret::state::PaintState>
 core::ptr::drop_in_place::<hayro_interpret::types::Paint>
 core::ptr::drop_in_place::<hayro_interpret::x_object::XObject>
-core::ptr::drop_in_place::<hayro_interpret::x_object::form::FormXObject>[1]
 core::ptr::drop_in_place::<hayro_interpret::x_object::image::ImageXObject>
-core::ptr::drop_in_place::<hayro_interpret::x_object::image::ImageXObject>[1]
-core::ptr::drop_in_place::<hayro_interpret::x_object::image::ImageXObject>[2]
-core::ptr::drop_in_place::<hayro_syntax::object::Object>[1]
-core::ptr::drop_in_place::<hayro_syntax::page::Resources>[1]
 core::ptr::drop_in_place::<pic_scale::plan::horizontal_filtering::HorizontalFiltering<u8, i16, 1usize>>
 core::ptr::drop_in_place::<pic_scale::plan::non_alpha_plan::BothAxesConvolvePlan<f32, 1usize>>
 core::ptr::drop_in_place::<pic_scale::plan::trampoline_filtering::TrampolineFiltering<f32, 1usize>>
@@ -561,7 +510,6 @@ core::ptr::drop_in_place::<vello_common::record::CommandRecorder<vello_cpu::reco
 core::ptr::drop_in_place::<vello_common::strip_generator::StripGenerator>
 core::ptr::drop_in_place::<vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher>
 core::ptr::drop_in_place::<vello_cpu::render::RenderContext>
-core::ptr::drop_in_place::<vello_cpu::render::RenderContext>[1]
 core::ptr::drop_in_place::<zune_jpeg::decoder::ImageInfo>
 core::ptr::drop_in_place::<zune_jpeg::decoder::JpegDecoder<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>
 core::ptr::drop_in_place::<zune_jpeg::errors::DecodeErrors>
@@ -588,7 +536,7 @@ document_scan multivalue shim
 exp2f
 fmax
 fmod
-foldhash[5d9ba37d63f7fcf]::seed::gen_per_hasher_seed
+foldhash::seed::gen_per_hasher_seed
 hayro::draw_page
 hayro::image::downscale_with_alpha::<3usize>
 hayro::image::resize_image_data

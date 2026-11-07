@@ -19,8 +19,13 @@ const DRAWING = /hayro_jbig2|hayro_jpeg2000|hayro_ccitt|zune_|vello_|pic_scale|a
 const MUST_STAY = /sha256/u;
 const listFile = (part) => path.join(import.meta.dirname, "wasm-parts", `${part}.txt`);
 
-/** Without each crate's build hash, which moves when its dependencies do. */
-export const stableName = (name) => name.replace(/\[[0-9a-f]{16}\]/gu, "");
+/**
+ * What names a function from build to build and machine to machine: without a crate's hash, which can be
+ * any length up to 16; a numbered duplicate's `[3]`, whose number follows the symbols' order; or wasm-bindgen's
+ * hash on an import. Instances this makes alike go together, wherever the list says.
+ */
+export const stableName = (name) =>
+  name.replace(/(?<=[\w>])\[[0-9a-f]+\]/gu, "").replace(/(__wbg_\w+?)_[0-9a-f]{16}\b/gu, "$1");
 export const readList = (part) => new Set(fs.readFileSync(listFile(part), "utf8").split("\n").filter(Boolean));
 export const writeList = (part, names) => fs.writeFileSync(listFile(part), `${[...names].sort().join("\n")}\n`);
 

@@ -1,6 +1,7 @@
 // The wasm comes in parts, and a call loads what it needs. None of that may show, except in what's
 // loaded: not in a result, not after a failure to load, and no part runs unchecked.
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -12,6 +13,7 @@ import { bilevel, jpxPdf, meshPdf, postScriptPdf, tensorPdf } from "./rare-pdfs.
 import { startRangeServer } from "./range-server.ts";
 import { syntheticPdf } from "./synthetic-pdf.ts";
 import { PINS } from "../wasm/pins.mjs";
+import { stableName } from "../../scripts/split-wasm.mjs";
 
 const packaged = (name: string) => new URL(`../wasm/${name}`, import.meta.url);
 const PARTS = ["recto-render.wasm", "recto-more.wasm", "recto-rare.wasm"];
@@ -252,4 +254,24 @@ test("every test file reads its text with no part at all", async () => {
     doc.text(0);
   }
   assert.equal(engine.stats().generation, 0);
+});
+
+test("a function's name in the lists doesn't depend on what machine built it", () => {
+  // 16 digits, and fewer: a hash's leading zeros aren't printed.
+  assert.equal(stableName("<hayro[176d3058480a8502]::Renderer>::run"), "<hayro::Renderer>::run");
+  assert.equal(stableName("<hayro[76d3058480a8502]::Renderer>::run"), "<hayro::Renderer>::run");
+  // The number on a duplicate follows the order of the symbols, which follows the hashes.
+  assert.equal(stableName("<alloc::raw_vec::RawVecInner>::finish_grow[3]"), "<alloc::raw_vec::RawVecInner>::finish_grow");
+  assert.equal(stableName("do_reserve::<alloc::alloc::Global>[10]"), "do_reserve::<alloc::alloc::Global>");
+  assert.equal(stableName("<js_sys::Array>::new::__wbg_new_ee2291f50781bf1d externref shim"), "<js_sys::Array>::new::__wbg_new externref shim");
+  // Types stay.
+  assert.equal(stableName("<[f32]>::fill"), "<[f32]>::fill");
+  assert.equal(stableName("<&[u8] as Read>::read"), "<&[u8] as Read>::read");
+});
+
+test("every machine tells cargo the same host, which goes into each crate's hash", () => {
+  const script = new URL("../../scripts/rustc-fixed-host.sh", import.meta.url).pathname;
+  const said = execFileSync(script, ["-vV"], { encoding: "utf8" });
+  assert.match(said, /^host: x86_64-unknown-linux-gnu$/mu);
+  assert.match(said, /^release: /mu);
 });
