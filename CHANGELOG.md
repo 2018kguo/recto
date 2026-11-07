@@ -19,9 +19,9 @@ set of PDFs before and after.
   `renderAsync`, `objects` or `scan`, with no call to make. A page that does both now downloads both:
   1.72 MB where it was 1.26 MB, or about 1.22 MB with `preloadAssets: ["recto.wasm"]`. Node starts on
   the full engine, having no download to save; `preloadAssets: []` starts it on the text one.
-- **A fresh page's first text** went from 109 ms to 31 ms, and first pixels from 119 ms to 65 ms: a
-  wasm fetched up front is checked by `fetch`'s `integrity` and compiled as it streams, not hashed in
-  JavaScript.
+- **A fresh page's first text** went from 109 ms to 31 ms, and first pixels from 119 ms to 65 ms: the
+  smaller text wasm, and a wasm fetched up front is hashed by `crypto.subtle`, not in JavaScript. Every
+  byte is still hashed before it compiles.
 - **Opening** a whole file walks the page tree and builds each page the first time it's asked for.
   `/Count` no longer decides which page is which there. A ranged file still finds a page by `/Count`,
   fetching what it did, and takes the walk when something on the way doesn't add up.

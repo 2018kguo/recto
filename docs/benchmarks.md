@@ -139,8 +139,8 @@ also made every timer and frame take 200 ms, which charged pdf.js 20× for the f
 | A 500-page report: render 5 pages | 9.8 ms | 88.9 ms (9.1× [7.4–9.2]) | 15.3 ms (1.6× [1.4–1.6]) |
 | at 4.5× | 47.2 ms | 110 ms (2.3× [2.2–3.1]) | 67.4 ms (1.4× [1.3–1.8]) |
 
-- **A fresh page**: recto is first to text (31.2 ms against 52.2 ms and 38.6 ms), on the 0.5 MB text engine, its wasm checked by
-  the browser's own `fetch` `integrity` as it streams. **pdfium is first to pixels** (50.2 ms against 64.8 ms):
+- **A fresh page**: recto is first to text (31.2 ms against 52.2 ms and 38.6 ms), on the 0.5 MB text engine, its wasm hashed by
+  `crypto.subtle` before it compiles. **pdfium is first to pixels** (50.2 ms against 64.8 ms):
   a render pays once for loading the full engine and reopening the file on it.
 - **pdfium opens faster** here too: 0.2 ms against 0.4 ms on 500 pages at full speed. At the slowdown both are
   close to a cycle's length.

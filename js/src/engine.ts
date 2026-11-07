@@ -9,11 +9,11 @@ import {
   canReadSync,
   hasFiles,
   fontFromBundle,
-  useWasmHash,
   type WasmName,
   compileWasm,
   loadAssetSync,
   preloadAssets,
+  type SyncHash,
 } from "./assets.ts";
 import {
   engineFailure,
@@ -105,15 +105,21 @@ function compile(name: WasmName, base: URL | null): Promise<WebAssembly.Module> 
 }
 
 /** The full engine, from inside a synchronous call: a worker or Node reads it now. */
-function fullModuleSync(base: URL | null): WebAssembly.Module {
+function fullModuleSync(base: URL | null, hash?: SyncHash): WebAssembly.Module {
   const key = moduleKey("recto.wasm", base);
   let module = compiled.get(key);
   if (!module) {
-    module = new WebAssembly.Module(loadAssetSync("recto.wasm", base) as Uint8Array<ArrayBuffer>);
+    module = new WebAssembly.Module(loadAssetSync("recto.wasm", base, hash) as Uint8Array<ArrayBuffer>);
     compiled.set(key, module);
   }
   return module;
 }
+
+/** An instance's own SHA-256, for an asset it needs: faster than JavaScript's in a cold browser. */
+const hashOn =
+  (instance: Instance): SyncHash =>
+  (bytes) =>
+    instance.dead ? null : Array.from(instance.glue.sha256(bytes), (byte) => byte.toString(16).padStart(2, "0")).join("");
 
 function instantiate(generation: number, base: URL | null, module: WebAssembly.Module, full: boolean): Instance {
   // Each instance gets its own glue closure (scripts/package-wasm.mjs), so a retired
@@ -136,21 +142,18 @@ function instantiate(generation: number, base: URL | null, module: WebAssembly.M
   glue.setAssetLoader((index) => {
     try {
       if (index === CMAPS_ASSET) {
-        return loadAssetSync("cmaps.deflate", base);
+        return loadAssetSync("cmaps.deflate", base, hashOn(instance));
       }
       if (index === CJK_FONT_ASSET) {
-        return loadAssetSync("cjk-fallback.ttf", base);
+        return loadAssetSync("cjk-fallback.ttf", base, hashOn(instance));
       }
-      return fontFromBundle(loadAssetSync("fonts.bin", base), index);
+      return fontFromBundle(loadAssetSync("fonts.bin", base, hashOn(instance)), index);
     } catch (error) {
       instance.dead = true;
       instance.failure = error as PdfError;
       return;
     }
   });
-  useWasmHash((bytes) =>
-    instance.dead ? null : Array.from(glue.sha256(bytes), (byte) => byte.toString(16).padStart(2, "0")).join("")
-  );
   return instance;
 }
 
@@ -238,7 +241,7 @@ class RectoEngine implements PdfEngine {
       return current;
     }
     this.#full = true;
-    const instance = instantiate(this.#generation + 1, this.#base, fullModuleSync(this.#base), true);
+    const instance = instantiate(this.#generation + 1, this.#base, fullModuleSync(this.#base, current ? hashOn(current) : undefined), true);
     this.#adopt(instance);
     return instance;
   }

@@ -31,6 +31,14 @@ try {
     () => "opened",
     (error) => error.code
   );
+  // A fetch wrapper that passes on only the URL has to make no difference.
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = (input) => realFetch(input);
+  mainThread.tamperedThroughWrapper = await createPdfEngine({ assetBase: new URL("/tampered/", base), preloadAssets: [] }).then(
+    () => "opened",
+    (error) => error.code
+  );
+  globalThis.fetch = realFetch;
 } catch (error) {
   mainThread.failure = String(error);
 }

@@ -8,8 +8,10 @@
 // are written out as `new URL("literal", import.meta.url)` because that is the form
 // bundlers recognise and rewrite, emitting the file.
 //
-// Each file is pinned by SHA-256: the engine reads its tables as trusted, and a dev server's
-// HTML fallback page must not read as a font. pins.mjs is written by the build.
+// Each file is pinned by SHA-256 and hashed here, every byte, before it's used: the engine reads
+// its tables as trusted, and a dev server's HTML fallback page must not read as a font. Nothing is
+// left to `fetch`'s `integrity`, which a wrapper around `fetch` can drop, and which buffers the
+// body anyway. pins.mjs is written by the build.
 
 import { PINS } from "../wasm/pins.mjs";
 import { PdfError } from "./errors.ts";
@@ -93,28 +95,22 @@ function loadFailure(name: AssetName, url: URL | null, reason: string, cause?: u
   );
 }
 
-let wasmHash: ((bytes: Uint8Array) => string | null) | null = null;
+/** A hash to use where there is no native one to call synchronously. A live instance's is quicker than this file's. */
+export type SyncHash = (bytes: Uint8Array) => string | null;
 
-/** A live instance's hash, for assets too large for this file's: that takes 60 ms over the wasm in a cold browser. */
-export function useWasmHash(hash: (bytes: Uint8Array) => string | null): void {
-  wasmHash = hash;
+function notThisBuild(name: AssetName, url: URL, bytes: Uint8Array): PdfError {
+  return loadFailure(
+    name,
+    url,
+    `the ${bytes.byteLength} bytes there are not this build's file (a server's fallback page, or a different version of the package)`
+  );
 }
 
-function sha256(bytes: Uint8Array): string {
+function checked(name: AssetName, url: URL, bytes: Uint8Array, hash?: SyncHash): Uint8Array {
   const crypto = globalThis.process?.getBuiltinModule?.("node:crypto");
-  if (crypto) {
-    return crypto.createHash("sha256").update(bytes).digest("hex");
-  }
-  return wasmHash?.(bytes) ?? sha256Hex(bytes);
-}
-
-function checked(name: AssetName, url: URL, bytes: Uint8Array): Uint8Array {
-  if (sha256(bytes) !== PINS[name]) {
-    throw loadFailure(
-      name,
-      url,
-      `the ${bytes.byteLength} bytes there are not this build's file (a server's fallback page, or a different version of the package)`
-    );
+  const hex = crypto ? crypto.createHash("sha256").update(bytes).digest("hex") : (hash?.(bytes) ?? sha256Hex(bytes));
+  if (hex !== PINS[name]) {
+    throw notThisBuild(name, url, bytes);
   }
   return bytes;
 }
@@ -135,62 +131,37 @@ function readSync(url: URL): Uint8Array {
   return new Uint8Array(xhr.response as ArrayBuffer);
 }
 
-/** A runtime can take the option and ignore it, and then nothing would be checked. */
-function hasFetchIntegrity(integrity: string): boolean {
-  try {
-    return new Request("https://localhost/", { integrity }).integrity === integrity;
-  } catch {
-    return false;
+/** `crypto.subtle` is only there in a secure context; a plain-http page hashes here. */
+async function hashOf(bytes: Uint8Array<ArrayBuffer>): Promise<string> {
+  const subtle = globalThis.crypto?.subtle;
+  if (!subtle) {
+    return sha256Hex(bytes);
   }
+  const digest = new Uint8Array(await subtle.digest("SHA-256", bytes));
+  return Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-/**
- * The file, with its pin checked by the browser, so no hashing here. Null means ask again without
- * it: that way is slower, but it can say what's wrong, which a failed integrity fetch can't, and it
- * works where this doesn't.
- */
-async function fetchPinned(name: AssetName, url: URL): Promise<Response | null> {
-  const hex = PINS[name];
-  const integrity = `sha256-${btoa(String.fromCharCode(...hex.match(/../gu)!.map((byte) => parseInt(byte, 16))))}`;
-  if (!hasFetchIntegrity(integrity)) {
-    return null;
-  }
-  try {
-    const response = await fetch(url, { integrity });
-    return response.ok ? response : null;
-  } catch {
-    return null;
-  }
-}
-
-async function fetchBytes(name: AssetName, url: URL): Promise<Uint8Array> {
-  const pinned = await fetchPinned(name, url);
-  if (pinned) {
-    return new Uint8Array(await pinned.arrayBuffer());
-  }
+/** The only way bytes get here from a network without blocking: whole, and hashed before they're used. */
+async function fetchBytes(name: AssetName, url: URL): Promise<Uint8Array<ArrayBuffer>> {
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`);
   }
-  return checked(name, url, new Uint8Array(await response.arrayBuffer()));
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  if ((await hashOf(bytes)) !== PINS[name]) {
+    throw notThisBuild(name, url, bytes);
+  }
+  return bytes;
 }
 
-/** The wasm, verified and compiled. Streaming needs the right MIME type, which not every server sends. */
+/** The wasm, verified and then compiled. */
 export async function compileWasm(name: WasmName, base: URL | null): Promise<WebAssembly.Module> {
   let url: URL | null = null;
   let bytes: Uint8Array<ArrayBuffer>;
   try {
     // Inside the try: under a blob: worker `import.meta.url` is no base for a URL.
     url = assetUrl(name, base);
-    if (nodeFs()) {
-      bytes = checked(name, url, readFromDisk(url)) as Uint8Array<ArrayBuffer>;
-    } else {
-      const pinned = await fetchPinned(name, url);
-      if (pinned?.headers.get("content-type") === "application/wasm") {
-        return await compiling(name, WebAssembly.compileStreaming(pinned));
-      }
-      bytes = (pinned ? new Uint8Array(await pinned.arrayBuffer()) : await fetchBytes(name, url)) as Uint8Array<ArrayBuffer>;
-    }
+    bytes = (nodeFs() ? checked(name, url, readFromDisk(url)) : await fetchBytes(name, url)) as Uint8Array<ArrayBuffer>;
   } catch (error) {
     if (error instanceof PdfError) {
       throw error;
@@ -237,7 +208,7 @@ export async function preloadAssets(base: URL | null, names: AssetName[]): Promi
 }
 
 /** An asset, read synchronously. Throws a PdfError rather than returning nothing. */
-export function loadAssetSync(name: AssetName, base: URL | null): Uint8Array {
+export function loadAssetSync(name: AssetName, base: URL | null, hash?: SyncHash): Uint8Array {
   let url: URL | null = null;
   let bytes: Uint8Array;
   try {
@@ -253,7 +224,7 @@ export function loadAssetSync(name: AssetName, base: URL | null): Uint8Array {
   } catch (error) {
     throw loadFailure(name, url, error instanceof Error ? error.message : String(error), error);
   }
-  loaded.set(url!.href, checked(name, url!, bytes));
+  loaded.set(url!.href, checked(name, url!, bytes, hash));
   return bytes;
 }
 

@@ -274,8 +274,7 @@ async function checkPages(browserName, label, origin) {
     const page = await browser.newPage();
     page.setDefaultTimeout(60_000);
     const errors = [];
-    // WebKit reports a failed integrity check as an uncaught error too; the tampered check is the test of it.
-    page.on("pageerror", (error) => /\/tampered\//u.test(String(error)) || errors.push(String(error)));
+    page.on("pageerror", (error) => errors.push(String(error)));
     const logged = [];
     page.on("console", (message) => logged.push(message.text()));
 
@@ -296,6 +295,7 @@ async function checkPages(browserName, label, origin) {
     assert.equal(checks.mainThread.ranged, "wrong-thread");
     assert.match(checks.mainThread.plainMime, /Hello from recto/u);
     assert.equal(checks.mainThread.tampered, "missing-asset");
+    assert.equal(checks.mainThread.tamperedThroughWrapper, "missing-asset");
     assert.equal(checks.serviceWorker.failure, undefined, checks.serviceWorker.failure);
     assert.match(checks.serviceWorker.text, /Hello from recto/u);
     assert.ok(checks.serviceWorker.ink > 500, `service worker ink ${checks.serviceWorker.ink}`);

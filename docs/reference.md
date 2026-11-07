@@ -192,10 +192,10 @@ The wasm and assets are found with `new URL("../wasm/…", import.meta.url)`.
 - **Edge runtimes** without `XMLHttpRequest` take the same path in principle. None has been run.
 - No headers (COOP, COEP) are needed anywhere.
 
-Every file is pinned by SHA-256, checked when it is first read, so a dev server's HTML fallback
-page cannot read as a font. A wasm fetched without blocking is checked by the browser's own `fetch`
-`integrity` and compiled as it streams, when the server sends `application/wasm`; anything else is
-fetched whole, hashed and compiled, which still works. A missing asset throws from the call that needed it; it never reads
+Every file is pinned by SHA-256, and every byte is hashed before it's used, so a dev server's HTML
+fallback page cannot read as a font, and a changed wasm is never compiled. A wasm is fetched whole and
+hashed with `crypto.subtle`, or in JavaScript where there is none (a page on plain http), then
+compiled. A missing asset throws from the call that needed it; it never reads
 as blank text.
 
 ## The Rust crate
