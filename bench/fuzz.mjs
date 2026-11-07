@@ -4,10 +4,13 @@
 // or a PdfError that isn't `crash`, inside a time limit and a memory limit. Anything else is a bug, and
 // the file that showed it is written to --out. The same seed gives the same files.
 //
+// With --structures, the files are generated instead of damaged, by bench/fuzz-structures.mjs, and no
+// directory is needed: repeats and chains in the trees the API walks, and drawing bombs.
+//
 // With --repair, the other engines try the same files, to show what they open that recto doesn't.
 //
 //   npm run build
-//   node bench/fuzz.mjs <directory of PDFs> [--seed 1] [--count 2000] [--timeout 20] [--jobs 6] [--max-size 300000]
+//   node bench/fuzz.mjs [<directory of PDFs> | --structures] [--seed 1] [--count 2000] [--timeout 20] [--jobs 6] [--max-size 300000]
 //        [--out directory] [--results file.json] [--repair]
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -18,6 +21,7 @@ import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 
 import { mutate, randomFrom } from "./fuzz-mutations.mjs";
+import { structure } from "./fuzz-structures.mjs";
 
 const here = import.meta.dirname;
 const self = fileURLToPath(import.meta.url);
@@ -90,9 +94,10 @@ async function main() {
       out: { type: "string" },
       results: { type: "string" },
       repair: { type: "boolean", default: false },
+      structures: { type: "boolean", default: false },
     },
   });
-  if (positionals.length === 0) {
+  if (positionals.length === 0 && !values.structures) {
     console.error("usage: fuzz.mjs <directory of PDFs> [more] [--seed 1] [--count 2000] [--timeout 20] [--jobs 6] [--out directory] [--results file.json] [--repair]");
     process.exit(2);
   }
@@ -116,8 +121,8 @@ async function main() {
 
   function makeMutant(i) {
     const seed = (SEED * 1000003 + i) >>> 0;
-    const source = sources[randomFrom(seed).int(sources.length)];
-    const { name, bytes } = mutate(new Uint8Array(fs.readFileSync(source)), seed);
+    const source = values.structures ? "generated" : sources[randomFrom(seed).int(sources.length)];
+    const { name, bytes } = values.structures ? structure(seed) : mutate(new Uint8Array(fs.readFileSync(source)), seed);
     const file = path.join(work, `${i}.pdf`);
     fs.writeFileSync(file, bytes);
     mutants.set(i, { name, file, source });

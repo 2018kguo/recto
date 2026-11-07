@@ -6,6 +6,8 @@ use hayro::hayro_syntax::object::{Array, Dict, Name, String as PdfString};
 
 const MAX_DEPTH: u32 = 32;
 const MAX_RANGES: usize = 1 << 16;
+/// A node's kids can name the same node twice, so depth alone leaves 2^32 visits.
+const MAX_NODES: usize = 1 << 16;
 
 struct Range {
     first: usize,
@@ -14,10 +16,11 @@ struct Range {
     start: i64,
 }
 
-fn collect(node: &Dict<'_>, depth: u32, out: &mut Vec<Range>) {
-    if depth > MAX_DEPTH || out.len() >= MAX_RANGES {
+fn collect(node: &Dict<'_>, depth: u32, nodes: &mut usize, out: &mut Vec<Range>) {
+    if depth > MAX_DEPTH || out.len() >= MAX_RANGES || *nodes == 0 {
         return;
     }
+    *nodes -= 1;
     if let Some(nums) = node.get::<Array<'_>>(b"Nums") {
         let mut items = nums.iter::<hayro::hayro_syntax::object::Object<'_>>();
         while let (Some(key), Some(value)) = (items.next(), items.next()) {
@@ -37,7 +40,7 @@ fn collect(node: &Dict<'_>, depth: u32, out: &mut Vec<Range>) {
     }
     if let Some(kids) = node.get::<Array<'_>>(b"Kids") {
         for kid in kids.iter::<Dict<'_>>() {
-            collect(&kid, depth + 1, out);
+            collect(&kid, depth + 1, nodes, out);
         }
     }
 }
@@ -83,7 +86,7 @@ pub fn read(pdf: &Pdf, pages: usize) -> Option<Vec<String>> {
     let root = xref.get::<Dict<'_>>(xref.root_id())?;
     let tree = root.get::<Dict<'_>>(b"PageLabels")?;
     let mut ranges = Vec::new();
-    collect(&tree, 0, &mut ranges);
+    collect(&tree, 0, &mut MAX_NODES.clone(), &mut ranges);
     if ranges.is_empty() {
         return None;
     }

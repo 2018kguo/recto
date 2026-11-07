@@ -42,7 +42,7 @@ impl<'a> Reader<'a> {
                 }
             }
             if let Some(tree) = root.get::<Dict<'_>>(b"Names").and_then(|n| n.get::<Dict<'_>>(b"Dests")) {
-                name_tree(&tree, 0, &mut out);
+                name_tree(&tree, 0, &mut (MAX_ITEMS * 4), &mut out);
             }
             out
         })
@@ -122,10 +122,12 @@ impl<'a> Reader<'a> {
     }
 }
 
-fn name_tree<'a>(node: &Dict<'a>, depth: u32, out: &mut FxHashMap<Vec<u8>, Object<'a>>) {
-    if depth > 32 || out.len() >= MAX_ITEMS {
+fn name_tree<'a>(node: &Dict<'a>, depth: u32, nodes: &mut usize, out: &mut FxHashMap<Vec<u8>, Object<'a>>) {
+    // Kids can name the same node twice, so depth alone leaves 2^32 visits.
+    if depth > 32 || out.len() >= MAX_ITEMS || *nodes == 0 {
         return;
     }
+    *nodes -= 1;
     if let Some(names) = node.get::<Array<'_>>(b"Names") {
         let mut entries = names.iter::<Object<'_>>();
         while let (Some(key), Some(value)) = (entries.next(), entries.next()) {
@@ -136,7 +138,7 @@ fn name_tree<'a>(node: &Dict<'a>, depth: u32, out: &mut FxHashMap<Vec<u8>, Objec
     }
     if let Some(kids) = node.get::<Array<'_>>(b"Kids") {
         for kid in kids.iter::<Dict<'_>>() {
-            name_tree(&kid, depth + 1, out);
+            name_tree(&kid, depth + 1, nodes, out);
         }
     }
 }

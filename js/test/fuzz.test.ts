@@ -4,15 +4,17 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { Worker } from "node:worker_threads";
 
+import { STRUCTURES } from "../../bench/fuzz-structures.mjs";
+
 const BUDGET_MS = 30_000;
 const HANG_MS = 60_000;
 
-test("seeded damage to generated PDFs is always a typed failure", { timeout: 120_000 }, async () => {
+async function run(workerData: object) {
   const failures: unknown[] = [];
   let current: unknown = null;
   let finished = 0;
   await new Promise<void>((resolve, reject) => {
-    const worker = new Worker(new URL("./fuzz-entry.ts", import.meta.url), { workerData: { seed: 1, count: 20_000, budgetMs: BUDGET_MS } });
+    const worker = new Worker(new URL("./fuzz-entry.ts", import.meta.url), { workerData });
     let hang = setTimeout(() => worker.terminate(), HANG_MS);
     worker.on("message", (message: { current?: number; failed?: number; finished?: number }) => {
       if (message.current !== undefined) {
@@ -36,6 +38,17 @@ test("seeded damage to generated PDFs is always a typed failure", { timeout: 120
       resolve();
     });
   });
+  return { failures, finished };
+}
+
+test("seeded damage to generated PDFs is always a typed failure", { timeout: 120_000 }, async () => {
+  const { failures, finished } = await run({ seed: 1, count: 20_000, budgetMs: BUDGET_MS });
   assert.deepEqual(failures, []);
   assert.ok(finished > 200, `only ${finished} files in the time`);
+});
+
+test("files built to cost stay within a time and memory budget", { timeout: 120_000 }, async () => {
+  const { failures, finished } = await run({ seed: 1, count: 0, budgetMs: 45_000, structures: true });
+  assert.deepEqual(failures, []);
+  assert.equal(finished, STRUCTURES.length);
 });
