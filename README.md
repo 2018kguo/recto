@@ -160,7 +160,7 @@ A page of the generated report, with what the API returned drawn over it: `text(
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/benchmarks-dark.svg">
-  <img src="docs/benchmarks-light.svg" alt="Bar charts. Read text in Node: recto 304 ms, pdf.js 1.2 s, pdfium 722 ms. Render in Node: recto 233 ms, pdf.js 1.2 s, pdfium 977 ms. A 40-page report in Chromium slowed 4.9×: recto 444 ms, pdf.js 1.2 s, pdfium 609 ms. Peak memory in Node: recto 300 MB, pdf.js 717 MB, pdfium 312 MB.">
+  <img src="docs/benchmarks-light.svg" alt="Bar charts. Read text in Node: recto 306 ms, pdf.js 1.2 s, pdfium 722 ms. Render in Node: recto 234 ms, pdf.js 1.2 s, pdfium 980 ms. A 40-page report in Chromium slowed 4.6×: recto 456 ms, pdf.js 1.2 s, pdfium 622 ms. Peak memory in Node: recto 300 MB, pdf.js 699 MB, pdfium 312 MB.">
 </picture>
 
 Medians of 5 alternating runs on an Apple M5 Pro, with 37 public and generated PDFs in Node and 8 of them in Chromium, against
@@ -168,14 +168,17 @@ pdf.js 6.5.438 and stock pdfium. How much faster recto is than each:
 
 | | pdf.js | pdfium |
 |---|---:|---:|
-| Text in Node | 4.0× | 2.4× |
-| Render in Node | 5.0× | 4.2× |
+| Text in Node | 4.1× | 2.4× |
+| Render in Node | 5.2× | 4.2× |
 | Text in Chromium | 3.3× | 2.7× |
 | Render in Chromium | 3.5× | 1.4× |
 
-It isn't ahead everywhere. pdf.js downloads less: 0.42 MB with brotli for everything, against recto's 0.46 MB for
-text and 0.71 MB for text and pixels. In a browser pdfium ties a fresh page's first pixels (52 and 51 ms), though recto
-is first to text (35 ms against 56 ms and 40 ms). pdfium opens a large file faster. pdf.js holds less memory in a page. On text
+It isn't ahead everywhere. pdf.js downloads less to draw: 0.42 MB with brotli for everything, against recto's 0.70 MB
+for text and pixels, though for text alone recto's 0.41 MB is now the smaller. In a browser pdfium ties a fresh page's
+first pixels (52 and 51 ms), though recto is first to text (34 ms against 53 ms and 40 ms). pdfium opens a large file
+faster: 2.8 ms against 4.1 ms for 2,000 pages, where recto took 4.8 ms. pdf.js holds less memory while a page is open
+(5.6 MB of JS heap, against recto's 1.7 MB and 11.9 MB of WebAssembly memory), and recto now gives all of it back a
+second after the close. On text
 quality against poppler recto leads narrowly (F1 98.7%, pdf.js 97.8%, pdfium 97.0%, on 87 documents), and it
 agrees with the other engines' pixels on 96.9% of the pages two of them agree on (small, mostly adversarial files, and the threshold can hide a missing line). [benchmarks.md](docs/benchmarks.md) has all of it, what each
 number means and how it's measured. To rerun it on PDFs of your own (it commits none):
@@ -216,9 +219,9 @@ on anything a user might upload, use one of those two.
 
 | File | Size | When it loads |
 |---|---:|---|
-| `wasm/recto.wasm` | 1.5 MB (0.43 MB brotli) | Creating an engine |
-| `wasm/recto-render.wasm` | 0.77 MB (0.23 MB brotli) | The first `render` or `objects` |
-| `wasm/recto-more.wasm`, `recto-rare.wasm` | 0.86, 0.79 MB (0.21, 0.17 MB brotli) | A file that runs a function the first two left out; on a main thread, up front |
+| `wasm/recto.wasm` | 1.3 MB (0.38 MB brotli) | Creating an engine |
+| `wasm/recto-render.wasm` | 0.85 MB (0.26 MB brotli) | The first `render` or `objects` |
+| `wasm/recto-more.wasm`, `recto-rare.wasm` | 0.99, 0.88 MB (0.26, 0.19 MB brotli) | A file that runs a function the first two left out; on a main thread, up front |
 | `wasm/recto.gen.mjs`, `dist/` | 38 KB, 105 KB of JavaScript | Importing the package |
 | `wasm/Foxit*.pfb` | 14 files, 15–30 KB each | Drawing a standard font the document doesn't embed |
 | `wasm/cmaps.deflate` | 0.36 MB | A document uses a predefined CJK CMap |
@@ -231,7 +234,7 @@ on anything a user might upload, use one of those two.
   ranged read needs a worker. An edge runtime without synchronous requests should work
   the way a service worker does, but none has been run.
 - **Memory:** `open` copies the file into WebAssembly memory, which only comes back when an instance is
-  dropped (a second after the last close, past 64 MiB by default). A ranged file can be up to 3.5 GiB.
+  dropped (by default a second after the last close). A ranged file can be up to 3.5 GiB.
 - **Ranged reads trust `/Count`:** a false `/Count` where the path to a page doesn't look, or a node of over
   32 kids, as many as its `/Count`, with a non-page before the page, can return a different page than a
   whole-file read. Open the whole file if you need the guarantee. See [ranged reads](docs/reference.md#ranged-reads).

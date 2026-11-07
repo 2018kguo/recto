@@ -9,6 +9,7 @@ import path from "node:path";
 import zlib from "node:zlib";
 
 import { splitWasm } from "./split-wasm.mjs";
+import { placeData } from "./wasm-data.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 const from = (...parts) => path.join(root, ...parts);
@@ -65,6 +66,8 @@ fs.writeFileSync(
     `export declare function createGlue(placeholders: Record<string, object>, finalizing: (free: () => void) => void): Pick<typeof Glue, ${[...names, "initSync"].map((n) => JSON.stringify(n)).join(" | ")}>;\n`,
 );
 splitWasm(from("target/wasm-bindgen/recto_bg.wasm"), out(""));
+const moved = placeData(out(""), JSON.parse(fs.readFileSync(from("target/wasm-layout.json"), "utf8")));
+console.log(`data: ${moved} bytes only parts read, moved into them`);
 // The table a part's functions are called through: wasm-split adds it last, and exports it.
 const partTable = WebAssembly.Module.exports(new WebAssembly.Module(fs.readFileSync(out("recto.wasm"))))
   .filter((entry) => entry.kind === "table" && entry.name.startsWith("%"))

@@ -4,7 +4,7 @@ use crate::object::ObjectIdentifier;
 use crate::sync::Arc;
 use crate::trivia::{Comment, is_white_space_character};
 use crate::xref::XRef;
-use smallvec::{SmallVec, smallvec};
+use smallvec::SmallVec;
 
 pub use crate::byte_reader::Reader;
 
@@ -142,18 +142,21 @@ impl<'a> ReaderExt<'a> for Reader<'a> {
     }
 }
 
+// recto: the fields a read sets for each object it resolves sit inline, so that setting them doesn't
+// clone a shared allocation: `XRef::locate` did that for every object. Only the chain of objects
+// being read is shared.
 #[derive(Clone, Debug)]
 struct ReaderContextData<'a> {
     xref: &'a XRef,
     in_content_stream: bool,
     in_object_stream: bool,
     obj_number: Option<ObjectIdentifier>,
-    parent_chain: SmallVec<[ObjectIdentifier; 8]>,
+    parent_chain: Option<Arc<SmallVec<[ObjectIdentifier; 8]>>>,
 }
 
 #[derive(Clone, Debug)]
 enum ReaderContextInner<'a> {
-    Shared(Arc<ReaderContextData<'a>>),
+    Shared(ReaderContextData<'a>),
     Dummy { in_content_stream: bool },
 }
 
@@ -163,13 +166,13 @@ pub struct ReaderContext<'a>(ReaderContextInner<'a>);
 
 impl<'a> ReaderContext<'a> {
     pub(crate) fn new(xref: &'a XRef, in_content_stream: bool) -> Self {
-        Self(ReaderContextInner::Shared(Arc::new(ReaderContextData {
+        Self(ReaderContextInner::Shared(ReaderContextData {
             xref,
             in_content_stream,
             obj_number: None,
             in_object_stream: false,
-            parent_chain: smallvec![],
-        })))
+            parent_chain: None,
+        }))
     }
 
     pub fn dummy() -> Self {
@@ -219,7 +222,7 @@ impl<'a> ReaderContext<'a> {
     #[inline]
     pub(crate) fn set_obj_number(&mut self, id: ObjectIdentifier) {
         match &mut self.0 {
-            ReaderContextInner::Shared(inner) => Arc::make_mut(inner).obj_number = Some(id),
+            ReaderContextInner::Shared(inner) => inner.obj_number = Some(id),
             ReaderContextInner::Dummy { .. } => {}
         }
     }
@@ -227,7 +230,7 @@ impl<'a> ReaderContext<'a> {
     #[inline]
     pub(crate) fn set_in_content_stream(&mut self, val: bool) {
         match &mut self.0 {
-            ReaderContextInner::Shared(inner) => Arc::make_mut(inner).in_content_stream = val,
+            ReaderContextInner::Shared(inner) => inner.in_content_stream = val,
             ReaderContextInner::Dummy { in_content_stream } => *in_content_stream = val,
         }
     }
@@ -235,7 +238,7 @@ impl<'a> ReaderContext<'a> {
     #[inline]
     pub(crate) fn set_in_object_stream(&mut self, val: bool) {
         match &mut self.0 {
-            ReaderContextInner::Shared(inner) => Arc::make_mut(inner).in_object_stream = val,
+            ReaderContextInner::Shared(inner) => inner.in_object_stream = val,
             ReaderContextInner::Dummy { .. } => {}
         }
     }
@@ -243,7 +246,7 @@ impl<'a> ReaderContext<'a> {
     #[inline]
     pub(crate) fn parent_chain_contains(&self, id: &ObjectIdentifier) -> bool {
         match &self.0 {
-            ReaderContextInner::Shared(inner) => inner.parent_chain.contains(id),
+            ReaderContextInner::Shared(inner) => inner.parent_chain.as_ref().is_some_and(|chain| chain.contains(id)),
             ReaderContextInner::Dummy { .. } => false,
         }
     }
@@ -251,7 +254,9 @@ impl<'a> ReaderContext<'a> {
     #[inline]
     pub(crate) fn parent_chain_push(&mut self, id: ObjectIdentifier) {
         match &mut self.0 {
-            ReaderContextInner::Shared(inner) => Arc::make_mut(inner).parent_chain.push(id),
+            ReaderContextInner::Shared(inner) => {
+                Arc::make_mut(inner.parent_chain.get_or_insert_with(Default::default)).push(id)
+            }
             ReaderContextInner::Dummy { .. } => {}
         }
     }

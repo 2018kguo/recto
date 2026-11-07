@@ -1099,6 +1099,9 @@ fn populate_from_xref_table<'a>(
 
         let start = header.start;
         let end = start.checked_add(header.num_entries)?;
+        // recto: room for the section at once, rather than doubling and rehashing on the way; no more
+        // than the entries the bytes left can hold.
+        insert_map.reserve((header.num_entries as usize).min(reader.tail().map_or(0, |tail| tail.len()) / XREF_ENTRY_LEN));
 
         for obj_number in start..end {
             max_obj = max(max_obj, obj_number);
