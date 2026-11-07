@@ -11,7 +11,7 @@ use crate::object::dict::keys::*;
 use crate::object::{MaybeRef, Object};
 use crate::reader::ReaderContext;
 use crate::object::ObjectIdentifier;
-use crate::sync::{FxHashMap, FxHashSet, Mutex, MutexExt, OnceLock};
+use crate::sync::{FxHashSet, Mutex, MutexExt, OnceLock};
 use crate::transform::Transform;
 use crate::util::FloatExt;
 use crate::xref::XRef;
@@ -42,130 +42,152 @@ impl PagesContext<'_> {
 /// A structure holding the pages of a PDF document.
 pub struct Pages<'a> {
     pages: Vec<Page<'a>>,
-    // recto: page `i` found on first use, when the tree's counts hold up.
+    // recto: the tree's kids in walk order, each built into a page on first use.
     lazy: Option<LazyPages<'a>>,
     xref: &'a XRef,
 }
 
-/// recto: pages found on demand by descending the tree by each kid's
-/// `/Count`, so a ranged file fetches only the nodes on the way to a page and
-/// a whole file builds only the pages asked for. Equal to the eager walk when
-/// every `/Count` is right; `Deref` still builds the eager list for other callers.
+/// recto: pages built on first use. Which dictionary is page `i` only ever comes from
+/// `PageWalk`, in order, so counts can't change it. A whole file is walked at open. A ranged
+/// file can't afford that: it's walked as far as the page asked for.
 struct LazyPages<'a> {
-    root: Dict<'a>,
-    ctx: ReaderContext<'a>,
-    found: Vec<OnceLock<Option<Page<'a>>>>,
+    reader: ReaderContext<'a>,
+    built: Vec<OnceLock<Option<Page<'a>>>>,
+    walked: Mutex<Walked<'a>>,
     eager: OnceLock<Vec<Page<'a>>>,
-    /// Tree nodes by their dict's address, each resolved as far as asked,
-    /// so reading every page of a flat tree is linear, not quadratic.
-    nodes: Mutex<FxHashMap<usize, Option<Node<'a>>>>,
-    /// Kids already met, skipped when met again (as the eager walk does).
-    visited: Mutex<FxHashSet<ObjectIdentifier>>,
 }
 
-struct Node<'a> {
-    frame: PageTreeFrame<'a>,
-    /// As many kids as `/Count`: all pages (see `counts_add_up`), so kid `i`
-    /// is page `i`, read directly.
-    flat: Option<Vec<MaybeRef<Object<'a>>>>,
-    /// Resolved kids in order: the first page index each covers, and itself.
-    kids: Vec<(usize, Kid<'a>)>,
-    /// Pages covered by `kids`.
-    end: usize,
+struct Walked<'a> {
+    walk: PageWalk<'a>,
+    /// Pages found so far, and which entry of `walk.contexts` each inherits from.
+    found: Vec<(Dict<'a>, u32)>,
 }
 
-enum Kid<'a> {
-    Page(Dict<'a>),
-    Pages(Dict<'a>),
+impl<'a> Walked<'a> {
+    fn walk_to(&mut self, index: usize, reader: &ReaderContext<'a>) -> Option<&(Dict<'a>, u32)> {
+        while self.found.len() <= index {
+            let page = self.walk.next(reader)?;
+            self.found.push(page);
+        }
+        self.found.get(index)
+    }
 }
 
-fn node_key(dict: &Dict<'_>) -> usize {
-    dict.data().as_ptr() as usize
+/// recto: past this many kids beyond the file's objects, the walk stops. A tree that repeats no
+/// node visits each object once, so only one built to multiply gets here: nodes of repeated nodes
+/// double with each level.
+const MAX_REPEATED_KIDS: usize = 1 << 18;
+
+/// recto: the page tree's pages in order, depth first, one at a time. A node that's its own
+/// ancestor is skipped. Any other repeat counts again, as it does in other readers.
+struct PageWalk<'a> {
+    stack: Vec<WalkFrame<'a>>,
+    /// The nodes on the way to the current one.
+    path: FxHashSet<ObjectIdentifier>,
+    /// What pages inherit, one entry per node that changes it.
+    contexts: Vec<PagesContext<'a>>,
+    kids_left: usize,
 }
 
-impl<'a> LazyPages<'a> {
-    fn find(&self, mut index: usize) -> Option<Page<'a>> {
-        let mut nodes = self.nodes.get();
-        let mut key = node_key(&self.root);
-        nodes
-            .entry(key)
-            .or_insert_with(|| new_node(&self.root, PagesContext::new()));
+struct WalkFrame<'a> {
+    kids: ArrayIter<'a>,
+    context: u32,
+    id: Option<ObjectIdentifier>,
+}
+
+impl<'a> PageWalk<'a> {
+    fn new(root: &Dict<'a>, objects: usize) -> Option<Self> {
+        let mut walk = Self {
+            stack: vec![],
+            path: FxHashSet::default(),
+            contexts: vec![PagesContext::new()],
+            kids_left: objects.saturating_add(MAX_REPEATED_KIDS),
+        };
+        walk.enter(root, root.obj_id(), 0)?;
+        Some(walk)
+    }
+
+    fn enter(
+        &mut self,
+        dict: &Dict<'a>,
+        id: Option<ObjectIdentifier>,
+        parent: u32,
+    ) -> Option<()> {
+        let kids = dict.get::<Array<'a>>(KIDS)?.raw_iter();
+        let context = if [MEDIA_BOX, CROP_BOX, ROTATE, RESOURCES]
+            .iter()
+            .any(|key| dict.contains_key(key))
+        {
+            let inherited = self.contexts[parent as usize].clone();
+            self.contexts.push(inherit(dict, inherited));
+            (self.contexts.len() - 1) as u32
+        } else {
+            parent
+        };
+        if let Some(id) = id {
+            self.path.insert(id);
+        }
+        self.stack.push(WalkFrame { kids, context, id });
+        Some(())
+    }
+
+    fn next(&mut self, reader: &ReaderContext<'a>) -> Option<(Dict<'a>, u32)> {
         loop {
-            let node = nodes.get_mut(&key)?.as_mut()?;
-            if let Some(kids) = &node.flat {
-                let dict = match kids.get(index)? {
-                    MaybeRef::Ref(id) => self.ctx.xref().get_with::<Dict<'a>>((*id).into(), &self.ctx)?,
-                    MaybeRef::NotRef(object) => object.clone().into_dict()?,
-                };
-                if dict.get::<Name<'_>>(TYPE).as_deref() != Some(PAGES) {
-                    return Page::new(&dict, &node.frame.ctx, &self.ctx, false);
+            let frame = self.stack.last_mut()?;
+            let context = frame.context;
+            let Some(kid) = frame.kids.next() else {
+                if let Some(id) = frame.id {
+                    self.path.remove(&id);
                 }
-                // A node of one page takes that page's place. Any other only gets
-                // here by the coincidence `counts_add_up` lists for a ranged file.
-                if dict.get::<usize>(COUNT) != Some(1) {
-                    return None;
-                }
-                index = 0;
-                let ctx = node.frame.ctx.clone();
-                key = node_key(&dict);
-                nodes.entry(key).or_insert_with(|| new_node(&dict, ctx));
+                self.stack.pop();
                 continue;
+            };
+            if self.kids_left == 0 {
+                self.stack.clear();
+                return None;
             }
-            while node.end <= index {
-                let dict = match node.frame.kids.next()? {
-                    MaybeRef::Ref(id) => {
-                        if !self.visited.get().insert(id.into()) {
-                            continue;
-                        }
-                        self.ctx.xref().get_with::<Dict<'a>>(id.into(), &self.ctx)?
+            self.kids_left -= 1;
+            let (id, dict) = match kid {
+                MaybeRef::Ref(id) => {
+                    let id: ObjectIdentifier = id.into();
+                    if self.path.contains(&id) {
+                        continue;
                     }
-                    MaybeRef::NotRef(object) => object.into_dict()?,
-                };
-                let (kid, span) = if dict.get::<Name<'_>>(TYPE).as_deref() == Some(PAGES) {
-                    let count = dict.get::<usize>(COUNT)?;
-                    (Kid::Pages(dict), count)
-                } else {
-                    (Kid::Page(dict), 1)
-                };
-                node.kids.push((node.end, kid));
-                node.end += span;
-            }
-            let at = node.kids.partition_point(|(start, _)| *start <= index) - 1;
-            let (start, kid) = &node.kids[at];
-            match kid {
-                Kid::Page(dict) => return Page::new(dict, &node.frame.ctx, &self.ctx, false),
-                Kid::Pages(dict) => {
-                    index -= start;
-                    let (child, ctx) = (dict.clone(), node.frame.ctx.clone());
-                    key = node_key(&child);
-                    nodes.entry(key).or_insert_with(|| new_node(&child, ctx));
+                    (Some(id), reader.xref().get_with::<Dict<'a>>(id, reader))
                 }
+                MaybeRef::NotRef(object) => (None, object.into_dict()),
+            };
+            let Some(dict) = dict else {
+                continue;
+            };
+            match dict.get::<Name<'_>>(TYPE).as_deref() {
+                Some(PAGES) => {
+                    let _ = self.enter(&dict, id, context);
+                }
+                // Let's be lenient and assume it's a `Page` in case it's `None` or something else
+                // (see corpus test case 0083781).
+                _ => return Some((dict, context)),
             }
         }
     }
 }
 
-/// recto: a node's `/Count`, if it adds up. A whole file has every kid read,
-/// so a tree that passes holds exactly what the eager walk would find and
-/// anything odd (a missing or repeated kid, a wrong `/Count`) goes to that
-/// walk. A ranged file can't afford that: a node with as many kids as its
-/// `/Count` is taken as all pages (the usual bottom level) without fetching
-/// them, the others have their kids read and summed.
-/// Limit (ranged only): a bottom node whose kid count matches by coincidence
-/// (a node of 2 pages plus a missing page) passes.
+/// recto: a ranged file's page count, from the root's `/Count` if the tree's nodes add up to it.
+/// The nodes are read, and pages aren't: a node with as many kids as its `/Count` passes unread.
+/// That only settles `pageCount`. Which page is which still comes from walking.
 fn counts_add_up<'a>(
     dict: &Dict<'a>,
     ctx: &ReaderContext<'a>,
     visited: &mut FxHashSet<ObjectIdentifier>,
     depth: usize,
 ) -> Option<usize> {
-    // Not the eager walk's own stack: a chain of nodes mustn't overflow this one.
+    // Not the walk's own stack: a chain of nodes mustn't overflow this one.
     if depth == MAX_CHECKED_DEPTH {
         return None;
     }
     let count = dict.get::<usize>(COUNT)?;
     let kids = dict.get::<Array<'a>>(KIDS)?;
-    if ctx.xref().is_ranged() && kids.raw_iter().count() == count {
+    if kids.raw_iter().count() == count {
         return Some(count);
     }
     let mut sum: usize = 0;
@@ -190,19 +212,6 @@ fn counts_add_up<'a>(
 
 const MAX_CHECKED_DEPTH: usize = 64;
 
-fn new_node<'a>(dict: &Dict<'a>, ctx: PagesContext<'a>) -> Option<Node<'a>> {
-    let flat = dict
-        .get::<Array<'a>>(KIDS)
-        .map(|kids| kids.raw_iter().collect::<Vec<_>>())
-        .filter(|kids| Some(kids.len()) == dict.get::<usize>(COUNT));
-    Some(Node {
-        flat,
-        frame: PageTreeFrame::new(dict, ctx)?,
-        kids: vec![],
-        end: 0,
-    })
-}
-
 impl<'a> Pages<'a> {
     /// Create a new `Pages` object.
     pub(crate) fn new(
@@ -210,40 +219,40 @@ impl<'a> Pages<'a> {
         ctx: &ReaderContext<'a>,
         xref: &'a XRef,
     ) -> Option<Self> {
-        // recto: when the root's `/Count` holds up (see `counts_add_up`), and is
-        // no more than the file's objects, pages are built on demand.
-        if let Some(count) = pages_dict.get::<usize>(COUNT)
-            && count <= xref.len()
-            && counts_add_up(pages_dict, ctx, &mut FxHashSet::default(), 0) == Some(count)
-        {
-            return Some(Self {
-                pages: vec![],
-                lazy: Some(LazyPages {
-                    root: pages_dict.clone(),
-                    ctx: ctx.clone(),
-                    found: (0..count).map(|_| OnceLock::new()).collect(),
-                    eager: OnceLock::new(),
-                    nodes: Mutex::new(FxHashMap::default()),
-                    visited: Mutex::new(pages_dict.obj_id().into_iter().collect()),
-                }),
-                xref,
+        let mut walked = Walked {
+            walk: PageWalk::new(pages_dict, xref.len())?,
+            found: vec![],
+        };
+        // recto: a ranged file takes the root's `/Count` when the nodes agree and it's no more
+        // than the file's objects. Anything else is walked now, like a whole file.
+        let count = pages_dict
+            .get::<usize>(COUNT)
+            .filter(|count| {
+                xref.is_ranged()
+                    && *count <= xref.len()
+                    && counts_add_up(pages_dict, ctx, &mut FxHashSet::default(), 0) == Some(*count)
+            })
+            .unwrap_or_else(|| {
+                walked.walk_to(usize::MAX, ctx);
+                walked.found.shrink_to_fit();
+                walked.found.len()
             });
-        }
-        let mut pages = vec![];
-        let pages_ctx = PagesContext::new();
-        resolve_pages(pages_dict, &mut pages, pages_ctx, ctx)?;
-
         Some(Self {
-            pages,
-            lazy: None,
+            pages: vec![],
+            lazy: Some(LazyPages {
+                reader: ctx.clone(),
+                built: (0..count).map(|_| OnceLock::new()).collect(),
+                walked: Mutex::new(walked),
+                eager: OnceLock::new(),
+            }),
             xref,
         })
     }
 
-    /// recto: the number of pages (the root's `/Count` when lazy).
+    /// recto: the number of pages (for a ranged file, the root's `/Count` if the tree's nodes agree).
     pub fn len(&self) -> usize {
         match &self.lazy {
-            Some(lazy) => lazy.found.len(),
+            Some(lazy) => lazy.built.len(),
             None => self.pages.len(),
         }
     }
@@ -253,12 +262,22 @@ impl<'a> Pages<'a> {
         self.len() == 0
     }
 
-    /// recto: page `index`, found on first use when lazy.
+    /// recto: page `index`, built on first use.
     pub fn get(&self, index: usize) -> Option<&Page<'a>> {
-        match &self.lazy {
-            Some(lazy) => lazy.found.get(index)?.get_or_init(|| lazy.find(index)).as_ref(),
-            None => self.pages.get(index),
+        let Some(lazy) = &self.lazy else {
+            return self.pages.get(index);
+        };
+        if let Some(pages) = lazy.eager.get() {
+            return pages.get(index);
         }
+        lazy.built
+            .get(index)?
+            .get_or_init(|| {
+                let mut walked = lazy.walked.get();
+                let (dict, context) = walked.walk_to(index, &lazy.reader)?.clone();
+                Page::new(&dict, &walked.walk.contexts[context as usize], &lazy.reader, false)
+            })
+            .as_ref()
     }
 
     /// Create a new `Pages` object by bruteforce-searching.
@@ -299,91 +318,30 @@ impl<'a> Deref for Pages<'a> {
     fn deref(&self) -> &Self::Target {
         match &self.lazy {
             Some(lazy) => lazy.eager.get_or_init(|| {
-                let mut pages = vec![];
-                let _ = resolve_pages(&lazy.root, &mut pages, PagesContext::new(), &lazy.ctx);
-                pages
+                let mut walked = lazy.walked.get();
+                walked.walk_to(usize::MAX, &lazy.reader);
+                let walked = &*walked;
+                walked
+                    .found
+                    .iter()
+                    .filter_map(|(dict, context)| {
+                        Page::new(dict, &walked.walk.contexts[*context as usize], &lazy.reader, false)
+                    })
+                    .collect()
             }),
             None => &self.pages,
         }
     }
 }
 
-struct PageTreeFrame<'a> {
-    kids: ArrayIter<'a>,
-    ctx: PagesContext<'a>,
-}
-
-impl<'a> PageTreeFrame<'a> {
-    fn new(dict: &Dict<'a>, mut ctx: PagesContext<'a>) -> Option<Self> {
-        ctx.media_box = dict.get::<Rect>(MEDIA_BOX).or(ctx.media_box);
-        ctx.crop_box = dict.get::<Rect>(CROP_BOX).or(ctx.crop_box);
-        ctx.rotate = dict.get::<i32>(ROTATE).or(ctx.rotate);
-        if let Some(resources) = dict.get::<Dict<'a>>(RESOURCES) {
-            ctx.resources = resources;
-        }
-
-        Some(Self {
-            kids: dict.get::<Array<'a>>(KIDS)?.raw_iter(),
-            ctx,
-        })
+fn inherit<'a>(dict: &Dict<'a>, mut ctx: PagesContext<'a>) -> PagesContext<'a> {
+    ctx.media_box = dict.get::<Rect>(MEDIA_BOX).or(ctx.media_box);
+    ctx.crop_box = dict.get::<Rect>(CROP_BOX).or(ctx.crop_box);
+    ctx.rotate = dict.get::<i32>(ROTATE).or(ctx.rotate);
+    if let Some(resources) = dict.get::<Dict<'a>>(RESOURCES) {
+        ctx.resources = resources;
     }
-}
-
-fn resolve_pages<'a>(
-    pages_dict: &Dict<'a>,
-    entries: &mut Vec<Page<'a>>,
-    ctx: PagesContext<'a>,
-    reader_ctx: &ReaderContext<'a>,
-) -> Option<()> {
-    let mut visited = FxHashSet::default();
-
-    if let Some(id) = pages_dict.obj_id() {
-        visited.insert(id);
-    }
-
-    let mut stack = vec![PageTreeFrame::new(pages_dict, ctx)?];
-
-    while let Some(frame) = stack.last_mut() {
-        let Some(kid) = frame.kids.next() else {
-            stack.pop();
-
-            continue;
-        };
-
-        let dict = match kid {
-            MaybeRef::Ref(id) => {
-                if !visited.insert(id.into()) {
-                    continue;
-                }
-
-                reader_ctx
-                    .xref()
-                    .get_with::<Dict<'a>>(id.into(), reader_ctx)
-            }
-            MaybeRef::NotRef(object) => object.into_dict(),
-        };
-
-        let Some(dict) = dict else {
-            continue;
-        };
-
-        match dict.get::<Name<'_>>(TYPE).as_deref() {
-            Some(PAGES) => {
-                if let Some(child) = PageTreeFrame::new(&dict, frame.ctx.clone()) {
-                    stack.push(child);
-                }
-            }
-            // Let's be lenient and assume it's a `Page` in case it's `None` or something else
-            // (see corpus test case 0083781).
-            _ => {
-                if let Some(page) = Page::new(&dict, &frame.ctx, reader_ctx, false) {
-                    entries.push(page);
-                }
-            }
-        }
-    }
-
-    Some(())
+    ctx
 }
 
 /// The rotation of the page.

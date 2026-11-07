@@ -88,12 +88,23 @@ O(log n) round trips.
 
 ## Opening and slices
 
-`open` reads the xref and every node and kid of the page tree, and checks each `/Count` against what
-it finds. A tree that adds up builds a page only when it's asked for, by descending by `/Count`, with
-each node's kids kept so reading every page stays linear. Anything odd (a wrong count, a repeated or
-missing kid, a tree deeper than 64) goes to the plain walk of the whole tree, so the page count is
-the same either way. A ranged file can't afford to fetch every page: it takes a bottom node with as
-many kids as its `/Count` on trust, so there a missing kid can show up as a missing page.
+Which page is which comes from one thing: walking the tree in order, depth first. A kid that's a
+`/Pages` node with `/Kids` is entered, and any other dictionary is a page, whatever its `/Type` says.
+`/Count` plays no part. A node that's its own ancestor is skipped. Any other repeat counts again, as
+it does in pdfium, pdf.js and poppler, so a tree can multiply: the walk stops after the file's objects
+plus 2^18 kids, which a tree with no repeats can't reach. It uses its own stack, so a deep chain is fine.
+
+`open` walks a whole file and keeps each page's dictionary, and a page is built the first time it's
+asked for. A ranged file can't afford the walk at open, so it goes as far as the page asked for.
+Reading page `k` fetches the dictionary of every page before it, once. That's what makes it the same
+page a whole-file open gives, and it's what a jump costs: reading the last of 2,000 pages in a 13.9 MB
+generated file fetches all of it, and past `maxBytes` the read fails with `too-large`. Page 0 and
+reading in order cost what they did.
+
+A ranged file's `pageCount` is the root's `/Count`, if that's no more than the file's objects and the
+nodes add up to it; a node with as many kids as its `/Count` passes unread. Otherwise it's walked at
+open. So a ranged file that lies can promise a page that isn't there, which fails with `failed`, or
+hide some at the end. It can't give a different page.
 
 `renderAsync` runs the same interpreter with a stack of frames in place of the recursion into forms
 (`hayro-interpret/src/interpret/page_run.rs`), checks the clock every 64 operators and returns when

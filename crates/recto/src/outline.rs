@@ -157,6 +157,8 @@ pub fn read(pdf: &Pdf) -> Vec<OutlineItem> {
         .pages()
         .iter()
         .enumerate()
+        // Last first: a page the tree repeats goes to where it first appears.
+        .rev()
         .filter_map(|(i, page)| Some((page.raw().obj_id()?, i as i32)))
         .collect();
     let mut reader = Reader {

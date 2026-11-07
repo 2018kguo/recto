@@ -22,8 +22,12 @@ set of PDFs before and after.
 - **A fresh page's first text** went from 109 ms to 31 ms, and first pixels from 119 ms to 65 ms: a
   wasm fetched up front is checked by `fetch`'s `integrity` and compiled as it streams, not hashed in
   JavaScript.
-- **Opening** builds pages on demand when the page tree's counts all hold up, having read every kid to
-  check. 2,000 pages in Node: 8.6 ms to 4.9 ms. A wrong `/Count` still goes to the full walk.
+- **Opening** walks the page tree and builds each page the first time it's asked for. `/Count` no
+  longer decides which page is which.
+- **A ranged read of page `k`** now fetches the dictionary of every page before it, so it's always the
+  page a whole-file open gives. Page 0 and reading in order cost the same. A jump costs more: the last
+  of 2,000 pages in a 13.9 MB file fetched 0.35 MB before and fetches all of it now, and past `maxBytes`
+  it fails with `too-large`.
 - **`open` no longer copies the file in JavaScript** on top of copying it into WebAssembly memory,
   when an instance is ready.
 - **Memory:** a render holds its pixels once. WebAssembly memory with a 40-page report open went from
@@ -34,3 +38,6 @@ set of PDFs before and after.
 ### Fixed
 
 - A ranged file with an inner page-tree node of one page lost that page.
+- A page tree that repeats a kid now keeps the repeats: `/Kids [3 0 R 3 0 R 3 0 R]` is three pages, as
+  in pdfium, pdf.js and poppler, where it was one. Only a node that's its own ancestor is skipped, and
+  a tree built to multiply stops at a limit. A bookmark to a repeated page goes to its first place.
