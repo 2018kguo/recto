@@ -292,6 +292,8 @@ async function checkPages(browserName, label, origin) {
     assert.equal(checks.mainThread.failure, undefined, checks.mainThread.failure);
     assert.match(checks.mainThread.text, /Hello from recto/u);
     assert.ok(checks.mainThread.ink > 500, `main thread ink ${checks.mainThread.ink}`);
+    assert.match(checks.mainThread.poolText, /Hello from recto/u);
+    assert.equal(checks.mainThread.poolInk, checks.mainThread.ink, "a pool thread draws what this thread drew");
     assert.equal(checks.mainThread.ranged, "wrong-thread");
     assert.match(checks.mainThread.plainMime, /Hello from recto/u);
     assert.equal(checks.mainThread.tampered, "missing-asset");

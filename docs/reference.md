@@ -100,6 +100,31 @@ Helpers over those columns: `textItems(page, info)` makes pdf.js-style text item
 `annotationTextItems` does the same for annotation text, and `rasterMeasures`,
 `vectorMeasures`, `showsGlyphs` measure what a page paints.
 
+## A pool of threads
+
+```ts
+createPdfPool(options?: { threads?: number; assetBase?: string }): Promise<PdfPool>
+
+pool.open(bytes, { password? }): Promise<PdfPoolDocument>
+pool.stats(): { threads: number; queued: number }
+pool.close()      // or `using`: stops every thread; what's unfinished fails with `closed`
+
+doc.pageCount
+doc.text(i)  doc.render(i, { width, maxHeight? })  doc.objects(i)
+doc.annotations(i)  doc.pageInfo(i)  doc.outline()     // each a promise
+doc.close()       // or `await using`: frees it on every thread
+```
+
+Each call goes to a free thread, and results are what a `PdfDocument` returns. `threads` is a limit,
+by default one less than the machine's cores and at most 8. A thread starts only when a call has to
+wait and none is free, so calls awaited one at a time stay on one thread. Each thread that gets a
+page of a document holds its own copy of the file, and the pool holds one more until `doc.close()`.
+
+It needs nothing else: no `SharedArrayBuffer`, so no COOP or COEP headers. A thread with no way to
+start workers (a service worker) gets `wrong-thread`. A thread that stops fails its call with `crash`
+and another takes its place. A call can't be stopped once it runs; `pool.close()` ends all of them.
+The synchronous API doesn't change, and the pool's code loads only when `createPdfPool` is called.
+
 ## Errors
 
 Every failure is a `PdfError` with a `code`. A bad argument is a `RangeError` or `TypeError`.

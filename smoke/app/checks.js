@@ -1,6 +1,6 @@
 // The page's own thread: no synchronous reads here, so assets are fetched up front, and the engine
 // works. A ranged read still has to refuse. And the same in a service worker.
-import { createPdfEngine, openPdf } from "@2018kguo/recto";
+import { createPdfEngine, createPdfPool, openPdf } from "@2018kguo/recto";
 
 const ink = ({ rgba }) => {
   let dark = 0;
@@ -16,6 +16,14 @@ try {
   mainThread.text = doc.text(0).text;
   mainThread.ink = ink(doc.render(0, { width: 1024 }));
   doc.close();
+  // Threads from a page, without a word of setup: the bundler has to find their file and what it loads.
+  const pool = await createPdfPool({ threads: 2 });
+  const pooled = await pool.open(report);
+  const [poolText, poolBitmap] = await Promise.all([pooled.text(0), pooled.render(0, { width: 1024 })]);
+  mainThread.poolText = poolText.text;
+  mainThread.poolInk = ink(poolBitmap);
+  await pooled.close();
+  pool.close();
   const engine = await createPdfEngine();
   mainThread.ranged = await engine.openRanged("/report.pdf").then(
     () => "opened",

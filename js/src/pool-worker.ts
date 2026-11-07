@@ -1,0 +1,76 @@
+// One thread of a pool: opens what it's sent on demand, and answers each call with its result.
+
+import type { PdfDocument } from "./document.ts";
+import { createPdfEngine, type PdfEngine } from "./engine.ts";
+
+export type PoolRequest = {
+  id: number;
+  doc: number;
+  /** Only until this thread has the document. */
+  open?: { bytes: Uint8Array; password: string | undefined };
+  method: string;
+  args: unknown[];
+};
+
+export type PoolStart = { assetBase: string | undefined };
+
+type Port = {
+  postMessage(message: unknown, transfer: ArrayBuffer[]): void;
+};
+
+const parent = globalThis.process?.getBuiltinModule?.("node:worker_threads")?.parentPort;
+const port = (parent ?? self) as unknown as Port;
+const docs = new Map<number, PdfDocument>();
+let engine: PdfEngine;
+
+/** Every column in a result, so it moves rather than being copied. */
+function buffersIn(value: unknown, found: Set<ArrayBuffer>): void {
+  if (ArrayBuffer.isView(value)) {
+    found.add(value.buffer as ArrayBuffer);
+  } else if (typeof value === "object" && value !== null) {
+    for (const inner of Object.values(value)) {
+      buffersIn(inner, found);
+    }
+  }
+}
+
+async function answer({ doc: id, open, method, args }: PoolRequest): Promise<unknown> {
+  let doc = docs.get(id);
+  if (!doc) {
+    doc = await engine.open(open!.bytes, open!.password === undefined ? {} : { password: open!.password });
+    docs.set(id, doc);
+  }
+  if (method === "pageCount") {
+    return doc.pageCount;
+  }
+  return (doc as unknown as Record<string, (...args: unknown[]) => unknown>)[method]!(...args);
+}
+
+async function handle(message: PoolRequest | PoolStart): Promise<void> {
+  if (!("id" in message)) {
+    const { assetBase } = message;
+    engine = await createPdfEngine(assetBase ? { assetBase } : {});
+    port.postMessage({ ready: true }, []);
+    return;
+  }
+  if (message.method === "close") {
+    docs.get(message.doc)?.close();
+    docs.delete(message.doc);
+    return;
+  }
+  try {
+    const result = await answer(message);
+    const buffers = new Set<ArrayBuffer>();
+    buffersIn(result, buffers);
+    port.postMessage({ result }, [...buffers]);
+  } catch (error) {
+    const { name, code, message: text } = error as { name?: string; code?: string; message?: string };
+    port.postMessage({ failure: { name, code, message: text ?? String(error) } }, []);
+  }
+}
+
+if (parent) {
+  parent.on("message", (message: PoolRequest | PoolStart) => void handle(message));
+} else {
+  self.onmessage = ({ data }) => void handle(data as PoolRequest | PoolStart);
+}

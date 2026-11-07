@@ -67,7 +67,20 @@ thread.once("message", (pages) => {
 thread.postMessage(await readFile("report.pdf"));
 ```
 
-recto has no thread pool of its own; how many threads you want is up to you.
+For many pages, `createPdfPool` does that for you, in Node and in a browser, with no special headers:
+
+```js
+import { readFile } from "node:fs/promises";
+import { createPdfPool } from "@2018kguo/recto";
+
+using pool = await createPdfPool();
+await using doc = await pool.open(await readFile("report.pdf"));
+const pages = await Promise.all(Array.from({ length: doc.pageCount }, (_, i) => doc.text(i)));
+console.log(pages.length, pages[0].text);
+```
+
+Each thread holds its own copy of the file, so it costs memory: see
+[what it gives and costs](docs/benchmarks.md#across-threads).
 
 ### In a browser
 

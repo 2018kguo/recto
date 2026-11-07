@@ -260,6 +260,28 @@ holds the memory for as long as the engine lives.
 node bench/recycle.mjs
 ```
 
+## Across threads
+
+`createPdfPool` on a generated 2,000-page report (13.9 MB) in Node 25, every page's text and then 200 pages drawn at
+800 px, with each result dropped as it arrives. Threads are warm: starting them and giving each the file is
+apart, 40 to 50 ms for up to 8. Medians of 3, each in its own process, on the same loaded machine (load average
+about 8), so read these as rough.
+
+| | Text | Render | Peak memory |
+|---:|---:|---:|---:|
+| No pool, on the calling thread | 576 ms | 253 ms | 367 MB |
+| 1 thread | 634 ms | 257 ms | 408 MB |
+| 4 threads | 213 ms (2.7×) | 108 ms (2.3×) | 554 MB |
+| 8 threads | 117 ms (4.9×) | 77 ms (3.3×) | 730 MB |
+
+Each thread costs about 45 MB here, its own engine and copy of the file. Past 8 it stopped paying on this machine,
+which is why that's the default's limit. In a browser it was checked for working, in Chromium, not timed.
+
+```sh
+npm run build
+node bench/pool.mjs
+```
+
 ## The film
 
 [`recto-film.gif`](recto-film.gif) is a recording of each engine alone, 240 pages of a generated

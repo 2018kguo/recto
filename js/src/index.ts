@@ -40,6 +40,7 @@ export {
   type PdfOpenOptions,
 } from "./engine.ts";
 export { PdfError, type PdfErrorCode } from "./errors.ts";
+export type { PdfPool, PdfPoolDocument, PdfPoolOpenOptions, PdfPoolOptions } from "./pool.ts";
 export {
   type PageBox,
   rasterMeasures,
@@ -68,3 +69,17 @@ export {
   textItems,
   visibleCodepoint,
 } from "./text-items.ts";
+
+/**
+ * Runs a document's pages across worker threads:
+ *
+ *   using pool = await createPdfPool();
+ *   await using doc = await pool.open(bytes);
+ *   const pages = await Promise.all(Array.from({ length: doc.pageCount }, (_, i) => doc.text(i)));
+ *
+ * Loaded only when called, so a program that doesn't use it doesn't download it.
+ */
+export async function createPdfPool(options: import("./pool.ts").PdfPoolOptions = {}): Promise<import("./pool.ts").PdfPool> {
+  const { startPool } = await import("./pool.ts");
+  return startPool(options);
+}
