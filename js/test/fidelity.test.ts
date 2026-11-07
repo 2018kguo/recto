@@ -446,3 +446,22 @@ test("forms nested a few levels deep and used many times are all drawn", async (
   );
   assert.deepEqual(page.at(50, 50), RED);
 });
+
+test("planted /Identity names don't open a file of a version that has no crypt filters", async () => {
+  const hash = "00".repeat(32);
+  let out = "%PDF-1.4\n";
+  const offsets: number[] = [];
+  [
+    "<</Type /Catalog /Pages 2 0 R>>",
+    "<</Type /Pages /Count 1 /Kids [3 0 R]>>",
+    "<</Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R>>",
+    "<</Length 24>>\nstream\n1 0 0 rg 0 0 100 100 re f\nendstream",
+    `<</Filter /Standard /V 1 /R 2 /P -4 /O <${hash}> /U <${hash}> /StmF /Identity /StrF /Identity>>`,
+  ].forEach((body, i) => {
+    offsets.push(out.length);
+    out += `${i + 1} 0 obj\n${body}\nendobj\n`;
+  });
+  const xref = out.length;
+  out += `xref\n0 6\n0000000000 65535 f \n${offsets.map((o) => `${String(o).padStart(10, "0")} 00000 n \n`).join("")}trailer\n<</Size 6 /Root 1 0 R /Encrypt 5 0 R /ID [<00> <00>]>>\nstartxref\n${xref}\n%%EOF\n`;
+  await assert.rejects(engine.open(latin1(out)), { code: "password-required" });
+});
