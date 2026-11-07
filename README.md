@@ -217,6 +217,9 @@ on anything a user might upload, use one of those two.
   the way a service worker does, but none has been run.
 - **Memory:** `open` copies the file into WebAssembly memory, which only comes back when an instance is
   dropped (at the last close, past 64 MiB by default). A ranged file can be up to 3.5 GiB.
+- **Ranged reads trust `/Count`:** a file whose `/Count` values lie where the path to a page doesn't look
+  can return a different page than a whole-file read. Open the whole file if you need the guarantee. See
+  [ranged reads](docs/reference.md#ranged-reads).
 - **Char boxes** are loose font boxes, not glyph ink. A font that states no ascent and descent gets 0.8
   and −0.2 em. A fill colour reads as the stroke colour for stroke-only text, and as opaque black for a
   pattern.

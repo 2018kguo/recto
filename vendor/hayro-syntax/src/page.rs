@@ -11,7 +11,7 @@ use crate::object::dict::keys::*;
 use crate::object::{MaybeRef, Object};
 use crate::reader::ReaderContext;
 use crate::object::ObjectIdentifier;
-use crate::sync::{FxHashSet, Mutex, MutexExt, OnceLock};
+use crate::sync::{FxHashMap, FxHashSet, Mutex, MutexExt, OnceLock};
 use crate::transform::Transform;
 use crate::util::FloatExt;
 use crate::xref::XRef;
@@ -47,9 +47,9 @@ pub struct Pages<'a> {
     xref: &'a XRef,
 }
 
-/// recto: pages built on first use. Which dictionary is page `i` only ever comes from
-/// `PageWalk`, in order, so counts can't change it. A whole file is walked at open. A ranged
-/// file can't afford that: it's walked as far as the page asked for.
+/// recto: pages built on first use. A whole file is walked at open, so `/Count` can't change which
+/// page is which. A ranged file can't afford that: it descends by `/Count` (see `Descent`), and
+/// takes the walk from the first thing that doesn't add up.
 struct LazyPages<'a> {
     reader: ReaderContext<'a>,
     built: Vec<OnceLock<Option<Page<'a>>>>,
@@ -58,6 +58,8 @@ struct LazyPages<'a> {
 }
 
 struct Walked<'a> {
+    /// A ranged file's way to a page, until it meets something that doesn't add up.
+    descent: Option<Descent<'a>>,
     walk: PageWalk<'a>,
     /// Pages found so far, and which entry of `walk.contexts` each inherits from.
     found: Vec<(Dict<'a>, u32)>,
@@ -70,6 +72,102 @@ impl<'a> Walked<'a> {
             self.found.push(page);
         }
         self.found.get(index)
+    }
+}
+
+/// recto: page `i` of a ranged file, found by each kid's `/Count` so that only the nodes on the way
+/// to it are fetched, as pdf.js and pdfium do. Everything on that path is checked, and `None` means
+/// something there doesn't add up. What isn't on the path can't be checked: a node before it whose
+/// `/Count` is wrong moves the page unseen, and so does an empty kid under a node with as many kids
+/// as its `/Count`, whose kids aren't fetched.
+struct Descent<'a> {
+    root: Dict<'a>,
+    /// What's known of each node by its dict's address, so reading every page stays linear.
+    nodes: FxHashMap<usize, NodeKids<'a>>,
+    kids_left: usize,
+}
+
+enum NodeKids<'a> {
+    /// As many kids as `/Count`, so each holds one page: kid `i` is read directly.
+    OnePageEach(Vec<MaybeRef<Object<'a>>>),
+    /// Kids read in order as far as asked: where each starts, itself, and where they end so far.
+    InOrder {
+        rest: ArrayIter<'a>,
+        seen: Vec<(usize, Dict<'a>)>,
+        end: usize,
+    },
+}
+
+fn is_node(dict: &Dict<'_>) -> bool {
+    dict.get::<Name<'_>>(TYPE).as_deref() == Some(PAGES)
+}
+
+impl<'a> Descent<'a> {
+    fn find(
+        &mut self,
+        mut index: usize,
+        reader: &ReaderContext<'a>,
+    ) -> Option<(Dict<'a>, PagesContext<'a>)> {
+        let resolve = |kid: MaybeRef<Object<'a>>| match kid {
+            MaybeRef::Ref(id) => reader.xref().get_with::<Dict<'a>>(id.into(), reader),
+            MaybeRef::NotRef(object) => object.into_dict(),
+        };
+        let mut node = self.root.clone();
+        let mut context = inherit(&node, PagesContext::new());
+        let mut path: FxHashSet<usize> = FxHashSet::default();
+        loop {
+            let key = node.data().as_ptr() as usize;
+            if !path.insert(key) {
+                return None;
+            }
+            if !self.nodes.contains_key(&key) {
+                let array = node.get::<Array<'a>>(KIDS)?;
+                let length = array.raw_iter().count();
+                let kids = if Some(length) == node.get::<usize>(COUNT) {
+                    NodeKids::OnePageEach(array.raw_iter().collect())
+                } else {
+                    NodeKids::InOrder {
+                        rest: array.raw_iter(),
+                        seen: vec![],
+                        end: 0,
+                    }
+                };
+                self.nodes.insert(key, kids);
+            }
+            let kids = self.nodes.get_mut(&key)?;
+            let kid = match kids {
+                NodeKids::OnePageEach(kids) => {
+                    let kid = match kids.get(index)? {
+                        MaybeRef::Ref(id) => reader.xref().get_with::<Dict<'a>>((*id).into(), reader),
+                        MaybeRef::NotRef(object) => object.clone().into_dict(),
+                    }?;
+                    // A node here has to hold one page, like every other kid of this one.
+                    if is_node(&kid) && kid.get::<usize>(COUNT) != Some(1) {
+                        return None;
+                    }
+                    index = 0;
+                    kid
+                }
+                NodeKids::InOrder { rest, seen, end } => {
+                    while *end <= index {
+                        self.kids_left = self.kids_left.checked_sub(1)?;
+                        let kid = resolve(rest.next()?)?;
+                        let span = if is_node(&kid) { kid.get::<usize>(COUNT)? } else { 1 };
+                        seen.push((*end, kid));
+                        *end = end.checked_add(span)?;
+                    }
+                    let at = seen.partition_point(|(start, _)| *start <= index) - 1;
+                    let (start, kid) = &seen[at];
+                    index -= start;
+                    kid.clone()
+                }
+            };
+            if !is_node(&kid) {
+                return Some((kid, context));
+            }
+            context = inherit(&kid, context);
+            node = kid;
+        }
     }
 }
 
@@ -174,7 +272,6 @@ impl<'a> PageWalk<'a> {
 
 /// recto: a ranged file's page count, from the root's `/Count` if the tree's nodes add up to it.
 /// The nodes are read, and pages aren't: a node with as many kids as its `/Count` passes unread.
-/// That only settles `pageCount`. Which page is which still comes from walking.
 fn counts_add_up<'a>(
     dict: &Dict<'a>,
     ctx: &ReaderContext<'a>,
@@ -220,23 +317,29 @@ impl<'a> Pages<'a> {
         xref: &'a XRef,
     ) -> Option<Self> {
         let mut walked = Walked {
+            descent: None,
             walk: PageWalk::new(pages_dict, xref.len())?,
             found: vec![],
         };
         // recto: a ranged file takes the root's `/Count` when the nodes agree and it's no more
         // than the file's objects. Anything else is walked now, like a whole file.
-        let count = pages_dict
-            .get::<usize>(COUNT)
-            .filter(|count| {
-                xref.is_ranged()
-                    && *count <= xref.len()
-                    && counts_add_up(pages_dict, ctx, &mut FxHashSet::default(), 0) == Some(*count)
-            })
-            .unwrap_or_else(|| {
-                walked.walk_to(usize::MAX, ctx);
-                walked.found.shrink_to_fit();
-                walked.found.len()
+        let trusted = pages_dict.get::<usize>(COUNT).filter(|count| {
+            xref.is_ranged()
+                && *count <= xref.len()
+                && counts_add_up(pages_dict, ctx, &mut FxHashSet::default(), 0) == Some(*count)
+        });
+        let count = if let Some(count) = trusted {
+            walked.descent = Some(Descent {
+                root: pages_dict.clone(),
+                nodes: FxHashMap::default(),
+                kids_left: xref.len().saturating_add(MAX_REPEATED_KIDS),
             });
+            count
+        } else {
+            walked.walk_to(usize::MAX, ctx);
+            walked.found.shrink_to_fit();
+            walked.found.len()
+        };
         Some(Self {
             pages: vec![],
             lazy: Some(LazyPages {
@@ -274,6 +377,12 @@ impl<'a> Pages<'a> {
             .get(index)?
             .get_or_init(|| {
                 let mut walked = lazy.walked.get();
+                if let Some(descent) = &mut walked.descent {
+                    if let Some((dict, context)) = descent.find(index, &lazy.reader) {
+                        return Page::new(&dict, &context, &lazy.reader, false);
+                    }
+                    walked.descent = None;
+                }
                 let (dict, context) = walked.walk_to(index, &lazy.reader)?.clone();
                 Page::new(&dict, &walked.walk.contexts[context as usize], &lazy.reader, false)
             })

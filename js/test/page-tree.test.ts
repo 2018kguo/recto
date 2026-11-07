@@ -1,6 +1,7 @@
-// Pages are built on demand, and which page is which only ever comes from walking the tree in
-// order. A tree that lies gives what walking it gives: its real pages. Repeats count, as they do in
-// other readers; only a node that's its own ancestor is skipped.
+// A whole file: which page is which comes from walking the tree in order, so a tree that lies gives
+// its real pages. Repeats count, as they do in other readers; only a node that's its own ancestor is
+// skipped. A ranged file finds a page by /Count, which agrees with that walk if the counts are true,
+// and otherwise holds to less: see the tests at the end of the differential below.
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { test } from "node:test";
@@ -298,23 +299,155 @@ test("page tree: a whole file gives exactly the walk's pages, whatever order the
   }
 });
 
-test("page tree: a ranged file never gives a different page than the walk", async () => {
+/** A tree whose every /Count is what its node holds, with repeats, diamonds and mixed leaves. */
+function truthfulTree(seed: number): { file: Uint8Array; expected: number[]; shape: string } {
+  let state = (seed * 2_654_435_761) >>> 0;
+  const random = (below: number) => {
+    state = (Math.imul(state, 1_664_525) + 1_013_904_223) >>> 0;
+    return (state >>> 8) % below;
+  };
+  for (;;) {
+    const pageCount = 1 + random(8);
+    const nodeCount = random(8);
+    const firstPage = 4;
+    const firstNode = firstPage + 2 * pageCount;
+    // Node n's kids are pages or later nodes, so there are no cycles and every count is known.
+    const held: number[][] = [];
+    const kidsOf: number[][] = [];
+    let coincidence = false;
+    const nodeId = (n: number) => (n === 0 ? 2 : firstNode + n - 1);
+    for (let n = nodeCount; n >= 0; n--) {
+      const kids: number[] = [];
+      const pages: number[] = [];
+      const length = random(6) + (n === 0 ? 1 : 0);
+      let emptyKid = false;
+      for (let k = 0; k < length; k++) {
+        const later = n + 1 + random(Math.max(1, nodeCount - n));
+        if (later <= nodeCount && random(2) === 0) {
+          kids.push(nodeId(later));
+          pages.push(...held[later]!);
+          emptyKid ||= held[later]!.length === 0;
+        } else {
+          const page = random(pageCount);
+          kids.push(firstPage + 2 * page);
+          pages.push(page);
+        }
+      }
+      held[n] = pages;
+      kidsOf[n] = kids;
+      // As many kids as pages, one of them empty: the pinned case below, not this test's.
+      coincidence ||= emptyKid && kids.length === pages.length;
+    }
+    const total = held[0]!.length;
+    if (coincidence || total === 0 || total > 2000) {
+      continue;
+    }
+    const nodeText = (n: number) => `<</Type/Pages/Count ${held[n]!.length}/Kids[${kidsOf[n]!.map((kid) => `${kid} 0 R`).join(" ")}]>>`;
+    const rest = [
+      ...pagesFrom(firstPage, Array.from({ length: pageCount }, (_, i) => i)),
+      ...Array.from({ length: nodeCount }, (_, i) => nodeText(i + 1)),
+    ];
+    return {
+      file: fileOf(nodeText(0), rest),
+      expected: held[0]!,
+      shape: Array.from({ length: nodeCount + 1 }, (_, n) => `${nodeId(n)}:${nodeText(n)}`).join(" "),
+    };
+  }
+}
+
+test("page tree: where every /Count is true, a ranged file gives the walk's pages, in any order", async () => {
   const engines = [await createPdfEngine(), await createPdfEngine({ preloadAssets: [] })];
   for (let seed = 1; seed <= 600; seed++) {
-    const { file, expected, shape } = randomTree(seed);
-    const doc = await engines[seed % 2]!.openRanged(file);
+    const { file, expected, shape } = truthfulTree(seed);
     const want = expected.map((page) => `P${page}`);
-    const order = Array.from({ length: doc.pageCount }, (_, i) => i);
+    const whole = await engines[seed % 2]!.open(file);
+    const ranged = await engines[seed % 2]!.openRanged(file);
+    assert.equal(ranged.pageCount, want.length, `seed ${seed}: ${shape}`);
+    const order = want.map((_, i) => i);
     if (seed % 2 === 0) {
       order.reverse(); // last first: nothing read before it
     }
     for (const i of order) {
-      // A /Count that passes unread can promise pages that aren't there. It can't change one that is.
-      assert.equal(readPage(doc, i), want[i] ?? "error failed", `seed ${seed} page ${i}: ${shape}`);
+      assert.equal(readPage(ranged, i), want[i], `seed ${seed} page ${i}: ${shape}`);
+      assert.equal(readPage(whole, i), want[i], `seed ${seed} whole page ${i}: ${shape}`);
+    }
+    whole.close();
+    ranged.close();
+  }
+});
+
+test("page tree: whatever the counts say, a ranged read ends, with a page of the tree or a typed error", async () => {
+  const engine = await createPdfEngine();
+  for (let seed = 1; seed <= 600; seed++) {
+    const { file, expected, shape } = randomTree(seed);
+    const doc = await engine.openRanged(file);
+    const order = Array.from({ length: doc.pageCount }, (_, i) => i);
+    if (seed % 2 === 0) {
+      order.reverse();
+    }
+    const inTree = new Set(expected.map((page) => `P${page}`));
+    for (const i of order) {
+      const got = readPage(doc, i);
+      assert.ok(got === "error failed" || inTree.has(got), `seed ${seed} page ${i} gave ${got}: ${shape}`);
     }
     doc.close();
   }
 });
+
+// What a ranged read gives where it can't see the lie. reference.md states this limit. These are
+// pinned so a change to them is a decision: each list is the pages read in that order.
+const AB = pagesFrom(4, [1, 2, 3]); // objects 4, 6, 8
+const lies: [string, Uint8Array, number[], string[]][] = [
+  [
+    "true counts, but an empty kid among as many kids as /Count, last page first: the kid's position is read as its page",
+    fileOf("<</Type/Pages/Count 3/Kids[10 0 R 11 0 R 12 0 R]>>", [
+      ...AB,
+      "<</Type/Pages/Count 2/Kids[4 0 R 6 0 R]>>",
+      "<</Type/Pages/Count 1/Kids[8 0 R]>>",
+      "<</Type/Pages/Count 0/Kids[]>>",
+    ]),
+    [1, 2, 0],
+    ["P3", "P3", "P1"],
+  ],
+  [
+    "the same tree first page first: a node of two is seen, and the walk takes over",
+    fileOf("<</Type/Pages/Count 3/Kids[10 0 R 11 0 R 12 0 R]>>", [
+      ...AB,
+      "<</Type/Pages/Count 2/Kids[4 0 R 6 0 R]>>",
+      "<</Type/Pages/Count 1/Kids[8 0 R]>>",
+      "<</Type/Pages/Count 0/Kids[]>>",
+    ]),
+    [0, 1, 2],
+    ["P1", "P2", "P3"],
+  ],
+  [
+    "a node before the page says 1 and holds 2, under a root whose counts add up: unseen",
+    fileOf("<</Type/Pages/Count 2/Kids[10 0 R 8 0 R]>>", [...AB, "<</Type/Pages/Count 1/Kids[4 0 R 6 0 R]>>"]),
+    [1, 0],
+    ["P3", "P1"],
+  ],
+  [
+    "a kid that isn't there under as many kids as /Count: position first, the walk once it's met",
+    fileOf("<</Type/Pages/Count 3/Kids[4 0 R 99 0 R 6 0 R]>>", AB),
+    [2, 1, 0],
+    ["P2", "P2", "P1"],
+  ],
+  [
+    "a node on the path that is its own kid: seen, and the walk finds nothing",
+    fileOf("<</Type/Pages/Count 1/Kids[10 0 R]>>", [...AB, "<</Type/Pages/Count 1/Kids[10 0 R]>>"]),
+    [0],
+    ["error failed"],
+  ],
+];
+
+for (const [name, file, order, want] of lies) {
+  test(`page tree, ranged: ${name}`, async () => {
+    const engine = await createPdfEngine();
+    const doc = await engine.openRanged(file);
+    assert.deepEqual(order.map((i) => readPage(doc, i)), want);
+    doc.close();
+  });
+}
 
 test("page tree: a node's inherited box and rotation reach a page found on demand", async () => {
   const file = fileOf("<</Type/Pages/Count 2/Kids[8 0 R 4 0 R]/Rotate 90/MediaBox[0 0 300 200]>>", [

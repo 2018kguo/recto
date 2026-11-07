@@ -138,6 +138,14 @@ server on the same thread cannot answer, and the read fails with `timeout` and s
 | `signal` | | Checked before the open and each fetch. It cannot interrupt a fetch, because the thread is blocked; `timeoutMs` bounds that |
 | `password` | | |
 
+**A ranged read trusts `/Count`.** It finds a page by each node's `/Count`, so that it fetches only
+the nodes on the way there, and checks what it reads on that path. If something doesn't add up it walks
+the tree in order instead, within `maxBytes`. But a file whose `/Count` values lie where that path
+doesn't look can return a different page than a whole-file read, and which one can depend on what was
+read first. A node with as many kids as its `/Count`, one of them an empty node, is such a file even
+though its counts are true. `pageCount` can be wrong the same way, so a page can fail with `failed`, or
+pages at the end can go unseen. If you need the guarantee, open the whole file: there `/Count` plays no part.
+
 What a server gets wrong:
 
 - **It ignores Range** (a 200 with the whole file): the file is used, as long as it fits
