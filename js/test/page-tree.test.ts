@@ -10,8 +10,8 @@ import { createPdfEngine } from "../src/index.ts";
 import { threadCpuMs } from "./cpu-time.ts";
 
 /** Objects 1 and 2 are the catalog and the root node. */
-function fileOf(root: string, rest: string[]): Uint8Array {
-  const objects = ["<</Type/Catalog/Pages 2 0 R>>", root, "<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>", ...rest];
+function fileOf(root: string, rest: string[], catalog = "<</Type/Catalog/Pages 2 0 R>>"): Uint8Array {
+  const objects = [catalog, root, "<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>", ...rest];
   let file = "%PDF-1.7\n";
   const offsets = objects.map((body, i) => {
     const at = file.length;
@@ -108,6 +108,17 @@ for (const [name, file, expected] of cases) {
     assert.deepEqual(await pagesOf(file), expected);
   });
 }
+
+test("page tree: a bookmark to a page the tree repeats goes to where it first appears", async () => {
+  const file = fileOf(
+    "<</Type/Pages/Count 3/Kids[4 0 R 6 0 R 4 0 R]>>",
+    [...pages, "<</First 11 0 R/Last 11 0 R>>", "<</Title(First)/Parent 10 0 R/Dest[4 0 R/Fit]>>"],
+    "<</Type/Catalog/Pages 2 0 R/Outlines 10 0 R>>"
+  );
+  const engine = await createPdfEngine();
+  using doc = await engine.open(file);
+  assert.equal(doc.outline()[0]?.page, 0);
+});
 
 // A separate process with a limit: this hung once, in wasm, where no timer in this thread can fire.
 test("page tree: a ranged tree that loops ends, on its own or through another node", () => {
