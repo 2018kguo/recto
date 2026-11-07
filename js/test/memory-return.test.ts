@@ -16,7 +16,10 @@ const memories: WeakRef<WebAssembly.Memory>[] = [];
 const RealInstance = WebAssembly.Instance;
 WebAssembly.Instance = function (module: WebAssembly.Module, imports?: WebAssembly.Imports) {
   const instance = new RealInstance(module, imports);
-  memories.push(new WeakRef(instance.exports["memory"] as WebAssembly.Memory));
+  // A part has no memory of its own: it takes the instance's.
+  if (instance.exports["memory"]) {
+    memories.push(new WeakRef(instance.exports["memory"] as WebAssembly.Memory));
+  }
   return instance;
 } as unknown as typeof WebAssembly.Instance;
 
@@ -68,6 +71,34 @@ test("by default: an open within a second reuses the instance, and a second idle
   await new Promise((resolve) => setTimeout(resolve, 1200));
   assert.equal(engine.stats().heapBytes, 0);
   assert.ok(await collected(memories.at(-1)!), "the idle instance's memory is still reachable");
+});
+
+test("by default: a small file's instance goes too, a second after the last close", async () => {
+  const engine = await createPdfEngine();
+  await (async () => {
+    const doc = await engine.open(syntheticPdf({ pages: 2, charsPerPage: 200 }));
+    doc.render(0, { width: 800 });
+    doc.close();
+  })();
+  assert.ok(engine.stats().heapBytes < 64 * 2 ** 20, "nowhere near the mark the large files pass");
+  assert.ok(engine.stats().heapBytes > 0, "and not at the close");
+  await new Promise((resolve) => setTimeout(resolve, 1200));
+  assert.equal(engine.stats().heapBytes, 0);
+  assert.ok(await collected(memories.at(-1)!), "the idle instance's memory is still reachable");
+  // The next open makes a new one, and reads as well as the first did.
+  using doc = await engine.open(syntheticPdf({ pages: 2, charsPerPage: 200 }));
+  assert.ok(doc.text(0).text.length > 50);
+  assert.equal(engine.stats().generation, 1);
+});
+
+test("with an explicit mark, below it the instance stays however long it's idle", async () => {
+  const engine = await createPdfEngine({ recycleAboveBytes: 64 * 2 ** 20 });
+  const doc = await engine.open(syntheticPdf({ pages: 2, charsPerPage: 200 }));
+  doc.render(0, { width: 800 });
+  doc.close();
+  await new Promise((resolve) => setTimeout(resolve, 1200));
+  assert.ok(engine.stats().heapBytes > 0);
+  assert.equal(engine.stats().generation, 0);
 });
 
 test("by default: past 512 MiB, the memory goes at the close", async () => {
