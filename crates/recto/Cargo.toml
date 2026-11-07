@@ -13,7 +13,7 @@ crate-type = ["cdylib", "rlib"]
 
 [features]
 # Native builds embed hayro's Foxit fonts, so `cargo test` needs nothing else.
-# The WASM build turns this off and loads the same fonts lazily from fonts.bin
+# The WASM build turns this off and loads the same fonts lazily, a file each
 # (src/assets.rs).
 default = ["embed-fonts"]
 embed-fonts = ["hayro/embed-fonts"]

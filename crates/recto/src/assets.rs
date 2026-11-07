@@ -1,13 +1,13 @@
 //! Fonts a document names but does not embed. Native builds use hayro's
 //! embedded Foxit fonts. The WASM build leaves them out and asks the host on
-//! first use for `fonts.bin` (the same Foxit fonts, entries 0..13) and
+//! first use for the same Foxit fonts (entries 0..13, a file each) and
 //! `cjk-fallback.ttf` (entry 14).
 
 use hayro::hayro_interpret::InterpreterSettings;
 #[cfg(feature = "wasm")]
 use hayro::hayro_interpret::font::{FontData, FontQuery, StandardFont};
 
-/// `fonts.bin` index of each standard font (scripts/pack-fonts.mjs).
+/// Asset index of each standard font (FONTS in scripts/package-wasm.mjs).
 #[cfg(feature = "wasm")]
 fn font_index(font: StandardFont) -> u32 {
     match font {

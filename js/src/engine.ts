@@ -8,7 +8,7 @@ import {
   type AssetName,
   assetBaseUrl,
   canReadSync,
-  fontFromBundle,
+  STANDARD_FONTS,
   type WasmName,
   compileWasm,
   loadAssetSync,
@@ -52,7 +52,7 @@ export type PdfEngineOptions = {
    * when needed, only `recto.wasm` means anything: named, what drawing needs is fetched and compiled
    * now, which saves the first `render` blocking on it.
    */
-  preloadAssets?: (Exclude<AssetName, Part> | "cmaps.brotli")[];
+  preloadAssets?: (Exclude<AssetName, Part> | "cmaps.brotli" | "fonts.bin")[];
 };
 
 export type PdfOpenOptions = {
@@ -87,7 +87,7 @@ const CJK_FONT_ASSET = 14;
 const CMAPS_ASSET = 15;
 const PARTS = ["recto-render.wasm", "recto-more.wasm", "recto-rare.wasm"] as const;
 type Part = (typeof PARTS)[number];
-const ALL_ASSETS = ["fonts.bin", "cmaps.deflate", "cjk-fallback.ttf"] as const;
+const ALL_ASSETS = [...STANDARD_FONTS, "cmaps.deflate", "cjk-fallback.ttf"] as const;
 /** Chosen from bench/results/recycle.json: retiring at each close made a repeated large file slow. */
 const IDLE_RECYCLE_ABOVE_BYTES = 64 * 1024 * 1024;
 const DEFAULT_RECYCLE_ABOVE_BYTES = 512 * 1024 * 1024;
@@ -193,7 +193,7 @@ function instantiate(
       if (index === CJK_FONT_ASSET) {
         return loadAssetSync("cjk-fallback.ttf", base, hashOn(instance));
       }
-      return fontFromBundle(loadAssetSync("fonts.bin", base, hashOn(instance)), index);
+      return loadAssetSync(STANDARD_FONTS[index]!, base, hashOn(instance));
     } catch (error) {
       instance.abandoned = true;
       instance.failure = error as PdfError;
@@ -418,9 +418,9 @@ export async function createPdfEngine(options: PdfEngineOptions = {}): Promise<P
 async function createEngine(options: PdfEngineOptions): Promise<RectoEngine> {
   const base = assetBaseUrl(options.assetBase);
   const canRead = canReadSync();
-  // cmaps.brotli is the old name of cmaps.deflate.
-  const names = (options.preloadAssets ?? (canRead ? [] : ALL_ASSETS)).map((asset) =>
-    asset === "cmaps.brotli" ? ("cmaps.deflate" as const) : asset
+  // cmaps.brotli is the old name of cmaps.deflate, and fonts.bin of all the fonts together.
+  const names = (options.preloadAssets ?? (canRead ? [] : ALL_ASSETS)).flatMap((asset) =>
+    asset === "cmaps.brotli" ? ("cmaps.deflate" as const) : asset === "fonts.bin" ? STANDARD_FONTS : asset
   );
   // With no way to read a part from inside a call, all of them now, always: nothing listed can take
   // away the ability to draw. Named elsewhere, what drawing runs, to save the first `render` the wait.

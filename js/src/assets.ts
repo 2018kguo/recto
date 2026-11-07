@@ -20,6 +20,24 @@ import { sha256Hex } from "./sha256.ts";
 export type AssetName = keyof typeof PINS;
 export type WasmName = "recto.wasm" | "recto-render.wasm" | "recto-more.wasm" | "recto-rare.wasm";
 
+/** The standard fonts, in the order the wasm asks for them (`font_index` in crates/recto/src/assets.rs). */
+export const STANDARD_FONTS = [
+  "FoxitFixed.pfb",
+  "FoxitFixedBold.pfb",
+  "FoxitFixedBoldItalic.pfb",
+  "FoxitFixedItalic.pfb",
+  "FoxitSans.pfb",
+  "FoxitSansBold.pfb",
+  "FoxitSansBoldItalic.pfb",
+  "FoxitSansItalic.pfb",
+  "FoxitSerif.pfb",
+  "FoxitSerifBold.pfb",
+  "FoxitSerifBoldItalic.pfb",
+  "FoxitSerifItalic.pfb",
+  "FoxitSymbol.pfb",
+  "FoxitDingbats.pfb",
+] as const;
+
 function packagedUrl(name: AssetName): URL {
   switch (name) {
     case "recto.wasm":
@@ -30,8 +48,34 @@ function packagedUrl(name: AssetName): URL {
       return new URL("../wasm/recto-more.wasm", import.meta.url);
     case "recto-rare.wasm":
       return new URL("../wasm/recto-rare.wasm", import.meta.url);
-    case "fonts.bin":
-      return new URL("../wasm/fonts.bin", import.meta.url);
+    case "FoxitFixed.pfb":
+      return new URL("../wasm/FoxitFixed.pfb", import.meta.url);
+    case "FoxitFixedBold.pfb":
+      return new URL("../wasm/FoxitFixedBold.pfb", import.meta.url);
+    case "FoxitFixedBoldItalic.pfb":
+      return new URL("../wasm/FoxitFixedBoldItalic.pfb", import.meta.url);
+    case "FoxitFixedItalic.pfb":
+      return new URL("../wasm/FoxitFixedItalic.pfb", import.meta.url);
+    case "FoxitSans.pfb":
+      return new URL("../wasm/FoxitSans.pfb", import.meta.url);
+    case "FoxitSansBold.pfb":
+      return new URL("../wasm/FoxitSansBold.pfb", import.meta.url);
+    case "FoxitSansBoldItalic.pfb":
+      return new URL("../wasm/FoxitSansBoldItalic.pfb", import.meta.url);
+    case "FoxitSansItalic.pfb":
+      return new URL("../wasm/FoxitSansItalic.pfb", import.meta.url);
+    case "FoxitSerif.pfb":
+      return new URL("../wasm/FoxitSerif.pfb", import.meta.url);
+    case "FoxitSerifBold.pfb":
+      return new URL("../wasm/FoxitSerifBold.pfb", import.meta.url);
+    case "FoxitSerifBoldItalic.pfb":
+      return new URL("../wasm/FoxitSerifBoldItalic.pfb", import.meta.url);
+    case "FoxitSerifItalic.pfb":
+      return new URL("../wasm/FoxitSerifItalic.pfb", import.meta.url);
+    case "FoxitSymbol.pfb":
+      return new URL("../wasm/FoxitSymbol.pfb", import.meta.url);
+    case "FoxitDingbats.pfb":
+      return new URL("../wasm/FoxitDingbats.pfb", import.meta.url);
     case "cjk-fallback.ttf":
       return new URL("../wasm/cjk-fallback.ttf", import.meta.url);
     case "cmaps.deflate":
@@ -242,14 +286,4 @@ export function readCheckedSync(name: AssetName, base: URL | null, hash?: SyncHa
     throw loadFailure(name, url, error instanceof Error ? error.message : String(error), error);
   }
   return checked(name, url, bytes, hash);
-}
-
-/** Entry `index` of fonts.bin: u32 count, u32 offsets[count + 1], bytes (little-endian). */
-export function fontFromBundle(bundle: Uint8Array, index: number): Uint8Array {
-  const view = new DataView(bundle.buffer, bundle.byteOffset, bundle.byteLength);
-  const base = 4 + (view.getUint32(0, true) + 1) * 4;
-  return bundle.subarray(
-    base + view.getUint32(4 + index * 4, true),
-    base + view.getUint32(8 + index * 4, true)
-  );
 }

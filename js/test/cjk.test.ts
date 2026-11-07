@@ -9,6 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { gunzipSync } from "node:zlib";
+import { PINS } from "../wasm/pins.mjs";
 
 import { PDFArray, PDFDict, PDFDocument, PDFName } from "pdf-lib";
 
@@ -65,7 +66,7 @@ function cjkPdf(): Uint8Array {
 /** A directory of the package's assets without those named, for assetBase. */
 function assetsWithout(...missing: string[]): string {
   const dir = mkdtempSync(join(tmpdir(), "recto-assets-"));
-  for (const name of ["recto.wasm", "recto-render.wasm", "recto-more.wasm", "recto-rare.wasm", "fonts.bin", "cjk-fallback.ttf", "cmaps.deflate"]) {
+  for (const name of Object.keys(PINS)) {
     if (!missing.includes(name)) {
       copyFileSync(new URL(`../wasm/${name}`, import.meta.url), join(dir, name));
     }

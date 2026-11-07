@@ -66,7 +66,7 @@ run("npx", ["publint"], path.join(root, "js"));
 const packed = JSON.parse(run("npm", ["pack", "--ignore-scripts", "--json", "--pack-destination", dir], path.join(root, "js")))[0];
 const shipped = packed.files.map((f) => f.path);
 console.log(`${packed.filename}: ${packed.size} bytes packed, ${packed.unpackedSize} unpacked, ${shipped.length} files`);
-for (const name of ["wasm/recto.wasm", "wasm/recto-render.wasm", "wasm/recto-more.wasm", "wasm/recto-rare.wasm", "wasm/recto.gen.mjs", "wasm/pins.mjs", "wasm/fonts.bin", "wasm/cjk-fallback.ttf", "wasm/cmaps.deflate", "wasm/THIRD_PARTY_NOTICES", "dist/index.js", "dist/index.d.ts", "LICENSE", "README.md"]) {
+for (const name of ["wasm/recto.wasm", "wasm/recto-render.wasm", "wasm/recto-more.wasm", "wasm/recto-rare.wasm", "wasm/recto.gen.mjs", "wasm/pins.mjs", "wasm/FoxitSans.pfb", "wasm/cjk-fallback.ttf", "wasm/cmaps.deflate", "wasm/THIRD_PARTY_NOTICES", "dist/index.js", "dist/index.d.ts", "LICENSE", "README.md"]) {
   assert.ok(shipped.includes(name), `the tarball has ${name}`);
 }
 assert.ok(!shipped.some((f) => /^(src|test)\//u.test(f)), "the tarball has no source or tests");
@@ -92,7 +92,7 @@ run("npm", ["install", "--no-audit", "--no-fund"]);
 const resolved = run("node", ["--input-type=module", "-e", 'console.log(import.meta.resolve("@2018kguo/recto"))']).trim();
 assert.ok(fs.realpathSync(new URL(resolved)).startsWith(fs.realpathSync(dir)), `resolved outside the install: ${resolved}`);
 
-/** Two pages of Helvetica, which the file does not embed: blank if fonts.bin went missing. */
+/** Two pages of Helvetica, which the file does not embed: blank if its font file went missing. */
 function samplePdf() {
   const page = (id, text) => {
     const content = `BT /F1 24 Tf 72 700 Td (${text}) Tj ET`;

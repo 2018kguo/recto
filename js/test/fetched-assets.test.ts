@@ -65,7 +65,7 @@ for (const [label, secure] of [["crypto.subtle", true], ["the JavaScript hash, o
 
   test(`a changed font file is refused, and the right files work (${label})`, async () => {
     setCrypto();
-    serve((bytes, name) => (name === "fonts.bin" ? flipLastByte(bytes) : bytes));
+    serve((bytes, name) => (name === "FoxitSans.pfb" ? flipLastByte(bytes) : bytes));
     await assert.rejects(createPdfEngine({ assetBase: location() }), { code: "missing-asset" });
     serve();
     const engine = await createPdfEngine({ assetBase: location() });
@@ -96,5 +96,5 @@ test("listing other assets can't take away drawing, and the old CMaps name still
   const engine = await createPdfEngine({ assetBase: location(), preloadAssets: [] });
   using doc = await engine.open(pdf);
   assert.ok(doc.objects(0));
-  assert.throws(() => doc.render(0, { width: 100 }), { code: "missing-asset", message: /fonts\.bin/u });
+  assert.throws(() => doc.render(0, { width: 100 }), { code: "missing-asset", message: /FoxitSans\.pfb/u });
 });

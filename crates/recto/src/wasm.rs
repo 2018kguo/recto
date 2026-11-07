@@ -24,7 +24,7 @@ fn js_set(target: &JsValue, key: &str, value: &str) -> Result<bool, JsValue> {
 
 /// The host's asset loader: `(index) => Uint8Array | undefined`, called
 /// synchronously the first time a document needs a built-in font (0..13,
-/// `fonts.bin` order), the CJK fallback (14) or the predefined CMaps (15).
+/// `STANDARD_FONTS` order), the CJK fallback (14) or the predefined CMaps (15).
 /// Fonts are kept per instance; the CMaps are decompressed once and kept.
 #[wasm_bindgen(js_name = setAssetLoader)]
 pub fn set_asset_loader(loader: js_sys::Function) {

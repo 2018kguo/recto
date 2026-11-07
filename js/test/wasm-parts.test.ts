@@ -11,10 +11,12 @@ import { createPdfEngine, type PdfBitmap, type PdfDocument, PdfError } from "../
 import { bilevel, jpxPdf, meshPdf, postScriptPdf, tensorPdf } from "./rare-pdfs.ts";
 import { startRangeServer } from "./range-server.ts";
 import { syntheticPdf } from "./synthetic-pdf.ts";
+import { PINS } from "../wasm/pins.mjs";
 
 const packaged = (name: string) => new URL(`../wasm/${name}`, import.meta.url);
 const PARTS = ["recto-render.wasm", "recto-more.wasm", "recto-rare.wasm"];
-const ASSETS = ["recto.wasm", ...PARTS, "fonts.bin", "cjk-fallback.ttf", "cmaps.deflate"];
+const ASSETS = Object.keys(PINS);
+const FONTS = ASSETS.filter((name) => name.endsWith(".pfb"));
 function assetDir(...without: string[]): string {
   const dir = mkdtempSync(join(tmpdir(), "recto-parts-"));
   for (const name of ASSETS) {
@@ -34,7 +36,7 @@ const missing = (name: string) => (error: PdfError) => {
 const pixel = ({ rgba, width }: PdfBitmap, x: number, y: number) => [...rgba.subarray((y * width + x) * 4, (y * width + x) * 4 + 3)];
 
 test("text needs no part and no font file; a part failing before a render changes nothing", async () => {
-  const dir = assetDir(...PARTS, "fonts.bin");
+  const dir = assetDir(...PARTS, ...FONTS);
   const engine = await createPdfEngine({ assetBase: dir });
   using doc = await engine.open(pdf());
   assert.ok(doc.text(0).text.length > 100);
@@ -44,8 +46,7 @@ test("text needs no part and no font file; a part failing before a render change
   assert.throws(() => doc.objects(0), missing("recto-render.wasm"));
   assert.equal(engine.stats().generation, 0, "nothing was abandoned: the failure came before the call");
   assert.ok(doc.text(0).text.length > 100);
-  for (const name of PARTS) restore(dir, name);
-  restore(dir, "fonts.bin");
+  for (const name of [...PARTS, ...FONTS]) restore(dir, name);
   assert.ok(doc.render(0, { width: 100 }).rgba.some((v) => v !== 255));
 });
 
@@ -158,12 +159,13 @@ test("a password and a ranged read survive being reopened, the ranged one with n
 });
 
 test("a missing font fails its call, and the document goes on once the file is back", async () => {
-  const dir = assetDir("fonts.bin");
+  const dir = assetDir(...FONTS);
   const engine = await createPdfEngine({ assetBase: dir });
   using doc = await engine.open(pdf());
-  assert.throws(() => doc.render(0, { width: 64 }), missing("fonts.bin"));
+  assert.throws(() => doc.render(0, { width: 64 }), missing("FoxitSans.pfb"));
   assert.ok(doc.text(0).count > 0);
-  restore(dir, "fonts.bin");
+  // That one file is all this page takes: nothing makes it fetch the other thirteen.
+  restore(dir, "FoxitSans.pfb");
   assert.ok(doc.render(0, { width: 64 }).rgba.some((v) => v !== 255));
 });
 
@@ -243,7 +245,7 @@ test("where nothing can be read from inside a call, every part comes up front an
 });
 
 test("every test file reads its text with no part at all", async () => {
-  const dir = assetDir(...PARTS, "fonts.bin");
+  const dir = assetDir(...PARTS, ...FONTS);
   const engine = await createPdfEngine({ assetBase: dir });
   for (const bytes of [pdf(), bilevel.jbig2(), jpxPdf(), meshPdf(), tensorPdf(), postScriptPdf()]) {
     using doc = await engine.open(bytes);
