@@ -1,0 +1,27 @@
+{
+ "date": "2026-11-07T00:21:53.091Z",
+ "width": 1024,
+ "sync": 238.7,
+ "slices": {
+  "2": {
+   "whole": 244,
+   "longestHeld": 66.2
+  },
+  "4": {
+   "whole": 242,
+   "longestHeld": 65.6
+  },
+  "8": {
+   "whole": 243.8,
+   "longestHeld": 66.5
+  },
+  "16": {
+   "whole": 242.1,
+   "longestHeld": 65.8
+  }
+ },
+ "stop": {
+  "pageTakes": 4181.8,
+  "stopped": 0.3
+ }
+}
