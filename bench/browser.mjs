@@ -57,9 +57,9 @@ for (let i = 0; i < wanted; i++) {
   corpus.push(`/doc/c${i}.pdf`);
 }
 
-async function openPage(browser, engine, doc) {
+async function openPage(browser, engine, doc, extra = "") {
   const page = await newPage(browser);
-  await page.goto(`${origin}/app/index.html?engine=${encodeURIComponent(engine)}&doc=${encodeURIComponent(doc)}&width=${WIDTH}`);
+  await page.goto(`${origin}/app/index.html?engine=${encodeURIComponent(engine)}&doc=${encodeURIComponent(doc)}&width=${WIDTH}${extra}`);
   const deadline = Date.now() + 120_000;
   while (!(await page.evaluate("Boolean(window.bench)").catch(() => false))) {
     if (Date.now() > deadline) throw new Error(`${engine} never became ready: ${page.logs.join("; ")}`);
@@ -102,13 +102,14 @@ const fast = await launch();
 const bundle = {};
 for (const engine of ENGINES) {
   bundle[engine] = {};
-  for (const [label, doc] of [
+  for (const [label, doc, extra] of [
     ["text", "/doc/report.pdf"],
     ["cjk", "/doc/cjk.pdf"],
+    ["textOnly", "/doc/report.pdf", "&textOnly"],
   ]) {
     const responses = server.responses;
     responses.length = 0;
-    const page = await openPage(fast, engine, doc);
+    const page = await openPage(fast, engine, doc, extra);
     bundle[engine][label] = {
       raw: responses.reduce((sum, r) => sum + r.raw, 0),
       brotli: responses.reduce((sum, r) => sum + r.brotli, 0),
@@ -157,7 +158,15 @@ for (let run = 0; run < runs; run++) {
     const heavy = await heavyPage.evaluate(`window.bench.load("/doc/heavy.pdf")`);
     heavy.longestGapInWorker = await longestWorkerGap(heavyPage);
     await heavyPage.close();
-    samples[engine].push({ cold, warm, speed, large, load, heavy, memory: left });
+    let sliced = { done: 0, longestGapInWorker: 0 };
+    if (engine === "recto") {
+      const page = await openPage(browser, engine, "/doc/report.pdf");
+      for (const session of page.workers) await page.evaluate("self.__bench?.reset()", { session });
+      sliced = await page.evaluate(`window.bench.sliced("/doc/heavy.pdf")`);
+      sliced.longestGapInWorker = await longestWorkerGap(page);
+      await page.close();
+    }
+    samples[engine].push({ cold, warm, speed, large, load, heavy, sliced, memory: left });
     console.error(`run ${run + 1}/${runs} ${engine}: ${Date.now() - started} ms`);
   }
 }
@@ -186,6 +195,8 @@ const pickers = {
   heavyStutter: (s) => s.heavy.stutter,
   heavyLongestTask: (s) => s.heavy.longestTask,
   heavyGapInWorker: (s) => s.heavy.longestGapInWorker,
+  slicedDone: (s) => s.sliced.done,
+  slicedGapInWorker: (s) => s.sliced.longestGapInWorker,
   heap: (s) => s.memory.heap,
   wasm: (s) => s.memory.wasm,
 };
@@ -215,4 +226,4 @@ const results = {
   summary,
 };
 fs.writeFileSync(values.out, `${JSON.stringify(results, null, 1)}\n`);
-console.log(JSON.stringify({ bundle: Object.fromEntries(ENGINES.map((e) => [e, { text: [bundle[e].text.raw, bundle[e].text.brotli], cjk: [bundle[e].cjk.raw, bundle[e].cjk.brotli] }])), slowdown: results.slowdown, pdfjsCancel: results.pdfjsCancel, medians: Object.fromEntries(Object.entries(summary).map(([k, v]) => [k, ENGINES.map((e) => v[e].median)])) }, null, 0));
+console.log(JSON.stringify({ bundle: Object.fromEntries(ENGINES.map((e) => [e, { text: [bundle[e].text.raw, bundle[e].text.brotli], cjk: [bundle[e].cjk.raw, bundle[e].cjk.brotli], textOnly: [bundle[e].textOnly.raw, bundle[e].textOnly.brotli] }])), slowdown: results.slowdown, pdfjsCancel: results.pdfjsCancel, medians: Object.fromEntries(Object.entries(summary).map(([k, v]) => [k, ENGINES.map((e) => v[e].median)])) }, null, 0));

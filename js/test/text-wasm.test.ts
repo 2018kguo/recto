@@ -26,7 +26,7 @@ test("text needs neither the full wasm nor a font file; render loads it, and a f
   rmSync(join(dir, "recto.wasm"));
   rmSync(join(dir, "fonts.bin"));
   const bytes = pdf();
-  const engine = await createPdfEngine({ assetBase: dir });
+  const engine = await createPdfEngine({ assetBase: dir, preloadAssets: [] });
   using doc = await engine.open(bytes);
   assert.ok(doc.text(0).text.length > 100);
   assert.ok(doc.outline());
@@ -41,13 +41,13 @@ test("text needs neither the full wasm nor a font file; render loads it, and a f
 
 test("a document reads the same before and after it moves, and draws the same as one that never read text", async () => {
   const bytes = pdf();
-  const engine = await createPdfEngine();
+  const engine = await createPdfEngine({ preloadAssets: [] });
   using doc = await engine.open(bytes);
   const before = doc.text(0);
   const first = doc.render(0, { width: 300 });
   assert.deepEqual({ ...doc.text(0) }, { ...before });
   assert.equal(engine.stats().openDocuments, 1);
-  const other = await createPdfEngine();
+  const other = await createPdfEngine({ preloadAssets: [] });
   using direct = await other.open(bytes);
   assert.deepEqual(direct.render(0, { width: 300 }).rgba, first.rgba);
   assert.ok(doc.objects(0));
@@ -55,7 +55,7 @@ test("a document reads the same before and after it moves, and draws the same as
 
 test("documents open on the text wasm move one at a time, and later ones start on the full one", async () => {
   const bytes = pdf();
-  const engine = await createPdfEngine();
+  const engine = await createPdfEngine({ preloadAssets: [] });
   const a = await engine.open(bytes);
   const b = await engine.open(bytes);
   a.render(0, { width: 100 });
@@ -71,7 +71,7 @@ test("documents open on the text wasm move one at a time, and later ones start o
 
 test("a password survives the move", async () => {
   const bytes = readFileSync(new URL("./fixtures/user-password-secret.pdf", import.meta.url));
-  const engine = await createPdfEngine();
+  const engine = await createPdfEngine({ preloadAssets: [] });
   using doc = await engine.open(bytes, { password: "secret" });
   assert.ok(doc.render(0, { width: 100 }).width === 100);
 });
@@ -80,7 +80,7 @@ test("a ranged document moves without fetching what it already read", async () =
   const bytes = pdf();
   const server = await startRangeServer(bytes);
   try {
-    const engine = await createPdfEngine();
+    const engine = await createPdfEngine({ preloadAssets: [] });
     using doc = await engine.openRanged(server.url);
     const text = doc.text(0).text;
     const fetched = doc.stats().bytesFetched;
@@ -90,4 +90,11 @@ test("a ranged document moves without fetching what it already read", async () =
   } finally {
     await server.close();
   }
+});
+
+test("in Node, with no download to save, an engine starts on the full wasm and render doesn't move", async () => {
+  const engine = await createPdfEngine();
+  using doc = await engine.open(pdf());
+  doc.render(0, { width: 100 });
+  assert.equal(engine.stats().generation, 0);
 });

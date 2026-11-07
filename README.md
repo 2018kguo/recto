@@ -37,8 +37,9 @@ That is all the setup: fonts and CMaps load from the package when a document fir
 `using` closes the document; so does `doc.close()`. The bytes are copied, so you can reuse the
 buffer as soon as `openPdf` returns.
 
-**Every call is synchronous CPU work.** It blocks the thread it runs on, so a server should not
-run it on its main loop. Put it on a worker thread:
+**Every call is synchronous CPU work**, except `await doc.renderAsync(0, { width, signal })`, which
+gives the thread back between slices and can be stopped. The others block the thread they run on, so
+a server should not run them on its main loop. Put them on a worker thread:
 
 ```js
 // pdf-thread.js
@@ -201,19 +202,21 @@ on anything a user might upload, use one of those two.
 
 | File | Size | When it loads |
 |---|---:|---|
-| `wasm/recto.wasm` | 4.1 MB (1.0 MB brotli) | Creating an engine |
+| `wasm/recto-text.wasm` | 1.7 MB (0.50 MB brotli) | Creating an engine |
+| `wasm/recto.wasm` | 3.8 MB (0.98 MB brotli) | The first `render` or `objects`, or a main thread's engine unless you leave it out |
 | `wasm/recto.gen.mjs`, `dist/` | 32 KB, 73 KB of JavaScript | Importing the package |
 | `wasm/fonts.bin` | 0.26 MB | A document names a standard font it doesn't embed |
-| `wasm/cmaps.brotli` | 0.25 MB | A document uses a predefined CJK CMap |
+| `wasm/cmaps.deflate` | 0.36 MB | A document uses a predefined CJK CMap |
 | `wasm/cjk-fallback.ttf` | 5.1 MB | Rendering CJK from a font the document doesn't embed |
 
 ## Limits
 
-- **Threads:** every call blocks its thread, and a call can't be interrupted, only its worker
-  terminated. A ranged read needs a worker. An edge runtime without synchronous requests should work
+- **Threads:** every call but `renderAsync` blocks its thread and can't be interrupted, only its worker
+  terminated. `renderAsync` still holds the thread for the last, rasterizing step of a render. A
+  ranged read needs a worker. An edge runtime without synchronous requests should work
   the way a service worker does, but none has been run.
 - **Memory:** `open` copies the file into WebAssembly memory, which only comes back when an instance is
-  dropped (at the last close, past 512 MiB by default). A ranged file can be up to 3.5 GiB.
+  dropped (at the last close, past 64 MiB by default). A ranged file can be up to 3.5 GiB.
 - **Char boxes** are loose font boxes, not glyph ink. A font that states no ascent and descent gets 0.8
   and −0.2 em. A fill colour reads as the stroke colour for stroke-only text, and as opaque black for a
   pattern.

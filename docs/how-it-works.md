@@ -29,12 +29,20 @@ to fill that bitmap. Sizes are capped because hayro sizes pixmaps in `u16`.
 ## Assets
 
 The wasm leaves out what most files never read: the 14 standard fonts (`fonts.bin`, 0.26 MB), the
-CJK fallback (`cjk-fallback.ttf`, 5 MB) and the predefined CMaps (`cmaps.brotli`, 0.25 MB). The
+CJK fallback (`cjk-fallback.ttf`, 5 MB) and the predefined CMaps (`cmaps.deflate`, 0.36 MB). The
 engine asks for each synchronously from inside a call, the first time a document needs it, so
 reading it has to be synchronous as well: `fs` in Node, a synchronous `XMLHttpRequest` in a Web
 Worker. A main thread and a service worker have neither, so there the files are fetched while the
-engine is created. A text pass gives a CID font the document does not embed a font holding only `.notdef`
-instead of the 5 MB fallback, since its Unicode comes from `ToUnicode` and its widths from `/W`.
+engine is created. A text pass reads no font file it isn't given: a font the document doesn't embed
+gets one holding only `.notdef`, since its Unicode comes from `ToUnicode` or the glyph tables and its
+widths from `/W` or the metrics in the wasm.
+
+The wasm comes in two builds from one crate. `recto-text.wasm` is built with no `render` feature and
+for size, except for the crates text speed depends on (`profile.text` in `Cargo.toml`), and has no
+rasterizer, outline code or image decoders. Both share one glue file, and the build checks that the
+text build imports nothing the full one doesn't. A document moves by opening its bytes again on the
+other instance, so a call needs no second path through the engine, and the text instance is dropped
+with its last document. Its results are the same as the full build's, which the tests hold it to.
 
 ## Transparency groups
 
@@ -77,6 +85,20 @@ memory, as above, and its offsets on wasm32 would still stop at 4 GiB.
 The loader (`js/src/ranged.ts`) keeps chunks in a flat array, so a read costs what it spans. A
 miss that continues the last fetch doubles the read-ahead, so a sequential scan of n chunks costs
 O(log n) round trips.
+
+## Opening and slices
+
+`open` reads the xref and every node and kid of the page tree, and checks each `/Count` against what
+it finds. A tree that adds up builds a page only when it's asked for, by descending by `/Count`, with
+each node's kids kept so reading every page stays linear. Anything odd (a wrong count, a repeated or
+missing kid, a tree deeper than 64) goes to the plain walk of the whole tree, so the page count is
+the same either way. A ranged file can't afford to fetch every page: it takes a bottom node with as
+many kids as its `/Count` on trust, so there a missing kid can show up as a missing page.
+
+`renderAsync` runs the same interpreter with a stack of frames in place of the recursion into forms
+(`hayro-interpret/src/interpret/page_run.rs`), checks the clock every 64 operators and returns when
+it's out of time, and the device is rebuilt from what it kept for the next slice. Rasterizing is one
+call into vello_cpu; slicing that by row would mean vendoring it.
 
 ## Instances
 

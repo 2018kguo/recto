@@ -475,8 +475,8 @@ test("memory is recycled once it grows past the mark; open documents keep workin
   assert.ok(recycling.stats().heapBytes > 48 * 1024 * 1024);
   const fresh = await recycling.open(truth.bytes);
   const { heapBytes, ...rest } = recycling.stats();
-  // 0 the text engine, 1 the full one that render moved it to, 2 the replacement.
-  assert.deepEqual(rest, { generation: 2, openDocuments: 1 });
+  // 0 the engine that drew, 1 the replacement.
+  assert.deepEqual(rest, { generation: 1, openDocuments: 1 });
   assert.ok(heapBytes < 16 * 1024 * 1024, `a fresh heap, not the old one's: ${heapBytes}`);
   assert.match(
     old.text(0).text,

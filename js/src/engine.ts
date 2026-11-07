@@ -7,6 +7,7 @@ import {
   type AssetName,
   assetBaseUrl,
   canReadSync,
+  hasFiles,
   fontFromBundle,
   useWasmHash,
   type WasmName,
@@ -44,8 +45,9 @@ export type PdfEngineOptions = {
    * assets are fetched while the engine is created: by default all of them, 9.7 MB. Name fewer to
    * fetch less, and a call that needs one you left out fails with `missing-asset`: leave out
    * `recto.wasm` and `render` and `objects` do. Where assets can be read when needed, only
-   * `recto.wasm` means anything: it starts on the full engine, for a thread that will draw, which
-   * saves the first `render` loading it.
+   * `recto.wasm` means anything: named, the engine starts on it, which saves the first `render`
+   * moving there; left out, it starts on the text engine. A browser worker leaves it out by
+   * default, and Node names it, having no download to save.
    */
   preloadAssets?: Exclude<AssetName, "recto-text.wasm">[];
 };
@@ -339,15 +341,13 @@ export async function createPdfEngine(options: PdfEngineOptions = {}): Promise<P
 
 async function createEngine(options: PdfEngineOptions): Promise<RectoEngine> {
   const base = assetBaseUrl(options.assetBase);
-  // With no way to read the full engine later, it's here from the start, unless left out.
-  let name: WasmName = options.preloadAssets?.includes("recto.wasm") ? "recto.wasm" : "recto-text.wasm";
+  // The text engine saves a download. Reading from disk there's none to save, and moving would
+  // cost the first render, so the full engine. With no way to read it later, the same.
+  const names = options.preloadAssets ?? (canReadSync() ? (hasFiles() ? ["recto.wasm" as const] : []) : ALL_ASSETS);
   if (!canReadSync()) {
-    const names = options.preloadAssets ?? ALL_ASSETS;
     await preloadAssets(base, names.filter((asset) => asset !== "recto.wasm"));
-    if (names.includes("recto.wasm")) {
-      name = "recto.wasm";
-    }
   }
+  const name: WasmName = names.includes("recto.wasm") ? "recto.wasm" : "recto-text.wasm";
   return new RectoEngine(
     instantiate(0, base, await compile(name, base), name === "recto.wasm"),
     base,

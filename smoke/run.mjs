@@ -66,7 +66,7 @@ run("npx", ["publint"], path.join(root, "js"));
 const packed = JSON.parse(run("npm", ["pack", "--ignore-scripts", "--json", "--pack-destination", dir], path.join(root, "js")))[0];
 const shipped = packed.files.map((f) => f.path);
 console.log(`${packed.filename}: ${packed.size} bytes packed, ${packed.unpackedSize} unpacked, ${shipped.length} files`);
-for (const name of ["wasm/recto.wasm", "wasm/recto.gen.mjs", "wasm/pins.mjs", "wasm/fonts.bin", "wasm/cjk-fallback.ttf", "wasm/cmaps.brotli", "wasm/THIRD_PARTY_NOTICES", "dist/index.js", "dist/index.d.ts", "LICENSE", "README.md"]) {
+for (const name of ["wasm/recto.wasm", "wasm/recto-text.wasm", "wasm/recto.gen.mjs", "wasm/pins.mjs", "wasm/fonts.bin", "wasm/cjk-fallback.ttf", "wasm/cmaps.deflate", "wasm/THIRD_PARTY_NOTICES", "dist/index.js", "dist/index.d.ts", "LICENSE", "README.md"]) {
   assert.ok(shipped.includes(name), `the tarball has ${name}`);
 }
 assert.ok(!shipped.some((f) => /^(src|test)\//u.test(f)), "the tarball has no source or tests");

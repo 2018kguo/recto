@@ -4,9 +4,11 @@ import { pdfiumEngine, rectoEngine } from "/app/engines.mjs";
 
 const name = new URL(import.meta.url).searchParams.get("engine");
 let engine;
+let recto;
 if (name === "recto") {
   const { createPdfEngine } = await import("/recto/dist/index.js");
-  engine = rectoEngine(await createPdfEngine());
+  recto = await createPdfEngine();
+  engine = rectoEngine(recto);
 } else {
   const { init } = await import("/pdfium/index.browser.js");
   const wasmBinary = await (await fetch("/pdfium/pdfium.wasm")).arrayBuffer();
@@ -21,6 +23,12 @@ const ops = {
   text: (i) => doc.text(i),
   render: (i, width) => doc.render(i, width),
   close: () => doc.close(),
+  // recto's own: the render that gives the thread back, on a document of its own.
+  async sliced(bytes, width) {
+    const own = await recto.open(bytes);
+    await own.renderAsync(0, { width });
+    own.close();
+  },
 };
 self.onmessage = async ({ data: { id, op, args } }) => {
   try {

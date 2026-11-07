@@ -56,7 +56,7 @@ test("the pins are the shipped files' hashes", () => {
 test("a missing or wrong wasm fails the engine's creation; the refusal is not cached", async () => {
   const dir = assetDir();
   rmSync(join(dir, "recto-text.wasm"));
-  await assert.rejects(createPdfEngine({ assetBase: dir }), (error: PdfError) => {
+  await assert.rejects(createPdfEngine({ assetBase: dir, preloadAssets: [] }), (error: PdfError) => {
     hasCode("missing-asset")(error);
     assert.match(error.message, /recto-text\.wasm/u);
     assert.match(error.message, /assetBase/u);
@@ -65,9 +65,9 @@ test("a missing or wrong wasm fails the engine's creation; the refusal is not ca
   const wrong = readFileSync(packaged("recto-text.wasm"));
   wrong[wrong.length - 1] = (wrong.at(-1) ?? 0) ^ 1;
   writeFileSync(join(dir, "recto-text.wasm"), wrong);
-  await assert.rejects(createPdfEngine({ assetBase: dir }), hasCode("missing-asset"));
+  await assert.rejects(createPdfEngine({ assetBase: dir, preloadAssets: [] }), hasCode("missing-asset"));
   copyFileSync(packaged("recto-text.wasm"), join(dir, "recto-text.wasm"));
-  const engine = await createPdfEngine({ assetBase: pathToFileURL(dir) });
+  const engine = await createPdfEngine({ assetBase: pathToFileURL(dir), preloadAssets: [] });
   (await engine.open(pdf())).close();
 });
 

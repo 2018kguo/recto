@@ -51,6 +51,7 @@ export async function connect(name) {
   return {
     open: (bytes) => call("open", [bytes], [bytes.buffer]),
     text: (i) => call("text", [i]),
+    sliced: (bytes, width) => call("sliced", [bytes, width], [bytes.buffer]),
     async render(i, width) {
       const { width: w, height, rgba } = await call("render", [i, width]);
       const canvas = document.createElement("canvas");
