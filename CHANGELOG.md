@@ -60,6 +60,11 @@ Opening:
 - `/Identity` names planted in a file before `/V` 4 don't open it with no password.
 - A one-row image under a TIFF predictor was empty.
 
+### Changed
+
+- **Glyph and metric tables** are sorted bytes, not `phf` maps: 27 KB less to download with brotli on
+  either wasm. Reading text costs about 2% more, since opening a font bisects where it hashed.
+
 ## 0.2.0
 
 The API is unchanged, with one addition. Numbers are from `docs/benchmarks.md`, measured on the same

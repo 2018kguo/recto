@@ -1,290 +1,288 @@
-use phf::phf_map;
-
+// recto: a sorted table rather than a phf map; see `by_name` in mod.rs.
 pub(crate) fn get(name: &str) -> Option<&'static str> {
-    TEX_GLYPH_NAMES.get(name).copied()
+    super::by_name(TEX_GLYPH_NAMES, name)
 }
 
-static TEX_GLYPH_NAMES: phf::Map<&'static str, &'static str> = phf_map! {
-    "Digamma" => "\u{03DD}",
-    "Dj" => "\u{0402}",
-    "Dzh" => "\u{040F}",
-    "Finv" => "\u{2132}",
-    "Fita" => "\u{0472}",
-    "Gmir" => "\u{2141}",
-    "Hard" => "\u{042A}",
-    "Ifractur" => "\u{2111}",
-    "Iroman" => "\u{0406}",
-    "Ishort" => "\u{0419}",
-    "Izhitsa" => "\u{0474}",
-    "Omegainv" => "\u{2127}",
-    "Rfractur" => "\u{211C}",
-    "Soft" => "\u{042C}",
-    "Tsoft" => "\u{040B}",
-    "Ya" => "\u{042F}",
-    "Yalt" => "\u{0059}",
-    "Yatz" => "\u{0462}",
-    "Ye" => "\u{0404}",
-    "Yen" => "\u{00A5}",
-    "Yo" => "\u{0401}",
-    "Yu" => "\u{042E}",
-    "Zalt" => "\u{005A}",
-    "Ze" => "\u{042D}",
-    "Zelo" => "\u{0405}",
-    "Zhe" => "\u{0416}",
-    "anticlockwise" => "\u{21BA}",
-    "approxorequal" => "\u{224A}",
-    "archleftdown" => "\u{21B6}",
-    "archrightdown" => "\u{21B7}",
-    "arrowbothv" => "\u{2195}",
-    "arrowdblbothv" => "\u{21D5}",
-    "arrowparrleftright" => "\u{21C6}",
-    "arrowparrrightleft" => "\u{21C4}",
-    "arrowtailleft" => "\u{21A2}",
-    "arrowtailright" => "\u{21A3}",
-    "arrowtripleleft" => "\u{21DA}",
-    "arrowtripleright" => "\u{21DB}",
-    "barshort" => "\u{2223}",
-    "beth" => "\u{2136}",
-    "between" => "\u{226C}",
-    "breve1" => "\u{02D8}",
-    "ceilingleft" => "\u{2308}",
-    "ceilingright" => "\u{2309}",
-    "check" => "\u{2713}",
-    "circleR" => "\u{00AE}",
-    "circleS" => "\u{24C8}",
-    "circleasterisk" => "\u{229B}",
-    "circledivide" => "\u{2298}",
-    "circledot" => "\u{2299}",
-    "circleequal" => "\u{2257}",
-    "circleminus" => "\u{2296}",
-    "circlering" => "\u{229A}",
-    "clockwise" => "\u{21BB}",
-    "complement" => "\u{2201}",
-    "coproduct" => "\u{2A3F}",
-    "curlyleft" => "\u{21AB}",
-    "curlyright" => "\u{21AC}",
-    "daleth" => "\u{2138}",
-    "dalt" => "\u{0064}",
-    "dblarrowdwn" => "\u{21CA}",
-    "dblarrowheadleft" => "\u{219E}",
-    "dblarrowheadright" => "\u{21A0}",
-    "dblarrowup" => "\u{21C8}",
-    "defines" => "\u{225C}",
-    "diamondmath" => "\u{22C4}",
-    "diamondsolid" => "\u{29EB}",
-    "difference" => "\u{224F}",
-    "dividemultiply" => "\u{22C7}",
-    "dj" => "\u{0452}",
-    "dnos" => "\u{0064}",
-    "dotplus" => "\u{2214}",
-    "downfall" => "\u{22CE}",
-    "downslope" => "\u{27CD}",
-    "dzh" => "\u{045F}",
-    "epsiloninv" => "\u{220D}",
-    "equaldotleftright" => "\u{2252}",
-    "equaldotrightleft" => "\u{2253}",
-    "equalorfollows" => "\u{22DF}",
-    "equalorgreater" => "\u{2A96}",
-    "equalorless" => "\u{2A95}",
-    "equalorprecedes" => "\u{22DE}",
-    "equalorsimilar" => "\u{2242}",
-    "equalsdots" => "\u{2251}",
-    "equivasymptotic" => "\u{224D}",
-    "falt" => "\u{0066}",
-    "fita" => "\u{0473}",
-    "flat" => "\u{266D}",
-    "floorleft" => "\u{230A}",
-    "floorright" => "\u{230B}",
-    "fnos" => "\u{0066}",
-    "follownotdbleqv" => "\u{2ABA}",
-    "follownotslnteql" => "\u{2AB6}",
-    "followornoteqvlnt" => "\u{22E9}",
-    "follows" => "\u{227B}",
-    "followsequal" => "\u{2AB0}",
-    "followsorcurly" => "\u{227D}",
-    "followsorequal" => "\u{227F}",
-    "forces" => "\u{22A9}",
-    "forcesbar" => "\u{22AA}",
-    "fork" => "\u{22D4}",
-    "frown" => "\u{2322}",
-    "galt" => "\u{0067}",
-    "geomequivalent" => "\u{224E}",
-    "greaterdbleqlless" => "\u{2A8C}",
-    "greaterdblequal" => "\u{2267}",
-    "greaterdot" => "\u{22D7}",
-    "greaterlessequal" => "\u{22DB}",
-    "greatermuch" => "\u{226B}",
-    "greaternotdblequal" => "\u{2A8A}",
-    "greaternotequal" => "\u{2A88}",
-    "greaterorapproxeql" => "\u{2A86}",
-    "greaterorequalslant" => "\u{2A7E}",
-    "greaterornotdbleql" => "\u{2269}",
-    "greaterornotequal" => "\u{2269}",
-    "greaterornotsimilar" => "\u{22E7}",
-    "greaterorsimilar" => "\u{2273}",
-    "hard" => "\u{044A}",
-    "harpoondownleft" => "\u{21C3}",
-    "harpoondownright" => "\u{21C2}",
-    "harpoonleftright" => "\u{21CC}",
-    "harpoonrightleft" => "\u{21CB}",
-    "harpoonupleft" => "\u{21BF}",
-    "harpoonupright" => "\u{21BE}",
-    "integerdivide" => "\u{2216}",
-    "intersectiondbl" => "\u{22D2}",
-    "intersectionsq" => "\u{2293}",
-    "iroman" => "\u{0456}",
-    "ishort" => "\u{0439}",
-    "izhitsa" => "\u{0475}",
-    "kalt" => "\u{006B}",
-    "latticetop" => "\u{22A4}",
-    "lessdbleqlgreater" => "\u{2A8B}",
-    "lessdblequal" => "\u{2266}",
-    "lessdot" => "\u{22D6}",
-    "lessequalgreater" => "\u{22DA}",
-    "lessmuch" => "\u{226A}",
-    "lessnotdblequal" => "\u{2A89}",
-    "lessnotequal" => "\u{2A87}",
-    "lessorapproxeql" => "\u{2A85}",
-    "lessorequalslant" => "\u{2A7D}",
-    "lessornotdbleql" => "\u{2268}",
-    "lessornotequal" => "\u{2268}",
-    "lessornotsimilar" => "\u{22E6}",
-    "lessorsimilar" => "\u{2272}",
-    "lscript" => "\u{2113}",
-    "maltesecross" => "\u{2720}",
-    "measuredangle" => "\u{2221}",
-    "multicloseleft" => "\u{22C9}",
-    "multicloseright" => "\u{22CA}",
-    "multimap" => "\u{22B8}",
-    "multiopenleft" => "\u{22CB}",
-    "multiopenright" => "\u{22CC}",
-    "nand" => "\u{22BC}",
-    "natural" => "\u{266E}",
-    "negationslash" => "\u{0338}",
-    "notapproxequal" => "\u{2247}",
-    "notarrowboth" => "\u{21AE}",
-    "notarrowleft" => "\u{219A}",
-    "notarrowright" => "\u{219B}",
-    "notbar" => "\u{2224}",
-    "notdblarrowboth" => "\u{21CE}",
-    "notdblarrowleft" => "\u{21CD}",
-    "notdblarrowright" => "\u{21CF}",
-    "notexistential" => "\u{2204}",
-    "notfollows" => "\u{2281}",
-    "notfollowsoreql" => "\u{2AB0}\u{0338}",
-    "notforces" => "\u{22AE}",
-    "notforcesextra" => "\u{22AF}",
-    "notgreaterdblequal" => "\u{2267}\u{0338}",
-    "notgreaterequal" => "\u{2271}",
-    "notgreaterorslnteql" => "\u{2A7E}\u{0338}",
-    "notlessdblequal" => "\u{2266}\u{0338}",
-    "notlessequal" => "\u{2270}",
-    "notlessorslnteql" => "\u{2A7D}\u{0338}",
-    "notprecedesoreql" => "\u{2AAF}\u{0338}",
-    "notsatisfies" => "\u{22AD}",
-    "notshortbar" => "\u{2224}",
-    "notshortparallel" => "\u{2226}",
-    "notsimilar" => "\u{2241}",
-    "notsubseteql" => "\u{2288}",
-    "notsubsetordbleql" => "\u{2AC5}\u{0338}",
-    "notsubsetoreql" => "\u{228A}",
-    "notsuperseteql" => "\u{2289}",
-    "notsupersetordbleql" => "\u{2AC6}\u{0338}",
-    "notsupersetoreql" => "\u{228B}",
-    "nottriangeqlleft" => "\u{22EC}",
-    "nottriangeqlright" => "\u{22ED}",
-    "nottriangleleft" => "\u{22EA}",
-    "nottriangleright" => "\u{22EB}",
-    "notturnstile" => "\u{22AC}",
-    "number" => "\u{2116}",
-    "onealt" => "\u{0031}",
-    "orunderscore" => "\u{22BB}",
-    "owner" => "\u{220B}",
-    "parallelshort" => "\u{2225}",
-    "perpcorrespond" => "\u{2A5E}",
-    "pi1" => "\u{03D6}",
-    "planckover2pi" => "\u{210F}",
-    "planckover2pi1" => "\u{210F}",
-    "precedenotdbleqv" => "\u{2AB9}",
-    "precedenotslnteql" => "\u{2AB5}",
-    "precedeornoteqvlnt" => "\u{22E8}",
-    "precedesequal" => "\u{2AAF}",
-    "precedesorcurly" => "\u{227C}",
-    "precedesorequal" => "\u{227E}",
-    "primereverse" => "\u{2035}",
-    "revasymptequal" => "\u{22CD}",
-    "revsimilar" => "\u{223D}",
-    "rho1" => "\u{03F1}",
-    "rightanglene" => "\u{231D}",
-    "rightanglenw" => "\u{231C}",
-    "rightanglese" => "\u{231F}",
-    "rightanglesw" => "\u{231E}",
-    "ringinequal" => "\u{2256}",
-    "satisfies" => "\u{22A8}",
-    "sharp" => "\u{266F}",
-    "shiftleft" => "\u{21B0}",
-    "shiftright" => "\u{21B1}",
-    "similarequal" => "\u{2243}",
-    "slurabove" => "\u{2322}",
-    "slurbelow" => "\u{2323}",
-    "smile" => "\u{2323}",
-    "soft" => "\u{044C}",
-    "sphericalangle" => "\u{2222}",
-    "square" => "\u{25A1}",
-    "squaredot" => "\u{22A1}",
-    "squareimage" => "\u{228F}",
-    "squareminus" => "\u{229F}",
-    "squaremultiply" => "\u{22A0}",
-    "squareoriginal" => "\u{2290}",
-    "squareplus" => "\u{229E}",
-    "squaresmallsolid" => "\u{25AA}",
-    "squaresolid" => "\u{25A0}",
-    "squiggleleftright" => "\u{21AD}",
-    "squiggleright" => "\u{21DD}",
-    "star" => "\u{22C6}",
-    "subsetdbl" => "\u{22D0}",
-    "subsetdblequal" => "\u{2AC5}",
-    "subsetnoteql" => "\u{228A}",
-    "subsetornotdbleql" => "\u{2ACB}",
-    "subsetornoteql" => "\u{2ACB}",
-    "subsetsqequal" => "\u{2291}",
-    "supersetdbl" => "\u{22D1}",
-    "supersetdblequal" => "\u{2AC6}",
-    "supersetnoteql" => "\u{228B}",
-    "supersetornotdbleql" => "\u{2ACC}",
-    "supersetornoteql" => "\u{2ACC}",
-    "supersetsqequal" => "\u{2292}",
-    "suppress" => "\u{0337}",
-    "talt" => "\u{0074}",
-    "tie" => "\u{2040}",
-    "triangle" => "\u{25B3}",
-    "triangledownsld" => "\u{25BC}",
-    "triangleinv" => "\u{25BD}",
-    "triangleleft" => "\u{25C3}",
-    "triangleleftequal" => "\u{22B4}",
-    "triangleleftsld" => "\u{25C0}",
-    "triangleright" => "\u{25B9}",
-    "trianglerightequal" => "\u{22B5}",
-    "trianglerightsld" => "\u{25B6}",
-    "trianglesolid" => "\u{25B2}",
-    "tsoft" => "\u{045B}",
-    "turnstileleft" => "\u{22A2}",
-    "turnstileright" => "\u{22A3}",
-    "ualt" => "\u{0075}",
-    "uniondbl" => "\u{22D3}",
-    "unionmulti" => "\u{228E}",
-    "unionsq" => "\u{2294}",
-    "uprise" => "\u{22CF}",
-    "upslope" => "\u{27CB}",
-    "vector" => "\u{20D7}",
-    "visiblespace" => "\u{2423}",
-    "wreathproduct" => "\u{2240}",
-    "ya" => "\u{044F}",
-    "yatz" => "\u{0463}",
-    "ye" => "\u{0454}",
-    "yo" => "\u{0451}",
-    "yu" => "\u{044E}",
-    "ze" => "\u{044D}",
-    "zelo" => "\u{0455}",
-    "zhe" => "\u{0436}",
-};
+pub(super) static TEX_GLYPH_NAMES: &[u8] = b"\
+    Digamma\xFE\xCF\x9D\xFF\
+    Dj\xFE\xD0\x82\xFF\
+    Dzh\xFE\xD0\x8F\xFF\
+    Finv\xFE\xE2\x84\xB2\xFF\
+    Fita\xFE\xD1\xB2\xFF\
+    Gmir\xFE\xE2\x85\x81\xFF\
+    Hard\xFE\xD0\xAA\xFF\
+    Ifractur\xFE\xE2\x84\x91\xFF\
+    Iroman\xFE\xD0\x86\xFF\
+    Ishort\xFE\xD0\x99\xFF\
+    Izhitsa\xFE\xD1\xB4\xFF\
+    Omegainv\xFE\xE2\x84\xA7\xFF\
+    Rfractur\xFE\xE2\x84\x9C\xFF\
+    Soft\xFE\xD0\xAC\xFF\
+    Tsoft\xFE\xD0\x8B\xFF\
+    Ya\xFE\xD0\xAF\xFF\
+    Yalt\xFEY\xFF\
+    Yatz\xFE\xD1\xA2\xFF\
+    Ye\xFE\xD0\x84\xFF\
+    Yen\xFE\xC2\xA5\xFF\
+    Yo\xFE\xD0\x81\xFF\
+    Yu\xFE\xD0\xAE\xFF\
+    Zalt\xFEZ\xFF\
+    Ze\xFE\xD0\xAD\xFF\
+    Zelo\xFE\xD0\x85\xFF\
+    Zhe\xFE\xD0\x96\xFF\
+    anticlockwise\xFE\xE2\x86\xBA\xFF\
+    approxorequal\xFE\xE2\x89\x8A\xFF\
+    archleftdown\xFE\xE2\x86\xB6\xFF\
+    archrightdown\xFE\xE2\x86\xB7\xFF\
+    arrowbothv\xFE\xE2\x86\x95\xFF\
+    arrowdblbothv\xFE\xE2\x87\x95\xFF\
+    arrowparrleftright\xFE\xE2\x87\x86\xFF\
+    arrowparrrightleft\xFE\xE2\x87\x84\xFF\
+    arrowtailleft\xFE\xE2\x86\xA2\xFF\
+    arrowtailright\xFE\xE2\x86\xA3\xFF\
+    arrowtripleleft\xFE\xE2\x87\x9A\xFF\
+    arrowtripleright\xFE\xE2\x87\x9B\xFF\
+    barshort\xFE\xE2\x88\xA3\xFF\
+    beth\xFE\xE2\x84\xB6\xFF\
+    between\xFE\xE2\x89\xAC\xFF\
+    breve1\xFE\xCB\x98\xFF\
+    ceilingleft\xFE\xE2\x8C\x88\xFF\
+    ceilingright\xFE\xE2\x8C\x89\xFF\
+    check\xFE\xE2\x9C\x93\xFF\
+    circleR\xFE\xC2\xAE\xFF\
+    circleS\xFE\xE2\x93\x88\xFF\
+    circleasterisk\xFE\xE2\x8A\x9B\xFF\
+    circledivide\xFE\xE2\x8A\x98\xFF\
+    circledot\xFE\xE2\x8A\x99\xFF\
+    circleequal\xFE\xE2\x89\x97\xFF\
+    circleminus\xFE\xE2\x8A\x96\xFF\
+    circlering\xFE\xE2\x8A\x9A\xFF\
+    clockwise\xFE\xE2\x86\xBB\xFF\
+    complement\xFE\xE2\x88\x81\xFF\
+    coproduct\xFE\xE2\xA8\xBF\xFF\
+    curlyleft\xFE\xE2\x86\xAB\xFF\
+    curlyright\xFE\xE2\x86\xAC\xFF\
+    daleth\xFE\xE2\x84\xB8\xFF\
+    dalt\xFEd\xFF\
+    dblarrowdwn\xFE\xE2\x87\x8A\xFF\
+    dblarrowheadleft\xFE\xE2\x86\x9E\xFF\
+    dblarrowheadright\xFE\xE2\x86\xA0\xFF\
+    dblarrowup\xFE\xE2\x87\x88\xFF\
+    defines\xFE\xE2\x89\x9C\xFF\
+    diamondmath\xFE\xE2\x8B\x84\xFF\
+    diamondsolid\xFE\xE2\xA7\xAB\xFF\
+    difference\xFE\xE2\x89\x8F\xFF\
+    dividemultiply\xFE\xE2\x8B\x87\xFF\
+    dj\xFE\xD1\x92\xFF\
+    dnos\xFEd\xFF\
+    dotplus\xFE\xE2\x88\x94\xFF\
+    downfall\xFE\xE2\x8B\x8E\xFF\
+    downslope\xFE\xE2\x9F\x8D\xFF\
+    dzh\xFE\xD1\x9F\xFF\
+    epsiloninv\xFE\xE2\x88\x8D\xFF\
+    equaldotleftright\xFE\xE2\x89\x92\xFF\
+    equaldotrightleft\xFE\xE2\x89\x93\xFF\
+    equalorfollows\xFE\xE2\x8B\x9F\xFF\
+    equalorgreater\xFE\xE2\xAA\x96\xFF\
+    equalorless\xFE\xE2\xAA\x95\xFF\
+    equalorprecedes\xFE\xE2\x8B\x9E\xFF\
+    equalorsimilar\xFE\xE2\x89\x82\xFF\
+    equalsdots\xFE\xE2\x89\x91\xFF\
+    equivasymptotic\xFE\xE2\x89\x8D\xFF\
+    falt\xFEf\xFF\
+    fita\xFE\xD1\xB3\xFF\
+    flat\xFE\xE2\x99\xAD\xFF\
+    floorleft\xFE\xE2\x8C\x8A\xFF\
+    floorright\xFE\xE2\x8C\x8B\xFF\
+    fnos\xFEf\xFF\
+    follownotdbleqv\xFE\xE2\xAA\xBA\xFF\
+    follownotslnteql\xFE\xE2\xAA\xB6\xFF\
+    followornoteqvlnt\xFE\xE2\x8B\xA9\xFF\
+    follows\xFE\xE2\x89\xBB\xFF\
+    followsequal\xFE\xE2\xAA\xB0\xFF\
+    followsorcurly\xFE\xE2\x89\xBD\xFF\
+    followsorequal\xFE\xE2\x89\xBF\xFF\
+    forces\xFE\xE2\x8A\xA9\xFF\
+    forcesbar\xFE\xE2\x8A\xAA\xFF\
+    fork\xFE\xE2\x8B\x94\xFF\
+    frown\xFE\xE2\x8C\xA2\xFF\
+    galt\xFEg\xFF\
+    geomequivalent\xFE\xE2\x89\x8E\xFF\
+    greaterdbleqlless\xFE\xE2\xAA\x8C\xFF\
+    greaterdblequal\xFE\xE2\x89\xA7\xFF\
+    greaterdot\xFE\xE2\x8B\x97\xFF\
+    greaterlessequal\xFE\xE2\x8B\x9B\xFF\
+    greatermuch\xFE\xE2\x89\xAB\xFF\
+    greaternotdblequal\xFE\xE2\xAA\x8A\xFF\
+    greaternotequal\xFE\xE2\xAA\x88\xFF\
+    greaterorapproxeql\xFE\xE2\xAA\x86\xFF\
+    greaterorequalslant\xFE\xE2\xA9\xBE\xFF\
+    greaterornotdbleql\xFE\xE2\x89\xA9\xFF\
+    greaterornotequal\xFE\xE2\x89\xA9\xFF\
+    greaterornotsimilar\xFE\xE2\x8B\xA7\xFF\
+    greaterorsimilar\xFE\xE2\x89\xB3\xFF\
+    hard\xFE\xD1\x8A\xFF\
+    harpoondownleft\xFE\xE2\x87\x83\xFF\
+    harpoondownright\xFE\xE2\x87\x82\xFF\
+    harpoonleftright\xFE\xE2\x87\x8C\xFF\
+    harpoonrightleft\xFE\xE2\x87\x8B\xFF\
+    harpoonupleft\xFE\xE2\x86\xBF\xFF\
+    harpoonupright\xFE\xE2\x86\xBE\xFF\
+    integerdivide\xFE\xE2\x88\x96\xFF\
+    intersectiondbl\xFE\xE2\x8B\x92\xFF\
+    intersectionsq\xFE\xE2\x8A\x93\xFF\
+    iroman\xFE\xD1\x96\xFF\
+    ishort\xFE\xD0\xB9\xFF\
+    izhitsa\xFE\xD1\xB5\xFF\
+    kalt\xFEk\xFF\
+    latticetop\xFE\xE2\x8A\xA4\xFF\
+    lessdbleqlgreater\xFE\xE2\xAA\x8B\xFF\
+    lessdblequal\xFE\xE2\x89\xA6\xFF\
+    lessdot\xFE\xE2\x8B\x96\xFF\
+    lessequalgreater\xFE\xE2\x8B\x9A\xFF\
+    lessmuch\xFE\xE2\x89\xAA\xFF\
+    lessnotdblequal\xFE\xE2\xAA\x89\xFF\
+    lessnotequal\xFE\xE2\xAA\x87\xFF\
+    lessorapproxeql\xFE\xE2\xAA\x85\xFF\
+    lessorequalslant\xFE\xE2\xA9\xBD\xFF\
+    lessornotdbleql\xFE\xE2\x89\xA8\xFF\
+    lessornotequal\xFE\xE2\x89\xA8\xFF\
+    lessornotsimilar\xFE\xE2\x8B\xA6\xFF\
+    lessorsimilar\xFE\xE2\x89\xB2\xFF\
+    lscript\xFE\xE2\x84\x93\xFF\
+    maltesecross\xFE\xE2\x9C\xA0\xFF\
+    measuredangle\xFE\xE2\x88\xA1\xFF\
+    multicloseleft\xFE\xE2\x8B\x89\xFF\
+    multicloseright\xFE\xE2\x8B\x8A\xFF\
+    multimap\xFE\xE2\x8A\xB8\xFF\
+    multiopenleft\xFE\xE2\x8B\x8B\xFF\
+    multiopenright\xFE\xE2\x8B\x8C\xFF\
+    nand\xFE\xE2\x8A\xBC\xFF\
+    natural\xFE\xE2\x99\xAE\xFF\
+    negationslash\xFE\xCC\xB8\xFF\
+    notapproxequal\xFE\xE2\x89\x87\xFF\
+    notarrowboth\xFE\xE2\x86\xAE\xFF\
+    notarrowleft\xFE\xE2\x86\x9A\xFF\
+    notarrowright\xFE\xE2\x86\x9B\xFF\
+    notbar\xFE\xE2\x88\xA4\xFF\
+    notdblarrowboth\xFE\xE2\x87\x8E\xFF\
+    notdblarrowleft\xFE\xE2\x87\x8D\xFF\
+    notdblarrowright\xFE\xE2\x87\x8F\xFF\
+    notexistential\xFE\xE2\x88\x84\xFF\
+    notfollows\xFE\xE2\x8A\x81\xFF\
+    notfollowsoreql\xFE\xE2\xAA\xB0\xCC\xB8\xFF\
+    notforces\xFE\xE2\x8A\xAE\xFF\
+    notforcesextra\xFE\xE2\x8A\xAF\xFF\
+    notgreaterdblequal\xFE\xE2\x89\xA7\xCC\xB8\xFF\
+    notgreaterequal\xFE\xE2\x89\xB1\xFF\
+    notgreaterorslnteql\xFE\xE2\xA9\xBE\xCC\xB8\xFF\
+    notlessdblequal\xFE\xE2\x89\xA6\xCC\xB8\xFF\
+    notlessequal\xFE\xE2\x89\xB0\xFF\
+    notlessorslnteql\xFE\xE2\xA9\xBD\xCC\xB8\xFF\
+    notprecedesoreql\xFE\xE2\xAA\xAF\xCC\xB8\xFF\
+    notsatisfies\xFE\xE2\x8A\xAD\xFF\
+    notshortbar\xFE\xE2\x88\xA4\xFF\
+    notshortparallel\xFE\xE2\x88\xA6\xFF\
+    notsimilar\xFE\xE2\x89\x81\xFF\
+    notsubseteql\xFE\xE2\x8A\x88\xFF\
+    notsubsetordbleql\xFE\xE2\xAB\x85\xCC\xB8\xFF\
+    notsubsetoreql\xFE\xE2\x8A\x8A\xFF\
+    notsuperseteql\xFE\xE2\x8A\x89\xFF\
+    notsupersetordbleql\xFE\xE2\xAB\x86\xCC\xB8\xFF\
+    notsupersetoreql\xFE\xE2\x8A\x8B\xFF\
+    nottriangeqlleft\xFE\xE2\x8B\xAC\xFF\
+    nottriangeqlright\xFE\xE2\x8B\xAD\xFF\
+    nottriangleleft\xFE\xE2\x8B\xAA\xFF\
+    nottriangleright\xFE\xE2\x8B\xAB\xFF\
+    notturnstile\xFE\xE2\x8A\xAC\xFF\
+    number\xFE\xE2\x84\x96\xFF\
+    onealt\xFE1\xFF\
+    orunderscore\xFE\xE2\x8A\xBB\xFF\
+    owner\xFE\xE2\x88\x8B\xFF\
+    parallelshort\xFE\xE2\x88\xA5\xFF\
+    perpcorrespond\xFE\xE2\xA9\x9E\xFF\
+    pi1\xFE\xCF\x96\xFF\
+    planckover2pi\xFE\xE2\x84\x8F\xFF\
+    planckover2pi1\xFE\xE2\x84\x8F\xFF\
+    precedenotdbleqv\xFE\xE2\xAA\xB9\xFF\
+    precedenotslnteql\xFE\xE2\xAA\xB5\xFF\
+    precedeornoteqvlnt\xFE\xE2\x8B\xA8\xFF\
+    precedesequal\xFE\xE2\xAA\xAF\xFF\
+    precedesorcurly\xFE\xE2\x89\xBC\xFF\
+    precedesorequal\xFE\xE2\x89\xBE\xFF\
+    primereverse\xFE\xE2\x80\xB5\xFF\
+    revasymptequal\xFE\xE2\x8B\x8D\xFF\
+    revsimilar\xFE\xE2\x88\xBD\xFF\
+    rho1\xFE\xCF\xB1\xFF\
+    rightanglene\xFE\xE2\x8C\x9D\xFF\
+    rightanglenw\xFE\xE2\x8C\x9C\xFF\
+    rightanglese\xFE\xE2\x8C\x9F\xFF\
+    rightanglesw\xFE\xE2\x8C\x9E\xFF\
+    ringinequal\xFE\xE2\x89\x96\xFF\
+    satisfies\xFE\xE2\x8A\xA8\xFF\
+    sharp\xFE\xE2\x99\xAF\xFF\
+    shiftleft\xFE\xE2\x86\xB0\xFF\
+    shiftright\xFE\xE2\x86\xB1\xFF\
+    similarequal\xFE\xE2\x89\x83\xFF\
+    slurabove\xFE\xE2\x8C\xA2\xFF\
+    slurbelow\xFE\xE2\x8C\xA3\xFF\
+    smile\xFE\xE2\x8C\xA3\xFF\
+    soft\xFE\xD1\x8C\xFF\
+    sphericalangle\xFE\xE2\x88\xA2\xFF\
+    square\xFE\xE2\x96\xA1\xFF\
+    squaredot\xFE\xE2\x8A\xA1\xFF\
+    squareimage\xFE\xE2\x8A\x8F\xFF\
+    squareminus\xFE\xE2\x8A\x9F\xFF\
+    squaremultiply\xFE\xE2\x8A\xA0\xFF\
+    squareoriginal\xFE\xE2\x8A\x90\xFF\
+    squareplus\xFE\xE2\x8A\x9E\xFF\
+    squaresmallsolid\xFE\xE2\x96\xAA\xFF\
+    squaresolid\xFE\xE2\x96\xA0\xFF\
+    squiggleleftright\xFE\xE2\x86\xAD\xFF\
+    squiggleright\xFE\xE2\x87\x9D\xFF\
+    star\xFE\xE2\x8B\x86\xFF\
+    subsetdbl\xFE\xE2\x8B\x90\xFF\
+    subsetdblequal\xFE\xE2\xAB\x85\xFF\
+    subsetnoteql\xFE\xE2\x8A\x8A\xFF\
+    subsetornotdbleql\xFE\xE2\xAB\x8B\xFF\
+    subsetornoteql\xFE\xE2\xAB\x8B\xFF\
+    subsetsqequal\xFE\xE2\x8A\x91\xFF\
+    supersetdbl\xFE\xE2\x8B\x91\xFF\
+    supersetdblequal\xFE\xE2\xAB\x86\xFF\
+    supersetnoteql\xFE\xE2\x8A\x8B\xFF\
+    supersetornotdbleql\xFE\xE2\xAB\x8C\xFF\
+    supersetornoteql\xFE\xE2\xAB\x8C\xFF\
+    supersetsqequal\xFE\xE2\x8A\x92\xFF\
+    suppress\xFE\xCC\xB7\xFF\
+    talt\xFEt\xFF\
+    tie\xFE\xE2\x81\x80\xFF\
+    triangle\xFE\xE2\x96\xB3\xFF\
+    triangledownsld\xFE\xE2\x96\xBC\xFF\
+    triangleinv\xFE\xE2\x96\xBD\xFF\
+    triangleleft\xFE\xE2\x97\x83\xFF\
+    triangleleftequal\xFE\xE2\x8A\xB4\xFF\
+    triangleleftsld\xFE\xE2\x97\x80\xFF\
+    triangleright\xFE\xE2\x96\xB9\xFF\
+    trianglerightequal\xFE\xE2\x8A\xB5\xFF\
+    trianglerightsld\xFE\xE2\x96\xB6\xFF\
+    trianglesolid\xFE\xE2\x96\xB2\xFF\
+    tsoft\xFE\xD1\x9B\xFF\
+    turnstileleft\xFE\xE2\x8A\xA2\xFF\
+    turnstileright\xFE\xE2\x8A\xA3\xFF\
+    ualt\xFEu\xFF\
+    uniondbl\xFE\xE2\x8B\x93\xFF\
+    unionmulti\xFE\xE2\x8A\x8E\xFF\
+    unionsq\xFE\xE2\x8A\x94\xFF\
+    uprise\xFE\xE2\x8B\x8F\xFF\
+    upslope\xFE\xE2\x9F\x8B\xFF\
+    vector\xFE\xE2\x83\x97\xFF\
+    visiblespace\xFE\xE2\x90\xA3\xFF\
+    wreathproduct\xFE\xE2\x89\x80\xFF\
+    ya\xFE\xD1\x8F\xFF\
+    yatz\xFE\xD1\xA3\xFF\
+    ye\xFE\xD1\x94\xFF\
+    yo\xFE\xD1\x91\xFF\
+    yu\xFE\xD1\x8E\xFF\
+    ze\xFE\xD1\x8D\xFF\
+    zelo\xFE\xD1\x95\xFF\
+    zhe\xFE\xD0\xB6\xFF";

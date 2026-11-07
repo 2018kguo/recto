@@ -1,6 +1,6 @@
 use crate::GlyphId;
 use crate::ProgramLoader;
-use crate::generated::{glyph_names, metrics, standard, symbol, zapf_dings};
+use crate::generated::{glyph_names, metrics, standard, symbol, width, zapf_dings};
 use crate::program::FontProgram;
 use crate::true_type::{Width, read_encoding, read_widths};
 use crate::{
@@ -120,20 +120,20 @@ impl StandardFont {
         name = normalized_glyph_name(name);
 
         match self {
-            Self::Helvetica => metrics::HELVETICA.get(name).copied(),
-            Self::HelveticaBold => metrics::HELVETICA_BOLD.get(name).copied(),
-            Self::HelveticaOblique => metrics::HELVETICA_OBLIQUE.get(name).copied(),
-            Self::HelveticaBoldOblique => metrics::HELVETICA_BOLD_OBLIQUE.get(name).copied(),
-            Self::Courier => metrics::COURIER.get(name).copied(),
-            Self::CourierBold => metrics::COURIER_BOLD.get(name).copied(),
-            Self::CourierOblique => metrics::COURIER_OBLIQUE.get(name).copied(),
-            Self::CourierBoldOblique => metrics::COURIER_BOLD_OBLIQUE.get(name).copied(),
-            Self::TimesRoman => metrics::TIMES_ROMAN.get(name).copied(),
-            Self::TimesBold => metrics::TIMES_BOLD.get(name).copied(),
-            Self::TimesItalic => metrics::TIMES_ITALIC.get(name).copied(),
-            Self::TimesBoldItalic => metrics::TIMES_BOLD_ITALIC.get(name).copied(),
-            Self::ZapfDingBats => metrics::ZAPF_DING_BATS.get(name).copied(),
-            Self::Symbol => metrics::SYMBOL.get(name).copied(),
+            Self::Helvetica => width(metrics::HELVETICA, name),
+            Self::HelveticaBold => width(metrics::HELVETICA_BOLD, name),
+            Self::HelveticaOblique => width(metrics::HELVETICA_OBLIQUE, name),
+            Self::HelveticaBoldOblique => width(metrics::HELVETICA_BOLD_OBLIQUE, name),
+            Self::Courier => width(metrics::COURIER, name),
+            Self::CourierBold => width(metrics::COURIER_BOLD, name),
+            Self::CourierOblique => width(metrics::COURIER_OBLIQUE, name),
+            Self::CourierBoldOblique => width(metrics::COURIER_BOLD_OBLIQUE, name),
+            Self::TimesRoman => width(metrics::TIMES_ROMAN, name),
+            Self::TimesBold => width(metrics::TIMES_BOLD, name),
+            Self::TimesItalic => width(metrics::TIMES_ITALIC, name),
+            Self::TimesBoldItalic => width(metrics::TIMES_BOLD_ITALIC, name),
+            Self::ZapfDingBats => width(metrics::ZAPF_DING_BATS, name),
+            Self::Symbol => width(metrics::SYMBOL, name),
         }
     }
 

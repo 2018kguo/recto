@@ -1,8119 +1,8116 @@
-use phf::phf_map;
-
+// recto: a sorted table rather than a phf map; see `by_name` in mod.rs.
 pub(crate) fn get(name: &str) -> Option<&'static str> {
-    GLYPH_NAMES.get(name).copied()
+    super::by_name(GLYPH_NAMES, name)
 }
 
 pub(crate) fn get_reverse(unicode: char) -> Option<&'static str> {
-    REVERSE_GLYPH_NAMES.get(&unicode).copied()
+    super::by_char(REVERSE_GLYPH_NAMES, unicode)
 }
 
-static GLYPH_NAMES: phf::Map<&'static str, &'static str> = phf_map! {
-    "A" => "\u{0041}",
-    "AE" => "\u{00C6}",
-    "AEacute" => "\u{01FC}",
-    "AEmacron" => "\u{01E2}",
-    "AEsmall" => "\u{F7E6}",
-    "Aacute" => "\u{00C1}",
-    "Aacutesmall" => "\u{F7E1}",
-    "Abreve" => "\u{0102}",
-    "Abreveacute" => "\u{1EAE}",
-    "Abrevecyrillic" => "\u{04D0}",
-    "Abrevedotbelow" => "\u{1EB6}",
-    "Abrevegrave" => "\u{1EB0}",
-    "Abrevehookabove" => "\u{1EB2}",
-    "Abrevetilde" => "\u{1EB4}",
-    "Acaron" => "\u{01CD}",
-    "Acircle" => "\u{24B6}",
-    "Acircumflex" => "\u{00C2}",
-    "Acircumflexacute" => "\u{1EA4}",
-    "Acircumflexdotbelow" => "\u{1EAC}",
-    "Acircumflexgrave" => "\u{1EA6}",
-    "Acircumflexhookabove" => "\u{1EA8}",
-    "Acircumflexsmall" => "\u{F7E2}",
-    "Acircumflextilde" => "\u{1EAA}",
-    "Acute" => "\u{F6C9}",
-    "Acutesmall" => "\u{F7B4}",
-    "Acyrillic" => "\u{0410}",
-    "Adblgrave" => "\u{0200}",
-    "Adieresis" => "\u{00C4}",
-    "Adieresiscyrillic" => "\u{04D2}",
-    "Adieresismacron" => "\u{01DE}",
-    "Adieresissmall" => "\u{F7E4}",
-    "Adotbelow" => "\u{1EA0}",
-    "Adotmacron" => "\u{01E0}",
-    "Agrave" => "\u{00C0}",
-    "Agravesmall" => "\u{F7E0}",
-    "Ahookabove" => "\u{1EA2}",
-    "Aiecyrillic" => "\u{04D4}",
-    "Ainvertedbreve" => "\u{0202}",
-    "Alpha" => "\u{0391}",
-    "Alphatonos" => "\u{0386}",
-    "Amacron" => "\u{0100}",
-    "Amonospace" => "\u{FF21}",
-    "Aogonek" => "\u{0104}",
-    "Aring" => "\u{00C5}",
-    "Aringacute" => "\u{01FA}",
-    "Aringbelow" => "\u{1E00}",
-    "Aringsmall" => "\u{F7E5}",
-    "Asmall" => "\u{F761}",
-    "Atilde" => "\u{00C3}",
-    "Atildesmall" => "\u{F7E3}",
-    "Aybarmenian" => "\u{0531}",
-    "B" => "\u{0042}",
-    "Bcircle" => "\u{24B7}",
-    "Bdotaccent" => "\u{1E02}",
-    "Bdotbelow" => "\u{1E04}",
-    "Becyrillic" => "\u{0411}",
-    "Benarmenian" => "\u{0532}",
-    "Beta" => "\u{0392}",
-    "Bhook" => "\u{0181}",
-    "Blinebelow" => "\u{1E06}",
-    "Bmonospace" => "\u{FF22}",
-    "Brevesmall" => "\u{F6F4}",
-    "Bsmall" => "\u{F762}",
-    "Btopbar" => "\u{0182}",
-    "C" => "\u{0043}",
-    "Caarmenian" => "\u{053E}",
-    "Cacute" => "\u{0106}",
-    "Caron" => "\u{F6CA}",
-    "Caronsmall" => "\u{F6F5}",
-    "Ccaron" => "\u{010C}",
-    "Ccedilla" => "\u{00C7}",
-    "Ccedillaacute" => "\u{1E08}",
-    "Ccedillasmall" => "\u{F7E7}",
-    "Ccircle" => "\u{24B8}",
-    "Ccircumflex" => "\u{0108}",
-    "Cdot" => "\u{010A}",
-    "Cdotaccent" => "\u{010A}",
-    "Cedillasmall" => "\u{F7B8}",
-    "Chaarmenian" => "\u{0549}",
-    "Cheabkhasiancyrillic" => "\u{04BC}",
-    "Checyrillic" => "\u{0427}",
-    "Chedescenderabkhasiancyrillic" => "\u{04BE}",
-    "Chedescendercyrillic" => "\u{04B6}",
-    "Chedieresiscyrillic" => "\u{04F4}",
-    "Cheharmenian" => "\u{0543}",
-    "Chekhakassiancyrillic" => "\u{04CB}",
-    "Cheverticalstrokecyrillic" => "\u{04B8}",
-    "Chi" => "\u{03A7}",
-    "Chook" => "\u{0187}",
-    "Circumflexsmall" => "\u{F6F6}",
-    "Cmonospace" => "\u{FF23}",
-    "Coarmenian" => "\u{0551}",
-    "Csmall" => "\u{F763}",
-    "D" => "\u{0044}",
-    "DZ" => "\u{01F1}",
-    "DZcaron" => "\u{01C4}",
-    "Daarmenian" => "\u{0534}",
-    "Dafrican" => "\u{0189}",
-    "Dcaron" => "\u{010E}",
-    "Dcedilla" => "\u{1E10}",
-    "Dcircle" => "\u{24B9}",
-    "Dcircumflexbelow" => "\u{1E12}",
-    "Dcroat" => "\u{0110}",
-    "Ddotaccent" => "\u{1E0A}",
-    "Ddotbelow" => "\u{1E0C}",
-    "Decyrillic" => "\u{0414}",
-    "Deicoptic" => "\u{03EE}",
-    "Delta" => "\u{2206}",
-    "Deltagreek" => "\u{0394}",
-    "Dhook" => "\u{018A}",
-    "Dieresis" => "\u{F6CB}",
-    "DieresisAcute" => "\u{F6CC}",
-    "DieresisGrave" => "\u{F6CD}",
-    "Dieresissmall" => "\u{F7A8}",
-    "Digammagreek" => "\u{03DC}",
-    "Djecyrillic" => "\u{0402}",
-    "Dlinebelow" => "\u{1E0E}",
-    "Dmonospace" => "\u{FF24}",
-    "Dotaccentsmall" => "\u{F6F7}",
-    "Dslash" => "\u{0110}",
-    "Dsmall" => "\u{F764}",
-    "Dtopbar" => "\u{018B}",
-    "Dz" => "\u{01F2}",
-    "Dzcaron" => "\u{01C5}",
-    "Dzeabkhasiancyrillic" => "\u{04E0}",
-    "Dzecyrillic" => "\u{0405}",
-    "Dzhecyrillic" => "\u{040F}",
-    "E" => "\u{0045}",
-    "Eacute" => "\u{00C9}",
-    "Eacutesmall" => "\u{F7E9}",
-    "Ebreve" => "\u{0114}",
-    "Ecaron" => "\u{011A}",
-    "Ecedillabreve" => "\u{1E1C}",
-    "Echarmenian" => "\u{0535}",
-    "Ecircle" => "\u{24BA}",
-    "Ecircumflex" => "\u{00CA}",
-    "Ecircumflexacute" => "\u{1EBE}",
-    "Ecircumflexbelow" => "\u{1E18}",
-    "Ecircumflexdotbelow" => "\u{1EC6}",
-    "Ecircumflexgrave" => "\u{1EC0}",
-    "Ecircumflexhookabove" => "\u{1EC2}",
-    "Ecircumflexsmall" => "\u{F7EA}",
-    "Ecircumflextilde" => "\u{1EC4}",
-    "Ecyrillic" => "\u{0404}",
-    "Edblgrave" => "\u{0204}",
-    "Edieresis" => "\u{00CB}",
-    "Edieresissmall" => "\u{F7EB}",
-    "Edot" => "\u{0116}",
-    "Edotaccent" => "\u{0116}",
-    "Edotbelow" => "\u{1EB8}",
-    "Efcyrillic" => "\u{0424}",
-    "Egrave" => "\u{00C8}",
-    "Egravesmall" => "\u{F7E8}",
-    "Eharmenian" => "\u{0537}",
-    "Ehookabove" => "\u{1EBA}",
-    "Eightroman" => "\u{2167}",
-    "Einvertedbreve" => "\u{0206}",
-    "Eiotifiedcyrillic" => "\u{0464}",
-    "Elcyrillic" => "\u{041B}",
-    "Elevenroman" => "\u{216A}",
-    "Emacron" => "\u{0112}",
-    "Emacronacute" => "\u{1E16}",
-    "Emacrongrave" => "\u{1E14}",
-    "Emcyrillic" => "\u{041C}",
-    "Emonospace" => "\u{FF25}",
-    "Encyrillic" => "\u{041D}",
-    "Endescendercyrillic" => "\u{04A2}",
-    "Eng" => "\u{014A}",
-    "Enghecyrillic" => "\u{04A4}",
-    "Enhookcyrillic" => "\u{04C7}",
-    "Eogonek" => "\u{0118}",
-    "Eopen" => "\u{0190}",
-    "Epsilon" => "\u{0395}",
-    "Epsilontonos" => "\u{0388}",
-    "Ercyrillic" => "\u{0420}",
-    "Ereversed" => "\u{018E}",
-    "Ereversedcyrillic" => "\u{042D}",
-    "Escyrillic" => "\u{0421}",
-    "Esdescendercyrillic" => "\u{04AA}",
-    "Esh" => "\u{01A9}",
-    "Esmall" => "\u{F765}",
-    "Eta" => "\u{0397}",
-    "Etarmenian" => "\u{0538}",
-    "Etatonos" => "\u{0389}",
-    "Eth" => "\u{00D0}",
-    "Ethsmall" => "\u{F7F0}",
-    "Etilde" => "\u{1EBC}",
-    "Etildebelow" => "\u{1E1A}",
-    "Euro" => "\u{20AC}",
-    "Ezh" => "\u{01B7}",
-    "Ezhcaron" => "\u{01EE}",
-    "Ezhreversed" => "\u{01B8}",
-    "F" => "\u{0046}",
-    "Fcircle" => "\u{24BB}",
-    "Fdotaccent" => "\u{1E1E}",
-    "Feharmenian" => "\u{0556}",
-    "Feicoptic" => "\u{03E4}",
-    "Fhook" => "\u{0191}",
-    "Fitacyrillic" => "\u{0472}",
-    "Fiveroman" => "\u{2164}",
-    "Fmonospace" => "\u{FF26}",
-    "Fourroman" => "\u{2163}",
-    "Fsmall" => "\u{F766}",
-    "G" => "\u{0047}",
-    "GBsquare" => "\u{3387}",
-    "Gacute" => "\u{01F4}",
-    "Gamma" => "\u{0393}",
-    "Gammaafrican" => "\u{0194}",
-    "Gangiacoptic" => "\u{03EA}",
-    "Gbreve" => "\u{011E}",
-    "Gcaron" => "\u{01E6}",
-    "Gcedilla" => "\u{0122}",
-    "Gcircle" => "\u{24BC}",
-    "Gcircumflex" => "\u{011C}",
-    "Gcommaaccent" => "\u{0122}",
-    "Gdot" => "\u{0120}",
-    "Gdotaccent" => "\u{0120}",
-    "Gecyrillic" => "\u{0413}",
-    "Ghadarmenian" => "\u{0542}",
-    "Ghemiddlehookcyrillic" => "\u{0494}",
-    "Ghestrokecyrillic" => "\u{0492}",
-    "Gheupturncyrillic" => "\u{0490}",
-    "Ghook" => "\u{0193}",
-    "Gimarmenian" => "\u{0533}",
-    "Gjecyrillic" => "\u{0403}",
-    "Gmacron" => "\u{1E20}",
-    "Gmonospace" => "\u{FF27}",
-    "Grave" => "\u{F6CE}",
-    "Gravesmall" => "\u{F760}",
-    "Gsmall" => "\u{F767}",
-    "Gsmallhook" => "\u{029B}",
-    "Gstroke" => "\u{01E4}",
-    "H" => "\u{0048}",
-    "H18533" => "\u{25CF}",
-    "H18543" => "\u{25AA}",
-    "H18551" => "\u{25AB}",
-    "H22073" => "\u{25A1}",
-    "HPsquare" => "\u{33CB}",
-    "Haabkhasiancyrillic" => "\u{04A8}",
-    "Hadescendercyrillic" => "\u{04B2}",
-    "Hardsigncyrillic" => "\u{042A}",
-    "Hbar" => "\u{0126}",
-    "Hbrevebelow" => "\u{1E2A}",
-    "Hcedilla" => "\u{1E28}",
-    "Hcircle" => "\u{24BD}",
-    "Hcircumflex" => "\u{0124}",
-    "Hdieresis" => "\u{1E26}",
-    "Hdotaccent" => "\u{1E22}",
-    "Hdotbelow" => "\u{1E24}",
-    "Hmonospace" => "\u{FF28}",
-    "Hoarmenian" => "\u{0540}",
-    "Horicoptic" => "\u{03E8}",
-    "Hsmall" => "\u{F768}",
-    "Hungarumlaut" => "\u{F6CF}",
-    "Hungarumlautsmall" => "\u{F6F8}",
-    "Hzsquare" => "\u{3390}",
-    "I" => "\u{0049}",
-    "IAcyrillic" => "\u{042F}",
-    "IJ" => "\u{0132}",
-    "IUcyrillic" => "\u{042E}",
-    "Iacute" => "\u{00CD}",
-    "Iacutesmall" => "\u{F7ED}",
-    "Ibreve" => "\u{012C}",
-    "Icaron" => "\u{01CF}",
-    "Icircle" => "\u{24BE}",
-    "Icircumflex" => "\u{00CE}",
-    "Icircumflexsmall" => "\u{F7EE}",
-    "Icyrillic" => "\u{0406}",
-    "Idblgrave" => "\u{0208}",
-    "Idieresis" => "\u{00CF}",
-    "Idieresisacute" => "\u{1E2E}",
-    "Idieresiscyrillic" => "\u{04E4}",
-    "Idieresissmall" => "\u{F7EF}",
-    "Idot" => "\u{0130}",
-    "Idotaccent" => "\u{0130}",
-    "Idotbelow" => "\u{1ECA}",
-    "Iebrevecyrillic" => "\u{04D6}",
-    "Iecyrillic" => "\u{0415}",
-    "Ifraktur" => "\u{2111}",
-    "Igrave" => "\u{00CC}",
-    "Igravesmall" => "\u{F7EC}",
-    "Ihookabove" => "\u{1EC8}",
-    "Iicyrillic" => "\u{0418}",
-    "Iinvertedbreve" => "\u{020A}",
-    "Iishortcyrillic" => "\u{0419}",
-    "Imacron" => "\u{012A}",
-    "Imacroncyrillic" => "\u{04E2}",
-    "Imonospace" => "\u{FF29}",
-    "Iniarmenian" => "\u{053B}",
-    "Iocyrillic" => "\u{0401}",
-    "Iogonek" => "\u{012E}",
-    "Iota" => "\u{0399}",
-    "Iotaafrican" => "\u{0196}",
-    "Iotadieresis" => "\u{03AA}",
-    "Iotatonos" => "\u{038A}",
-    "Ismall" => "\u{F769}",
-    "Istroke" => "\u{0197}",
-    "Itilde" => "\u{0128}",
-    "Itildebelow" => "\u{1E2C}",
-    "Izhitsacyrillic" => "\u{0474}",
-    "Izhitsadblgravecyrillic" => "\u{0476}",
-    "J" => "\u{004A}",
-    "Jaarmenian" => "\u{0541}",
-    "Jcircle" => "\u{24BF}",
-    "Jcircumflex" => "\u{0134}",
-    "Jecyrillic" => "\u{0408}",
-    "Jheharmenian" => "\u{054B}",
-    "Jmonospace" => "\u{FF2A}",
-    "Jsmall" => "\u{F76A}",
-    "K" => "\u{004B}",
-    "KBsquare" => "\u{3385}",
-    "KKsquare" => "\u{33CD}",
-    "Kabashkircyrillic" => "\u{04A0}",
-    "Kacute" => "\u{1E30}",
-    "Kacyrillic" => "\u{041A}",
-    "Kadescendercyrillic" => "\u{049A}",
-    "Kahookcyrillic" => "\u{04C3}",
-    "Kappa" => "\u{039A}",
-    "Kastrokecyrillic" => "\u{049E}",
-    "Kaverticalstrokecyrillic" => "\u{049C}",
-    "Kcaron" => "\u{01E8}",
-    "Kcedilla" => "\u{0136}",
-    "Kcircle" => "\u{24C0}",
-    "Kcommaaccent" => "\u{0136}",
-    "Kdotbelow" => "\u{1E32}",
-    "Keharmenian" => "\u{0554}",
-    "Kenarmenian" => "\u{053F}",
-    "Khacyrillic" => "\u{0425}",
-    "Kheicoptic" => "\u{03E6}",
-    "Khook" => "\u{0198}",
-    "Kjecyrillic" => "\u{040C}",
-    "Klinebelow" => "\u{1E34}",
-    "Kmonospace" => "\u{FF2B}",
-    "Koppacyrillic" => "\u{0480}",
-    "Koppagreek" => "\u{03DE}",
-    "Ksicyrillic" => "\u{046E}",
-    "Ksmall" => "\u{F76B}",
-    "L" => "\u{004C}",
-    "LJ" => "\u{01C7}",
-    "LL" => "\u{F6BF}",
-    "Lacute" => "\u{0139}",
-    "Lambda" => "\u{039B}",
-    "Lcaron" => "\u{013D}",
-    "Lcedilla" => "\u{013B}",
-    "Lcircle" => "\u{24C1}",
-    "Lcircumflexbelow" => "\u{1E3C}",
-    "Lcommaaccent" => "\u{013B}",
-    "Ldot" => "\u{013F}",
-    "Ldotaccent" => "\u{013F}",
-    "Ldotbelow" => "\u{1E36}",
-    "Ldotbelowmacron" => "\u{1E38}",
-    "Liwnarmenian" => "\u{053C}",
-    "Lj" => "\u{01C8}",
-    "Ljecyrillic" => "\u{0409}",
-    "Llinebelow" => "\u{1E3A}",
-    "Lmonospace" => "\u{FF2C}",
-    "Lslash" => "\u{0141}",
-    "Lslashsmall" => "\u{F6F9}",
-    "Lsmall" => "\u{F76C}",
-    "M" => "\u{004D}",
-    "MBsquare" => "\u{3386}",
-    "Macron" => "\u{F6D0}",
-    "Macronsmall" => "\u{F7AF}",
-    "Macute" => "\u{1E3E}",
-    "Mcircle" => "\u{24C2}",
-    "Mdotaccent" => "\u{1E40}",
-    "Mdotbelow" => "\u{1E42}",
-    "Menarmenian" => "\u{0544}",
-    "Mmonospace" => "\u{FF2D}",
-    "Msmall" => "\u{F76D}",
-    "Mturned" => "\u{019C}",
-    "Mu" => "\u{039C}",
-    "N" => "\u{004E}",
-    "NJ" => "\u{01CA}",
-    "Nacute" => "\u{0143}",
-    "Ncaron" => "\u{0147}",
-    "Ncedilla" => "\u{0145}",
-    "Ncircle" => "\u{24C3}",
-    "Ncircumflexbelow" => "\u{1E4A}",
-    "Ncommaaccent" => "\u{0145}",
-    "Ndotaccent" => "\u{1E44}",
-    "Ndotbelow" => "\u{1E46}",
-    "Nhookleft" => "\u{019D}",
-    "Nineroman" => "\u{2168}",
-    "Nj" => "\u{01CB}",
-    "Njecyrillic" => "\u{040A}",
-    "Nlinebelow" => "\u{1E48}",
-    "Nmonospace" => "\u{FF2E}",
-    "Nowarmenian" => "\u{0546}",
-    "Nsmall" => "\u{F76E}",
-    "Ntilde" => "\u{00D1}",
-    "Ntildesmall" => "\u{F7F1}",
-    "Nu" => "\u{039D}",
-    "O" => "\u{004F}",
-    "OE" => "\u{0152}",
-    "OEsmall" => "\u{F6FA}",
-    "Oacute" => "\u{00D3}",
-    "Oacutesmall" => "\u{F7F3}",
-    "Obarredcyrillic" => "\u{04E8}",
-    "Obarreddieresiscyrillic" => "\u{04EA}",
-    "Obreve" => "\u{014E}",
-    "Ocaron" => "\u{01D1}",
-    "Ocenteredtilde" => "\u{019F}",
-    "Ocircle" => "\u{24C4}",
-    "Ocircumflex" => "\u{00D4}",
-    "Ocircumflexacute" => "\u{1ED0}",
-    "Ocircumflexdotbelow" => "\u{1ED8}",
-    "Ocircumflexgrave" => "\u{1ED2}",
-    "Ocircumflexhookabove" => "\u{1ED4}",
-    "Ocircumflexsmall" => "\u{F7F4}",
-    "Ocircumflextilde" => "\u{1ED6}",
-    "Ocyrillic" => "\u{041E}",
-    "Odblacute" => "\u{0150}",
-    "Odblgrave" => "\u{020C}",
-    "Odieresis" => "\u{00D6}",
-    "Odieresiscyrillic" => "\u{04E6}",
-    "Odieresissmall" => "\u{F7F6}",
-    "Odotbelow" => "\u{1ECC}",
-    "Ogoneksmall" => "\u{F6FB}",
-    "Ograve" => "\u{00D2}",
-    "Ogravesmall" => "\u{F7F2}",
-    "Oharmenian" => "\u{0555}",
-    "Ohm" => "\u{2126}",
-    "Ohookabove" => "\u{1ECE}",
-    "Ohorn" => "\u{01A0}",
-    "Ohornacute" => "\u{1EDA}",
-    "Ohorndotbelow" => "\u{1EE2}",
-    "Ohorngrave" => "\u{1EDC}",
-    "Ohornhookabove" => "\u{1EDE}",
-    "Ohorntilde" => "\u{1EE0}",
-    "Ohungarumlaut" => "\u{0150}",
-    "Oi" => "\u{01A2}",
-    "Oinvertedbreve" => "\u{020E}",
-    "Omacron" => "\u{014C}",
-    "Omacronacute" => "\u{1E52}",
-    "Omacrongrave" => "\u{1E50}",
-    "Omega" => "\u{2126}",
-    "Omegacyrillic" => "\u{0460}",
-    "Omegagreek" => "\u{03A9}",
-    "Omegaroundcyrillic" => "\u{047A}",
-    "Omegatitlocyrillic" => "\u{047C}",
-    "Omegatonos" => "\u{038F}",
-    "Omicron" => "\u{039F}",
-    "Omicrontonos" => "\u{038C}",
-    "Omonospace" => "\u{FF2F}",
-    "Oneroman" => "\u{2160}",
-    "Oogonek" => "\u{01EA}",
-    "Oogonekmacron" => "\u{01EC}",
-    "Oopen" => "\u{0186}",
-    "Oslash" => "\u{00D8}",
-    "Oslashacute" => "\u{01FE}",
-    "Oslashsmall" => "\u{F7F8}",
-    "Osmall" => "\u{F76F}",
-    "Ostrokeacute" => "\u{01FE}",
-    "Otcyrillic" => "\u{047E}",
-    "Otilde" => "\u{00D5}",
-    "Otildeacute" => "\u{1E4C}",
-    "Otildedieresis" => "\u{1E4E}",
-    "Otildesmall" => "\u{F7F5}",
-    "P" => "\u{0050}",
-    "Pacute" => "\u{1E54}",
-    "Pcircle" => "\u{24C5}",
-    "Pdotaccent" => "\u{1E56}",
-    "Pecyrillic" => "\u{041F}",
-    "Peharmenian" => "\u{054A}",
-    "Pemiddlehookcyrillic" => "\u{04A6}",
-    "Phi" => "\u{03A6}",
-    "Phook" => "\u{01A4}",
-    "Pi" => "\u{03A0}",
-    "Piwrarmenian" => "\u{0553}",
-    "Pmonospace" => "\u{FF30}",
-    "Psi" => "\u{03A8}",
-    "Psicyrillic" => "\u{0470}",
-    "Psmall" => "\u{F770}",
-    "Q" => "\u{0051}",
-    "Qcircle" => "\u{24C6}",
-    "Qmonospace" => "\u{FF31}",
-    "Qsmall" => "\u{F771}",
-    "R" => "\u{0052}",
-    "Raarmenian" => "\u{054C}",
-    "Racute" => "\u{0154}",
-    "Rcaron" => "\u{0158}",
-    "Rcedilla" => "\u{0156}",
-    "Rcircle" => "\u{24C7}",
-    "Rcommaaccent" => "\u{0156}",
-    "Rdblgrave" => "\u{0210}",
-    "Rdotaccent" => "\u{1E58}",
-    "Rdotbelow" => "\u{1E5A}",
-    "Rdotbelowmacron" => "\u{1E5C}",
-    "Reharmenian" => "\u{0550}",
-    "Rfraktur" => "\u{211C}",
-    "Rho" => "\u{03A1}",
-    "Ringsmall" => "\u{F6FC}",
-    "Rinvertedbreve" => "\u{0212}",
-    "Rlinebelow" => "\u{1E5E}",
-    "Rmonospace" => "\u{FF32}",
-    "Rsmall" => "\u{F772}",
-    "Rsmallinverted" => "\u{0281}",
-    "Rsmallinvertedsuperior" => "\u{02B6}",
-    "S" => "\u{0053}",
-    "SF010000" => "\u{250C}",
-    "SF020000" => "\u{2514}",
-    "SF030000" => "\u{2510}",
-    "SF040000" => "\u{2518}",
-    "SF050000" => "\u{253C}",
-    "SF060000" => "\u{252C}",
-    "SF070000" => "\u{2534}",
-    "SF080000" => "\u{251C}",
-    "SF090000" => "\u{2524}",
-    "SF100000" => "\u{2500}",
-    "SF110000" => "\u{2502}",
-    "SF190000" => "\u{2561}",
-    "SF200000" => "\u{2562}",
-    "SF210000" => "\u{2556}",
-    "SF220000" => "\u{2555}",
-    "SF230000" => "\u{2563}",
-    "SF240000" => "\u{2551}",
-    "SF250000" => "\u{2557}",
-    "SF260000" => "\u{255D}",
-    "SF270000" => "\u{255C}",
-    "SF280000" => "\u{255B}",
-    "SF360000" => "\u{255E}",
-    "SF370000" => "\u{255F}",
-    "SF380000" => "\u{255A}",
-    "SF390000" => "\u{2554}",
-    "SF400000" => "\u{2569}",
-    "SF410000" => "\u{2566}",
-    "SF420000" => "\u{2560}",
-    "SF430000" => "\u{2550}",
-    "SF440000" => "\u{256C}",
-    "SF450000" => "\u{2567}",
-    "SF460000" => "\u{2568}",
-    "SF470000" => "\u{2564}",
-    "SF480000" => "\u{2565}",
-    "SF490000" => "\u{2559}",
-    "SF500000" => "\u{2558}",
-    "SF510000" => "\u{2552}",
-    "SF520000" => "\u{2553}",
-    "SF530000" => "\u{256B}",
-    "SF540000" => "\u{256A}",
-    "Sacute" => "\u{015A}",
-    "Sacutedotaccent" => "\u{1E64}",
-    "Sampigreek" => "\u{03E0}",
-    "Scaron" => "\u{0160}",
-    "Scarondotaccent" => "\u{1E66}",
-    "Scaronsmall" => "\u{F6FD}",
-    "Scedilla" => "\u{015E}",
-    "Schwa" => "\u{018F}",
-    "Schwacyrillic" => "\u{04D8}",
-    "Schwadieresiscyrillic" => "\u{04DA}",
-    "Scircle" => "\u{24C8}",
-    "Scircumflex" => "\u{015C}",
-    "Scommaaccent" => "\u{0218}",
-    "Sdotaccent" => "\u{1E60}",
-    "Sdotbelow" => "\u{1E62}",
-    "Sdotbelowdotaccent" => "\u{1E68}",
-    "Seharmenian" => "\u{054D}",
-    "Sevenroman" => "\u{2166}",
-    "Shaarmenian" => "\u{0547}",
-    "Shacyrillic" => "\u{0428}",
-    "Shchacyrillic" => "\u{0429}",
-    "Sheicoptic" => "\u{03E2}",
-    "Shhacyrillic" => "\u{04BA}",
-    "Shimacoptic" => "\u{03EC}",
-    "Sigma" => "\u{03A3}",
-    "Sixroman" => "\u{2165}",
-    "Smonospace" => "\u{FF33}",
-    "Softsigncyrillic" => "\u{042C}",
-    "Ssmall" => "\u{F773}",
-    "Stigmagreek" => "\u{03DA}",
-    "T" => "\u{0054}",
-    "Tau" => "\u{03A4}",
-    "Tbar" => "\u{0166}",
-    "Tcaron" => "\u{0164}",
-    "Tcedilla" => "\u{0162}",
-    "Tcircle" => "\u{24C9}",
-    "Tcircumflexbelow" => "\u{1E70}",
-    "Tcommaaccent" => "\u{0162}",
-    "Tdotaccent" => "\u{1E6A}",
-    "Tdotbelow" => "\u{1E6C}",
-    "Tecyrillic" => "\u{0422}",
-    "Tedescendercyrillic" => "\u{04AC}",
-    "Tenroman" => "\u{2169}",
-    "Tetsecyrillic" => "\u{04B4}",
-    "Theta" => "\u{0398}",
-    "Thook" => "\u{01AC}",
-    "Thorn" => "\u{00DE}",
-    "Thornsmall" => "\u{F7FE}",
-    "Threeroman" => "\u{2162}",
-    "Tildesmall" => "\u{F6FE}",
-    "Tiwnarmenian" => "\u{054F}",
-    "Tlinebelow" => "\u{1E6E}",
-    "Tmonospace" => "\u{FF34}",
-    "Toarmenian" => "\u{0539}",
-    "Tonefive" => "\u{01BC}",
-    "Tonesix" => "\u{0184}",
-    "Tonetwo" => "\u{01A7}",
-    "Tretroflexhook" => "\u{01AE}",
-    "Tsecyrillic" => "\u{0426}",
-    "Tshecyrillic" => "\u{040B}",
-    "Tsmall" => "\u{F774}",
-    "Twelveroman" => "\u{216B}",
-    "Tworoman" => "\u{2161}",
-    "U" => "\u{0055}",
-    "Uacute" => "\u{00DA}",
-    "Uacutesmall" => "\u{F7FA}",
-    "Ubreve" => "\u{016C}",
-    "Ucaron" => "\u{01D3}",
-    "Ucircle" => "\u{24CA}",
-    "Ucircumflex" => "\u{00DB}",
-    "Ucircumflexbelow" => "\u{1E76}",
-    "Ucircumflexsmall" => "\u{F7FB}",
-    "Ucyrillic" => "\u{0423}",
-    "Udblacute" => "\u{0170}",
-    "Udblgrave" => "\u{0214}",
-    "Udieresis" => "\u{00DC}",
-    "Udieresisacute" => "\u{01D7}",
-    "Udieresisbelow" => "\u{1E72}",
-    "Udieresiscaron" => "\u{01D9}",
-    "Udieresiscyrillic" => "\u{04F0}",
-    "Udieresisgrave" => "\u{01DB}",
-    "Udieresismacron" => "\u{01D5}",
-    "Udieresissmall" => "\u{F7FC}",
-    "Udotbelow" => "\u{1EE4}",
-    "Ugrave" => "\u{00D9}",
-    "Ugravesmall" => "\u{F7F9}",
-    "Uhookabove" => "\u{1EE6}",
-    "Uhorn" => "\u{01AF}",
-    "Uhornacute" => "\u{1EE8}",
-    "Uhorndotbelow" => "\u{1EF0}",
-    "Uhorngrave" => "\u{1EEA}",
-    "Uhornhookabove" => "\u{1EEC}",
-    "Uhorntilde" => "\u{1EEE}",
-    "Uhungarumlaut" => "\u{0170}",
-    "Uhungarumlautcyrillic" => "\u{04F2}",
-    "Uinvertedbreve" => "\u{0216}",
-    "Ukcyrillic" => "\u{0478}",
-    "Umacron" => "\u{016A}",
-    "Umacroncyrillic" => "\u{04EE}",
-    "Umacrondieresis" => "\u{1E7A}",
-    "Umonospace" => "\u{FF35}",
-    "Uogonek" => "\u{0172}",
-    "Upsilon" => "\u{03A5}",
-    "Upsilon1" => "\u{03D2}",
-    "Upsilonacutehooksymbolgreek" => "\u{03D3}",
-    "Upsilonafrican" => "\u{01B1}",
-    "Upsilondieresis" => "\u{03AB}",
-    "Upsilondieresishooksymbolgreek" => "\u{03D4}",
-    "Upsilonhooksymbol" => "\u{03D2}",
-    "Upsilontonos" => "\u{038E}",
-    "Uring" => "\u{016E}",
-    "Ushortcyrillic" => "\u{040E}",
-    "Usmall" => "\u{F775}",
-    "Ustraightcyrillic" => "\u{04AE}",
-    "Ustraightstrokecyrillic" => "\u{04B0}",
-    "Utilde" => "\u{0168}",
-    "Utildeacute" => "\u{1E78}",
-    "Utildebelow" => "\u{1E74}",
-    "V" => "\u{0056}",
-    "Vcircle" => "\u{24CB}",
-    "Vdotbelow" => "\u{1E7E}",
-    "Vecyrillic" => "\u{0412}",
-    "Vewarmenian" => "\u{054E}",
-    "Vhook" => "\u{01B2}",
-    "Vmonospace" => "\u{FF36}",
-    "Voarmenian" => "\u{0548}",
-    "Vsmall" => "\u{F776}",
-    "Vtilde" => "\u{1E7C}",
-    "W" => "\u{0057}",
-    "Wacute" => "\u{1E82}",
-    "Wcircle" => "\u{24CC}",
-    "Wcircumflex" => "\u{0174}",
-    "Wdieresis" => "\u{1E84}",
-    "Wdotaccent" => "\u{1E86}",
-    "Wdotbelow" => "\u{1E88}",
-    "Wgrave" => "\u{1E80}",
-    "Wmonospace" => "\u{FF37}",
-    "Wsmall" => "\u{F777}",
-    "X" => "\u{0058}",
-    "Xcircle" => "\u{24CD}",
-    "Xdieresis" => "\u{1E8C}",
-    "Xdotaccent" => "\u{1E8A}",
-    "Xeharmenian" => "\u{053D}",
-    "Xi" => "\u{039E}",
-    "Xmonospace" => "\u{FF38}",
-    "Xsmall" => "\u{F778}",
-    "Y" => "\u{0059}",
-    "Yacute" => "\u{00DD}",
-    "Yacutesmall" => "\u{F7FD}",
-    "Yatcyrillic" => "\u{0462}",
-    "Ycircle" => "\u{24CE}",
-    "Ycircumflex" => "\u{0176}",
-    "Ydieresis" => "\u{0178}",
-    "Ydieresissmall" => "\u{F7FF}",
-    "Ydotaccent" => "\u{1E8E}",
-    "Ydotbelow" => "\u{1EF4}",
-    "Yericyrillic" => "\u{042B}",
-    "Yerudieresiscyrillic" => "\u{04F8}",
-    "Ygrave" => "\u{1EF2}",
-    "Yhook" => "\u{01B3}",
-    "Yhookabove" => "\u{1EF6}",
-    "Yiarmenian" => "\u{0545}",
-    "Yicyrillic" => "\u{0407}",
-    "Yiwnarmenian" => "\u{0552}",
-    "Ymonospace" => "\u{FF39}",
-    "Ysmall" => "\u{F779}",
-    "Ytilde" => "\u{1EF8}",
-    "Yusbigcyrillic" => "\u{046A}",
-    "Yusbigiotifiedcyrillic" => "\u{046C}",
-    "Yuslittlecyrillic" => "\u{0466}",
-    "Yuslittleiotifiedcyrillic" => "\u{0468}",
-    "Z" => "\u{005A}",
-    "Zaarmenian" => "\u{0536}",
-    "Zacute" => "\u{0179}",
-    "Zcaron" => "\u{017D}",
-    "Zcaronsmall" => "\u{F6FF}",
-    "Zcircle" => "\u{24CF}",
-    "Zcircumflex" => "\u{1E90}",
-    "Zdot" => "\u{017B}",
-    "Zdotaccent" => "\u{017B}",
-    "Zdotbelow" => "\u{1E92}",
-    "Zecyrillic" => "\u{0417}",
-    "Zedescendercyrillic" => "\u{0498}",
-    "Zedieresiscyrillic" => "\u{04DE}",
-    "Zeta" => "\u{0396}",
-    "Zhearmenian" => "\u{053A}",
-    "Zhebrevecyrillic" => "\u{04C1}",
-    "Zhecyrillic" => "\u{0416}",
-    "Zhedescendercyrillic" => "\u{0496}",
-    "Zhedieresiscyrillic" => "\u{04DC}",
-    "Zlinebelow" => "\u{1E94}",
-    "Zmonospace" => "\u{FF3A}",
-    "Zsmall" => "\u{F77A}",
-    "Zstroke" => "\u{01B5}",
-    "a" => "\u{0061}",
-    "aabengali" => "\u{0986}",
-    "aacute" => "\u{00E1}",
-    "aadeva" => "\u{0906}",
-    "aagujarati" => "\u{0A86}",
-    "aagurmukhi" => "\u{0A06}",
-    "aamatragurmukhi" => "\u{0A3E}",
-    "aarusquare" => "\u{3303}",
-    "aavowelsignbengali" => "\u{09BE}",
-    "aavowelsigndeva" => "\u{093E}",
-    "aavowelsigngujarati" => "\u{0ABE}",
-    "abbreviationmarkarmenian" => "\u{055F}",
-    "abbreviationsigndeva" => "\u{0970}",
-    "abengali" => "\u{0985}",
-    "abopomofo" => "\u{311A}",
-    "abreve" => "\u{0103}",
-    "abreveacute" => "\u{1EAF}",
-    "abrevecyrillic" => "\u{04D1}",
-    "abrevedotbelow" => "\u{1EB7}",
-    "abrevegrave" => "\u{1EB1}",
-    "abrevehookabove" => "\u{1EB3}",
-    "abrevetilde" => "\u{1EB5}",
-    "acaron" => "\u{01CE}",
-    "acircle" => "\u{24D0}",
-    "acircumflex" => "\u{00E2}",
-    "acircumflexacute" => "\u{1EA5}",
-    "acircumflexdotbelow" => "\u{1EAD}",
-    "acircumflexgrave" => "\u{1EA7}",
-    "acircumflexhookabove" => "\u{1EA9}",
-    "acircumflextilde" => "\u{1EAB}",
-    "acute" => "\u{00B4}",
-    "acutebelowcmb" => "\u{0317}",
-    "acutecmb" => "\u{0301}",
-    "acutecomb" => "\u{0301}",
-    "acutedeva" => "\u{0954}",
-    "acutelowmod" => "\u{02CF}",
-    "acutetonecmb" => "\u{0341}",
-    "acyrillic" => "\u{0430}",
-    "adblgrave" => "\u{0201}",
-    "addakgurmukhi" => "\u{0A71}",
-    "adeva" => "\u{0905}",
-    "adieresis" => "\u{00E4}",
-    "adieresiscyrillic" => "\u{04D3}",
-    "adieresismacron" => "\u{01DF}",
-    "adotbelow" => "\u{1EA1}",
-    "adotmacron" => "\u{01E1}",
-    "ae" => "\u{00E6}",
-    "aeacute" => "\u{01FD}",
-    "aekorean" => "\u{3150}",
-    "aemacron" => "\u{01E3}",
-    "afii00208" => "\u{2015}",
-    "afii08941" => "\u{20A4}",
-    "afii10017" => "\u{0410}",
-    "afii10018" => "\u{0411}",
-    "afii10019" => "\u{0412}",
-    "afii10020" => "\u{0413}",
-    "afii10021" => "\u{0414}",
-    "afii10022" => "\u{0415}",
-    "afii10023" => "\u{0401}",
-    "afii10024" => "\u{0416}",
-    "afii10025" => "\u{0417}",
-    "afii10026" => "\u{0418}",
-    "afii10027" => "\u{0419}",
-    "afii10028" => "\u{041A}",
-    "afii10029" => "\u{041B}",
-    "afii10030" => "\u{041C}",
-    "afii10031" => "\u{041D}",
-    "afii10032" => "\u{041E}",
-    "afii10033" => "\u{041F}",
-    "afii10034" => "\u{0420}",
-    "afii10035" => "\u{0421}",
-    "afii10036" => "\u{0422}",
-    "afii10037" => "\u{0423}",
-    "afii10038" => "\u{0424}",
-    "afii10039" => "\u{0425}",
-    "afii10040" => "\u{0426}",
-    "afii10041" => "\u{0427}",
-    "afii10042" => "\u{0428}",
-    "afii10043" => "\u{0429}",
-    "afii10044" => "\u{042A}",
-    "afii10045" => "\u{042B}",
-    "afii10046" => "\u{042C}",
-    "afii10047" => "\u{042D}",
-    "afii10048" => "\u{042E}",
-    "afii10049" => "\u{042F}",
-    "afii10050" => "\u{0490}",
-    "afii10051" => "\u{0402}",
-    "afii10052" => "\u{0403}",
-    "afii10053" => "\u{0404}",
-    "afii10054" => "\u{0405}",
-    "afii10055" => "\u{0406}",
-    "afii10056" => "\u{0407}",
-    "afii10057" => "\u{0408}",
-    "afii10058" => "\u{0409}",
-    "afii10059" => "\u{040A}",
-    "afii10060" => "\u{040B}",
-    "afii10061" => "\u{040C}",
-    "afii10062" => "\u{040E}",
-    "afii10063" => "\u{F6C4}",
-    "afii10064" => "\u{F6C5}",
-    "afii10065" => "\u{0430}",
-    "afii10066" => "\u{0431}",
-    "afii10067" => "\u{0432}",
-    "afii10068" => "\u{0433}",
-    "afii10069" => "\u{0434}",
-    "afii10070" => "\u{0435}",
-    "afii10071" => "\u{0451}",
-    "afii10072" => "\u{0436}",
-    "afii10073" => "\u{0437}",
-    "afii10074" => "\u{0438}",
-    "afii10075" => "\u{0439}",
-    "afii10076" => "\u{043A}",
-    "afii10077" => "\u{043B}",
-    "afii10078" => "\u{043C}",
-    "afii10079" => "\u{043D}",
-    "afii10080" => "\u{043E}",
-    "afii10081" => "\u{043F}",
-    "afii10082" => "\u{0440}",
-    "afii10083" => "\u{0441}",
-    "afii10084" => "\u{0442}",
-    "afii10085" => "\u{0443}",
-    "afii10086" => "\u{0444}",
-    "afii10087" => "\u{0445}",
-    "afii10088" => "\u{0446}",
-    "afii10089" => "\u{0447}",
-    "afii10090" => "\u{0448}",
-    "afii10091" => "\u{0449}",
-    "afii10092" => "\u{044A}",
-    "afii10093" => "\u{044B}",
-    "afii10094" => "\u{044C}",
-    "afii10095" => "\u{044D}",
-    "afii10096" => "\u{044E}",
-    "afii10097" => "\u{044F}",
-    "afii10098" => "\u{0491}",
-    "afii10099" => "\u{0452}",
-    "afii10100" => "\u{0453}",
-    "afii10101" => "\u{0454}",
-    "afii10102" => "\u{0455}",
-    "afii10103" => "\u{0456}",
-    "afii10104" => "\u{0457}",
-    "afii10105" => "\u{0458}",
-    "afii10106" => "\u{0459}",
-    "afii10107" => "\u{045A}",
-    "afii10108" => "\u{045B}",
-    "afii10109" => "\u{045C}",
-    "afii10110" => "\u{045E}",
-    "afii10145" => "\u{040F}",
-    "afii10146" => "\u{0462}",
-    "afii10147" => "\u{0472}",
-    "afii10148" => "\u{0474}",
-    "afii10192" => "\u{F6C6}",
-    "afii10193" => "\u{045F}",
-    "afii10194" => "\u{0463}",
-    "afii10195" => "\u{0473}",
-    "afii10196" => "\u{0475}",
-    "afii10831" => "\u{F6C7}",
-    "afii10832" => "\u{F6C8}",
-    "afii10846" => "\u{04D9}",
-    "afii299" => "\u{200E}",
-    "afii300" => "\u{200F}",
-    "afii301" => "\u{200D}",
-    "afii57381" => "\u{066A}",
-    "afii57388" => "\u{060C}",
-    "afii57392" => "\u{0660}",
-    "afii57393" => "\u{0661}",
-    "afii57394" => "\u{0662}",
-    "afii57395" => "\u{0663}",
-    "afii57396" => "\u{0664}",
-    "afii57397" => "\u{0665}",
-    "afii57398" => "\u{0666}",
-    "afii57399" => "\u{0667}",
-    "afii57400" => "\u{0668}",
-    "afii57401" => "\u{0669}",
-    "afii57403" => "\u{061B}",
-    "afii57407" => "\u{061F}",
-    "afii57409" => "\u{0621}",
-    "afii57410" => "\u{0622}",
-    "afii57411" => "\u{0623}",
-    "afii57412" => "\u{0624}",
-    "afii57413" => "\u{0625}",
-    "afii57414" => "\u{0626}",
-    "afii57415" => "\u{0627}",
-    "afii57416" => "\u{0628}",
-    "afii57417" => "\u{0629}",
-    "afii57418" => "\u{062A}",
-    "afii57419" => "\u{062B}",
-    "afii57420" => "\u{062C}",
-    "afii57421" => "\u{062D}",
-    "afii57422" => "\u{062E}",
-    "afii57423" => "\u{062F}",
-    "afii57424" => "\u{0630}",
-    "afii57425" => "\u{0631}",
-    "afii57426" => "\u{0632}",
-    "afii57427" => "\u{0633}",
-    "afii57428" => "\u{0634}",
-    "afii57429" => "\u{0635}",
-    "afii57430" => "\u{0636}",
-    "afii57431" => "\u{0637}",
-    "afii57432" => "\u{0638}",
-    "afii57433" => "\u{0639}",
-    "afii57434" => "\u{063A}",
-    "afii57440" => "\u{0640}",
-    "afii57441" => "\u{0641}",
-    "afii57442" => "\u{0642}",
-    "afii57443" => "\u{0643}",
-    "afii57444" => "\u{0644}",
-    "afii57445" => "\u{0645}",
-    "afii57446" => "\u{0646}",
-    "afii57448" => "\u{0648}",
-    "afii57449" => "\u{0649}",
-    "afii57450" => "\u{064A}",
-    "afii57451" => "\u{064B}",
-    "afii57452" => "\u{064C}",
-    "afii57453" => "\u{064D}",
-    "afii57454" => "\u{064E}",
-    "afii57455" => "\u{064F}",
-    "afii57456" => "\u{0650}",
-    "afii57457" => "\u{0651}",
-    "afii57458" => "\u{0652}",
-    "afii57470" => "\u{0647}",
-    "afii57505" => "\u{06A4}",
-    "afii57506" => "\u{067E}",
-    "afii57507" => "\u{0686}",
-    "afii57508" => "\u{0698}",
-    "afii57509" => "\u{06AF}",
-    "afii57511" => "\u{0679}",
-    "afii57512" => "\u{0688}",
-    "afii57513" => "\u{0691}",
-    "afii57514" => "\u{06BA}",
-    "afii57519" => "\u{06D2}",
-    "afii57534" => "\u{06D5}",
-    "afii57636" => "\u{20AA}",
-    "afii57645" => "\u{05BE}",
-    "afii57658" => "\u{05C3}",
-    "afii57664" => "\u{05D0}",
-    "afii57665" => "\u{05D1}",
-    "afii57666" => "\u{05D2}",
-    "afii57667" => "\u{05D3}",
-    "afii57668" => "\u{05D4}",
-    "afii57669" => "\u{05D5}",
-    "afii57670" => "\u{05D6}",
-    "afii57671" => "\u{05D7}",
-    "afii57672" => "\u{05D8}",
-    "afii57673" => "\u{05D9}",
-    "afii57674" => "\u{05DA}",
-    "afii57675" => "\u{05DB}",
-    "afii57676" => "\u{05DC}",
-    "afii57677" => "\u{05DD}",
-    "afii57678" => "\u{05DE}",
-    "afii57679" => "\u{05DF}",
-    "afii57680" => "\u{05E0}",
-    "afii57681" => "\u{05E1}",
-    "afii57682" => "\u{05E2}",
-    "afii57683" => "\u{05E3}",
-    "afii57684" => "\u{05E4}",
-    "afii57685" => "\u{05E5}",
-    "afii57686" => "\u{05E6}",
-    "afii57687" => "\u{05E7}",
-    "afii57688" => "\u{05E8}",
-    "afii57689" => "\u{05E9}",
-    "afii57690" => "\u{05EA}",
-    "afii57694" => "\u{FB2A}",
-    "afii57695" => "\u{FB2B}",
-    "afii57700" => "\u{FB4B}",
-    "afii57705" => "\u{FB1F}",
-    "afii57716" => "\u{05F0}",
-    "afii57717" => "\u{05F1}",
-    "afii57718" => "\u{05F2}",
-    "afii57723" => "\u{FB35}",
-    "afii57793" => "\u{05B4}",
-    "afii57794" => "\u{05B5}",
-    "afii57795" => "\u{05B6}",
-    "afii57796" => "\u{05BB}",
-    "afii57797" => "\u{05B8}",
-    "afii57798" => "\u{05B7}",
-    "afii57799" => "\u{05B0}",
-    "afii57800" => "\u{05B2}",
-    "afii57801" => "\u{05B1}",
-    "afii57802" => "\u{05B3}",
-    "afii57803" => "\u{05C2}",
-    "afii57804" => "\u{05C1}",
-    "afii57806" => "\u{05B9}",
-    "afii57807" => "\u{05BC}",
-    "afii57839" => "\u{05BD}",
-    "afii57841" => "\u{05BF}",
-    "afii57842" => "\u{05C0}",
-    "afii57929" => "\u{02BC}",
-    "afii61248" => "\u{2105}",
-    "afii61289" => "\u{2113}",
-    "afii61352" => "\u{2116}",
-    "afii61573" => "\u{202C}",
-    "afii61574" => "\u{202D}",
-    "afii61575" => "\u{202E}",
-    "afii61664" => "\u{200C}",
-    "afii63167" => "\u{066D}",
-    "afii64937" => "\u{02BD}",
-    "agrave" => "\u{00E0}",
-    "agujarati" => "\u{0A85}",
-    "agurmukhi" => "\u{0A05}",
-    "ahiragana" => "\u{3042}",
-    "ahookabove" => "\u{1EA3}",
-    "aibengali" => "\u{0990}",
-    "aibopomofo" => "\u{311E}",
-    "aideva" => "\u{0910}",
-    "aiecyrillic" => "\u{04D5}",
-    "aigujarati" => "\u{0A90}",
-    "aigurmukhi" => "\u{0A10}",
-    "aimatragurmukhi" => "\u{0A48}",
-    "ainarabic" => "\u{0639}",
-    "ainfinalarabic" => "\u{FECA}",
-    "aininitialarabic" => "\u{FECB}",
-    "ainmedialarabic" => "\u{FECC}",
-    "ainvertedbreve" => "\u{0203}",
-    "aivowelsignbengali" => "\u{09C8}",
-    "aivowelsigndeva" => "\u{0948}",
-    "aivowelsigngujarati" => "\u{0AC8}",
-    "akatakana" => "\u{30A2}",
-    "akatakanahalfwidth" => "\u{FF71}",
-    "akorean" => "\u{314F}",
-    "alef" => "\u{05D0}",
-    "alefarabic" => "\u{0627}",
-    "alefdageshhebrew" => "\u{FB30}",
-    "aleffinalarabic" => "\u{FE8E}",
-    "alefhamzaabovearabic" => "\u{0623}",
-    "alefhamzaabovefinalarabic" => "\u{FE84}",
-    "alefhamzabelowarabic" => "\u{0625}",
-    "alefhamzabelowfinalarabic" => "\u{FE88}",
-    "alefhebrew" => "\u{05D0}",
-    "aleflamedhebrew" => "\u{FB4F}",
-    "alefmaddaabovearabic" => "\u{0622}",
-    "alefmaddaabovefinalarabic" => "\u{FE82}",
-    "alefmaksuraarabic" => "\u{0649}",
-    "alefmaksurafinalarabic" => "\u{FEF0}",
-    "alefmaksurainitialarabic" => "\u{FEF3}",
-    "alefmaksuramedialarabic" => "\u{FEF4}",
-    "alefpatahhebrew" => "\u{FB2E}",
-    "alefqamatshebrew" => "\u{FB2F}",
-    "aleph" => "\u{2135}",
-    "allequal" => "\u{224C}",
-    "alpha" => "\u{03B1}",
-    "alphatonos" => "\u{03AC}",
-    "amacron" => "\u{0101}",
-    "amonospace" => "\u{FF41}",
-    "ampersand" => "\u{0026}",
-    "ampersandmonospace" => "\u{FF06}",
-    "ampersandsmall" => "\u{F726}",
-    "amsquare" => "\u{33C2}",
-    "anbopomofo" => "\u{3122}",
-    "angbopomofo" => "\u{3124}",
-    "angkhankhuthai" => "\u{0E5A}",
-    "angle" => "\u{2220}",
-    "anglebracketleft" => "\u{3008}",
-    "anglebracketleftvertical" => "\u{FE3F}",
-    "anglebracketright" => "\u{3009}",
-    "anglebracketrightvertical" => "\u{FE40}",
-    "angleleft" => "\u{2329}",
-    "angleright" => "\u{232A}",
-    "angstrom" => "\u{212B}",
-    "anoteleia" => "\u{0387}",
-    "anudattadeva" => "\u{0952}",
-    "anusvarabengali" => "\u{0982}",
-    "anusvaradeva" => "\u{0902}",
-    "anusvaragujarati" => "\u{0A82}",
-    "aogonek" => "\u{0105}",
-    "apaatosquare" => "\u{3300}",
-    "aparen" => "\u{249C}",
-    "apostrophearmenian" => "\u{055A}",
-    "apostrophemod" => "\u{02BC}",
-    "apple" => "\u{F8FF}",
-    "approaches" => "\u{2250}",
-    "approxequal" => "\u{2248}",
-    "approxequalorimage" => "\u{2252}",
-    "approximatelyequal" => "\u{2245}",
-    "araeaekorean" => "\u{318E}",
-    "araeakorean" => "\u{318D}",
-    "arc" => "\u{2312}",
-    "arighthalfring" => "\u{1E9A}",
-    "aring" => "\u{00E5}",
-    "aringacute" => "\u{01FB}",
-    "aringbelow" => "\u{1E01}",
-    "arrowboth" => "\u{2194}",
-    "arrowdashdown" => "\u{21E3}",
-    "arrowdashleft" => "\u{21E0}",
-    "arrowdashright" => "\u{21E2}",
-    "arrowdashup" => "\u{21E1}",
-    "arrowdblboth" => "\u{21D4}",
-    "arrowdbldown" => "\u{21D3}",
-    "arrowdblleft" => "\u{21D0}",
-    "arrowdblright" => "\u{21D2}",
-    "arrowdblup" => "\u{21D1}",
-    "arrowdown" => "\u{2193}",
-    "arrowdownleft" => "\u{2199}",
-    "arrowdownright" => "\u{2198}",
-    "arrowdownwhite" => "\u{21E9}",
-    "arrowheaddownmod" => "\u{02C5}",
-    "arrowheadleftmod" => "\u{02C2}",
-    "arrowheadrightmod" => "\u{02C3}",
-    "arrowheadupmod" => "\u{02C4}",
-    "arrowhorizex" => "\u{F8E7}",
-    "arrowleft" => "\u{2190}",
-    "arrowleftdbl" => "\u{21D0}",
-    "arrowleftdblstroke" => "\u{21CD}",
-    "arrowleftoverright" => "\u{21C6}",
-    "arrowleftwhite" => "\u{21E6}",
-    "arrowright" => "\u{2192}",
-    "arrowrightdblstroke" => "\u{21CF}",
-    "arrowrightheavy" => "\u{279E}",
-    "arrowrightoverleft" => "\u{21C4}",
-    "arrowrightwhite" => "\u{21E8}",
-    "arrowtableft" => "\u{21E4}",
-    "arrowtabright" => "\u{21E5}",
-    "arrowup" => "\u{2191}",
-    "arrowupdn" => "\u{2195}",
-    "arrowupdnbse" => "\u{21A8}",
-    "arrowupdownbase" => "\u{21A8}",
-    "arrowupleft" => "\u{2196}",
-    "arrowupleftofdown" => "\u{21C5}",
-    "arrowupright" => "\u{2197}",
-    "arrowupwhite" => "\u{21E7}",
-    "arrowvertex" => "\u{F8E6}",
-    "asciicircum" => "\u{005E}",
-    "asciicircummonospace" => "\u{FF3E}",
-    "asciitilde" => "\u{007E}",
-    "asciitildemonospace" => "\u{FF5E}",
-    "ascript" => "\u{0251}",
-    "ascriptturned" => "\u{0252}",
-    "asmallhiragana" => "\u{3041}",
-    "asmallkatakana" => "\u{30A1}",
-    "asmallkatakanahalfwidth" => "\u{FF67}",
-    "asterisk" => "\u{002A}",
-    "asteriskaltonearabic" => "\u{066D}",
-    "asteriskarabic" => "\u{066D}",
-    "asteriskmath" => "\u{2217}",
-    "asteriskmonospace" => "\u{FF0A}",
-    "asterisksmall" => "\u{FE61}",
-    "asterism" => "\u{2042}",
-    "asuperior" => "\u{F6E9}",
-    "asymptoticallyequal" => "\u{2243}",
-    "at" => "\u{0040}",
-    "atilde" => "\u{00E3}",
-    "atmonospace" => "\u{FF20}",
-    "atsmall" => "\u{FE6B}",
-    "aturned" => "\u{0250}",
-    "aubengali" => "\u{0994}",
-    "aubopomofo" => "\u{3120}",
-    "audeva" => "\u{0914}",
-    "augujarati" => "\u{0A94}",
-    "augurmukhi" => "\u{0A14}",
-    "aulengthmarkbengali" => "\u{09D7}",
-    "aumatragurmukhi" => "\u{0A4C}",
-    "auvowelsignbengali" => "\u{09CC}",
-    "auvowelsigndeva" => "\u{094C}",
-    "auvowelsigngujarati" => "\u{0ACC}",
-    "avagrahadeva" => "\u{093D}",
-    "aybarmenian" => "\u{0561}",
-    "ayin" => "\u{05E2}",
-    "ayinaltonehebrew" => "\u{FB20}",
-    "ayinhebrew" => "\u{05E2}",
-    "b" => "\u{0062}",
-    "babengali" => "\u{09AC}",
-    "backslash" => "\u{005C}",
-    "backslashmonospace" => "\u{FF3C}",
-    "badeva" => "\u{092C}",
-    "bagujarati" => "\u{0AAC}",
-    "bagurmukhi" => "\u{0A2C}",
-    "bahiragana" => "\u{3070}",
-    "bahtthai" => "\u{0E3F}",
-    "bakatakana" => "\u{30D0}",
-    "bar" => "\u{007C}",
-    "barmonospace" => "\u{FF5C}",
-    "bbopomofo" => "\u{3105}",
-    "bcircle" => "\u{24D1}",
-    "bdotaccent" => "\u{1E03}",
-    "bdotbelow" => "\u{1E05}",
-    "beamedsixteenthnotes" => "\u{266C}",
-    "because" => "\u{2235}",
-    "becyrillic" => "\u{0431}",
-    "beharabic" => "\u{0628}",
-    "behfinalarabic" => "\u{FE90}",
-    "behinitialarabic" => "\u{FE91}",
-    "behiragana" => "\u{3079}",
-    "behmedialarabic" => "\u{FE92}",
-    "behmeeminitialarabic" => "\u{FC9F}",
-    "behmeemisolatedarabic" => "\u{FC08}",
-    "behnoonfinalarabic" => "\u{FC6D}",
-    "bekatakana" => "\u{30D9}",
-    "benarmenian" => "\u{0562}",
-    "bet" => "\u{05D1}",
-    "beta" => "\u{03B2}",
-    "betasymbolgreek" => "\u{03D0}",
-    "betdagesh" => "\u{FB31}",
-    "betdageshhebrew" => "\u{FB31}",
-    "bethebrew" => "\u{05D1}",
-    "betrafehebrew" => "\u{FB4C}",
-    "bhabengali" => "\u{09AD}",
-    "bhadeva" => "\u{092D}",
-    "bhagujarati" => "\u{0AAD}",
-    "bhagurmukhi" => "\u{0A2D}",
-    "bhook" => "\u{0253}",
-    "bihiragana" => "\u{3073}",
-    "bikatakana" => "\u{30D3}",
-    "bilabialclick" => "\u{0298}",
-    "bindigurmukhi" => "\u{0A02}",
-    "birusquare" => "\u{3331}",
-    "blackcircle" => "\u{25CF}",
-    "blackdiamond" => "\u{25C6}",
-    "blackdownpointingtriangle" => "\u{25BC}",
-    "blackleftpointingpointer" => "\u{25C4}",
-    "blackleftpointingtriangle" => "\u{25C0}",
-    "blacklenticularbracketleft" => "\u{3010}",
-    "blacklenticularbracketleftvertical" => "\u{FE3B}",
-    "blacklenticularbracketright" => "\u{3011}",
-    "blacklenticularbracketrightvertical" => "\u{FE3C}",
-    "blacklowerlefttriangle" => "\u{25E3}",
-    "blacklowerrighttriangle" => "\u{25E2}",
-    "blackrectangle" => "\u{25AC}",
-    "blackrightpointingpointer" => "\u{25BA}",
-    "blackrightpointingtriangle" => "\u{25B6}",
-    "blacksmallsquare" => "\u{25AA}",
-    "blacksmilingface" => "\u{263B}",
-    "blacksquare" => "\u{25A0}",
-    "blackstar" => "\u{2605}",
-    "blackupperlefttriangle" => "\u{25E4}",
-    "blackupperrighttriangle" => "\u{25E5}",
-    "blackuppointingsmalltriangle" => "\u{25B4}",
-    "blackuppointingtriangle" => "\u{25B2}",
-    "blank" => "\u{2423}",
-    "blinebelow" => "\u{1E07}",
-    "block" => "\u{2588}",
-    "bmonospace" => "\u{FF42}",
-    "bobaimaithai" => "\u{0E1A}",
-    "bohiragana" => "\u{307C}",
-    "bokatakana" => "\u{30DC}",
-    "bparen" => "\u{249D}",
-    "bqsquare" => "\u{33C3}",
-    "braceex" => "\u{F8F4}",
-    "braceleft" => "\u{007B}",
-    "braceleftbt" => "\u{F8F3}",
-    "braceleftmid" => "\u{F8F2}",
-    "braceleftmonospace" => "\u{FF5B}",
-    "braceleftsmall" => "\u{FE5B}",
-    "bracelefttp" => "\u{F8F1}",
-    "braceleftvertical" => "\u{FE37}",
-    "braceright" => "\u{007D}",
-    "bracerightbt" => "\u{F8FE}",
-    "bracerightmid" => "\u{F8FD}",
-    "bracerightmonospace" => "\u{FF5D}",
-    "bracerightsmall" => "\u{FE5C}",
-    "bracerighttp" => "\u{F8FC}",
-    "bracerightvertical" => "\u{FE38}",
-    "bracketleft" => "\u{005B}",
-    "bracketleftbt" => "\u{F8F0}",
-    "bracketleftex" => "\u{F8EF}",
-    "bracketleftmonospace" => "\u{FF3B}",
-    "bracketlefttp" => "\u{F8EE}",
-    "bracketright" => "\u{005D}",
-    "bracketrightbt" => "\u{F8FB}",
-    "bracketrightex" => "\u{F8FA}",
-    "bracketrightmonospace" => "\u{FF3D}",
-    "bracketrighttp" => "\u{F8F9}",
-    "breve" => "\u{02D8}",
-    "brevebelowcmb" => "\u{032E}",
-    "brevecmb" => "\u{0306}",
-    "breveinvertedbelowcmb" => "\u{032F}",
-    "breveinvertedcmb" => "\u{0311}",
-    "breveinverteddoublecmb" => "\u{0361}",
-    "bridgebelowcmb" => "\u{032A}",
-    "bridgeinvertedbelowcmb" => "\u{033A}",
-    "brokenbar" => "\u{00A6}",
-    "bstroke" => "\u{0180}",
-    "bsuperior" => "\u{F6EA}",
-    "btopbar" => "\u{0183}",
-    "buhiragana" => "\u{3076}",
-    "bukatakana" => "\u{30D6}",
-    "bullet" => "\u{2022}",
-    "bulletinverse" => "\u{25D8}",
-    "bulletoperator" => "\u{2219}",
-    "bullseye" => "\u{25CE}",
-    "c" => "\u{0063}",
-    "caarmenian" => "\u{056E}",
-    "cabengali" => "\u{099A}",
-    "cacute" => "\u{0107}",
-    "cadeva" => "\u{091A}",
-    "cagujarati" => "\u{0A9A}",
-    "cagurmukhi" => "\u{0A1A}",
-    "calsquare" => "\u{3388}",
-    "candrabindubengali" => "\u{0981}",
-    "candrabinducmb" => "\u{0310}",
-    "candrabindudeva" => "\u{0901}",
-    "candrabindugujarati" => "\u{0A81}",
-    "capslock" => "\u{21EA}",
-    "careof" => "\u{2105}",
-    "caron" => "\u{02C7}",
-    "caronbelowcmb" => "\u{032C}",
-    "caroncmb" => "\u{030C}",
-    "carriagereturn" => "\u{21B5}",
-    "cbopomofo" => "\u{3118}",
-    "ccaron" => "\u{010D}",
-    "ccedilla" => "\u{00E7}",
-    "ccedillaacute" => "\u{1E09}",
-    "ccircle" => "\u{24D2}",
-    "ccircumflex" => "\u{0109}",
-    "ccurl" => "\u{0255}",
-    "cdot" => "\u{010B}",
-    "cdotaccent" => "\u{010B}",
-    "cdsquare" => "\u{33C5}",
-    "cedilla" => "\u{00B8}",
-    "cedillacmb" => "\u{0327}",
-    "cent" => "\u{00A2}",
-    "centigrade" => "\u{2103}",
-    "centinferior" => "\u{F6DF}",
-    "centmonospace" => "\u{FFE0}",
-    "centoldstyle" => "\u{F7A2}",
-    "centsuperior" => "\u{F6E0}",
-    "chaarmenian" => "\u{0579}",
-    "chabengali" => "\u{099B}",
-    "chadeva" => "\u{091B}",
-    "chagujarati" => "\u{0A9B}",
-    "chagurmukhi" => "\u{0A1B}",
-    "chbopomofo" => "\u{3114}",
-    "cheabkhasiancyrillic" => "\u{04BD}",
-    "checkmark" => "\u{2713}",
-    "checyrillic" => "\u{0447}",
-    "chedescenderabkhasiancyrillic" => "\u{04BF}",
-    "chedescendercyrillic" => "\u{04B7}",
-    "chedieresiscyrillic" => "\u{04F5}",
-    "cheharmenian" => "\u{0573}",
-    "chekhakassiancyrillic" => "\u{04CC}",
-    "cheverticalstrokecyrillic" => "\u{04B9}",
-    "chi" => "\u{03C7}",
-    "chieuchacirclekorean" => "\u{3277}",
-    "chieuchaparenkorean" => "\u{3217}",
-    "chieuchcirclekorean" => "\u{3269}",
-    "chieuchkorean" => "\u{314A}",
-    "chieuchparenkorean" => "\u{3209}",
-    "chochangthai" => "\u{0E0A}",
-    "chochanthai" => "\u{0E08}",
-    "chochingthai" => "\u{0E09}",
-    "chochoethai" => "\u{0E0C}",
-    "chook" => "\u{0188}",
-    "cieucacirclekorean" => "\u{3276}",
-    "cieucaparenkorean" => "\u{3216}",
-    "cieuccirclekorean" => "\u{3268}",
-    "cieuckorean" => "\u{3148}",
-    "cieucparenkorean" => "\u{3208}",
-    "cieucuparenkorean" => "\u{321C}",
-    "circle" => "\u{25CB}",
-    "circlemultiply" => "\u{2297}",
-    "circleot" => "\u{2299}",
-    "circleplus" => "\u{2295}",
-    "circlepostalmark" => "\u{3036}",
-    "circlewithlefthalfblack" => "\u{25D0}",
-    "circlewithrighthalfblack" => "\u{25D1}",
-    "circumflex" => "\u{02C6}",
-    "circumflexbelowcmb" => "\u{032D}",
-    "circumflexcmb" => "\u{0302}",
-    "clear" => "\u{2327}",
-    "clickalveolar" => "\u{01C2}",
-    "clickdental" => "\u{01C0}",
-    "clicklateral" => "\u{01C1}",
-    "clickretroflex" => "\u{01C3}",
-    "club" => "\u{2663}",
-    "clubsuitblack" => "\u{2663}",
-    "clubsuitwhite" => "\u{2667}",
-    "cmcubedsquare" => "\u{33A4}",
-    "cmonospace" => "\u{FF43}",
-    "cmsquaredsquare" => "\u{33A0}",
-    "coarmenian" => "\u{0581}",
-    "colon" => "\u{003A}",
-    "colonmonetary" => "\u{20A1}",
-    "colonmonospace" => "\u{FF1A}",
-    "colonsign" => "\u{20A1}",
-    "colonsmall" => "\u{FE55}",
-    "colontriangularhalfmod" => "\u{02D1}",
-    "colontriangularmod" => "\u{02D0}",
-    "comma" => "\u{002C}",
-    "commaabovecmb" => "\u{0313}",
-    "commaaboverightcmb" => "\u{0315}",
-    "commaaccent" => "\u{F6C3}",
-    "commaarabic" => "\u{060C}",
-    "commaarmenian" => "\u{055D}",
-    "commainferior" => "\u{F6E1}",
-    "commamonospace" => "\u{FF0C}",
-    "commareversedabovecmb" => "\u{0314}",
-    "commareversedmod" => "\u{02BD}",
-    "commasmall" => "\u{FE50}",
-    "commasuperior" => "\u{F6E2}",
-    "commaturnedabovecmb" => "\u{0312}",
-    "commaturnedmod" => "\u{02BB}",
-    "compass" => "\u{263C}",
-    "congruent" => "\u{2245}",
-    "contourintegral" => "\u{222E}",
-    "control" => "\u{2303}",
-    "controlACK" => "\u{0006}",
-    "controlBEL" => "\u{0007}",
-    "controlBS" => "\u{0008}",
-    "controlCAN" => "\u{0018}",
-    "controlCR" => "\u{000D}",
-    "controlDC1" => "\u{0011}",
-    "controlDC2" => "\u{0012}",
-    "controlDC3" => "\u{0013}",
-    "controlDC4" => "\u{0014}",
-    "controlDEL" => "\u{007F}",
-    "controlDLE" => "\u{0010}",
-    "controlEM" => "\u{0019}",
-    "controlENQ" => "\u{0005}",
-    "controlEOT" => "\u{0004}",
-    "controlESC" => "\u{001B}",
-    "controlETB" => "\u{0017}",
-    "controlETX" => "\u{0003}",
-    "controlFF" => "\u{000C}",
-    "controlFS" => "\u{001C}",
-    "controlGS" => "\u{001D}",
-    "controlHT" => "\u{0009}",
-    "controlLF" => "\u{000A}",
-    "controlNAK" => "\u{0015}",
-    "controlRS" => "\u{001E}",
-    "controlSI" => "\u{000F}",
-    "controlSO" => "\u{000E}",
-    "controlSOT" => "\u{0002}",
-    "controlSTX" => "\u{0001}",
-    "controlSUB" => "\u{001A}",
-    "controlSYN" => "\u{0016}",
-    "controlUS" => "\u{001F}",
-    "controlVT" => "\u{000B}",
-    "copyright" => "\u{00A9}",
-    "copyrightsans" => "\u{F8E9}",
-    "copyrightserif" => "\u{F6D9}",
-    "cornerbracketleft" => "\u{300C}",
-    "cornerbracketlefthalfwidth" => "\u{FF62}",
-    "cornerbracketleftvertical" => "\u{FE41}",
-    "cornerbracketright" => "\u{300D}",
-    "cornerbracketrighthalfwidth" => "\u{FF63}",
-    "cornerbracketrightvertical" => "\u{FE42}",
-    "corporationsquare" => "\u{337F}",
-    "cosquare" => "\u{33C7}",
-    "coverkgsquare" => "\u{33C6}",
-    "cparen" => "\u{249E}",
-    "cruzeiro" => "\u{20A2}",
-    "cstretched" => "\u{0297}",
-    "curlyand" => "\u{22CF}",
-    "curlyor" => "\u{22CE}",
-    "currency" => "\u{00A4}",
-    "cyrBreve" => "\u{F6D1}",
-    "cyrFlex" => "\u{F6D2}",
-    "cyrbreve" => "\u{F6D4}",
-    "cyrflex" => "\u{F6D5}",
-    "d" => "\u{0064}",
-    "daarmenian" => "\u{0564}",
-    "dabengali" => "\u{09A6}",
-    "dadarabic" => "\u{0636}",
-    "dadeva" => "\u{0926}",
-    "dadfinalarabic" => "\u{FEBE}",
-    "dadinitialarabic" => "\u{FEBF}",
-    "dadmedialarabic" => "\u{FEC0}",
-    "dagesh" => "\u{05BC}",
-    "dageshhebrew" => "\u{05BC}",
-    "dagger" => "\u{2020}",
-    "daggerdbl" => "\u{2021}",
-    "dagujarati" => "\u{0AA6}",
-    "dagurmukhi" => "\u{0A26}",
-    "dahiragana" => "\u{3060}",
-    "dakatakana" => "\u{30C0}",
-    "dalarabic" => "\u{062F}",
-    "dalet" => "\u{05D3}",
-    "daletdagesh" => "\u{FB33}",
-    "daletdageshhebrew" => "\u{FB33}",
-    "dalethatafpatah" => "\u{05D3}\u{05B2}",
-    "dalethatafpatahhebrew" => "\u{05D3}\u{05B2}",
-    "dalethatafsegol" => "\u{05D3}\u{05B1}",
-    "dalethatafsegolhebrew" => "\u{05D3}\u{05B1}",
-    "dalethebrew" => "\u{05D3}",
-    "dalethiriq" => "\u{05D3}\u{05B4}",
-    "dalethiriqhebrew" => "\u{05D3}\u{05B4}",
-    "daletholam" => "\u{05D3}\u{05B9}",
-    "daletholamhebrew" => "\u{05D3}\u{05B9}",
-    "daletpatah" => "\u{05D3}\u{05B7}",
-    "daletpatahhebrew" => "\u{05D3}\u{05B7}",
-    "daletqamats" => "\u{05D3}\u{05B8}",
-    "daletqamatshebrew" => "\u{05D3}\u{05B8}",
-    "daletqubuts" => "\u{05D3}\u{05BB}",
-    "daletqubutshebrew" => "\u{05D3}\u{05BB}",
-    "daletsegol" => "\u{05D3}\u{05B6}",
-    "daletsegolhebrew" => "\u{05D3}\u{05B6}",
-    "daletsheva" => "\u{05D3}\u{05B0}",
-    "daletshevahebrew" => "\u{05D3}\u{05B0}",
-    "dalettsere" => "\u{05D3}\u{05B5}",
-    "dalettserehebrew" => "\u{05D3}\u{05B5}",
-    "dalfinalarabic" => "\u{FEAA}",
-    "dammaarabic" => "\u{064F}",
-    "dammalowarabic" => "\u{064F}",
-    "dammatanaltonearabic" => "\u{064C}",
-    "dammatanarabic" => "\u{064C}",
-    "danda" => "\u{0964}",
-    "dargahebrew" => "\u{05A7}",
-    "dargalefthebrew" => "\u{05A7}",
-    "dasiapneumatacyrilliccmb" => "\u{0485}",
-    "dblGrave" => "\u{F6D3}",
-    "dblanglebracketleft" => "\u{300A}",
-    "dblanglebracketleftvertical" => "\u{FE3D}",
-    "dblanglebracketright" => "\u{300B}",
-    "dblanglebracketrightvertical" => "\u{FE3E}",
-    "dblarchinvertedbelowcmb" => "\u{032B}",
-    "dblarrowleft" => "\u{21D4}",
-    "dblarrowright" => "\u{21D2}",
-    "dbldanda" => "\u{0965}",
-    "dblgrave" => "\u{F6D6}",
-    "dblgravecmb" => "\u{030F}",
-    "dblintegral" => "\u{222C}",
-    "dbllowline" => "\u{2017}",
-    "dbllowlinecmb" => "\u{0333}",
-    "dbloverlinecmb" => "\u{033F}",
-    "dblprimemod" => "\u{02BA}",
-    "dblverticalbar" => "\u{2016}",
-    "dblverticallineabovecmb" => "\u{030E}",
-    "dbopomofo" => "\u{3109}",
-    "dbsquare" => "\u{33C8}",
-    "dcaron" => "\u{010F}",
-    "dcedilla" => "\u{1E11}",
-    "dcircle" => "\u{24D3}",
-    "dcircumflexbelow" => "\u{1E13}",
-    "dcroat" => "\u{0111}",
-    "ddabengali" => "\u{09A1}",
-    "ddadeva" => "\u{0921}",
-    "ddagujarati" => "\u{0AA1}",
-    "ddagurmukhi" => "\u{0A21}",
-    "ddalarabic" => "\u{0688}",
-    "ddalfinalarabic" => "\u{FB89}",
-    "dddhadeva" => "\u{095C}",
-    "ddhabengali" => "\u{09A2}",
-    "ddhadeva" => "\u{0922}",
-    "ddhagujarati" => "\u{0AA2}",
-    "ddhagurmukhi" => "\u{0A22}",
-    "ddotaccent" => "\u{1E0B}",
-    "ddotbelow" => "\u{1E0D}",
-    "decimalseparatorarabic" => "\u{066B}",
-    "decimalseparatorpersian" => "\u{066B}",
-    "decyrillic" => "\u{0434}",
-    "degree" => "\u{00B0}",
-    "dehihebrew" => "\u{05AD}",
-    "dehiragana" => "\u{3067}",
-    "deicoptic" => "\u{03EF}",
-    "dekatakana" => "\u{30C7}",
-    "deleteleft" => "\u{232B}",
-    "deleteright" => "\u{2326}",
-    "delta" => "\u{03B4}",
-    "deltaturned" => "\u{018D}",
-    "denominatorminusonenumeratorbengali" => "\u{09F8}",
-    "dezh" => "\u{02A4}",
-    "dhabengali" => "\u{09A7}",
-    "dhadeva" => "\u{0927}",
-    "dhagujarati" => "\u{0AA7}",
-    "dhagurmukhi" => "\u{0A27}",
-    "dhook" => "\u{0257}",
-    "dialytikatonos" => "\u{0385}",
-    "dialytikatonoscmb" => "\u{0344}",
-    "diamond" => "\u{2666}",
-    "diamondsuitwhite" => "\u{2662}",
-    "dieresis" => "\u{00A8}",
-    "dieresisacute" => "\u{F6D7}",
-    "dieresisbelowcmb" => "\u{0324}",
-    "dieresiscmb" => "\u{0308}",
-    "dieresisgrave" => "\u{F6D8}",
-    "dieresistonos" => "\u{0385}",
-    "dihiragana" => "\u{3062}",
-    "dikatakana" => "\u{30C2}",
-    "dittomark" => "\u{3003}",
-    "divide" => "\u{00F7}",
-    "divides" => "\u{2223}",
-    "divisionslash" => "\u{2215}",
-    "djecyrillic" => "\u{0452}",
-    "dkshade" => "\u{2593}",
-    "dlinebelow" => "\u{1E0F}",
-    "dlsquare" => "\u{3397}",
-    "dmacron" => "\u{0111}",
-    "dmonospace" => "\u{FF44}",
-    "dnblock" => "\u{2584}",
-    "dochadathai" => "\u{0E0E}",
-    "dodekthai" => "\u{0E14}",
-    "dohiragana" => "\u{3069}",
-    "dokatakana" => "\u{30C9}",
-    "dollar" => "\u{0024}",
-    "dollarinferior" => "\u{F6E3}",
-    "dollarmonospace" => "\u{FF04}",
-    "dollaroldstyle" => "\u{F724}",
-    "dollarsmall" => "\u{FE69}",
-    "dollarsuperior" => "\u{F6E4}",
-    "dong" => "\u{20AB}",
-    "dorusquare" => "\u{3326}",
-    "dotaccent" => "\u{02D9}",
-    "dotaccentcmb" => "\u{0307}",
-    "dotbelowcmb" => "\u{0323}",
-    "dotbelowcomb" => "\u{0323}",
-    "dotkatakana" => "\u{30FB}",
-    "dotlessi" => "\u{0131}",
-    "dotlessj" => "\u{F6BE}",
-    "dotlessjstrokehook" => "\u{0284}",
-    "dotmath" => "\u{22C5}",
-    "dottedcircle" => "\u{25CC}",
-    "doubleyodpatah" => "\u{FB1F}",
-    "doubleyodpatahhebrew" => "\u{FB1F}",
-    "downtackbelowcmb" => "\u{031E}",
-    "downtackmod" => "\u{02D5}",
-    "dparen" => "\u{249F}",
-    "dsuperior" => "\u{F6EB}",
-    "dtail" => "\u{0256}",
-    "dtopbar" => "\u{018C}",
-    "duhiragana" => "\u{3065}",
-    "dukatakana" => "\u{30C5}",
-    "dz" => "\u{01F3}",
-    "dzaltone" => "\u{02A3}",
-    "dzcaron" => "\u{01C6}",
-    "dzcurl" => "\u{02A5}",
-    "dzeabkhasiancyrillic" => "\u{04E1}",
-    "dzecyrillic" => "\u{0455}",
-    "dzhecyrillic" => "\u{045F}",
-    "e" => "\u{0065}",
-    "eacute" => "\u{00E9}",
-    "earth" => "\u{2641}",
-    "ebengali" => "\u{098F}",
-    "ebopomofo" => "\u{311C}",
-    "ebreve" => "\u{0115}",
-    "ecandradeva" => "\u{090D}",
-    "ecandragujarati" => "\u{0A8D}",
-    "ecandravowelsigndeva" => "\u{0945}",
-    "ecandravowelsigngujarati" => "\u{0AC5}",
-    "ecaron" => "\u{011B}",
-    "ecedillabreve" => "\u{1E1D}",
-    "echarmenian" => "\u{0565}",
-    "echyiwnarmenian" => "\u{0587}",
-    "ecircle" => "\u{24D4}",
-    "ecircumflex" => "\u{00EA}",
-    "ecircumflexacute" => "\u{1EBF}",
-    "ecircumflexbelow" => "\u{1E19}",
-    "ecircumflexdotbelow" => "\u{1EC7}",
-    "ecircumflexgrave" => "\u{1EC1}",
-    "ecircumflexhookabove" => "\u{1EC3}",
-    "ecircumflextilde" => "\u{1EC5}",
-    "ecyrillic" => "\u{0454}",
-    "edblgrave" => "\u{0205}",
-    "edeva" => "\u{090F}",
-    "edieresis" => "\u{00EB}",
-    "edot" => "\u{0117}",
-    "edotaccent" => "\u{0117}",
-    "edotbelow" => "\u{1EB9}",
-    "eegurmukhi" => "\u{0A0F}",
-    "eematragurmukhi" => "\u{0A47}",
-    "efcyrillic" => "\u{0444}",
-    "egrave" => "\u{00E8}",
-    "egujarati" => "\u{0A8F}",
-    "eharmenian" => "\u{0567}",
-    "ehbopomofo" => "\u{311D}",
-    "ehiragana" => "\u{3048}",
-    "ehookabove" => "\u{1EBB}",
-    "eibopomofo" => "\u{311F}",
-    "eight" => "\u{0038}",
-    "eightarabic" => "\u{0668}",
-    "eightbengali" => "\u{09EE}",
-    "eightcircle" => "\u{2467}",
-    "eightcircleinversesansserif" => "\u{2791}",
-    "eightdeva" => "\u{096E}",
-    "eighteencircle" => "\u{2471}",
-    "eighteenparen" => "\u{2485}",
-    "eighteenperiod" => "\u{2499}",
-    "eightgujarati" => "\u{0AEE}",
-    "eightgurmukhi" => "\u{0A6E}",
-    "eighthackarabic" => "\u{0668}",
-    "eighthangzhou" => "\u{3028}",
-    "eighthnotebeamed" => "\u{266B}",
-    "eightideographicparen" => "\u{3227}",
-    "eightinferior" => "\u{2088}",
-    "eightmonospace" => "\u{FF18}",
-    "eightoldstyle" => "\u{F738}",
-    "eightparen" => "\u{247B}",
-    "eightperiod" => "\u{248F}",
-    "eightpersian" => "\u{06F8}",
-    "eightroman" => "\u{2177}",
-    "eightsuperior" => "\u{2078}",
-    "eightthai" => "\u{0E58}",
-    "einvertedbreve" => "\u{0207}",
-    "eiotifiedcyrillic" => "\u{0465}",
-    "ekatakana" => "\u{30A8}",
-    "ekatakanahalfwidth" => "\u{FF74}",
-    "ekonkargurmukhi" => "\u{0A74}",
-    "ekorean" => "\u{3154}",
-    "elcyrillic" => "\u{043B}",
-    "element" => "\u{2208}",
-    "elevencircle" => "\u{246A}",
-    "elevenparen" => "\u{247E}",
-    "elevenperiod" => "\u{2492}",
-    "elevenroman" => "\u{217A}",
-    "ellipsis" => "\u{2026}",
-    "ellipsisvertical" => "\u{22EE}",
-    "emacron" => "\u{0113}",
-    "emacronacute" => "\u{1E17}",
-    "emacrongrave" => "\u{1E15}",
-    "emcyrillic" => "\u{043C}",
-    "emdash" => "\u{2014}",
-    "emdashvertical" => "\u{FE31}",
-    "emonospace" => "\u{FF45}",
-    "emphasismarkarmenian" => "\u{055B}",
-    "emptyset" => "\u{2205}",
-    "enbopomofo" => "\u{3123}",
-    "encyrillic" => "\u{043D}",
-    "endash" => "\u{2013}",
-    "endashvertical" => "\u{FE32}",
-    "endescendercyrillic" => "\u{04A3}",
-    "eng" => "\u{014B}",
-    "engbopomofo" => "\u{3125}",
-    "enghecyrillic" => "\u{04A5}",
-    "enhookcyrillic" => "\u{04C8}",
-    "enspace" => "\u{2002}",
-    "eogonek" => "\u{0119}",
-    "eokorean" => "\u{3153}",
-    "eopen" => "\u{025B}",
-    "eopenclosed" => "\u{029A}",
-    "eopenreversed" => "\u{025C}",
-    "eopenreversedclosed" => "\u{025E}",
-    "eopenreversedhook" => "\u{025D}",
-    "eparen" => "\u{24A0}",
-    "epsilon" => "\u{03B5}",
-    "epsilontonos" => "\u{03AD}",
-    "equal" => "\u{003D}",
-    "equalmonospace" => "\u{FF1D}",
-    "equalsmall" => "\u{FE66}",
-    "equalsuperior" => "\u{207C}",
-    "equivalence" => "\u{2261}",
-    "erbopomofo" => "\u{3126}",
-    "ercyrillic" => "\u{0440}",
-    "ereversed" => "\u{0258}",
-    "ereversedcyrillic" => "\u{044D}",
-    "escyrillic" => "\u{0441}",
-    "esdescendercyrillic" => "\u{04AB}",
-    "esh" => "\u{0283}",
-    "eshcurl" => "\u{0286}",
-    "eshortdeva" => "\u{090E}",
-    "eshortvowelsigndeva" => "\u{0946}",
-    "eshreversedloop" => "\u{01AA}",
-    "eshsquatreversed" => "\u{0285}",
-    "esmallhiragana" => "\u{3047}",
-    "esmallkatakana" => "\u{30A7}",
-    "esmallkatakanahalfwidth" => "\u{FF6A}",
-    "estimated" => "\u{212E}",
-    "esuperior" => "\u{F6EC}",
-    "eta" => "\u{03B7}",
-    "etarmenian" => "\u{0568}",
-    "etatonos" => "\u{03AE}",
-    "eth" => "\u{00F0}",
-    "etilde" => "\u{1EBD}",
-    "etildebelow" => "\u{1E1B}",
-    "etnahtafoukhhebrew" => "\u{0591}",
-    "etnahtafoukhlefthebrew" => "\u{0591}",
-    "etnahtahebrew" => "\u{0591}",
-    "etnahtalefthebrew" => "\u{0591}",
-    "eturned" => "\u{01DD}",
-    "eukorean" => "\u{3161}",
-    "euro" => "\u{20AC}",
-    "evowelsignbengali" => "\u{09C7}",
-    "evowelsigndeva" => "\u{0947}",
-    "evowelsigngujarati" => "\u{0AC7}",
-    "exclam" => "\u{0021}",
-    "exclamarmenian" => "\u{055C}",
-    "exclamdbl" => "\u{203C}",
-    "exclamdown" => "\u{00A1}",
-    "exclamdownsmall" => "\u{F7A1}",
-    "exclammonospace" => "\u{FF01}",
-    "exclamsmall" => "\u{F721}",
-    "existential" => "\u{2203}",
-    "ezh" => "\u{0292}",
-    "ezhcaron" => "\u{01EF}",
-    "ezhcurl" => "\u{0293}",
-    "ezhreversed" => "\u{01B9}",
-    "ezhtail" => "\u{01BA}",
-    "f" => "\u{0066}",
-    "fadeva" => "\u{095E}",
-    "fagurmukhi" => "\u{0A5E}",
-    "fahrenheit" => "\u{2109}",
-    "fathaarabic" => "\u{064E}",
-    "fathalowarabic" => "\u{064E}",
-    "fathatanarabic" => "\u{064B}",
-    "fbopomofo" => "\u{3108}",
-    "fcircle" => "\u{24D5}",
-    "fdotaccent" => "\u{1E1F}",
-    "feharabic" => "\u{0641}",
-    "feharmenian" => "\u{0586}",
-    "fehfinalarabic" => "\u{FED2}",
-    "fehinitialarabic" => "\u{FED3}",
-    "fehmedialarabic" => "\u{FED4}",
-    "feicoptic" => "\u{03E5}",
-    "female" => "\u{2640}",
-    "ff" => "\u{FB00}",
-    "ffi" => "\u{FB03}",
-    "ffl" => "\u{FB04}",
-    "fi" => "\u{FB01}",
-    "fifteencircle" => "\u{246E}",
-    "fifteenparen" => "\u{2482}",
-    "fifteenperiod" => "\u{2496}",
-    "figuredash" => "\u{2012}",
-    "filledbox" => "\u{25A0}",
-    "filledrect" => "\u{25AC}",
-    "finalkaf" => "\u{05DA}",
-    "finalkafdagesh" => "\u{FB3A}",
-    "finalkafdageshhebrew" => "\u{FB3A}",
-    "finalkafhebrew" => "\u{05DA}",
-    "finalkafqamats" => "\u{05DA}\u{05B8}",
-    "finalkafqamatshebrew" => "\u{05DA}\u{05B8}",
-    "finalkafsheva" => "\u{05DA}\u{05B0}",
-    "finalkafshevahebrew" => "\u{05DA}\u{05B0}",
-    "finalmem" => "\u{05DD}",
-    "finalmemhebrew" => "\u{05DD}",
-    "finalnun" => "\u{05DF}",
-    "finalnunhebrew" => "\u{05DF}",
-    "finalpe" => "\u{05E3}",
-    "finalpehebrew" => "\u{05E3}",
-    "finaltsadi" => "\u{05E5}",
-    "finaltsadihebrew" => "\u{05E5}",
-    "firsttonechinese" => "\u{02C9}",
-    "fisheye" => "\u{25C9}",
-    "fitacyrillic" => "\u{0473}",
-    "five" => "\u{0035}",
-    "fivearabic" => "\u{0665}",
-    "fivebengali" => "\u{09EB}",
-    "fivecircle" => "\u{2464}",
-    "fivecircleinversesansserif" => "\u{278E}",
-    "fivedeva" => "\u{096B}",
-    "fiveeighths" => "\u{215D}",
-    "fivegujarati" => "\u{0AEB}",
-    "fivegurmukhi" => "\u{0A6B}",
-    "fivehackarabic" => "\u{0665}",
-    "fivehangzhou" => "\u{3025}",
-    "fiveideographicparen" => "\u{3224}",
-    "fiveinferior" => "\u{2085}",
-    "fivemonospace" => "\u{FF15}",
-    "fiveoldstyle" => "\u{F735}",
-    "fiveparen" => "\u{2478}",
-    "fiveperiod" => "\u{248C}",
-    "fivepersian" => "\u{06F5}",
-    "fiveroman" => "\u{2174}",
-    "fivesuperior" => "\u{2075}",
-    "fivethai" => "\u{0E55}",
-    "fl" => "\u{FB02}",
-    "florin" => "\u{0192}",
-    "fmonospace" => "\u{FF46}",
-    "fmsquare" => "\u{3399}",
-    "fofanthai" => "\u{0E1F}",
-    "fofathai" => "\u{0E1D}",
-    "fongmanthai" => "\u{0E4F}",
-    "forall" => "\u{2200}",
-    "four" => "\u{0034}",
-    "fourarabic" => "\u{0664}",
-    "fourbengali" => "\u{09EA}",
-    "fourcircle" => "\u{2463}",
-    "fourcircleinversesansserif" => "\u{278D}",
-    "fourdeva" => "\u{096A}",
-    "fourgujarati" => "\u{0AEA}",
-    "fourgurmukhi" => "\u{0A6A}",
-    "fourhackarabic" => "\u{0664}",
-    "fourhangzhou" => "\u{3024}",
-    "fourideographicparen" => "\u{3223}",
-    "fourinferior" => "\u{2084}",
-    "fourmonospace" => "\u{FF14}",
-    "fournumeratorbengali" => "\u{09F7}",
-    "fouroldstyle" => "\u{F734}",
-    "fourparen" => "\u{2477}",
-    "fourperiod" => "\u{248B}",
-    "fourpersian" => "\u{06F4}",
-    "fourroman" => "\u{2173}",
-    "foursuperior" => "\u{2074}",
-    "fourteencircle" => "\u{246D}",
-    "fourteenparen" => "\u{2481}",
-    "fourteenperiod" => "\u{2495}",
-    "fourthai" => "\u{0E54}",
-    "fourthtonechinese" => "\u{02CB}",
-    "fparen" => "\u{24A1}",
-    "fraction" => "\u{2044}",
-    "franc" => "\u{20A3}",
-    "g" => "\u{0067}",
-    "gabengali" => "\u{0997}",
-    "gacute" => "\u{01F5}",
-    "gadeva" => "\u{0917}",
-    "gafarabic" => "\u{06AF}",
-    "gaffinalarabic" => "\u{FB93}",
-    "gafinitialarabic" => "\u{FB94}",
-    "gafmedialarabic" => "\u{FB95}",
-    "gagujarati" => "\u{0A97}",
-    "gagurmukhi" => "\u{0A17}",
-    "gahiragana" => "\u{304C}",
-    "gakatakana" => "\u{30AC}",
-    "gamma" => "\u{03B3}",
-    "gammalatinsmall" => "\u{0263}",
-    "gammasuperior" => "\u{02E0}",
-    "gangiacoptic" => "\u{03EB}",
-    "gbopomofo" => "\u{310D}",
-    "gbreve" => "\u{011F}",
-    "gcaron" => "\u{01E7}",
-    "gcedilla" => "\u{0123}",
-    "gcircle" => "\u{24D6}",
-    "gcircumflex" => "\u{011D}",
-    "gcommaaccent" => "\u{0123}",
-    "gdot" => "\u{0121}",
-    "gdotaccent" => "\u{0121}",
-    "gecyrillic" => "\u{0433}",
-    "gehiragana" => "\u{3052}",
-    "gekatakana" => "\u{30B2}",
-    "geometricallyequal" => "\u{2251}",
-    "gereshaccenthebrew" => "\u{059C}",
-    "gereshhebrew" => "\u{05F3}",
-    "gereshmuqdamhebrew" => "\u{059D}",
-    "germandbls" => "\u{00DF}",
-    "gershayimaccenthebrew" => "\u{059E}",
-    "gershayimhebrew" => "\u{05F4}",
-    "getamark" => "\u{3013}",
-    "ghabengali" => "\u{0998}",
-    "ghadarmenian" => "\u{0572}",
-    "ghadeva" => "\u{0918}",
-    "ghagujarati" => "\u{0A98}",
-    "ghagurmukhi" => "\u{0A18}",
-    "ghainarabic" => "\u{063A}",
-    "ghainfinalarabic" => "\u{FECE}",
-    "ghaininitialarabic" => "\u{FECF}",
-    "ghainmedialarabic" => "\u{FED0}",
-    "ghemiddlehookcyrillic" => "\u{0495}",
-    "ghestrokecyrillic" => "\u{0493}",
-    "gheupturncyrillic" => "\u{0491}",
-    "ghhadeva" => "\u{095A}",
-    "ghhagurmukhi" => "\u{0A5A}",
-    "ghook" => "\u{0260}",
-    "ghzsquare" => "\u{3393}",
-    "gihiragana" => "\u{304E}",
-    "gikatakana" => "\u{30AE}",
-    "gimarmenian" => "\u{0563}",
-    "gimel" => "\u{05D2}",
-    "gimeldagesh" => "\u{FB32}",
-    "gimeldageshhebrew" => "\u{FB32}",
-    "gimelhebrew" => "\u{05D2}",
-    "gjecyrillic" => "\u{0453}",
-    "glottalinvertedstroke" => "\u{01BE}",
-    "glottalstop" => "\u{0294}",
-    "glottalstopinverted" => "\u{0296}",
-    "glottalstopmod" => "\u{02C0}",
-    "glottalstopreversed" => "\u{0295}",
-    "glottalstopreversedmod" => "\u{02C1}",
-    "glottalstopreversedsuperior" => "\u{02E4}",
-    "glottalstopstroke" => "\u{02A1}",
-    "glottalstopstrokereversed" => "\u{02A2}",
-    "gmacron" => "\u{1E21}",
-    "gmonospace" => "\u{FF47}",
-    "gohiragana" => "\u{3054}",
-    "gokatakana" => "\u{30B4}",
-    "gparen" => "\u{24A2}",
-    "gpasquare" => "\u{33AC}",
-    "gradient" => "\u{2207}",
-    "grave" => "\u{0060}",
-    "gravebelowcmb" => "\u{0316}",
-    "gravecmb" => "\u{0300}",
-    "gravecomb" => "\u{0300}",
-    "gravedeva" => "\u{0953}",
-    "gravelowmod" => "\u{02CE}",
-    "gravemonospace" => "\u{FF40}",
-    "gravetonecmb" => "\u{0340}",
-    "greater" => "\u{003E}",
-    "greaterequal" => "\u{2265}",
-    "greaterequalorless" => "\u{22DB}",
-    "greatermonospace" => "\u{FF1E}",
-    "greaterorequivalent" => "\u{2273}",
-    "greaterorless" => "\u{2277}",
-    "greateroverequal" => "\u{2267}",
-    "greatersmall" => "\u{FE65}",
-    "gscript" => "\u{0261}",
-    "gstroke" => "\u{01E5}",
-    "guhiragana" => "\u{3050}",
-    "guillemotleft" => "\u{00AB}",
-    "guillemotright" => "\u{00BB}",
-    "guilsinglleft" => "\u{2039}",
-    "guilsinglright" => "\u{203A}",
-    "gukatakana" => "\u{30B0}",
-    "guramusquare" => "\u{3318}",
-    "gysquare" => "\u{33C9}",
-    "h" => "\u{0068}",
-    "haabkhasiancyrillic" => "\u{04A9}",
-    "haaltonearabic" => "\u{06C1}",
-    "habengali" => "\u{09B9}",
-    "hadescendercyrillic" => "\u{04B3}",
-    "hadeva" => "\u{0939}",
-    "hagujarati" => "\u{0AB9}",
-    "hagurmukhi" => "\u{0A39}",
-    "haharabic" => "\u{062D}",
-    "hahfinalarabic" => "\u{FEA2}",
-    "hahinitialarabic" => "\u{FEA3}",
-    "hahiragana" => "\u{306F}",
-    "hahmedialarabic" => "\u{FEA4}",
-    "haitusquare" => "\u{332A}",
-    "hakatakana" => "\u{30CF}",
-    "hakatakanahalfwidth" => "\u{FF8A}",
-    "halantgurmukhi" => "\u{0A4D}",
-    "hamzaarabic" => "\u{0621}",
-    "hamzadammaarabic" => "\u{0621}\u{064F}",
-    "hamzadammatanarabic" => "\u{0621}\u{064C}",
-    "hamzafathaarabic" => "\u{0621}\u{064E}",
-    "hamzafathatanarabic" => "\u{0621}\u{064B}",
-    "hamzalowarabic" => "\u{0621}",
-    "hamzalowkasraarabic" => "\u{0621}\u{0650}",
-    "hamzalowkasratanarabic" => "\u{0621}\u{064D}",
-    "hamzasukunarabic" => "\u{0621}\u{0652}",
-    "hangulfiller" => "\u{3164}",
-    "hardsigncyrillic" => "\u{044A}",
-    "harpoonleftbarbup" => "\u{21BC}",
-    "harpoonrightbarbup" => "\u{21C0}",
-    "hasquare" => "\u{33CA}",
-    "hatafpatah" => "\u{05B2}",
-    "hatafpatah16" => "\u{05B2}",
-    "hatafpatah23" => "\u{05B2}",
-    "hatafpatah2f" => "\u{05B2}",
-    "hatafpatahhebrew" => "\u{05B2}",
-    "hatafpatahnarrowhebrew" => "\u{05B2}",
-    "hatafpatahquarterhebrew" => "\u{05B2}",
-    "hatafpatahwidehebrew" => "\u{05B2}",
-    "hatafqamats" => "\u{05B3}",
-    "hatafqamats1b" => "\u{05B3}",
-    "hatafqamats28" => "\u{05B3}",
-    "hatafqamats34" => "\u{05B3}",
-    "hatafqamatshebrew" => "\u{05B3}",
-    "hatafqamatsnarrowhebrew" => "\u{05B3}",
-    "hatafqamatsquarterhebrew" => "\u{05B3}",
-    "hatafqamatswidehebrew" => "\u{05B3}",
-    "hatafsegol" => "\u{05B1}",
-    "hatafsegol17" => "\u{05B1}",
-    "hatafsegol24" => "\u{05B1}",
-    "hatafsegol30" => "\u{05B1}",
-    "hatafsegolhebrew" => "\u{05B1}",
-    "hatafsegolnarrowhebrew" => "\u{05B1}",
-    "hatafsegolquarterhebrew" => "\u{05B1}",
-    "hatafsegolwidehebrew" => "\u{05B1}",
-    "hbar" => "\u{0127}",
-    "hbopomofo" => "\u{310F}",
-    "hbrevebelow" => "\u{1E2B}",
-    "hcedilla" => "\u{1E29}",
-    "hcircle" => "\u{24D7}",
-    "hcircumflex" => "\u{0125}",
-    "hdieresis" => "\u{1E27}",
-    "hdotaccent" => "\u{1E23}",
-    "hdotbelow" => "\u{1E25}",
-    "he" => "\u{05D4}",
-    "heart" => "\u{2665}",
-    "heartsuitblack" => "\u{2665}",
-    "heartsuitwhite" => "\u{2661}",
-    "hedagesh" => "\u{FB34}",
-    "hedageshhebrew" => "\u{FB34}",
-    "hehaltonearabic" => "\u{06C1}",
-    "heharabic" => "\u{0647}",
-    "hehebrew" => "\u{05D4}",
-    "hehfinalaltonearabic" => "\u{FBA7}",
-    "hehfinalalttwoarabic" => "\u{FEEA}",
-    "hehfinalarabic" => "\u{FEEA}",
-    "hehhamzaabovefinalarabic" => "\u{FBA5}",
-    "hehhamzaaboveisolatedarabic" => "\u{FBA4}",
-    "hehinitialaltonearabic" => "\u{FBA8}",
-    "hehinitialarabic" => "\u{FEEB}",
-    "hehiragana" => "\u{3078}",
-    "hehmedialaltonearabic" => "\u{FBA9}",
-    "hehmedialarabic" => "\u{FEEC}",
-    "heiseierasquare" => "\u{337B}",
-    "hekatakana" => "\u{30D8}",
-    "hekatakanahalfwidth" => "\u{FF8D}",
-    "hekutaarusquare" => "\u{3336}",
-    "henghook" => "\u{0267}",
-    "herutusquare" => "\u{3339}",
-    "het" => "\u{05D7}",
-    "hethebrew" => "\u{05D7}",
-    "hhook" => "\u{0266}",
-    "hhooksuperior" => "\u{02B1}",
-    "hieuhacirclekorean" => "\u{327B}",
-    "hieuhaparenkorean" => "\u{321B}",
-    "hieuhcirclekorean" => "\u{326D}",
-    "hieuhkorean" => "\u{314E}",
-    "hieuhparenkorean" => "\u{320D}",
-    "hihiragana" => "\u{3072}",
-    "hikatakana" => "\u{30D2}",
-    "hikatakanahalfwidth" => "\u{FF8B}",
-    "hiriq" => "\u{05B4}",
-    "hiriq14" => "\u{05B4}",
-    "hiriq21" => "\u{05B4}",
-    "hiriq2d" => "\u{05B4}",
-    "hiriqhebrew" => "\u{05B4}",
-    "hiriqnarrowhebrew" => "\u{05B4}",
-    "hiriqquarterhebrew" => "\u{05B4}",
-    "hiriqwidehebrew" => "\u{05B4}",
-    "hlinebelow" => "\u{1E96}",
-    "hmonospace" => "\u{FF48}",
-    "hoarmenian" => "\u{0570}",
-    "hohipthai" => "\u{0E2B}",
-    "hohiragana" => "\u{307B}",
-    "hokatakana" => "\u{30DB}",
-    "hokatakanahalfwidth" => "\u{FF8E}",
-    "holam" => "\u{05B9}",
-    "holam19" => "\u{05B9}",
-    "holam26" => "\u{05B9}",
-    "holam32" => "\u{05B9}",
-    "holamhebrew" => "\u{05B9}",
-    "holamnarrowhebrew" => "\u{05B9}",
-    "holamquarterhebrew" => "\u{05B9}",
-    "holamwidehebrew" => "\u{05B9}",
-    "honokhukthai" => "\u{0E2E}",
-    "hookabovecomb" => "\u{0309}",
-    "hookcmb" => "\u{0309}",
-    "hookpalatalizedbelowcmb" => "\u{0321}",
-    "hookretroflexbelowcmb" => "\u{0322}",
-    "hoonsquare" => "\u{3342}",
-    "horicoptic" => "\u{03E9}",
-    "horizontalbar" => "\u{2015}",
-    "horncmb" => "\u{031B}",
-    "hotsprings" => "\u{2668}",
-    "house" => "\u{2302}",
-    "hparen" => "\u{24A3}",
-    "hsuperior" => "\u{02B0}",
-    "hturned" => "\u{0265}",
-    "huhiragana" => "\u{3075}",
-    "huiitosquare" => "\u{3333}",
-    "hukatakana" => "\u{30D5}",
-    "hukatakanahalfwidth" => "\u{FF8C}",
-    "hungarumlaut" => "\u{02DD}",
-    "hungarumlautcmb" => "\u{030B}",
-    "hv" => "\u{0195}",
-    "hyphen" => "\u{002D}",
-    "hypheninferior" => "\u{F6E5}",
-    "hyphenmonospace" => "\u{FF0D}",
-    "hyphensmall" => "\u{FE63}",
-    "hyphensuperior" => "\u{F6E6}",
-    "hyphentwo" => "\u{2010}",
-    "i" => "\u{0069}",
-    "iacute" => "\u{00ED}",
-    "iacyrillic" => "\u{044F}",
-    "ibengali" => "\u{0987}",
-    "ibopomofo" => "\u{3127}",
-    "ibreve" => "\u{012D}",
-    "icaron" => "\u{01D0}",
-    "icircle" => "\u{24D8}",
-    "icircumflex" => "\u{00EE}",
-    "icyrillic" => "\u{0456}",
-    "idblgrave" => "\u{0209}",
-    "ideographearthcircle" => "\u{328F}",
-    "ideographfirecircle" => "\u{328B}",
-    "ideographicallianceparen" => "\u{323F}",
-    "ideographiccallparen" => "\u{323A}",
-    "ideographiccentrecircle" => "\u{32A5}",
-    "ideographicclose" => "\u{3006}",
-    "ideographiccomma" => "\u{3001}",
-    "ideographiccommaleft" => "\u{FF64}",
-    "ideographiccongratulationparen" => "\u{3237}",
-    "ideographiccorrectcircle" => "\u{32A3}",
-    "ideographicearthparen" => "\u{322F}",
-    "ideographicenterpriseparen" => "\u{323D}",
-    "ideographicexcellentcircle" => "\u{329D}",
-    "ideographicfestivalparen" => "\u{3240}",
-    "ideographicfinancialcircle" => "\u{3296}",
-    "ideographicfinancialparen" => "\u{3236}",
-    "ideographicfireparen" => "\u{322B}",
-    "ideographichaveparen" => "\u{3232}",
-    "ideographichighcircle" => "\u{32A4}",
-    "ideographiciterationmark" => "\u{3005}",
-    "ideographiclaborcircle" => "\u{3298}",
-    "ideographiclaborparen" => "\u{3238}",
-    "ideographicleftcircle" => "\u{32A7}",
-    "ideographiclowcircle" => "\u{32A6}",
-    "ideographicmedicinecircle" => "\u{32A9}",
-    "ideographicmetalparen" => "\u{322E}",
-    "ideographicmoonparen" => "\u{322A}",
-    "ideographicnameparen" => "\u{3234}",
-    "ideographicperiod" => "\u{3002}",
-    "ideographicprintcircle" => "\u{329E}",
-    "ideographicreachparen" => "\u{3243}",
-    "ideographicrepresentparen" => "\u{3239}",
-    "ideographicresourceparen" => "\u{323E}",
-    "ideographicrightcircle" => "\u{32A8}",
-    "ideographicsecretcircle" => "\u{3299}",
-    "ideographicselfparen" => "\u{3242}",
-    "ideographicsocietyparen" => "\u{3233}",
-    "ideographicspace" => "\u{3000}",
-    "ideographicspecialparen" => "\u{3235}",
-    "ideographicstockparen" => "\u{3231}",
-    "ideographicstudyparen" => "\u{323B}",
-    "ideographicsunparen" => "\u{3230}",
-    "ideographicsuperviseparen" => "\u{323C}",
-    "ideographicwaterparen" => "\u{322C}",
-    "ideographicwoodparen" => "\u{322D}",
-    "ideographiczero" => "\u{3007}",
-    "ideographmetalcircle" => "\u{328E}",
-    "ideographmooncircle" => "\u{328A}",
-    "ideographnamecircle" => "\u{3294}",
-    "ideographsuncircle" => "\u{3290}",
-    "ideographwatercircle" => "\u{328C}",
-    "ideographwoodcircle" => "\u{328D}",
-    "ideva" => "\u{0907}",
-    "idieresis" => "\u{00EF}",
-    "idieresisacute" => "\u{1E2F}",
-    "idieresiscyrillic" => "\u{04E5}",
-    "idotbelow" => "\u{1ECB}",
-    "iebrevecyrillic" => "\u{04D7}",
-    "iecyrillic" => "\u{0435}",
-    "ieungacirclekorean" => "\u{3275}",
-    "ieungaparenkorean" => "\u{3215}",
-    "ieungcirclekorean" => "\u{3267}",
-    "ieungkorean" => "\u{3147}",
-    "ieungparenkorean" => "\u{3207}",
-    "igrave" => "\u{00EC}",
-    "igujarati" => "\u{0A87}",
-    "igurmukhi" => "\u{0A07}",
-    "ihiragana" => "\u{3044}",
-    "ihookabove" => "\u{1EC9}",
-    "iibengali" => "\u{0988}",
-    "iicyrillic" => "\u{0438}",
-    "iideva" => "\u{0908}",
-    "iigujarati" => "\u{0A88}",
-    "iigurmukhi" => "\u{0A08}",
-    "iimatragurmukhi" => "\u{0A40}",
-    "iinvertedbreve" => "\u{020B}",
-    "iishortcyrillic" => "\u{0439}",
-    "iivowelsignbengali" => "\u{09C0}",
-    "iivowelsigndeva" => "\u{0940}",
-    "iivowelsigngujarati" => "\u{0AC0}",
-    "ij" => "\u{0133}",
-    "ikatakana" => "\u{30A4}",
-    "ikatakanahalfwidth" => "\u{FF72}",
-    "ikorean" => "\u{3163}",
-    "ilde" => "\u{02DC}",
-    "iluyhebrew" => "\u{05AC}",
-    "imacron" => "\u{012B}",
-    "imacroncyrillic" => "\u{04E3}",
-    "imageorapproximatelyequal" => "\u{2253}",
-    "imatragurmukhi" => "\u{0A3F}",
-    "imonospace" => "\u{FF49}",
-    "increment" => "\u{2206}",
-    "infinity" => "\u{221E}",
-    "iniarmenian" => "\u{056B}",
-    "integral" => "\u{222B}",
-    "integralbottom" => "\u{2321}",
-    "integralbt" => "\u{2321}",
-    "integralex" => "\u{F8F5}",
-    "integraltop" => "\u{2320}",
-    "integraltp" => "\u{2320}",
-    "intersection" => "\u{2229}",
-    "intisquare" => "\u{3305}",
-    "invbullet" => "\u{25D8}",
-    "invcircle" => "\u{25D9}",
-    "invsmileface" => "\u{263B}",
-    "iocyrillic" => "\u{0451}",
-    "iogonek" => "\u{012F}",
-    "iota" => "\u{03B9}",
-    "iotadieresis" => "\u{03CA}",
-    "iotadieresistonos" => "\u{0390}",
-    "iotalatin" => "\u{0269}",
-    "iotatonos" => "\u{03AF}",
-    "iparen" => "\u{24A4}",
-    "irigurmukhi" => "\u{0A72}",
-    "ismallhiragana" => "\u{3043}",
-    "ismallkatakana" => "\u{30A3}",
-    "ismallkatakanahalfwidth" => "\u{FF68}",
-    "issharbengali" => "\u{09FA}",
-    "istroke" => "\u{0268}",
-    "isuperior" => "\u{F6ED}",
-    "iterationhiragana" => "\u{309D}",
-    "iterationkatakana" => "\u{30FD}",
-    "itilde" => "\u{0129}",
-    "itildebelow" => "\u{1E2D}",
-    "iubopomofo" => "\u{3129}",
-    "iucyrillic" => "\u{044E}",
-    "ivowelsignbengali" => "\u{09BF}",
-    "ivowelsigndeva" => "\u{093F}",
-    "ivowelsigngujarati" => "\u{0ABF}",
-    "izhitsacyrillic" => "\u{0475}",
-    "izhitsadblgravecyrillic" => "\u{0477}",
-    "j" => "\u{006A}",
-    "jaarmenian" => "\u{0571}",
-    "jabengali" => "\u{099C}",
-    "jadeva" => "\u{091C}",
-    "jagujarati" => "\u{0A9C}",
-    "jagurmukhi" => "\u{0A1C}",
-    "jbopomofo" => "\u{3110}",
-    "jcaron" => "\u{01F0}",
-    "jcircle" => "\u{24D9}",
-    "jcircumflex" => "\u{0135}",
-    "jcrossedtail" => "\u{029D}",
-    "jdotlessstroke" => "\u{025F}",
-    "jecyrillic" => "\u{0458}",
-    "jeemarabic" => "\u{062C}",
-    "jeemfinalarabic" => "\u{FE9E}",
-    "jeeminitialarabic" => "\u{FE9F}",
-    "jeemmedialarabic" => "\u{FEA0}",
-    "jeharabic" => "\u{0698}",
-    "jehfinalarabic" => "\u{FB8B}",
-    "jhabengali" => "\u{099D}",
-    "jhadeva" => "\u{091D}",
-    "jhagujarati" => "\u{0A9D}",
-    "jhagurmukhi" => "\u{0A1D}",
-    "jheharmenian" => "\u{057B}",
-    "jis" => "\u{3004}",
-    "jmonospace" => "\u{FF4A}",
-    "jparen" => "\u{24A5}",
-    "jsuperior" => "\u{02B2}",
-    "k" => "\u{006B}",
-    "kabashkircyrillic" => "\u{04A1}",
-    "kabengali" => "\u{0995}",
-    "kacute" => "\u{1E31}",
-    "kacyrillic" => "\u{043A}",
-    "kadescendercyrillic" => "\u{049B}",
-    "kadeva" => "\u{0915}",
-    "kaf" => "\u{05DB}",
-    "kafarabic" => "\u{0643}",
-    "kafdagesh" => "\u{FB3B}",
-    "kafdageshhebrew" => "\u{FB3B}",
-    "kaffinalarabic" => "\u{FEDA}",
-    "kafhebrew" => "\u{05DB}",
-    "kafinitialarabic" => "\u{FEDB}",
-    "kafmedialarabic" => "\u{FEDC}",
-    "kafrafehebrew" => "\u{FB4D}",
-    "kagujarati" => "\u{0A95}",
-    "kagurmukhi" => "\u{0A15}",
-    "kahiragana" => "\u{304B}",
-    "kahookcyrillic" => "\u{04C4}",
-    "kakatakana" => "\u{30AB}",
-    "kakatakanahalfwidth" => "\u{FF76}",
-    "kappa" => "\u{03BA}",
-    "kappasymbolgreek" => "\u{03F0}",
-    "kapyeounmieumkorean" => "\u{3171}",
-    "kapyeounphieuphkorean" => "\u{3184}",
-    "kapyeounpieupkorean" => "\u{3178}",
-    "kapyeounssangpieupkorean" => "\u{3179}",
-    "karoriisquare" => "\u{330D}",
-    "kashidaautoarabic" => "\u{0640}",
-    "kashidaautonosidebearingarabic" => "\u{0640}",
-    "kasmallkatakana" => "\u{30F5}",
-    "kasquare" => "\u{3384}",
-    "kasraarabic" => "\u{0650}",
-    "kasratanarabic" => "\u{064D}",
-    "kastrokecyrillic" => "\u{049F}",
-    "katahiraprolongmarkhalfwidth" => "\u{FF70}",
-    "kaverticalstrokecyrillic" => "\u{049D}",
-    "kbopomofo" => "\u{310E}",
-    "kcalsquare" => "\u{3389}",
-    "kcaron" => "\u{01E9}",
-    "kcedilla" => "\u{0137}",
-    "kcircle" => "\u{24DA}",
-    "kcommaaccent" => "\u{0137}",
-    "kdotbelow" => "\u{1E33}",
-    "keharmenian" => "\u{0584}",
-    "kehiragana" => "\u{3051}",
-    "kekatakana" => "\u{30B1}",
-    "kekatakanahalfwidth" => "\u{FF79}",
-    "kenarmenian" => "\u{056F}",
-    "kesmallkatakana" => "\u{30F6}",
-    "kgreenlandic" => "\u{0138}",
-    "khabengali" => "\u{0996}",
-    "khacyrillic" => "\u{0445}",
-    "khadeva" => "\u{0916}",
-    "khagujarati" => "\u{0A96}",
-    "khagurmukhi" => "\u{0A16}",
-    "khaharabic" => "\u{062E}",
-    "khahfinalarabic" => "\u{FEA6}",
-    "khahinitialarabic" => "\u{FEA7}",
-    "khahmedialarabic" => "\u{FEA8}",
-    "kheicoptic" => "\u{03E7}",
-    "khhadeva" => "\u{0959}",
-    "khhagurmukhi" => "\u{0A59}",
-    "khieukhacirclekorean" => "\u{3278}",
-    "khieukhaparenkorean" => "\u{3218}",
-    "khieukhcirclekorean" => "\u{326A}",
-    "khieukhkorean" => "\u{314B}",
-    "khieukhparenkorean" => "\u{320A}",
-    "khokhaithai" => "\u{0E02}",
-    "khokhonthai" => "\u{0E05}",
-    "khokhuatthai" => "\u{0E03}",
-    "khokhwaithai" => "\u{0E04}",
-    "khomutthai" => "\u{0E5B}",
-    "khook" => "\u{0199}",
-    "khorakhangthai" => "\u{0E06}",
-    "khzsquare" => "\u{3391}",
-    "kihiragana" => "\u{304D}",
-    "kikatakana" => "\u{30AD}",
-    "kikatakanahalfwidth" => "\u{FF77}",
-    "kiroguramusquare" => "\u{3315}",
-    "kiromeetorusquare" => "\u{3316}",
-    "kirosquare" => "\u{3314}",
-    "kiyeokacirclekorean" => "\u{326E}",
-    "kiyeokaparenkorean" => "\u{320E}",
-    "kiyeokcirclekorean" => "\u{3260}",
-    "kiyeokkorean" => "\u{3131}",
-    "kiyeokparenkorean" => "\u{3200}",
-    "kiyeoksioskorean" => "\u{3133}",
-    "kjecyrillic" => "\u{045C}",
-    "klinebelow" => "\u{1E35}",
-    "klsquare" => "\u{3398}",
-    "kmcubedsquare" => "\u{33A6}",
-    "kmonospace" => "\u{FF4B}",
-    "kmsquaredsquare" => "\u{33A2}",
-    "kohiragana" => "\u{3053}",
-    "kohmsquare" => "\u{33C0}",
-    "kokaithai" => "\u{0E01}",
-    "kokatakana" => "\u{30B3}",
-    "kokatakanahalfwidth" => "\u{FF7A}",
-    "kooposquare" => "\u{331E}",
-    "koppacyrillic" => "\u{0481}",
-    "koreanstandardsymbol" => "\u{327F}",
-    "koroniscmb" => "\u{0343}",
-    "kparen" => "\u{24A6}",
-    "kpasquare" => "\u{33AA}",
-    "ksicyrillic" => "\u{046F}",
-    "ktsquare" => "\u{33CF}",
-    "kturned" => "\u{029E}",
-    "kuhiragana" => "\u{304F}",
-    "kukatakana" => "\u{30AF}",
-    "kukatakanahalfwidth" => "\u{FF78}",
-    "kvsquare" => "\u{33B8}",
-    "kwsquare" => "\u{33BE}",
-    "l" => "\u{006C}",
-    "labengali" => "\u{09B2}",
-    "lacute" => "\u{013A}",
-    "ladeva" => "\u{0932}",
-    "lagujarati" => "\u{0AB2}",
-    "lagurmukhi" => "\u{0A32}",
-    "lakkhangyaothai" => "\u{0E45}",
-    "lamaleffinalarabic" => "\u{FEFC}",
-    "lamalefhamzaabovefinalarabic" => "\u{FEF8}",
-    "lamalefhamzaaboveisolatedarabic" => "\u{FEF7}",
-    "lamalefhamzabelowfinalarabic" => "\u{FEFA}",
-    "lamalefhamzabelowisolatedarabic" => "\u{FEF9}",
-    "lamalefisolatedarabic" => "\u{FEFB}",
-    "lamalefmaddaabovefinalarabic" => "\u{FEF6}",
-    "lamalefmaddaaboveisolatedarabic" => "\u{FEF5}",
-    "lamarabic" => "\u{0644}",
-    "lambda" => "\u{03BB}",
-    "lambdastroke" => "\u{019B}",
-    "lamed" => "\u{05DC}",
-    "lameddagesh" => "\u{FB3C}",
-    "lameddageshhebrew" => "\u{FB3C}",
-    "lamedhebrew" => "\u{05DC}",
-    "lamedholam" => "\u{05DC}\u{05B9}",
-    "lamedholamdagesh" => "\u{05DC}\u{05B9}\u{05BC}",
-    "lamedholamdageshhebrew" => "\u{05DC}\u{05B9}\u{05BC}",
-    "lamedholamhebrew" => "\u{05DC}\u{05B9}",
-    "lamfinalarabic" => "\u{FEDE}",
-    "lamhahinitialarabic" => "\u{FCCA}",
-    "laminitialarabic" => "\u{FEDF}",
-    "lamjeeminitialarabic" => "\u{FCC9}",
-    "lamkhahinitialarabic" => "\u{FCCB}",
-    "lamlamhehisolatedarabic" => "\u{FDF2}",
-    "lammedialarabic" => "\u{FEE0}",
-    "lammeemhahinitialarabic" => "\u{FD88}",
-    "lammeeminitialarabic" => "\u{FCCC}",
-    "lammeemjeeminitialarabic" => "\u{FEDF}\u{FEE4}\u{FEA0}",
-    "lammeemkhahinitialarabic" => "\u{FEDF}\u{FEE4}\u{FEA8}",
-    "largecircle" => "\u{25EF}",
-    "lbar" => "\u{019A}",
-    "lbelt" => "\u{026C}",
-    "lbopomofo" => "\u{310C}",
-    "lcaron" => "\u{013E}",
-    "lcedilla" => "\u{013C}",
-    "lcircle" => "\u{24DB}",
-    "lcircumflexbelow" => "\u{1E3D}",
-    "lcommaaccent" => "\u{013C}",
-    "ldot" => "\u{0140}",
-    "ldotaccent" => "\u{0140}",
-    "ldotbelow" => "\u{1E37}",
-    "ldotbelowmacron" => "\u{1E39}",
-    "leftangleabovecmb" => "\u{031A}",
-    "lefttackbelowcmb" => "\u{0318}",
-    "less" => "\u{003C}",
-    "lessequal" => "\u{2264}",
-    "lessequalorgreater" => "\u{22DA}",
-    "lessmonospace" => "\u{FF1C}",
-    "lessorequivalent" => "\u{2272}",
-    "lessorgreater" => "\u{2276}",
-    "lessoverequal" => "\u{2266}",
-    "lesssmall" => "\u{FE64}",
-    "lezh" => "\u{026E}",
-    "lfblock" => "\u{258C}",
-    "lhookretroflex" => "\u{026D}",
-    "lira" => "\u{20A4}",
-    "liwnarmenian" => "\u{056C}",
-    "lj" => "\u{01C9}",
-    "ljecyrillic" => "\u{0459}",
-    "ll" => "\u{F6C0}",
-    "lladeva" => "\u{0933}",
-    "llagujarati" => "\u{0AB3}",
-    "llinebelow" => "\u{1E3B}",
-    "llladeva" => "\u{0934}",
-    "llvocalicbengali" => "\u{09E1}",
-    "llvocalicdeva" => "\u{0961}",
-    "llvocalicvowelsignbengali" => "\u{09E3}",
-    "llvocalicvowelsigndeva" => "\u{0963}",
-    "lmiddletilde" => "\u{026B}",
-    "lmonospace" => "\u{FF4C}",
-    "lmsquare" => "\u{33D0}",
-    "lochulathai" => "\u{0E2C}",
-    "logicaland" => "\u{2227}",
-    "logicalnot" => "\u{00AC}",
-    "logicalnotreversed" => "\u{2310}",
-    "logicalor" => "\u{2228}",
-    "lolingthai" => "\u{0E25}",
-    "longs" => "\u{017F}",
-    "lowlinecenterline" => "\u{FE4E}",
-    "lowlinecmb" => "\u{0332}",
-    "lowlinedashed" => "\u{FE4D}",
-    "lozenge" => "\u{25CA}",
-    "lparen" => "\u{24A7}",
-    "lslash" => "\u{0142}",
-    "lsquare" => "\u{2113}",
-    "lsuperior" => "\u{F6EE}",
-    "ltshade" => "\u{2591}",
-    "luthai" => "\u{0E26}",
-    "lvocalicbengali" => "\u{098C}",
-    "lvocalicdeva" => "\u{090C}",
-    "lvocalicvowelsignbengali" => "\u{09E2}",
-    "lvocalicvowelsigndeva" => "\u{0962}",
-    "lxsquare" => "\u{33D3}",
-    "m" => "\u{006D}",
-    "mabengali" => "\u{09AE}",
-    "macron" => "\u{00AF}",
-    "macronbelowcmb" => "\u{0331}",
-    "macroncmb" => "\u{0304}",
-    "macronlowmod" => "\u{02CD}",
-    "macronmonospace" => "\u{FFE3}",
-    "macute" => "\u{1E3F}",
-    "madeva" => "\u{092E}",
-    "magujarati" => "\u{0AAE}",
-    "magurmukhi" => "\u{0A2E}",
-    "mahapakhhebrew" => "\u{05A4}",
-    "mahapakhlefthebrew" => "\u{05A4}",
-    "mahiragana" => "\u{307E}",
-    "maichattawalowleftthai" => "\u{F895}",
-    "maichattawalowrightthai" => "\u{F894}",
-    "maichattawathai" => "\u{0E4B}",
-    "maichattawaupperleftthai" => "\u{F893}",
-    "maieklowleftthai" => "\u{F88C}",
-    "maieklowrightthai" => "\u{F88B}",
-    "maiekthai" => "\u{0E48}",
-    "maiekupperleftthai" => "\u{F88A}",
-    "maihanakatleftthai" => "\u{F884}",
-    "maihanakatthai" => "\u{0E31}",
-    "maitaikhuleftthai" => "\u{F889}",
-    "maitaikhuthai" => "\u{0E47}",
-    "maitholowleftthai" => "\u{F88F}",
-    "maitholowrightthai" => "\u{F88E}",
-    "maithothai" => "\u{0E49}",
-    "maithoupperleftthai" => "\u{F88D}",
-    "maitrilowleftthai" => "\u{F892}",
-    "maitrilowrightthai" => "\u{F891}",
-    "maitrithai" => "\u{0E4A}",
-    "maitriupperleftthai" => "\u{F890}",
-    "maiyamokthai" => "\u{0E46}",
-    "makatakana" => "\u{30DE}",
-    "makatakanahalfwidth" => "\u{FF8F}",
-    "male" => "\u{2642}",
-    "mansyonsquare" => "\u{3347}",
-    "maqafhebrew" => "\u{05BE}",
-    "mars" => "\u{2642}",
-    "masoracirclehebrew" => "\u{05AF}",
-    "masquare" => "\u{3383}",
-    "mbopomofo" => "\u{3107}",
-    "mbsquare" => "\u{33D4}",
-    "mcircle" => "\u{24DC}",
-    "mcubedsquare" => "\u{33A5}",
-    "mdotaccent" => "\u{1E41}",
-    "mdotbelow" => "\u{1E43}",
-    "meemarabic" => "\u{0645}",
-    "meemfinalarabic" => "\u{FEE2}",
-    "meeminitialarabic" => "\u{FEE3}",
-    "meemmedialarabic" => "\u{FEE4}",
-    "meemmeeminitialarabic" => "\u{FCD1}",
-    "meemmeemisolatedarabic" => "\u{FC48}",
-    "meetorusquare" => "\u{334D}",
-    "mehiragana" => "\u{3081}",
-    "meizierasquare" => "\u{337E}",
-    "mekatakana" => "\u{30E1}",
-    "mekatakanahalfwidth" => "\u{FF92}",
-    "mem" => "\u{05DE}",
-    "memdagesh" => "\u{FB3E}",
-    "memdageshhebrew" => "\u{FB3E}",
-    "memhebrew" => "\u{05DE}",
-    "menarmenian" => "\u{0574}",
-    "merkhahebrew" => "\u{05A5}",
-    "merkhakefulahebrew" => "\u{05A6}",
-    "merkhakefulalefthebrew" => "\u{05A6}",
-    "merkhalefthebrew" => "\u{05A5}",
-    "mhook" => "\u{0271}",
-    "mhzsquare" => "\u{3392}",
-    "middledotkatakanahalfwidth" => "\u{FF65}",
-    "middot" => "\u{00B7}",
-    "mieumacirclekorean" => "\u{3272}",
-    "mieumaparenkorean" => "\u{3212}",
-    "mieumcirclekorean" => "\u{3264}",
-    "mieumkorean" => "\u{3141}",
-    "mieumpansioskorean" => "\u{3170}",
-    "mieumparenkorean" => "\u{3204}",
-    "mieumpieupkorean" => "\u{316E}",
-    "mieumsioskorean" => "\u{316F}",
-    "mihiragana" => "\u{307F}",
-    "mikatakana" => "\u{30DF}",
-    "mikatakanahalfwidth" => "\u{FF90}",
-    "minus" => "\u{2212}",
-    "minusbelowcmb" => "\u{0320}",
-    "minuscircle" => "\u{2296}",
-    "minusmod" => "\u{02D7}",
-    "minusplus" => "\u{2213}",
-    "minute" => "\u{2032}",
-    "miribaarusquare" => "\u{334A}",
-    "mirisquare" => "\u{3349}",
-    "mlonglegturned" => "\u{0270}",
-    "mlsquare" => "\u{3396}",
-    "mmcubedsquare" => "\u{33A3}",
-    "mmonospace" => "\u{FF4D}",
-    "mmsquaredsquare" => "\u{339F}",
-    "mohiragana" => "\u{3082}",
-    "mohmsquare" => "\u{33C1}",
-    "mokatakana" => "\u{30E2}",
-    "mokatakanahalfwidth" => "\u{FF93}",
-    "molsquare" => "\u{33D6}",
-    "momathai" => "\u{0E21}",
-    "moverssquare" => "\u{33A7}",
-    "moverssquaredsquare" => "\u{33A8}",
-    "mparen" => "\u{24A8}",
-    "mpasquare" => "\u{33AB}",
-    "mssquare" => "\u{33B3}",
-    "msuperior" => "\u{F6EF}",
-    "mturned" => "\u{026F}",
-    "mu" => "\u{00B5}",
-    "mu1" => "\u{00B5}",
-    "muasquare" => "\u{3382}",
-    "muchgreater" => "\u{226B}",
-    "muchless" => "\u{226A}",
-    "mufsquare" => "\u{338C}",
-    "mugreek" => "\u{03BC}",
-    "mugsquare" => "\u{338D}",
-    "muhiragana" => "\u{3080}",
-    "mukatakana" => "\u{30E0}",
-    "mukatakanahalfwidth" => "\u{FF91}",
-    "mulsquare" => "\u{3395}",
-    "multiply" => "\u{00D7}",
-    "mumsquare" => "\u{339B}",
-    "munahhebrew" => "\u{05A3}",
-    "munahlefthebrew" => "\u{05A3}",
-    "musicalnote" => "\u{266A}",
-    "musicalnotedbl" => "\u{266B}",
-    "musicflatsign" => "\u{266D}",
-    "musicsharpsign" => "\u{266F}",
-    "mussquare" => "\u{33B2}",
-    "muvsquare" => "\u{33B6}",
-    "muwsquare" => "\u{33BC}",
-    "mvmegasquare" => "\u{33B9}",
-    "mvsquare" => "\u{33B7}",
-    "mwmegasquare" => "\u{33BF}",
-    "mwsquare" => "\u{33BD}",
-    "n" => "\u{006E}",
-    "nabengali" => "\u{09A8}",
-    "nabla" => "\u{2207}",
-    "nacute" => "\u{0144}",
-    "nadeva" => "\u{0928}",
-    "nagujarati" => "\u{0AA8}",
-    "nagurmukhi" => "\u{0A28}",
-    "nahiragana" => "\u{306A}",
-    "nakatakana" => "\u{30CA}",
-    "nakatakanahalfwidth" => "\u{FF85}",
-    "napostrophe" => "\u{0149}",
-    "nasquare" => "\u{3381}",
-    "nbopomofo" => "\u{310B}",
-    "nbspace" => "\u{00A0}",
-    "ncaron" => "\u{0148}",
-    "ncedilla" => "\u{0146}",
-    "ncircle" => "\u{24DD}",
-    "ncircumflexbelow" => "\u{1E4B}",
-    "ncommaaccent" => "\u{0146}",
-    "ndotaccent" => "\u{1E45}",
-    "ndotbelow" => "\u{1E47}",
-    "nehiragana" => "\u{306D}",
-    "nekatakana" => "\u{30CD}",
-    "nekatakanahalfwidth" => "\u{FF88}",
-    "newsheqelsign" => "\u{20AA}",
-    "nfsquare" => "\u{338B}",
-    "ngabengali" => "\u{0999}",
-    "ngadeva" => "\u{0919}",
-    "ngagujarati" => "\u{0A99}",
-    "ngagurmukhi" => "\u{0A19}",
-    "ngonguthai" => "\u{0E07}",
-    "nhiragana" => "\u{3093}",
-    "nhookleft" => "\u{0272}",
-    "nhookretroflex" => "\u{0273}",
-    "nieunacirclekorean" => "\u{326F}",
-    "nieunaparenkorean" => "\u{320F}",
-    "nieuncieuckorean" => "\u{3135}",
-    "nieuncirclekorean" => "\u{3261}",
-    "nieunhieuhkorean" => "\u{3136}",
-    "nieunkorean" => "\u{3134}",
-    "nieunpansioskorean" => "\u{3168}",
-    "nieunparenkorean" => "\u{3201}",
-    "nieunsioskorean" => "\u{3167}",
-    "nieuntikeutkorean" => "\u{3166}",
-    "nihiragana" => "\u{306B}",
-    "nikatakana" => "\u{30CB}",
-    "nikatakanahalfwidth" => "\u{FF86}",
-    "nikhahitleftthai" => "\u{F899}",
-    "nikhahitthai" => "\u{0E4D}",
-    "nine" => "\u{0039}",
-    "ninearabic" => "\u{0669}",
-    "ninebengali" => "\u{09EF}",
-    "ninecircle" => "\u{2468}",
-    "ninecircleinversesansserif" => "\u{2792}",
-    "ninedeva" => "\u{096F}",
-    "ninegujarati" => "\u{0AEF}",
-    "ninegurmukhi" => "\u{0A6F}",
-    "ninehackarabic" => "\u{0669}",
-    "ninehangzhou" => "\u{3029}",
-    "nineideographicparen" => "\u{3228}",
-    "nineinferior" => "\u{2089}",
-    "ninemonospace" => "\u{FF19}",
-    "nineoldstyle" => "\u{F739}",
-    "nineparen" => "\u{247C}",
-    "nineperiod" => "\u{2490}",
-    "ninepersian" => "\u{06F9}",
-    "nineroman" => "\u{2178}",
-    "ninesuperior" => "\u{2079}",
-    "nineteencircle" => "\u{2472}",
-    "nineteenparen" => "\u{2486}",
-    "nineteenperiod" => "\u{249A}",
-    "ninethai" => "\u{0E59}",
-    "nj" => "\u{01CC}",
-    "njecyrillic" => "\u{045A}",
-    "nkatakana" => "\u{30F3}",
-    "nkatakanahalfwidth" => "\u{FF9D}",
-    "nlegrightlong" => "\u{019E}",
-    "nlinebelow" => "\u{1E49}",
-    "nmonospace" => "\u{FF4E}",
-    "nmsquare" => "\u{339A}",
-    "nnabengali" => "\u{09A3}",
-    "nnadeva" => "\u{0923}",
-    "nnagujarati" => "\u{0AA3}",
-    "nnagurmukhi" => "\u{0A23}",
-    "nnnadeva" => "\u{0929}",
-    "nohiragana" => "\u{306E}",
-    "nokatakana" => "\u{30CE}",
-    "nokatakanahalfwidth" => "\u{FF89}",
-    "nonbreakingspace" => "\u{00A0}",
-    "nonenthai" => "\u{0E13}",
-    "nonuthai" => "\u{0E19}",
-    "noonarabic" => "\u{0646}",
-    "noonfinalarabic" => "\u{FEE6}",
-    "noonghunnaarabic" => "\u{06BA}",
-    "noonghunnafinalarabic" => "\u{FB9F}",
-    "noonhehinitialarabic" => "\u{FEE7}\u{FEEC}",
-    "nooninitialarabic" => "\u{FEE7}",
-    "noonjeeminitialarabic" => "\u{FCD2}",
-    "noonjeemisolatedarabic" => "\u{FC4B}",
-    "noonmedialarabic" => "\u{FEE8}",
-    "noonmeeminitialarabic" => "\u{FCD5}",
-    "noonmeemisolatedarabic" => "\u{FC4E}",
-    "noonnoonfinalarabic" => "\u{FC8D}",
-    "notcontains" => "\u{220C}",
-    "notelement" => "\u{2209}",
-    "notelementof" => "\u{2209}",
-    "notequal" => "\u{2260}",
-    "notgreater" => "\u{226F}",
-    "notgreaternorequal" => "\u{2271}",
-    "notgreaternorless" => "\u{2279}",
-    "notidentical" => "\u{2262}",
-    "notless" => "\u{226E}",
-    "notlessnorequal" => "\u{2270}",
-    "notparallel" => "\u{2226}",
-    "notprecedes" => "\u{2280}",
-    "notsubset" => "\u{2284}",
-    "notsucceeds" => "\u{2281}",
-    "notsuperset" => "\u{2285}",
-    "nowarmenian" => "\u{0576}",
-    "nparen" => "\u{24A9}",
-    "nssquare" => "\u{33B1}",
-    "nsuperior" => "\u{207F}",
-    "ntilde" => "\u{00F1}",
-    "nu" => "\u{03BD}",
-    "nuhiragana" => "\u{306C}",
-    "nukatakana" => "\u{30CC}",
-    "nukatakanahalfwidth" => "\u{FF87}",
-    "nuktabengali" => "\u{09BC}",
-    "nuktadeva" => "\u{093C}",
-    "nuktagujarati" => "\u{0ABC}",
-    "nuktagurmukhi" => "\u{0A3C}",
-    "numbersign" => "\u{0023}",
-    "numbersignmonospace" => "\u{FF03}",
-    "numbersignsmall" => "\u{FE5F}",
-    "numeralsigngreek" => "\u{0374}",
-    "numeralsignlowergreek" => "\u{0375}",
-    "numero" => "\u{2116}",
-    "nun" => "\u{05E0}",
-    "nundagesh" => "\u{FB40}",
-    "nundageshhebrew" => "\u{FB40}",
-    "nunhebrew" => "\u{05E0}",
-    "nvsquare" => "\u{33B5}",
-    "nwsquare" => "\u{33BB}",
-    "nyabengali" => "\u{099E}",
-    "nyadeva" => "\u{091E}",
-    "nyagujarati" => "\u{0A9E}",
-    "nyagurmukhi" => "\u{0A1E}",
-    "o" => "\u{006F}",
-    "oacute" => "\u{00F3}",
-    "oangthai" => "\u{0E2D}",
-    "obarred" => "\u{0275}",
-    "obarredcyrillic" => "\u{04E9}",
-    "obarreddieresiscyrillic" => "\u{04EB}",
-    "obengali" => "\u{0993}",
-    "obopomofo" => "\u{311B}",
-    "obreve" => "\u{014F}",
-    "ocandradeva" => "\u{0911}",
-    "ocandragujarati" => "\u{0A91}",
-    "ocandravowelsigndeva" => "\u{0949}",
-    "ocandravowelsigngujarati" => "\u{0AC9}",
-    "ocaron" => "\u{01D2}",
-    "ocircle" => "\u{24DE}",
-    "ocircumflex" => "\u{00F4}",
-    "ocircumflexacute" => "\u{1ED1}",
-    "ocircumflexdotbelow" => "\u{1ED9}",
-    "ocircumflexgrave" => "\u{1ED3}",
-    "ocircumflexhookabove" => "\u{1ED5}",
-    "ocircumflextilde" => "\u{1ED7}",
-    "ocyrillic" => "\u{043E}",
-    "odblacute" => "\u{0151}",
-    "odblgrave" => "\u{020D}",
-    "odeva" => "\u{0913}",
-    "odieresis" => "\u{00F6}",
-    "odieresiscyrillic" => "\u{04E7}",
-    "odotbelow" => "\u{1ECD}",
-    "oe" => "\u{0153}",
-    "oekorean" => "\u{315A}",
-    "ogonek" => "\u{02DB}",
-    "ogonekcmb" => "\u{0328}",
-    "ograve" => "\u{00F2}",
-    "ogujarati" => "\u{0A93}",
-    "oharmenian" => "\u{0585}",
-    "ohiragana" => "\u{304A}",
-    "ohookabove" => "\u{1ECF}",
-    "ohorn" => "\u{01A1}",
-    "ohornacute" => "\u{1EDB}",
-    "ohorndotbelow" => "\u{1EE3}",
-    "ohorngrave" => "\u{1EDD}",
-    "ohornhookabove" => "\u{1EDF}",
-    "ohorntilde" => "\u{1EE1}",
-    "ohungarumlaut" => "\u{0151}",
-    "oi" => "\u{01A3}",
-    "oinvertedbreve" => "\u{020F}",
-    "okatakana" => "\u{30AA}",
-    "okatakanahalfwidth" => "\u{FF75}",
-    "okorean" => "\u{3157}",
-    "olehebrew" => "\u{05AB}",
-    "omacron" => "\u{014D}",
-    "omacronacute" => "\u{1E53}",
-    "omacrongrave" => "\u{1E51}",
-    "omdeva" => "\u{0950}",
-    "omega" => "\u{03C9}",
-    "omega1" => "\u{03D6}",
-    "omegacyrillic" => "\u{0461}",
-    "omegalatinclosed" => "\u{0277}",
-    "omegaroundcyrillic" => "\u{047B}",
-    "omegatitlocyrillic" => "\u{047D}",
-    "omegatonos" => "\u{03CE}",
-    "omgujarati" => "\u{0AD0}",
-    "omicron" => "\u{03BF}",
-    "omicrontonos" => "\u{03CC}",
-    "omonospace" => "\u{FF4F}",
-    "one" => "\u{0031}",
-    "onearabic" => "\u{0661}",
-    "onebengali" => "\u{09E7}",
-    "onecircle" => "\u{2460}",
-    "onecircleinversesansserif" => "\u{278A}",
-    "onedeva" => "\u{0967}",
-    "onedotenleader" => "\u{2024}",
-    "oneeighth" => "\u{215B}",
-    "onefitted" => "\u{F6DC}",
-    "onegujarati" => "\u{0AE7}",
-    "onegurmukhi" => "\u{0A67}",
-    "onehackarabic" => "\u{0661}",
-    "onehalf" => "\u{00BD}",
-    "onehangzhou" => "\u{3021}",
-    "oneideographicparen" => "\u{3220}",
-    "oneinferior" => "\u{2081}",
-    "onemonospace" => "\u{FF11}",
-    "onenumeratorbengali" => "\u{09F4}",
-    "oneoldstyle" => "\u{F731}",
-    "oneparen" => "\u{2474}",
-    "oneperiod" => "\u{2488}",
-    "onepersian" => "\u{06F1}",
-    "onequarter" => "\u{00BC}",
-    "oneroman" => "\u{2170}",
-    "onesuperior" => "\u{00B9}",
-    "onethai" => "\u{0E51}",
-    "onethird" => "\u{2153}",
-    "oogonek" => "\u{01EB}",
-    "oogonekmacron" => "\u{01ED}",
-    "oogurmukhi" => "\u{0A13}",
-    "oomatragurmukhi" => "\u{0A4B}",
-    "oopen" => "\u{0254}",
-    "oparen" => "\u{24AA}",
-    "openbullet" => "\u{25E6}",
-    "option" => "\u{2325}",
-    "ordfeminine" => "\u{00AA}",
-    "ordmasculine" => "\u{00BA}",
-    "orthogonal" => "\u{221F}",
-    "oshortdeva" => "\u{0912}",
-    "oshortvowelsigndeva" => "\u{094A}",
-    "oslash" => "\u{00F8}",
-    "oslashacute" => "\u{01FF}",
-    "osmallhiragana" => "\u{3049}",
-    "osmallkatakana" => "\u{30A9}",
-    "osmallkatakanahalfwidth" => "\u{FF6B}",
-    "ostrokeacute" => "\u{01FF}",
-    "osuperior" => "\u{F6F0}",
-    "otcyrillic" => "\u{047F}",
-    "otilde" => "\u{00F5}",
-    "otildeacute" => "\u{1E4D}",
-    "otildedieresis" => "\u{1E4F}",
-    "oubopomofo" => "\u{3121}",
-    "overline" => "\u{203E}",
-    "overlinecenterline" => "\u{FE4A}",
-    "overlinecmb" => "\u{0305}",
-    "overlinedashed" => "\u{FE49}",
-    "overlinedblwavy" => "\u{FE4C}",
-    "overlinewavy" => "\u{FE4B}",
-    "overscore" => "\u{00AF}",
-    "ovowelsignbengali" => "\u{09CB}",
-    "ovowelsigndeva" => "\u{094B}",
-    "ovowelsigngujarati" => "\u{0ACB}",
-    "p" => "\u{0070}",
-    "paampssquare" => "\u{3380}",
-    "paasentosquare" => "\u{332B}",
-    "pabengali" => "\u{09AA}",
-    "pacute" => "\u{1E55}",
-    "padeva" => "\u{092A}",
-    "pagedown" => "\u{21DF}",
-    "pageup" => "\u{21DE}",
-    "pagujarati" => "\u{0AAA}",
-    "pagurmukhi" => "\u{0A2A}",
-    "pahiragana" => "\u{3071}",
-    "paiyannoithai" => "\u{0E2F}",
-    "pakatakana" => "\u{30D1}",
-    "palatalizationcyrilliccmb" => "\u{0484}",
-    "palochkacyrillic" => "\u{04C0}",
-    "pansioskorean" => "\u{317F}",
-    "paragraph" => "\u{00B6}",
-    "parallel" => "\u{2225}",
-    "parenleft" => "\u{0028}",
-    "parenleftaltonearabic" => "\u{FD3E}",
-    "parenleftbt" => "\u{F8ED}",
-    "parenleftex" => "\u{F8EC}",
-    "parenleftinferior" => "\u{208D}",
-    "parenleftmonospace" => "\u{FF08}",
-    "parenleftsmall" => "\u{FE59}",
-    "parenleftsuperior" => "\u{207D}",
-    "parenlefttp" => "\u{F8EB}",
-    "parenleftvertical" => "\u{FE35}",
-    "parenright" => "\u{0029}",
-    "parenrightaltonearabic" => "\u{FD3F}",
-    "parenrightbt" => "\u{F8F8}",
-    "parenrightex" => "\u{F8F7}",
-    "parenrightinferior" => "\u{208E}",
-    "parenrightmonospace" => "\u{FF09}",
-    "parenrightsmall" => "\u{FE5A}",
-    "parenrightsuperior" => "\u{207E}",
-    "parenrighttp" => "\u{F8F6}",
-    "parenrightvertical" => "\u{FE36}",
-    "partialdiff" => "\u{2202}",
-    "paseqhebrew" => "\u{05C0}",
-    "pashtahebrew" => "\u{0599}",
-    "pasquare" => "\u{33A9}",
-    "patah" => "\u{05B7}",
-    "patah11" => "\u{05B7}",
-    "patah1d" => "\u{05B7}",
-    "patah2a" => "\u{05B7}",
-    "patahhebrew" => "\u{05B7}",
-    "patahnarrowhebrew" => "\u{05B7}",
-    "patahquarterhebrew" => "\u{05B7}",
-    "patahwidehebrew" => "\u{05B7}",
-    "pazerhebrew" => "\u{05A1}",
-    "pbopomofo" => "\u{3106}",
-    "pcircle" => "\u{24DF}",
-    "pdotaccent" => "\u{1E57}",
-    "pe" => "\u{05E4}",
-    "pecyrillic" => "\u{043F}",
-    "pedagesh" => "\u{FB44}",
-    "pedageshhebrew" => "\u{FB44}",
-    "peezisquare" => "\u{333B}",
-    "pefinaldageshhebrew" => "\u{FB43}",
-    "peharabic" => "\u{067E}",
-    "peharmenian" => "\u{057A}",
-    "pehebrew" => "\u{05E4}",
-    "pehfinalarabic" => "\u{FB57}",
-    "pehinitialarabic" => "\u{FB58}",
-    "pehiragana" => "\u{307A}",
-    "pehmedialarabic" => "\u{FB59}",
-    "pekatakana" => "\u{30DA}",
-    "pemiddlehookcyrillic" => "\u{04A7}",
-    "perafehebrew" => "\u{FB4E}",
-    "percent" => "\u{0025}",
-    "percentarabic" => "\u{066A}",
-    "percentmonospace" => "\u{FF05}",
-    "percentsmall" => "\u{FE6A}",
-    "period" => "\u{002E}",
-    "periodarmenian" => "\u{0589}",
-    "periodcentered" => "\u{00B7}",
-    "periodhalfwidth" => "\u{FF61}",
-    "periodinferior" => "\u{F6E7}",
-    "periodmonospace" => "\u{FF0E}",
-    "periodsmall" => "\u{FE52}",
-    "periodsuperior" => "\u{F6E8}",
-    "perispomenigreekcmb" => "\u{0342}",
-    "perpendicular" => "\u{22A5}",
-    "perthousand" => "\u{2030}",
-    "peseta" => "\u{20A7}",
-    "pfsquare" => "\u{338A}",
-    "phabengali" => "\u{09AB}",
-    "phadeva" => "\u{092B}",
-    "phagujarati" => "\u{0AAB}",
-    "phagurmukhi" => "\u{0A2B}",
-    "phi" => "\u{03C6}",
-    "phi1" => "\u{03D5}",
-    "phieuphacirclekorean" => "\u{327A}",
-    "phieuphaparenkorean" => "\u{321A}",
-    "phieuphcirclekorean" => "\u{326C}",
-    "phieuphkorean" => "\u{314D}",
-    "phieuphparenkorean" => "\u{320C}",
-    "philatin" => "\u{0278}",
-    "phinthuthai" => "\u{0E3A}",
-    "phisymbolgreek" => "\u{03D5}",
-    "phook" => "\u{01A5}",
-    "phophanthai" => "\u{0E1E}",
-    "phophungthai" => "\u{0E1C}",
-    "phosamphaothai" => "\u{0E20}",
-    "pi" => "\u{03C0}",
-    "pieupacirclekorean" => "\u{3273}",
-    "pieupaparenkorean" => "\u{3213}",
-    "pieupcieuckorean" => "\u{3176}",
-    "pieupcirclekorean" => "\u{3265}",
-    "pieupkiyeokkorean" => "\u{3172}",
-    "pieupkorean" => "\u{3142}",
-    "pieupparenkorean" => "\u{3205}",
-    "pieupsioskiyeokkorean" => "\u{3174}",
-    "pieupsioskorean" => "\u{3144}",
-    "pieupsiostikeutkorean" => "\u{3175}",
-    "pieupthieuthkorean" => "\u{3177}",
-    "pieuptikeutkorean" => "\u{3173}",
-    "pihiragana" => "\u{3074}",
-    "pikatakana" => "\u{30D4}",
-    "pisymbolgreek" => "\u{03D6}",
-    "piwrarmenian" => "\u{0583}",
-    "plus" => "\u{002B}",
-    "plusbelowcmb" => "\u{031F}",
-    "pluscircle" => "\u{2295}",
-    "plusminus" => "\u{00B1}",
-    "plusmod" => "\u{02D6}",
-    "plusmonospace" => "\u{FF0B}",
-    "plussmall" => "\u{FE62}",
-    "plussuperior" => "\u{207A}",
-    "pmonospace" => "\u{FF50}",
-    "pmsquare" => "\u{33D8}",
-    "pohiragana" => "\u{307D}",
-    "pointingindexdownwhite" => "\u{261F}",
-    "pointingindexleftwhite" => "\u{261C}",
-    "pointingindexrightwhite" => "\u{261E}",
-    "pointingindexupwhite" => "\u{261D}",
-    "pokatakana" => "\u{30DD}",
-    "poplathai" => "\u{0E1B}",
-    "postalmark" => "\u{3012}",
-    "postalmarkface" => "\u{3020}",
-    "pparen" => "\u{24AB}",
-    "precedes" => "\u{227A}",
-    "prescription" => "\u{211E}",
-    "primemod" => "\u{02B9}",
-    "primereversed" => "\u{2035}",
-    "product" => "\u{220F}",
-    "projective" => "\u{2305}",
-    "prolongedkana" => "\u{30FC}",
-    "propellor" => "\u{2318}",
-    "propersubset" => "\u{2282}",
-    "propersuperset" => "\u{2283}",
-    "proportion" => "\u{2237}",
-    "proportional" => "\u{221D}",
-    "psi" => "\u{03C8}",
-    "psicyrillic" => "\u{0471}",
-    "psilipneumatacyrilliccmb" => "\u{0486}",
-    "pssquare" => "\u{33B0}",
-    "puhiragana" => "\u{3077}",
-    "pukatakana" => "\u{30D7}",
-    "pvsquare" => "\u{33B4}",
-    "pwsquare" => "\u{33BA}",
-    "q" => "\u{0071}",
-    "qadeva" => "\u{0958}",
-    "qadmahebrew" => "\u{05A8}",
-    "qafarabic" => "\u{0642}",
-    "qaffinalarabic" => "\u{FED6}",
-    "qafinitialarabic" => "\u{FED7}",
-    "qafmedialarabic" => "\u{FED8}",
-    "qamats" => "\u{05B8}",
-    "qamats10" => "\u{05B8}",
-    "qamats1a" => "\u{05B8}",
-    "qamats1c" => "\u{05B8}",
-    "qamats27" => "\u{05B8}",
-    "qamats29" => "\u{05B8}",
-    "qamats33" => "\u{05B8}",
-    "qamatsde" => "\u{05B8}",
-    "qamatshebrew" => "\u{05B8}",
-    "qamatsnarrowhebrew" => "\u{05B8}",
-    "qamatsqatanhebrew" => "\u{05B8}",
-    "qamatsqatannarrowhebrew" => "\u{05B8}",
-    "qamatsqatanquarterhebrew" => "\u{05B8}",
-    "qamatsqatanwidehebrew" => "\u{05B8}",
-    "qamatsquarterhebrew" => "\u{05B8}",
-    "qamatswidehebrew" => "\u{05B8}",
-    "qarneyparahebrew" => "\u{059F}",
-    "qbopomofo" => "\u{3111}",
-    "qcircle" => "\u{24E0}",
-    "qhook" => "\u{02A0}",
-    "qmonospace" => "\u{FF51}",
-    "qof" => "\u{05E7}",
-    "qofdagesh" => "\u{FB47}",
-    "qofdageshhebrew" => "\u{FB47}",
-    "qofhatafpatah" => "\u{05E7}\u{05B2}",
-    "qofhatafpatahhebrew" => "\u{05E7}\u{05B2}",
-    "qofhatafsegol" => "\u{05E7}\u{05B1}",
-    "qofhatafsegolhebrew" => "\u{05E7}\u{05B1}",
-    "qofhebrew" => "\u{05E7}",
-    "qofhiriq" => "\u{05E7}\u{05B4}",
-    "qofhiriqhebrew" => "\u{05E7}\u{05B4}",
-    "qofholam" => "\u{05E7}\u{05B9}",
-    "qofholamhebrew" => "\u{05E7}\u{05B9}",
-    "qofpatah" => "\u{05E7}\u{05B7}",
-    "qofpatahhebrew" => "\u{05E7}\u{05B7}",
-    "qofqamats" => "\u{05E7}\u{05B8}",
-    "qofqamatshebrew" => "\u{05E7}\u{05B8}",
-    "qofqubuts" => "\u{05E7}\u{05BB}",
-    "qofqubutshebrew" => "\u{05E7}\u{05BB}",
-    "qofsegol" => "\u{05E7}\u{05B6}",
-    "qofsegolhebrew" => "\u{05E7}\u{05B6}",
-    "qofsheva" => "\u{05E7}\u{05B0}",
-    "qofshevahebrew" => "\u{05E7}\u{05B0}",
-    "qoftsere" => "\u{05E7}\u{05B5}",
-    "qoftserehebrew" => "\u{05E7}\u{05B5}",
-    "qparen" => "\u{24AC}",
-    "quarternote" => "\u{2669}",
-    "qubuts" => "\u{05BB}",
-    "qubuts18" => "\u{05BB}",
-    "qubuts25" => "\u{05BB}",
-    "qubuts31" => "\u{05BB}",
-    "qubutshebrew" => "\u{05BB}",
-    "qubutsnarrowhebrew" => "\u{05BB}",
-    "qubutsquarterhebrew" => "\u{05BB}",
-    "qubutswidehebrew" => "\u{05BB}",
-    "question" => "\u{003F}",
-    "questionarabic" => "\u{061F}",
-    "questionarmenian" => "\u{055E}",
-    "questiondown" => "\u{00BF}",
-    "questiondownsmall" => "\u{F7BF}",
-    "questiongreek" => "\u{037E}",
-    "questionmonospace" => "\u{FF1F}",
-    "questionsmall" => "\u{F73F}",
-    "quotedbl" => "\u{0022}",
-    "quotedblbase" => "\u{201E}",
-    "quotedblleft" => "\u{201C}",
-    "quotedblmonospace" => "\u{FF02}",
-    "quotedblprime" => "\u{301E}",
-    "quotedblprimereversed" => "\u{301D}",
-    "quotedblright" => "\u{201D}",
-    "quoteleft" => "\u{2018}",
-    "quoteleftreversed" => "\u{201B}",
-    "quotereversed" => "\u{201B}",
-    "quoteright" => "\u{2019}",
-    "quoterightn" => "\u{0149}",
-    "quotesinglbase" => "\u{201A}",
-    "quotesingle" => "\u{0027}",
-    "quotesinglemonospace" => "\u{FF07}",
-    "r" => "\u{0072}",
-    "raarmenian" => "\u{057C}",
-    "rabengali" => "\u{09B0}",
-    "racute" => "\u{0155}",
-    "radeva" => "\u{0930}",
-    "radical" => "\u{221A}",
-    "radicalex" => "\u{F8E5}",
-    "radoverssquare" => "\u{33AE}",
-    "radoverssquaredsquare" => "\u{33AF}",
-    "radsquare" => "\u{33AD}",
-    "rafe" => "\u{05BF}",
-    "rafehebrew" => "\u{05BF}",
-    "ragujarati" => "\u{0AB0}",
-    "ragurmukhi" => "\u{0A30}",
-    "rahiragana" => "\u{3089}",
-    "rakatakana" => "\u{30E9}",
-    "rakatakanahalfwidth" => "\u{FF97}",
-    "ralowerdiagonalbengali" => "\u{09F1}",
-    "ramiddlediagonalbengali" => "\u{09F0}",
-    "ramshorn" => "\u{0264}",
-    "ratio" => "\u{2236}",
-    "rbopomofo" => "\u{3116}",
-    "rcaron" => "\u{0159}",
-    "rcedilla" => "\u{0157}",
-    "rcircle" => "\u{24E1}",
-    "rcommaaccent" => "\u{0157}",
-    "rdblgrave" => "\u{0211}",
-    "rdotaccent" => "\u{1E59}",
-    "rdotbelow" => "\u{1E5B}",
-    "rdotbelowmacron" => "\u{1E5D}",
-    "referencemark" => "\u{203B}",
-    "reflexsubset" => "\u{2286}",
-    "reflexsuperset" => "\u{2287}",
-    "registered" => "\u{00AE}",
-    "registersans" => "\u{F8E8}",
-    "registerserif" => "\u{F6DA}",
-    "reharabic" => "\u{0631}",
-    "reharmenian" => "\u{0580}",
-    "rehfinalarabic" => "\u{FEAE}",
-    "rehiragana" => "\u{308C}",
-    "rehyehaleflamarabic" => "\u{0631}\u{FEF3}\u{FE8E}\u{0644}",
-    "rekatakana" => "\u{30EC}",
-    "rekatakanahalfwidth" => "\u{FF9A}",
-    "resh" => "\u{05E8}",
-    "reshdageshhebrew" => "\u{FB48}",
-    "reshhatafpatah" => "\u{05E8}\u{05B2}",
-    "reshhatafpatahhebrew" => "\u{05E8}\u{05B2}",
-    "reshhatafsegol" => "\u{05E8}\u{05B1}",
-    "reshhatafsegolhebrew" => "\u{05E8}\u{05B1}",
-    "reshhebrew" => "\u{05E8}",
-    "reshhiriq" => "\u{05E8}\u{05B4}",
-    "reshhiriqhebrew" => "\u{05E8}\u{05B4}",
-    "reshholam" => "\u{05E8}\u{05B9}",
-    "reshholamhebrew" => "\u{05E8}\u{05B9}",
-    "reshpatah" => "\u{05E8}\u{05B7}",
-    "reshpatahhebrew" => "\u{05E8}\u{05B7}",
-    "reshqamats" => "\u{05E8}\u{05B8}",
-    "reshqamatshebrew" => "\u{05E8}\u{05B8}",
-    "reshqubuts" => "\u{05E8}\u{05BB}",
-    "reshqubutshebrew" => "\u{05E8}\u{05BB}",
-    "reshsegol" => "\u{05E8}\u{05B6}",
-    "reshsegolhebrew" => "\u{05E8}\u{05B6}",
-    "reshsheva" => "\u{05E8}\u{05B0}",
-    "reshshevahebrew" => "\u{05E8}\u{05B0}",
-    "reshtsere" => "\u{05E8}\u{05B5}",
-    "reshtserehebrew" => "\u{05E8}\u{05B5}",
-    "reversedtilde" => "\u{223D}",
-    "reviahebrew" => "\u{0597}",
-    "reviamugrashhebrew" => "\u{0597}",
-    "revlogicalnot" => "\u{2310}",
-    "rfishhook" => "\u{027E}",
-    "rfishhookreversed" => "\u{027F}",
-    "rhabengali" => "\u{09DD}",
-    "rhadeva" => "\u{095D}",
-    "rho" => "\u{03C1}",
-    "rhook" => "\u{027D}",
-    "rhookturned" => "\u{027B}",
-    "rhookturnedsuperior" => "\u{02B5}",
-    "rhosymbolgreek" => "\u{03F1}",
-    "rhotichookmod" => "\u{02DE}",
-    "rieulacirclekorean" => "\u{3271}",
-    "rieulaparenkorean" => "\u{3211}",
-    "rieulcirclekorean" => "\u{3263}",
-    "rieulhieuhkorean" => "\u{3140}",
-    "rieulkiyeokkorean" => "\u{313A}",
-    "rieulkiyeoksioskorean" => "\u{3169}",
-    "rieulkorean" => "\u{3139}",
-    "rieulmieumkorean" => "\u{313B}",
-    "rieulpansioskorean" => "\u{316C}",
-    "rieulparenkorean" => "\u{3203}",
-    "rieulphieuphkorean" => "\u{313F}",
-    "rieulpieupkorean" => "\u{313C}",
-    "rieulpieupsioskorean" => "\u{316B}",
-    "rieulsioskorean" => "\u{313D}",
-    "rieulthieuthkorean" => "\u{313E}",
-    "rieultikeutkorean" => "\u{316A}",
-    "rieulyeorinhieuhkorean" => "\u{316D}",
-    "rightangle" => "\u{221F}",
-    "righttackbelowcmb" => "\u{0319}",
-    "righttriangle" => "\u{22BF}",
-    "rihiragana" => "\u{308A}",
-    "rikatakana" => "\u{30EA}",
-    "rikatakanahalfwidth" => "\u{FF98}",
-    "ring" => "\u{02DA}",
-    "ringbelowcmb" => "\u{0325}",
-    "ringcmb" => "\u{030A}",
-    "ringhalfleft" => "\u{02BF}",
-    "ringhalfleftarmenian" => "\u{0559}",
-    "ringhalfleftbelowcmb" => "\u{031C}",
-    "ringhalfleftcentered" => "\u{02D3}",
-    "ringhalfright" => "\u{02BE}",
-    "ringhalfrightbelowcmb" => "\u{0339}",
-    "ringhalfrightcentered" => "\u{02D2}",
-    "rinvertedbreve" => "\u{0213}",
-    "rittorusquare" => "\u{3351}",
-    "rlinebelow" => "\u{1E5F}",
-    "rlongleg" => "\u{027C}",
-    "rlonglegturned" => "\u{027A}",
-    "rmonospace" => "\u{FF52}",
-    "rohiragana" => "\u{308D}",
-    "rokatakana" => "\u{30ED}",
-    "rokatakanahalfwidth" => "\u{FF9B}",
-    "roruathai" => "\u{0E23}",
-    "rparen" => "\u{24AD}",
-    "rrabengali" => "\u{09DC}",
-    "rradeva" => "\u{0931}",
-    "rragurmukhi" => "\u{0A5C}",
-    "rreharabic" => "\u{0691}",
-    "rrehfinalarabic" => "\u{FB8D}",
-    "rrvocalicbengali" => "\u{09E0}",
-    "rrvocalicdeva" => "\u{0960}",
-    "rrvocalicgujarati" => "\u{0AE0}",
-    "rrvocalicvowelsignbengali" => "\u{09C4}",
-    "rrvocalicvowelsigndeva" => "\u{0944}",
-    "rrvocalicvowelsigngujarati" => "\u{0AC4}",
-    "rsuperior" => "\u{F6F1}",
-    "rtblock" => "\u{2590}",
-    "rturned" => "\u{0279}",
-    "rturnedsuperior" => "\u{02B4}",
-    "ruhiragana" => "\u{308B}",
-    "rukatakana" => "\u{30EB}",
-    "rukatakanahalfwidth" => "\u{FF99}",
-    "rupeemarkbengali" => "\u{09F2}",
-    "rupeesignbengali" => "\u{09F3}",
-    "rupiah" => "\u{F6DD}",
-    "ruthai" => "\u{0E24}",
-    "rvocalicbengali" => "\u{098B}",
-    "rvocalicdeva" => "\u{090B}",
-    "rvocalicgujarati" => "\u{0A8B}",
-    "rvocalicvowelsignbengali" => "\u{09C3}",
-    "rvocalicvowelsigndeva" => "\u{0943}",
-    "rvocalicvowelsigngujarati" => "\u{0AC3}",
-    "s" => "\u{0073}",
-    "sabengali" => "\u{09B8}",
-    "sacute" => "\u{015B}",
-    "sacutedotaccent" => "\u{1E65}",
-    "sadarabic" => "\u{0635}",
-    "sadeva" => "\u{0938}",
-    "sadfinalarabic" => "\u{FEBA}",
-    "sadinitialarabic" => "\u{FEBB}",
-    "sadmedialarabic" => "\u{FEBC}",
-    "sagujarati" => "\u{0AB8}",
-    "sagurmukhi" => "\u{0A38}",
-    "sahiragana" => "\u{3055}",
-    "sakatakana" => "\u{30B5}",
-    "sakatakanahalfwidth" => "\u{FF7B}",
-    "sallallahoualayhewasallamarabic" => "\u{FDFA}",
-    "samekh" => "\u{05E1}",
-    "samekhdagesh" => "\u{FB41}",
-    "samekhdageshhebrew" => "\u{FB41}",
-    "samekhhebrew" => "\u{05E1}",
-    "saraaathai" => "\u{0E32}",
-    "saraaethai" => "\u{0E41}",
-    "saraaimaimalaithai" => "\u{0E44}",
-    "saraaimaimuanthai" => "\u{0E43}",
-    "saraamthai" => "\u{0E33}",
-    "saraathai" => "\u{0E30}",
-    "saraethai" => "\u{0E40}",
-    "saraiileftthai" => "\u{F886}",
-    "saraiithai" => "\u{0E35}",
-    "saraileftthai" => "\u{F885}",
-    "saraithai" => "\u{0E34}",
-    "saraothai" => "\u{0E42}",
-    "saraueeleftthai" => "\u{F888}",
-    "saraueethai" => "\u{0E37}",
-    "saraueleftthai" => "\u{F887}",
-    "sarauethai" => "\u{0E36}",
-    "sarauthai" => "\u{0E38}",
-    "sarauuthai" => "\u{0E39}",
-    "sbopomofo" => "\u{3119}",
-    "scaron" => "\u{0161}",
-    "scarondotaccent" => "\u{1E67}",
-    "scedilla" => "\u{015F}",
-    "schwa" => "\u{0259}",
-    "schwacyrillic" => "\u{04D9}",
-    "schwadieresiscyrillic" => "\u{04DB}",
-    "schwahook" => "\u{025A}",
-    "scircle" => "\u{24E2}",
-    "scircumflex" => "\u{015D}",
-    "scommaaccent" => "\u{0219}",
-    "sdotaccent" => "\u{1E61}",
-    "sdotbelow" => "\u{1E63}",
-    "sdotbelowdotaccent" => "\u{1E69}",
-    "seagullbelowcmb" => "\u{033C}",
-    "second" => "\u{2033}",
-    "secondtonechinese" => "\u{02CA}",
-    "section" => "\u{00A7}",
-    "seenarabic" => "\u{0633}",
-    "seenfinalarabic" => "\u{FEB2}",
-    "seeninitialarabic" => "\u{FEB3}",
-    "seenmedialarabic" => "\u{FEB4}",
-    "segol" => "\u{05B6}",
-    "segol13" => "\u{05B6}",
-    "segol1f" => "\u{05B6}",
-    "segol2c" => "\u{05B6}",
-    "segolhebrew" => "\u{05B6}",
-    "segolnarrowhebrew" => "\u{05B6}",
-    "segolquarterhebrew" => "\u{05B6}",
-    "segoltahebrew" => "\u{0592}",
-    "segolwidehebrew" => "\u{05B6}",
-    "seharmenian" => "\u{057D}",
-    "sehiragana" => "\u{305B}",
-    "sekatakana" => "\u{30BB}",
-    "sekatakanahalfwidth" => "\u{FF7E}",
-    "semicolon" => "\u{003B}",
-    "semicolonarabic" => "\u{061B}",
-    "semicolonmonospace" => "\u{FF1B}",
-    "semicolonsmall" => "\u{FE54}",
-    "semivoicedmarkkana" => "\u{309C}",
-    "semivoicedmarkkanahalfwidth" => "\u{FF9F}",
-    "sentisquare" => "\u{3322}",
-    "sentosquare" => "\u{3323}",
-    "seven" => "\u{0037}",
-    "sevenarabic" => "\u{0667}",
-    "sevenbengali" => "\u{09ED}",
-    "sevencircle" => "\u{2466}",
-    "sevencircleinversesansserif" => "\u{2790}",
-    "sevendeva" => "\u{096D}",
-    "seveneighths" => "\u{215E}",
-    "sevengujarati" => "\u{0AED}",
-    "sevengurmukhi" => "\u{0A6D}",
-    "sevenhackarabic" => "\u{0667}",
-    "sevenhangzhou" => "\u{3027}",
-    "sevenideographicparen" => "\u{3226}",
-    "seveninferior" => "\u{2087}",
-    "sevenmonospace" => "\u{FF17}",
-    "sevenoldstyle" => "\u{F737}",
-    "sevenparen" => "\u{247A}",
-    "sevenperiod" => "\u{248E}",
-    "sevenpersian" => "\u{06F7}",
-    "sevenroman" => "\u{2176}",
-    "sevensuperior" => "\u{2077}",
-    "seventeencircle" => "\u{2470}",
-    "seventeenparen" => "\u{2484}",
-    "seventeenperiod" => "\u{2498}",
-    "seventhai" => "\u{0E57}",
-    "sfthyphen" => "\u{00AD}",
-    "shaarmenian" => "\u{0577}",
-    "shabengali" => "\u{09B6}",
-    "shacyrillic" => "\u{0448}",
-    "shaddaarabic" => "\u{0651}",
-    "shaddadammaarabic" => "\u{FC61}",
-    "shaddadammatanarabic" => "\u{FC5E}",
-    "shaddafathaarabic" => "\u{FC60}",
-    "shaddafathatanarabic" => "\u{0651}\u{064B}",
-    "shaddakasraarabic" => "\u{FC62}",
-    "shaddakasratanarabic" => "\u{FC5F}",
-    "shade" => "\u{2592}",
-    "shadedark" => "\u{2593}",
-    "shadelight" => "\u{2591}",
-    "shademedium" => "\u{2592}",
-    "shadeva" => "\u{0936}",
-    "shagujarati" => "\u{0AB6}",
-    "shagurmukhi" => "\u{0A36}",
-    "shalshelethebrew" => "\u{0593}",
-    "shbopomofo" => "\u{3115}",
-    "shchacyrillic" => "\u{0449}",
-    "sheenarabic" => "\u{0634}",
-    "sheenfinalarabic" => "\u{FEB6}",
-    "sheeninitialarabic" => "\u{FEB7}",
-    "sheenmedialarabic" => "\u{FEB8}",
-    "sheicoptic" => "\u{03E3}",
-    "sheqel" => "\u{20AA}",
-    "sheqelhebrew" => "\u{20AA}",
-    "sheva" => "\u{05B0}",
-    "sheva115" => "\u{05B0}",
-    "sheva15" => "\u{05B0}",
-    "sheva22" => "\u{05B0}",
-    "sheva2e" => "\u{05B0}",
-    "shevahebrew" => "\u{05B0}",
-    "shevanarrowhebrew" => "\u{05B0}",
-    "shevaquarterhebrew" => "\u{05B0}",
-    "shevawidehebrew" => "\u{05B0}",
-    "shhacyrillic" => "\u{04BB}",
-    "shimacoptic" => "\u{03ED}",
-    "shin" => "\u{05E9}",
-    "shindagesh" => "\u{FB49}",
-    "shindageshhebrew" => "\u{FB49}",
-    "shindageshshindot" => "\u{FB2C}",
-    "shindageshshindothebrew" => "\u{FB2C}",
-    "shindageshsindot" => "\u{FB2D}",
-    "shindageshsindothebrew" => "\u{FB2D}",
-    "shindothebrew" => "\u{05C1}",
-    "shinhebrew" => "\u{05E9}",
-    "shinshindot" => "\u{FB2A}",
-    "shinshindothebrew" => "\u{FB2A}",
-    "shinsindot" => "\u{FB2B}",
-    "shinsindothebrew" => "\u{FB2B}",
-    "shook" => "\u{0282}",
-    "sigma" => "\u{03C3}",
-    "sigma1" => "\u{03C2}",
-    "sigmafinal" => "\u{03C2}",
-    "sigmalunatesymbolgreek" => "\u{03F2}",
-    "sihiragana" => "\u{3057}",
-    "sikatakana" => "\u{30B7}",
-    "sikatakanahalfwidth" => "\u{FF7C}",
-    "siluqhebrew" => "\u{05BD}",
-    "siluqlefthebrew" => "\u{05BD}",
-    "similar" => "\u{223C}",
-    "sindothebrew" => "\u{05C2}",
-    "siosacirclekorean" => "\u{3274}",
-    "siosaparenkorean" => "\u{3214}",
-    "sioscieuckorean" => "\u{317E}",
-    "sioscirclekorean" => "\u{3266}",
-    "sioskiyeokkorean" => "\u{317A}",
-    "sioskorean" => "\u{3145}",
-    "siosnieunkorean" => "\u{317B}",
-    "siosparenkorean" => "\u{3206}",
-    "siospieupkorean" => "\u{317D}",
-    "siostikeutkorean" => "\u{317C}",
-    "six" => "\u{0036}",
-    "sixarabic" => "\u{0666}",
-    "sixbengali" => "\u{09EC}",
-    "sixcircle" => "\u{2465}",
-    "sixcircleinversesansserif" => "\u{278F}",
-    "sixdeva" => "\u{096C}",
-    "sixgujarati" => "\u{0AEC}",
-    "sixgurmukhi" => "\u{0A6C}",
-    "sixhackarabic" => "\u{0666}",
-    "sixhangzhou" => "\u{3026}",
-    "sixideographicparen" => "\u{3225}",
-    "sixinferior" => "\u{2086}",
-    "sixmonospace" => "\u{FF16}",
-    "sixoldstyle" => "\u{F736}",
-    "sixparen" => "\u{2479}",
-    "sixperiod" => "\u{248D}",
-    "sixpersian" => "\u{06F6}",
-    "sixroman" => "\u{2175}",
-    "sixsuperior" => "\u{2076}",
-    "sixteencircle" => "\u{246F}",
-    "sixteencurrencydenominatorbengali" => "\u{09F9}",
-    "sixteenparen" => "\u{2483}",
-    "sixteenperiod" => "\u{2497}",
-    "sixthai" => "\u{0E56}",
-    "slash" => "\u{002F}",
-    "slashmonospace" => "\u{FF0F}",
-    "slong" => "\u{017F}",
-    "slongdotaccent" => "\u{1E9B}",
-    "smileface" => "\u{263A}",
-    "smonospace" => "\u{FF53}",
-    "sofpasuqhebrew" => "\u{05C3}",
-    "softhyphen" => "\u{00AD}",
-    "softsigncyrillic" => "\u{044C}",
-    "sohiragana" => "\u{305D}",
-    "sokatakana" => "\u{30BD}",
-    "sokatakanahalfwidth" => "\u{FF7F}",
-    "soliduslongoverlaycmb" => "\u{0338}",
-    "solidusshortoverlaycmb" => "\u{0337}",
-    "sorusithai" => "\u{0E29}",
-    "sosalathai" => "\u{0E28}",
-    "sosothai" => "\u{0E0B}",
-    "sosuathai" => "\u{0E2A}",
-    "space" => "\u{0020}",
-    "spacehackarabic" => "\u{0020}",
-    "spade" => "\u{2660}",
-    "spadesuitblack" => "\u{2660}",
-    "spadesuitwhite" => "\u{2664}",
-    "sparen" => "\u{24AE}",
-    "squarebelowcmb" => "\u{033B}",
-    "squarecc" => "\u{33C4}",
-    "squarecm" => "\u{339D}",
-    "squarediagonalcrosshatchfill" => "\u{25A9}",
-    "squarehorizontalfill" => "\u{25A4}",
-    "squarekg" => "\u{338F}",
-    "squarekm" => "\u{339E}",
-    "squarekmcapital" => "\u{33CE}",
-    "squareln" => "\u{33D1}",
-    "squarelog" => "\u{33D2}",
-    "squaremg" => "\u{338E}",
-    "squaremil" => "\u{33D5}",
-    "squaremm" => "\u{339C}",
-    "squaremsquared" => "\u{33A1}",
-    "squareorthogonalcrosshatchfill" => "\u{25A6}",
-    "squareupperlefttolowerrightfill" => "\u{25A7}",
-    "squareupperrighttolowerleftfill" => "\u{25A8}",
-    "squareverticalfill" => "\u{25A5}",
-    "squarewhitewithsmallblack" => "\u{25A3}",
-    "srsquare" => "\u{33DB}",
-    "ssabengali" => "\u{09B7}",
-    "ssadeva" => "\u{0937}",
-    "ssagujarati" => "\u{0AB7}",
-    "ssangcieuckorean" => "\u{3149}",
-    "ssanghieuhkorean" => "\u{3185}",
-    "ssangieungkorean" => "\u{3180}",
-    "ssangkiyeokkorean" => "\u{3132}",
-    "ssangnieunkorean" => "\u{3165}",
-    "ssangpieupkorean" => "\u{3143}",
-    "ssangsioskorean" => "\u{3146}",
-    "ssangtikeutkorean" => "\u{3138}",
-    "ssuperior" => "\u{F6F2}",
-    "sterling" => "\u{00A3}",
-    "sterlingmonospace" => "\u{FFE1}",
-    "strokelongoverlaycmb" => "\u{0336}",
-    "strokeshortoverlaycmb" => "\u{0335}",
-    "subset" => "\u{2282}",
-    "subsetnotequal" => "\u{228A}",
-    "subsetorequal" => "\u{2286}",
-    "succeeds" => "\u{227B}",
-    "suchthat" => "\u{220B}",
-    "suhiragana" => "\u{3059}",
-    "sukatakana" => "\u{30B9}",
-    "sukatakanahalfwidth" => "\u{FF7D}",
-    "sukunarabic" => "\u{0652}",
-    "summation" => "\u{2211}",
-    "sun" => "\u{263C}",
-    "superset" => "\u{2283}",
-    "supersetnotequal" => "\u{228B}",
-    "supersetorequal" => "\u{2287}",
-    "svsquare" => "\u{33DC}",
-    "syouwaerasquare" => "\u{337C}",
-    "t" => "\u{0074}",
-    "tabengali" => "\u{09A4}",
-    "tackdown" => "\u{22A4}",
-    "tackleft" => "\u{22A3}",
-    "tadeva" => "\u{0924}",
-    "tagujarati" => "\u{0AA4}",
-    "tagurmukhi" => "\u{0A24}",
-    "taharabic" => "\u{0637}",
-    "tahfinalarabic" => "\u{FEC2}",
-    "tahinitialarabic" => "\u{FEC3}",
-    "tahiragana" => "\u{305F}",
-    "tahmedialarabic" => "\u{FEC4}",
-    "taisyouerasquare" => "\u{337D}",
-    "takatakana" => "\u{30BF}",
-    "takatakanahalfwidth" => "\u{FF80}",
-    "tatweelarabic" => "\u{0640}",
-    "tau" => "\u{03C4}",
-    "tav" => "\u{05EA}",
-    "tavdages" => "\u{FB4A}",
-    "tavdagesh" => "\u{FB4A}",
-    "tavdageshhebrew" => "\u{FB4A}",
-    "tavhebrew" => "\u{05EA}",
-    "tbar" => "\u{0167}",
-    "tbopomofo" => "\u{310A}",
-    "tcaron" => "\u{0165}",
-    "tccurl" => "\u{02A8}",
-    "tcedilla" => "\u{0163}",
-    "tcheharabic" => "\u{0686}",
-    "tchehfinalarabic" => "\u{FB7B}",
-    "tchehinitialarabic" => "\u{FB7C}",
-    "tchehmedialarabic" => "\u{FB7D}",
-    "tchehmeeminitialarabic" => "\u{FB7C}\u{FEE4}",
-    "tcircle" => "\u{24E3}",
-    "tcircumflexbelow" => "\u{1E71}",
-    "tcommaaccent" => "\u{0163}",
-    "tdieresis" => "\u{1E97}",
-    "tdotaccent" => "\u{1E6B}",
-    "tdotbelow" => "\u{1E6D}",
-    "tecyrillic" => "\u{0442}",
-    "tedescendercyrillic" => "\u{04AD}",
-    "teharabic" => "\u{062A}",
-    "tehfinalarabic" => "\u{FE96}",
-    "tehhahinitialarabic" => "\u{FCA2}",
-    "tehhahisolatedarabic" => "\u{FC0C}",
-    "tehinitialarabic" => "\u{FE97}",
-    "tehiragana" => "\u{3066}",
-    "tehjeeminitialarabic" => "\u{FCA1}",
-    "tehjeemisolatedarabic" => "\u{FC0B}",
-    "tehmarbutaarabic" => "\u{0629}",
-    "tehmarbutafinalarabic" => "\u{FE94}",
-    "tehmedialarabic" => "\u{FE98}",
-    "tehmeeminitialarabic" => "\u{FCA4}",
-    "tehmeemisolatedarabic" => "\u{FC0E}",
-    "tehnoonfinalarabic" => "\u{FC73}",
-    "tekatakana" => "\u{30C6}",
-    "tekatakanahalfwidth" => "\u{FF83}",
-    "telephone" => "\u{2121}",
-    "telephoneblack" => "\u{260E}",
-    "telishagedolahebrew" => "\u{05A0}",
-    "telishaqetanahebrew" => "\u{05A9}",
-    "tencircle" => "\u{2469}",
-    "tenideographicparen" => "\u{3229}",
-    "tenparen" => "\u{247D}",
-    "tenperiod" => "\u{2491}",
-    "tenroman" => "\u{2179}",
-    "tesh" => "\u{02A7}",
-    "tet" => "\u{05D8}",
-    "tetdagesh" => "\u{FB38}",
-    "tetdageshhebrew" => "\u{FB38}",
-    "tethebrew" => "\u{05D8}",
-    "tetsecyrillic" => "\u{04B5}",
-    "tevirhebrew" => "\u{059B}",
-    "tevirlefthebrew" => "\u{059B}",
-    "thabengali" => "\u{09A5}",
-    "thadeva" => "\u{0925}",
-    "thagujarati" => "\u{0AA5}",
-    "thagurmukhi" => "\u{0A25}",
-    "thalarabic" => "\u{0630}",
-    "thalfinalarabic" => "\u{FEAC}",
-    "thanthakhatlowleftthai" => "\u{F898}",
-    "thanthakhatlowrightthai" => "\u{F897}",
-    "thanthakhatthai" => "\u{0E4C}",
-    "thanthakhatupperleftthai" => "\u{F896}",
-    "theharabic" => "\u{062B}",
-    "thehfinalarabic" => "\u{FE9A}",
-    "thehinitialarabic" => "\u{FE9B}",
-    "thehmedialarabic" => "\u{FE9C}",
-    "thereexists" => "\u{2203}",
-    "therefore" => "\u{2234}",
-    "theta" => "\u{03B8}",
-    "theta1" => "\u{03D1}",
-    "thetasymbolgreek" => "\u{03D1}",
-    "thieuthacirclekorean" => "\u{3279}",
-    "thieuthaparenkorean" => "\u{3219}",
-    "thieuthcirclekorean" => "\u{326B}",
-    "thieuthkorean" => "\u{314C}",
-    "thieuthparenkorean" => "\u{320B}",
-    "thirteencircle" => "\u{246C}",
-    "thirteenparen" => "\u{2480}",
-    "thirteenperiod" => "\u{2494}",
-    "thonangmonthothai" => "\u{0E11}",
-    "thook" => "\u{01AD}",
-    "thophuthaothai" => "\u{0E12}",
-    "thorn" => "\u{00FE}",
-    "thothahanthai" => "\u{0E17}",
-    "thothanthai" => "\u{0E10}",
-    "thothongthai" => "\u{0E18}",
-    "thothungthai" => "\u{0E16}",
-    "thousandcyrillic" => "\u{0482}",
-    "thousandsseparatorarabic" => "\u{066C}",
-    "thousandsseparatorpersian" => "\u{066C}",
-    "three" => "\u{0033}",
-    "threearabic" => "\u{0663}",
-    "threebengali" => "\u{09E9}",
-    "threecircle" => "\u{2462}",
-    "threecircleinversesansserif" => "\u{278C}",
-    "threedeva" => "\u{0969}",
-    "threeeighths" => "\u{215C}",
-    "threegujarati" => "\u{0AE9}",
-    "threegurmukhi" => "\u{0A69}",
-    "threehackarabic" => "\u{0663}",
-    "threehangzhou" => "\u{3023}",
-    "threeideographicparen" => "\u{3222}",
-    "threeinferior" => "\u{2083}",
-    "threemonospace" => "\u{FF13}",
-    "threenumeratorbengali" => "\u{09F6}",
-    "threeoldstyle" => "\u{F733}",
-    "threeparen" => "\u{2476}",
-    "threeperiod" => "\u{248A}",
-    "threepersian" => "\u{06F3}",
-    "threequarters" => "\u{00BE}",
-    "threequartersemdash" => "\u{F6DE}",
-    "threeroman" => "\u{2172}",
-    "threesuperior" => "\u{00B3}",
-    "threethai" => "\u{0E53}",
-    "thzsquare" => "\u{3394}",
-    "tihiragana" => "\u{3061}",
-    "tikatakana" => "\u{30C1}",
-    "tikatakanahalfwidth" => "\u{FF81}",
-    "tikeutacirclekorean" => "\u{3270}",
-    "tikeutaparenkorean" => "\u{3210}",
-    "tikeutcirclekorean" => "\u{3262}",
-    "tikeutkorean" => "\u{3137}",
-    "tikeutparenkorean" => "\u{3202}",
-    "tilde" => "\u{02DC}",
-    "tildebelowcmb" => "\u{0330}",
-    "tildecmb" => "\u{0303}",
-    "tildecomb" => "\u{0303}",
-    "tildedoublecmb" => "\u{0360}",
-    "tildeoperator" => "\u{223C}",
-    "tildeoverlaycmb" => "\u{0334}",
-    "tildeverticalcmb" => "\u{033E}",
-    "timescircle" => "\u{2297}",
-    "tipehahebrew" => "\u{0596}",
-    "tipehalefthebrew" => "\u{0596}",
-    "tippigurmukhi" => "\u{0A70}",
-    "titlocyrilliccmb" => "\u{0483}",
-    "tiwnarmenian" => "\u{057F}",
-    "tlinebelow" => "\u{1E6F}",
-    "tmonospace" => "\u{FF54}",
-    "toarmenian" => "\u{0569}",
-    "tohiragana" => "\u{3068}",
-    "tokatakana" => "\u{30C8}",
-    "tokatakanahalfwidth" => "\u{FF84}",
-    "tonebarextrahighmod" => "\u{02E5}",
-    "tonebarextralowmod" => "\u{02E9}",
-    "tonebarhighmod" => "\u{02E6}",
-    "tonebarlowmod" => "\u{02E8}",
-    "tonebarmidmod" => "\u{02E7}",
-    "tonefive" => "\u{01BD}",
-    "tonesix" => "\u{0185}",
-    "tonetwo" => "\u{01A8}",
-    "tonos" => "\u{0384}",
-    "tonsquare" => "\u{3327}",
-    "topatakthai" => "\u{0E0F}",
-    "tortoiseshellbracketleft" => "\u{3014}",
-    "tortoiseshellbracketleftsmall" => "\u{FE5D}",
-    "tortoiseshellbracketleftvertical" => "\u{FE39}",
-    "tortoiseshellbracketright" => "\u{3015}",
-    "tortoiseshellbracketrightsmall" => "\u{FE5E}",
-    "tortoiseshellbracketrightvertical" => "\u{FE3A}",
-    "totaothai" => "\u{0E15}",
-    "tpalatalhook" => "\u{01AB}",
-    "tparen" => "\u{24AF}",
-    "trademark" => "\u{2122}",
-    "trademarksans" => "\u{F8EA}",
-    "trademarkserif" => "\u{F6DB}",
-    "tretroflexhook" => "\u{0288}",
-    "triagdn" => "\u{25BC}",
-    "triaglf" => "\u{25C4}",
-    "triagrt" => "\u{25BA}",
-    "triagup" => "\u{25B2}",
-    "ts" => "\u{02A6}",
-    "tsadi" => "\u{05E6}",
-    "tsadidagesh" => "\u{FB46}",
-    "tsadidageshhebrew" => "\u{FB46}",
-    "tsadihebrew" => "\u{05E6}",
-    "tsecyrillic" => "\u{0446}",
-    "tsere" => "\u{05B5}",
-    "tsere12" => "\u{05B5}",
-    "tsere1e" => "\u{05B5}",
-    "tsere2b" => "\u{05B5}",
-    "tserehebrew" => "\u{05B5}",
-    "tserenarrowhebrew" => "\u{05B5}",
-    "tserequarterhebrew" => "\u{05B5}",
-    "tserewidehebrew" => "\u{05B5}",
-    "tshecyrillic" => "\u{045B}",
-    "tsuperior" => "\u{F6F3}",
-    "ttabengali" => "\u{099F}",
-    "ttadeva" => "\u{091F}",
-    "ttagujarati" => "\u{0A9F}",
-    "ttagurmukhi" => "\u{0A1F}",
-    "tteharabic" => "\u{0679}",
-    "ttehfinalarabic" => "\u{FB67}",
-    "ttehinitialarabic" => "\u{FB68}",
-    "ttehmedialarabic" => "\u{FB69}",
-    "tthabengali" => "\u{09A0}",
-    "tthadeva" => "\u{0920}",
-    "tthagujarati" => "\u{0AA0}",
-    "tthagurmukhi" => "\u{0A20}",
-    "tturned" => "\u{0287}",
-    "tuhiragana" => "\u{3064}",
-    "tukatakana" => "\u{30C4}",
-    "tukatakanahalfwidth" => "\u{FF82}",
-    "tusmallhiragana" => "\u{3063}",
-    "tusmallkatakana" => "\u{30C3}",
-    "tusmallkatakanahalfwidth" => "\u{FF6F}",
-    "twelvecircle" => "\u{246B}",
-    "twelveparen" => "\u{247F}",
-    "twelveperiod" => "\u{2493}",
-    "twelveroman" => "\u{217B}",
-    "twentycircle" => "\u{2473}",
-    "twentyhangzhou" => "\u{5344}",
-    "twentyparen" => "\u{2487}",
-    "twentyperiod" => "\u{249B}",
-    "two" => "\u{0032}",
-    "twoarabic" => "\u{0662}",
-    "twobengali" => "\u{09E8}",
-    "twocircle" => "\u{2461}",
-    "twocircleinversesansserif" => "\u{278B}",
-    "twodeva" => "\u{0968}",
-    "twodotenleader" => "\u{2025}",
-    "twodotleader" => "\u{2025}",
-    "twodotleadervertical" => "\u{FE30}",
-    "twogujarati" => "\u{0AE8}",
-    "twogurmukhi" => "\u{0A68}",
-    "twohackarabic" => "\u{0662}",
-    "twohangzhou" => "\u{3022}",
-    "twoideographicparen" => "\u{3221}",
-    "twoinferior" => "\u{2082}",
-    "twomonospace" => "\u{FF12}",
-    "twonumeratorbengali" => "\u{09F5}",
-    "twooldstyle" => "\u{F732}",
-    "twoparen" => "\u{2475}",
-    "twoperiod" => "\u{2489}",
-    "twopersian" => "\u{06F2}",
-    "tworoman" => "\u{2171}",
-    "twostroke" => "\u{01BB}",
-    "twosuperior" => "\u{00B2}",
-    "twothai" => "\u{0E52}",
-    "twothirds" => "\u{2154}",
-    "u" => "\u{0075}",
-    "uacute" => "\u{00FA}",
-    "ubar" => "\u{0289}",
-    "ubengali" => "\u{0989}",
-    "ubopomofo" => "\u{3128}",
-    "ubreve" => "\u{016D}",
-    "ucaron" => "\u{01D4}",
-    "ucircle" => "\u{24E4}",
-    "ucircumflex" => "\u{00FB}",
-    "ucircumflexbelow" => "\u{1E77}",
-    "ucyrillic" => "\u{0443}",
-    "udattadeva" => "\u{0951}",
-    "udblacute" => "\u{0171}",
-    "udblgrave" => "\u{0215}",
-    "udeva" => "\u{0909}",
-    "udieresis" => "\u{00FC}",
-    "udieresisacute" => "\u{01D8}",
-    "udieresisbelow" => "\u{1E73}",
-    "udieresiscaron" => "\u{01DA}",
-    "udieresiscyrillic" => "\u{04F1}",
-    "udieresisgrave" => "\u{01DC}",
-    "udieresismacron" => "\u{01D6}",
-    "udotbelow" => "\u{1EE5}",
-    "ugrave" => "\u{00F9}",
-    "ugujarati" => "\u{0A89}",
-    "ugurmukhi" => "\u{0A09}",
-    "uhiragana" => "\u{3046}",
-    "uhookabove" => "\u{1EE7}",
-    "uhorn" => "\u{01B0}",
-    "uhornacute" => "\u{1EE9}",
-    "uhorndotbelow" => "\u{1EF1}",
-    "uhorngrave" => "\u{1EEB}",
-    "uhornhookabove" => "\u{1EED}",
-    "uhorntilde" => "\u{1EEF}",
-    "uhungarumlaut" => "\u{0171}",
-    "uhungarumlautcyrillic" => "\u{04F3}",
-    "uinvertedbreve" => "\u{0217}",
-    "ukatakana" => "\u{30A6}",
-    "ukatakanahalfwidth" => "\u{FF73}",
-    "ukcyrillic" => "\u{0479}",
-    "ukorean" => "\u{315C}",
-    "umacron" => "\u{016B}",
-    "umacroncyrillic" => "\u{04EF}",
-    "umacrondieresis" => "\u{1E7B}",
-    "umatragurmukhi" => "\u{0A41}",
-    "umonospace" => "\u{FF55}",
-    "underscore" => "\u{005F}",
-    "underscoredbl" => "\u{2017}",
-    "underscoremonospace" => "\u{FF3F}",
-    "underscorevertical" => "\u{FE33}",
-    "underscorewavy" => "\u{FE4F}",
-    "union" => "\u{222A}",
-    "universal" => "\u{2200}",
-    "uogonek" => "\u{0173}",
-    "uparen" => "\u{24B0}",
-    "upblock" => "\u{2580}",
-    "upperdothebrew" => "\u{05C4}",
-    "upsilon" => "\u{03C5}",
-    "upsilondieresis" => "\u{03CB}",
-    "upsilondieresistonos" => "\u{03B0}",
-    "upsilonlatin" => "\u{028A}",
-    "upsilontonos" => "\u{03CD}",
-    "uptackbelowcmb" => "\u{031D}",
-    "uptackmod" => "\u{02D4}",
-    "uragurmukhi" => "\u{0A73}",
-    "uring" => "\u{016F}",
-    "ushortcyrillic" => "\u{045E}",
-    "usmallhiragana" => "\u{3045}",
-    "usmallkatakana" => "\u{30A5}",
-    "usmallkatakanahalfwidth" => "\u{FF69}",
-    "ustraightcyrillic" => "\u{04AF}",
-    "ustraightstrokecyrillic" => "\u{04B1}",
-    "utilde" => "\u{0169}",
-    "utildeacute" => "\u{1E79}",
-    "utildebelow" => "\u{1E75}",
-    "uubengali" => "\u{098A}",
-    "uudeva" => "\u{090A}",
-    "uugujarati" => "\u{0A8A}",
-    "uugurmukhi" => "\u{0A0A}",
-    "uumatragurmukhi" => "\u{0A42}",
-    "uuvowelsignbengali" => "\u{09C2}",
-    "uuvowelsigndeva" => "\u{0942}",
-    "uuvowelsigngujarati" => "\u{0AC2}",
-    "uvowelsignbengali" => "\u{09C1}",
-    "uvowelsigndeva" => "\u{0941}",
-    "uvowelsigngujarati" => "\u{0AC1}",
-    "v" => "\u{0076}",
-    "vadeva" => "\u{0935}",
-    "vagujarati" => "\u{0AB5}",
-    "vagurmukhi" => "\u{0A35}",
-    "vakatakana" => "\u{30F7}",
-    "vav" => "\u{05D5}",
-    "vavdagesh" => "\u{FB35}",
-    "vavdagesh65" => "\u{FB35}",
-    "vavdageshhebrew" => "\u{FB35}",
-    "vavhebrew" => "\u{05D5}",
-    "vavholam" => "\u{FB4B}",
-    "vavholamhebrew" => "\u{FB4B}",
-    "vavvavhebrew" => "\u{05F0}",
-    "vavyodhebrew" => "\u{05F1}",
-    "vcircle" => "\u{24E5}",
-    "vdotbelow" => "\u{1E7F}",
-    "vecyrillic" => "\u{0432}",
-    "veharabic" => "\u{06A4}",
-    "vehfinalarabic" => "\u{FB6B}",
-    "vehinitialarabic" => "\u{FB6C}",
-    "vehmedialarabic" => "\u{FB6D}",
-    "vekatakana" => "\u{30F9}",
-    "venus" => "\u{2640}",
-    "verticalbar" => "\u{007C}",
-    "verticallineabovecmb" => "\u{030D}",
-    "verticallinebelowcmb" => "\u{0329}",
-    "verticallinelowmod" => "\u{02CC}",
-    "verticallinemod" => "\u{02C8}",
-    "vewarmenian" => "\u{057E}",
-    "vhook" => "\u{028B}",
-    "vikatakana" => "\u{30F8}",
-    "viramabengali" => "\u{09CD}",
-    "viramadeva" => "\u{094D}",
-    "viramagujarati" => "\u{0ACD}",
-    "visargabengali" => "\u{0983}",
-    "visargadeva" => "\u{0903}",
-    "visargagujarati" => "\u{0A83}",
-    "vmonospace" => "\u{FF56}",
-    "voarmenian" => "\u{0578}",
-    "voicediterationhiragana" => "\u{309E}",
-    "voicediterationkatakana" => "\u{30FE}",
-    "voicedmarkkana" => "\u{309B}",
-    "voicedmarkkanahalfwidth" => "\u{FF9E}",
-    "vokatakana" => "\u{30FA}",
-    "vparen" => "\u{24B1}",
-    "vtilde" => "\u{1E7D}",
-    "vturned" => "\u{028C}",
-    "vuhiragana" => "\u{3094}",
-    "vukatakana" => "\u{30F4}",
-    "w" => "\u{0077}",
-    "wacute" => "\u{1E83}",
-    "waekorean" => "\u{3159}",
-    "wahiragana" => "\u{308F}",
-    "wakatakana" => "\u{30EF}",
-    "wakatakanahalfwidth" => "\u{FF9C}",
-    "wakorean" => "\u{3158}",
-    "wasmallhiragana" => "\u{308E}",
-    "wasmallkatakana" => "\u{30EE}",
-    "wattosquare" => "\u{3357}",
-    "wavedash" => "\u{301C}",
-    "wavyunderscorevertical" => "\u{FE34}",
-    "wawarabic" => "\u{0648}",
-    "wawfinalarabic" => "\u{FEEE}",
-    "wawhamzaabovearabic" => "\u{0624}",
-    "wawhamzaabovefinalarabic" => "\u{FE86}",
-    "wbsquare" => "\u{33DD}",
-    "wcircle" => "\u{24E6}",
-    "wcircumflex" => "\u{0175}",
-    "wdieresis" => "\u{1E85}",
-    "wdotaccent" => "\u{1E87}",
-    "wdotbelow" => "\u{1E89}",
-    "wehiragana" => "\u{3091}",
-    "weierstrass" => "\u{2118}",
-    "wekatakana" => "\u{30F1}",
-    "wekorean" => "\u{315E}",
-    "weokorean" => "\u{315D}",
-    "wgrave" => "\u{1E81}",
-    "whitebullet" => "\u{25E6}",
-    "whitecircle" => "\u{25CB}",
-    "whitecircleinverse" => "\u{25D9}",
-    "whitecornerbracketleft" => "\u{300E}",
-    "whitecornerbracketleftvertical" => "\u{FE43}",
-    "whitecornerbracketright" => "\u{300F}",
-    "whitecornerbracketrightvertical" => "\u{FE44}",
-    "whitediamond" => "\u{25C7}",
-    "whitediamondcontainingblacksmalldiamond" => "\u{25C8}",
-    "whitedownpointingsmalltriangle" => "\u{25BF}",
-    "whitedownpointingtriangle" => "\u{25BD}",
-    "whiteleftpointingsmalltriangle" => "\u{25C3}",
-    "whiteleftpointingtriangle" => "\u{25C1}",
-    "whitelenticularbracketleft" => "\u{3016}",
-    "whitelenticularbracketright" => "\u{3017}",
-    "whiterightpointingsmalltriangle" => "\u{25B9}",
-    "whiterightpointingtriangle" => "\u{25B7}",
-    "whitesmallsquare" => "\u{25AB}",
-    "whitesmilingface" => "\u{263A}",
-    "whitesquare" => "\u{25A1}",
-    "whitestar" => "\u{2606}",
-    "whitetelephone" => "\u{260F}",
-    "whitetortoiseshellbracketleft" => "\u{3018}",
-    "whitetortoiseshellbracketright" => "\u{3019}",
-    "whiteuppointingsmalltriangle" => "\u{25B5}",
-    "whiteuppointingtriangle" => "\u{25B3}",
-    "wihiragana" => "\u{3090}",
-    "wikatakana" => "\u{30F0}",
-    "wikorean" => "\u{315F}",
-    "wmonospace" => "\u{FF57}",
-    "wohiragana" => "\u{3092}",
-    "wokatakana" => "\u{30F2}",
-    "wokatakanahalfwidth" => "\u{FF66}",
-    "won" => "\u{20A9}",
-    "wonmonospace" => "\u{FFE6}",
-    "wowaenthai" => "\u{0E27}",
-    "wparen" => "\u{24B2}",
-    "wring" => "\u{1E98}",
-    "wsuperior" => "\u{02B7}",
-    "wturned" => "\u{028D}",
-    "wynn" => "\u{01BF}",
-    "x" => "\u{0078}",
-    "xabovecmb" => "\u{033D}",
-    "xbopomofo" => "\u{3112}",
-    "xcircle" => "\u{24E7}",
-    "xdieresis" => "\u{1E8D}",
-    "xdotaccent" => "\u{1E8B}",
-    "xeharmenian" => "\u{056D}",
-    "xi" => "\u{03BE}",
-    "xmonospace" => "\u{FF58}",
-    "xparen" => "\u{24B3}",
-    "xsuperior" => "\u{02E3}",
-    "y" => "\u{0079}",
-    "yaadosquare" => "\u{334E}",
-    "yabengali" => "\u{09AF}",
-    "yacute" => "\u{00FD}",
-    "yadeva" => "\u{092F}",
-    "yaekorean" => "\u{3152}",
-    "yagujarati" => "\u{0AAF}",
-    "yagurmukhi" => "\u{0A2F}",
-    "yahiragana" => "\u{3084}",
-    "yakatakana" => "\u{30E4}",
-    "yakatakanahalfwidth" => "\u{FF94}",
-    "yakorean" => "\u{3151}",
-    "yamakkanthai" => "\u{0E4E}",
-    "yasmallhiragana" => "\u{3083}",
-    "yasmallkatakana" => "\u{30E3}",
-    "yasmallkatakanahalfwidth" => "\u{FF6C}",
-    "yatcyrillic" => "\u{0463}",
-    "ycircle" => "\u{24E8}",
-    "ycircumflex" => "\u{0177}",
-    "ydieresis" => "\u{00FF}",
-    "ydotaccent" => "\u{1E8F}",
-    "ydotbelow" => "\u{1EF5}",
-    "yeharabic" => "\u{064A}",
-    "yehbarreearabic" => "\u{06D2}",
-    "yehbarreefinalarabic" => "\u{FBAF}",
-    "yehfinalarabic" => "\u{FEF2}",
-    "yehhamzaabovearabic" => "\u{0626}",
-    "yehhamzaabovefinalarabic" => "\u{FE8A}",
-    "yehhamzaaboveinitialarabic" => "\u{FE8B}",
-    "yehhamzaabovemedialarabic" => "\u{FE8C}",
-    "yehinitialarabic" => "\u{FEF3}",
-    "yehmedialarabic" => "\u{FEF4}",
-    "yehmeeminitialarabic" => "\u{FCDD}",
-    "yehmeemisolatedarabic" => "\u{FC58}",
-    "yehnoonfinalarabic" => "\u{FC94}",
-    "yehthreedotsbelowarabic" => "\u{06D1}",
-    "yekorean" => "\u{3156}",
-    "yen" => "\u{00A5}",
-    "yenmonospace" => "\u{FFE5}",
-    "yeokorean" => "\u{3155}",
-    "yeorinhieuhkorean" => "\u{3186}",
-    "yerahbenyomohebrew" => "\u{05AA}",
-    "yerahbenyomolefthebrew" => "\u{05AA}",
-    "yericyrillic" => "\u{044B}",
-    "yerudieresiscyrillic" => "\u{04F9}",
-    "yesieungkorean" => "\u{3181}",
-    "yesieungpansioskorean" => "\u{3183}",
-    "yesieungsioskorean" => "\u{3182}",
-    "yetivhebrew" => "\u{059A}",
-    "ygrave" => "\u{1EF3}",
-    "yhook" => "\u{01B4}",
-    "yhookabove" => "\u{1EF7}",
-    "yiarmenian" => "\u{0575}",
-    "yicyrillic" => "\u{0457}",
-    "yikorean" => "\u{3162}",
-    "yinyang" => "\u{262F}",
-    "yiwnarmenian" => "\u{0582}",
-    "ymonospace" => "\u{FF59}",
-    "yod" => "\u{05D9}",
-    "yoddagesh" => "\u{FB39}",
-    "yoddageshhebrew" => "\u{FB39}",
-    "yodhebrew" => "\u{05D9}",
-    "yodyodhebrew" => "\u{05F2}",
-    "yodyodpatahhebrew" => "\u{FB1F}",
-    "yohiragana" => "\u{3088}",
-    "yoikorean" => "\u{3189}",
-    "yokatakana" => "\u{30E8}",
-    "yokatakanahalfwidth" => "\u{FF96}",
-    "yokorean" => "\u{315B}",
-    "yosmallhiragana" => "\u{3087}",
-    "yosmallkatakana" => "\u{30E7}",
-    "yosmallkatakanahalfwidth" => "\u{FF6E}",
-    "yotgreek" => "\u{03F3}",
-    "yoyaekorean" => "\u{3188}",
-    "yoyakorean" => "\u{3187}",
-    "yoyakthai" => "\u{0E22}",
-    "yoyingthai" => "\u{0E0D}",
-    "yparen" => "\u{24B4}",
-    "ypogegrammeni" => "\u{037A}",
-    "ypogegrammenigreekcmb" => "\u{0345}",
-    "yr" => "\u{01A6}",
-    "yring" => "\u{1E99}",
-    "ysuperior" => "\u{02B8}",
-    "ytilde" => "\u{1EF9}",
-    "yturned" => "\u{028E}",
-    "yuhiragana" => "\u{3086}",
-    "yuikorean" => "\u{318C}",
-    "yukatakana" => "\u{30E6}",
-    "yukatakanahalfwidth" => "\u{FF95}",
-    "yukorean" => "\u{3160}",
-    "yusbigcyrillic" => "\u{046B}",
-    "yusbigiotifiedcyrillic" => "\u{046D}",
-    "yuslittlecyrillic" => "\u{0467}",
-    "yuslittleiotifiedcyrillic" => "\u{0469}",
-    "yusmallhiragana" => "\u{3085}",
-    "yusmallkatakana" => "\u{30E5}",
-    "yusmallkatakanahalfwidth" => "\u{FF6D}",
-    "yuyekorean" => "\u{318B}",
-    "yuyeokorean" => "\u{318A}",
-    "yyabengali" => "\u{09DF}",
-    "yyadeva" => "\u{095F}",
-    "z" => "\u{007A}",
-    "zaarmenian" => "\u{0566}",
-    "zacute" => "\u{017A}",
-    "zadeva" => "\u{095B}",
-    "zagurmukhi" => "\u{0A5B}",
-    "zaharabic" => "\u{0638}",
-    "zahfinalarabic" => "\u{FEC6}",
-    "zahinitialarabic" => "\u{FEC7}",
-    "zahiragana" => "\u{3056}",
-    "zahmedialarabic" => "\u{FEC8}",
-    "zainarabic" => "\u{0632}",
-    "zainfinalarabic" => "\u{FEB0}",
-    "zakatakana" => "\u{30B6}",
-    "zaqefgadolhebrew" => "\u{0595}",
-    "zaqefqatanhebrew" => "\u{0594}",
-    "zarqahebrew" => "\u{0598}",
-    "zayin" => "\u{05D6}",
-    "zayindagesh" => "\u{FB36}",
-    "zayindageshhebrew" => "\u{FB36}",
-    "zayinhebrew" => "\u{05D6}",
-    "zbopomofo" => "\u{3117}",
-    "zcaron" => "\u{017E}",
-    "zcircle" => "\u{24E9}",
-    "zcircumflex" => "\u{1E91}",
-    "zcurl" => "\u{0291}",
-    "zdot" => "\u{017C}",
-    "zdotaccent" => "\u{017C}",
-    "zdotbelow" => "\u{1E93}",
-    "zecyrillic" => "\u{0437}",
-    "zedescendercyrillic" => "\u{0499}",
-    "zedieresiscyrillic" => "\u{04DF}",
-    "zehiragana" => "\u{305C}",
-    "zekatakana" => "\u{30BC}",
-    "zero" => "\u{0030}",
-    "zeroarabic" => "\u{0660}",
-    "zerobengali" => "\u{09E6}",
-    "zerodeva" => "\u{0966}",
-    "zerogujarati" => "\u{0AE6}",
-    "zerogurmukhi" => "\u{0A66}",
-    "zerohackarabic" => "\u{0660}",
-    "zeroinferior" => "\u{2080}",
-    "zeromonospace" => "\u{FF10}",
-    "zerooldstyle" => "\u{F730}",
-    "zeropersian" => "\u{06F0}",
-    "zerosuperior" => "\u{2070}",
-    "zerothai" => "\u{0E50}",
-    "zerowidthjoiner" => "\u{FEFF}",
-    "zerowidthnonjoiner" => "\u{200C}",
-    "zerowidthspace" => "\u{200B}",
-    "zeta" => "\u{03B6}",
-    "zhbopomofo" => "\u{3113}",
-    "zhearmenian" => "\u{056A}",
-    "zhebrevecyrillic" => "\u{04C2}",
-    "zhecyrillic" => "\u{0436}",
-    "zhedescendercyrillic" => "\u{0497}",
-    "zhedieresiscyrillic" => "\u{04DD}",
-    "zihiragana" => "\u{3058}",
-    "zikatakana" => "\u{30B8}",
-    "zinorhebrew" => "\u{05AE}",
-    "zlinebelow" => "\u{1E95}",
-    "zmonospace" => "\u{FF5A}",
-    "zohiragana" => "\u{305E}",
-    "zokatakana" => "\u{30BE}",
-    "zparen" => "\u{24B5}",
-    "zretroflexhook" => "\u{0290}",
-    "zstroke" => "\u{01B6}",
-    "zuhiragana" => "\u{305A}",
-    "zukatakana" => "\u{30BA}",
-    "angbracketleft" => "\u{3008}",
-    "angbracketright" => "\u{3009}",
-    "circlecopyrt" => "\u{00A9}",
-    "controlNULL" => "\u{0000}",
-    "angbracketleftbig" => "\u{2329}",
-    "angbracketleftBig" => "\u{2329}",
-    "angbracketleftbigg" => "\u{2329}",
-    "angbracketleftBigg" => "\u{2329}",
-    "angbracketrightBig" => "\u{232A}",
-    "angbracketrightbig" => "\u{232A}",
-    "angbracketrightBigg" => "\u{232A}",
-    "angbracketrightbigg" => "\u{232A}",
-    "arrowhookleft" => "\u{21AA}",
-    "arrowhookright" => "\u{21A9}",
-    "arrowlefttophalf" => "\u{21BC}",
-    "arrowleftbothalf" => "\u{21BD}",
-    "arrownortheast" => "\u{2197}",
-    "arrownorthwest" => "\u{2196}",
-    "arrowrighttophalf" => "\u{21C0}",
-    "arrowrightbothalf" => "\u{21C1}",
-    "arrowsoutheast" => "\u{2198}",
-    "arrowsouthwest" => "\u{2199}",
-    "backslashbig" => "\u{2216}",
-    "backslashBig" => "\u{2216}",
-    "backslashBigg" => "\u{2216}",
-    "backslashbigg" => "\u{2216}",
-    "bardbl" => "\u{2016}",
-    "bracehtipdownleft" => "\u{FE37}",
-    "bracehtipdownright" => "\u{FE37}",
-    "bracehtipupleft" => "\u{FE38}",
-    "bracehtipupright" => "\u{FE38}",
-    "braceleftBig" => "\u{007B}",
-    "braceleftbig" => "\u{007B}",
-    "braceleftbigg" => "\u{007B}",
-    "braceleftBigg" => "\u{007B}",
-    "bracerightBig" => "\u{007D}",
-    "bracerightbig" => "\u{007D}",
-    "bracerightbigg" => "\u{007D}",
-    "bracerightBigg" => "\u{007D}",
-    "bracketleftbig" => "\u{005B}",
-    "bracketleftBig" => "\u{005B}",
-    "bracketleftbigg" => "\u{005B}",
-    "bracketleftBigg" => "\u{005B}",
-    "bracketleftmath" => "\u{005B}",
-    "bracketrightBig" => "\u{005D}",
-    "bracketrightbig" => "\u{005D}",
-    "bracketrightbigg" => "\u{005D}",
-    "bracketrightBigg" => "\u{005D}",
-    "bracketrightmath" => "\u{005D}",
-    "ceilingleftbig" => "\u{2308}",
-    "ceilingleftBig" => "\u{2308}",
-    "ceilingleftBigg" => "\u{2308}",
-    "ceilingleftbigg" => "\u{2308}",
-    "ceilingrightbig" => "\u{2309}",
-    "ceilingrightBig" => "\u{2309}",
-    "ceilingrightbigg" => "\u{2309}",
-    "ceilingrightBigg" => "\u{2309}",
-    "circledotdisplay" => "\u{2299}",
-    "circledottext" => "\u{2299}",
-    "circlemultiplydisplay" => "\u{2297}",
-    "circlemultiplytext" => "\u{2297}",
-    "circleplusdisplay" => "\u{2295}",
-    "circleplustext" => "\u{2295}",
-    "contintegraldisplay" => "\u{222E}",
-    "contintegraltext" => "\u{222E}",
-    "coproductdisplay" => "\u{2210}",
-    "coproducttext" => "\u{2210}",
-    "epsilon1" => "\u{03B5}",
-    "equalmath" => "\u{003D}",
-    "floorleftBig" => "\u{230A}",
-    "floorleftbig" => "\u{230A}",
-    "floorleftbigg" => "\u{230A}",
-    "floorleftBigg" => "\u{230A}",
-    "floorrightbig" => "\u{230B}",
-    "floorrightBig" => "\u{230B}",
-    "floorrightBigg" => "\u{230B}",
-    "floorrightbigg" => "\u{230B}",
-    "hatwide" => "\u{0302}",
-    "hatwider" => "\u{0302}",
-    "hatwidest" => "\u{0302}",
-    "intercal" => "\u{1D40}",
-    "integraldisplay" => "\u{222B}",
-    "integraltext" => "\u{222B}",
-    "intersectiondisplay" => "\u{22C2}",
-    "intersectiontext" => "\u{22C2}",
-    "logicalanddisplay" => "\u{2227}",
-    "logicalandtext" => "\u{2227}",
-    "logicalordisplay" => "\u{2228}",
-    "logicalortext" => "\u{2228}",
-    "parenleftBig" => "\u{0028}",
-    "parenleftbig" => "\u{0028}",
-    "parenleftBigg" => "\u{0028}",
-    "parenleftbigg" => "\u{0028}",
-    "parenleftmath" => "\u{0028}",
-    "parenrightBig" => "\u{0029}",
-    "parenrightbig" => "\u{0029}",
-    "parenrightBigg" => "\u{0029}",
-    "parenrightbigg" => "\u{0029}",
-    "parenrightmath" => "\u{0029}",
-    "plusmath" => "\u{002B}",
-    "prime" => "\u{2032}",
-    "productdisplay" => "\u{220F}",
-    "producttext" => "\u{220F}",
-    "radicalbig" => "\u{221A}",
-    "radicalBig" => "\u{221A}",
-    "radicalBigg" => "\u{221A}",
-    "radicalbigg" => "\u{221A}",
-    "radicalbt" => "\u{221A}",
-    "radicaltp" => "\u{221A}",
-    "radicalvertex" => "\u{221A}",
-    "slashbig" => "\u{002F}",
-    "slashBig" => "\u{002F}",
-    "slashBigg" => "\u{002F}",
-    "slashbigg" => "\u{002F}",
-    "summationdisplay" => "\u{2211}",
-    "summationtext" => "\u{2211}",
-    "tildewide" => "\u{02DC}",
-    "tildewider" => "\u{02DC}",
-    "tildewidest" => "\u{02DC}",
-    "uniondisplay" => "\u{22C3}",
-    "unionmultidisplay" => "\u{228E}",
-    "unionmultitext" => "\u{228E}",
-    "unionsqdisplay" => "\u{2294}",
-    "unionsqtext" => "\u{2294}",
-    "uniontext" => "\u{22C3}",
-    "vextenddouble" => "\u{2225}",
-    "vextendsingle" => "\u{2223}",
-};
+pub(super) static GLYPH_NAMES: &[u8] = b"\
+    A\xFEA\xFF\
+    AE\xFE\xC3\x86\xFF\
+    AEacute\xFE\xC7\xBC\xFF\
+    AEmacron\xFE\xC7\xA2\xFF\
+    AEsmall\xFE\xEF\x9F\xA6\xFF\
+    Aacute\xFE\xC3\x81\xFF\
+    Aacutesmall\xFE\xEF\x9F\xA1\xFF\
+    Abreve\xFE\xC4\x82\xFF\
+    Abreveacute\xFE\xE1\xBA\xAE\xFF\
+    Abrevecyrillic\xFE\xD3\x90\xFF\
+    Abrevedotbelow\xFE\xE1\xBA\xB6\xFF\
+    Abrevegrave\xFE\xE1\xBA\xB0\xFF\
+    Abrevehookabove\xFE\xE1\xBA\xB2\xFF\
+    Abrevetilde\xFE\xE1\xBA\xB4\xFF\
+    Acaron\xFE\xC7\x8D\xFF\
+    Acircle\xFE\xE2\x92\xB6\xFF\
+    Acircumflex\xFE\xC3\x82\xFF\
+    Acircumflexacute\xFE\xE1\xBA\xA4\xFF\
+    Acircumflexdotbelow\xFE\xE1\xBA\xAC\xFF\
+    Acircumflexgrave\xFE\xE1\xBA\xA6\xFF\
+    Acircumflexhookabove\xFE\xE1\xBA\xA8\xFF\
+    Acircumflexsmall\xFE\xEF\x9F\xA2\xFF\
+    Acircumflextilde\xFE\xE1\xBA\xAA\xFF\
+    Acute\xFE\xEF\x9B\x89\xFF\
+    Acutesmall\xFE\xEF\x9E\xB4\xFF\
+    Acyrillic\xFE\xD0\x90\xFF\
+    Adblgrave\xFE\xC8\x80\xFF\
+    Adieresis\xFE\xC3\x84\xFF\
+    Adieresiscyrillic\xFE\xD3\x92\xFF\
+    Adieresismacron\xFE\xC7\x9E\xFF\
+    Adieresissmall\xFE\xEF\x9F\xA4\xFF\
+    Adotbelow\xFE\xE1\xBA\xA0\xFF\
+    Adotmacron\xFE\xC7\xA0\xFF\
+    Agrave\xFE\xC3\x80\xFF\
+    Agravesmall\xFE\xEF\x9F\xA0\xFF\
+    Ahookabove\xFE\xE1\xBA\xA2\xFF\
+    Aiecyrillic\xFE\xD3\x94\xFF\
+    Ainvertedbreve\xFE\xC8\x82\xFF\
+    Alpha\xFE\xCE\x91\xFF\
+    Alphatonos\xFE\xCE\x86\xFF\
+    Amacron\xFE\xC4\x80\xFF\
+    Amonospace\xFE\xEF\xBC\xA1\xFF\
+    Aogonek\xFE\xC4\x84\xFF\
+    Aring\xFE\xC3\x85\xFF\
+    Aringacute\xFE\xC7\xBA\xFF\
+    Aringbelow\xFE\xE1\xB8\x80\xFF\
+    Aringsmall\xFE\xEF\x9F\xA5\xFF\
+    Asmall\xFE\xEF\x9D\xA1\xFF\
+    Atilde\xFE\xC3\x83\xFF\
+    Atildesmall\xFE\xEF\x9F\xA3\xFF\
+    Aybarmenian\xFE\xD4\xB1\xFF\
+    B\xFEB\xFF\
+    Bcircle\xFE\xE2\x92\xB7\xFF\
+    Bdotaccent\xFE\xE1\xB8\x82\xFF\
+    Bdotbelow\xFE\xE1\xB8\x84\xFF\
+    Becyrillic\xFE\xD0\x91\xFF\
+    Benarmenian\xFE\xD4\xB2\xFF\
+    Beta\xFE\xCE\x92\xFF\
+    Bhook\xFE\xC6\x81\xFF\
+    Blinebelow\xFE\xE1\xB8\x86\xFF\
+    Bmonospace\xFE\xEF\xBC\xA2\xFF\
+    Brevesmall\xFE\xEF\x9B\xB4\xFF\
+    Bsmall\xFE\xEF\x9D\xA2\xFF\
+    Btopbar\xFE\xC6\x82\xFF\
+    C\xFEC\xFF\
+    Caarmenian\xFE\xD4\xBE\xFF\
+    Cacute\xFE\xC4\x86\xFF\
+    Caron\xFE\xEF\x9B\x8A\xFF\
+    Caronsmall\xFE\xEF\x9B\xB5\xFF\
+    Ccaron\xFE\xC4\x8C\xFF\
+    Ccedilla\xFE\xC3\x87\xFF\
+    Ccedillaacute\xFE\xE1\xB8\x88\xFF\
+    Ccedillasmall\xFE\xEF\x9F\xA7\xFF\
+    Ccircle\xFE\xE2\x92\xB8\xFF\
+    Ccircumflex\xFE\xC4\x88\xFF\
+    Cdot\xFE\xC4\x8A\xFF\
+    Cdotaccent\xFE\xC4\x8A\xFF\
+    Cedillasmall\xFE\xEF\x9E\xB8\xFF\
+    Chaarmenian\xFE\xD5\x89\xFF\
+    Cheabkhasiancyrillic\xFE\xD2\xBC\xFF\
+    Checyrillic\xFE\xD0\xA7\xFF\
+    Chedescenderabkhasiancyrillic\xFE\xD2\xBE\xFF\
+    Chedescendercyrillic\xFE\xD2\xB6\xFF\
+    Chedieresiscyrillic\xFE\xD3\xB4\xFF\
+    Cheharmenian\xFE\xD5\x83\xFF\
+    Chekhakassiancyrillic\xFE\xD3\x8B\xFF\
+    Cheverticalstrokecyrillic\xFE\xD2\xB8\xFF\
+    Chi\xFE\xCE\xA7\xFF\
+    Chook\xFE\xC6\x87\xFF\
+    Circumflexsmall\xFE\xEF\x9B\xB6\xFF\
+    Cmonospace\xFE\xEF\xBC\xA3\xFF\
+    Coarmenian\xFE\xD5\x91\xFF\
+    Csmall\xFE\xEF\x9D\xA3\xFF\
+    D\xFED\xFF\
+    DZ\xFE\xC7\xB1\xFF\
+    DZcaron\xFE\xC7\x84\xFF\
+    Daarmenian\xFE\xD4\xB4\xFF\
+    Dafrican\xFE\xC6\x89\xFF\
+    Dcaron\xFE\xC4\x8E\xFF\
+    Dcedilla\xFE\xE1\xB8\x90\xFF\
+    Dcircle\xFE\xE2\x92\xB9\xFF\
+    Dcircumflexbelow\xFE\xE1\xB8\x92\xFF\
+    Dcroat\xFE\xC4\x90\xFF\
+    Ddotaccent\xFE\xE1\xB8\x8A\xFF\
+    Ddotbelow\xFE\xE1\xB8\x8C\xFF\
+    Decyrillic\xFE\xD0\x94\xFF\
+    Deicoptic\xFE\xCF\xAE\xFF\
+    Delta\xFE\xE2\x88\x86\xFF\
+    Deltagreek\xFE\xCE\x94\xFF\
+    Dhook\xFE\xC6\x8A\xFF\
+    Dieresis\xFE\xEF\x9B\x8B\xFF\
+    DieresisAcute\xFE\xEF\x9B\x8C\xFF\
+    DieresisGrave\xFE\xEF\x9B\x8D\xFF\
+    Dieresissmall\xFE\xEF\x9E\xA8\xFF\
+    Digammagreek\xFE\xCF\x9C\xFF\
+    Djecyrillic\xFE\xD0\x82\xFF\
+    Dlinebelow\xFE\xE1\xB8\x8E\xFF\
+    Dmonospace\xFE\xEF\xBC\xA4\xFF\
+    Dotaccentsmall\xFE\xEF\x9B\xB7\xFF\
+    Dslash\xFE\xC4\x90\xFF\
+    Dsmall\xFE\xEF\x9D\xA4\xFF\
+    Dtopbar\xFE\xC6\x8B\xFF\
+    Dz\xFE\xC7\xB2\xFF\
+    Dzcaron\xFE\xC7\x85\xFF\
+    Dzeabkhasiancyrillic\xFE\xD3\xA0\xFF\
+    Dzecyrillic\xFE\xD0\x85\xFF\
+    Dzhecyrillic\xFE\xD0\x8F\xFF\
+    E\xFEE\xFF\
+    Eacute\xFE\xC3\x89\xFF\
+    Eacutesmall\xFE\xEF\x9F\xA9\xFF\
+    Ebreve\xFE\xC4\x94\xFF\
+    Ecaron\xFE\xC4\x9A\xFF\
+    Ecedillabreve\xFE\xE1\xB8\x9C\xFF\
+    Echarmenian\xFE\xD4\xB5\xFF\
+    Ecircle\xFE\xE2\x92\xBA\xFF\
+    Ecircumflex\xFE\xC3\x8A\xFF\
+    Ecircumflexacute\xFE\xE1\xBA\xBE\xFF\
+    Ecircumflexbelow\xFE\xE1\xB8\x98\xFF\
+    Ecircumflexdotbelow\xFE\xE1\xBB\x86\xFF\
+    Ecircumflexgrave\xFE\xE1\xBB\x80\xFF\
+    Ecircumflexhookabove\xFE\xE1\xBB\x82\xFF\
+    Ecircumflexsmall\xFE\xEF\x9F\xAA\xFF\
+    Ecircumflextilde\xFE\xE1\xBB\x84\xFF\
+    Ecyrillic\xFE\xD0\x84\xFF\
+    Edblgrave\xFE\xC8\x84\xFF\
+    Edieresis\xFE\xC3\x8B\xFF\
+    Edieresissmall\xFE\xEF\x9F\xAB\xFF\
+    Edot\xFE\xC4\x96\xFF\
+    Edotaccent\xFE\xC4\x96\xFF\
+    Edotbelow\xFE\xE1\xBA\xB8\xFF\
+    Efcyrillic\xFE\xD0\xA4\xFF\
+    Egrave\xFE\xC3\x88\xFF\
+    Egravesmall\xFE\xEF\x9F\xA8\xFF\
+    Eharmenian\xFE\xD4\xB7\xFF\
+    Ehookabove\xFE\xE1\xBA\xBA\xFF\
+    Eightroman\xFE\xE2\x85\xA7\xFF\
+    Einvertedbreve\xFE\xC8\x86\xFF\
+    Eiotifiedcyrillic\xFE\xD1\xA4\xFF\
+    Elcyrillic\xFE\xD0\x9B\xFF\
+    Elevenroman\xFE\xE2\x85\xAA\xFF\
+    Emacron\xFE\xC4\x92\xFF\
+    Emacronacute\xFE\xE1\xB8\x96\xFF\
+    Emacrongrave\xFE\xE1\xB8\x94\xFF\
+    Emcyrillic\xFE\xD0\x9C\xFF\
+    Emonospace\xFE\xEF\xBC\xA5\xFF\
+    Encyrillic\xFE\xD0\x9D\xFF\
+    Endescendercyrillic\xFE\xD2\xA2\xFF\
+    Eng\xFE\xC5\x8A\xFF\
+    Enghecyrillic\xFE\xD2\xA4\xFF\
+    Enhookcyrillic\xFE\xD3\x87\xFF\
+    Eogonek\xFE\xC4\x98\xFF\
+    Eopen\xFE\xC6\x90\xFF\
+    Epsilon\xFE\xCE\x95\xFF\
+    Epsilontonos\xFE\xCE\x88\xFF\
+    Ercyrillic\xFE\xD0\xA0\xFF\
+    Ereversed\xFE\xC6\x8E\xFF\
+    Ereversedcyrillic\xFE\xD0\xAD\xFF\
+    Escyrillic\xFE\xD0\xA1\xFF\
+    Esdescendercyrillic\xFE\xD2\xAA\xFF\
+    Esh\xFE\xC6\xA9\xFF\
+    Esmall\xFE\xEF\x9D\xA5\xFF\
+    Eta\xFE\xCE\x97\xFF\
+    Etarmenian\xFE\xD4\xB8\xFF\
+    Etatonos\xFE\xCE\x89\xFF\
+    Eth\xFE\xC3\x90\xFF\
+    Ethsmall\xFE\xEF\x9F\xB0\xFF\
+    Etilde\xFE\xE1\xBA\xBC\xFF\
+    Etildebelow\xFE\xE1\xB8\x9A\xFF\
+    Euro\xFE\xE2\x82\xAC\xFF\
+    Ezh\xFE\xC6\xB7\xFF\
+    Ezhcaron\xFE\xC7\xAE\xFF\
+    Ezhreversed\xFE\xC6\xB8\xFF\
+    F\xFEF\xFF\
+    Fcircle\xFE\xE2\x92\xBB\xFF\
+    Fdotaccent\xFE\xE1\xB8\x9E\xFF\
+    Feharmenian\xFE\xD5\x96\xFF\
+    Feicoptic\xFE\xCF\xA4\xFF\
+    Fhook\xFE\xC6\x91\xFF\
+    Fitacyrillic\xFE\xD1\xB2\xFF\
+    Fiveroman\xFE\xE2\x85\xA4\xFF\
+    Fmonospace\xFE\xEF\xBC\xA6\xFF\
+    Fourroman\xFE\xE2\x85\xA3\xFF\
+    Fsmall\xFE\xEF\x9D\xA6\xFF\
+    G\xFEG\xFF\
+    GBsquare\xFE\xE3\x8E\x87\xFF\
+    Gacute\xFE\xC7\xB4\xFF\
+    Gamma\xFE\xCE\x93\xFF\
+    Gammaafrican\xFE\xC6\x94\xFF\
+    Gangiacoptic\xFE\xCF\xAA\xFF\
+    Gbreve\xFE\xC4\x9E\xFF\
+    Gcaron\xFE\xC7\xA6\xFF\
+    Gcedilla\xFE\xC4\xA2\xFF\
+    Gcircle\xFE\xE2\x92\xBC\xFF\
+    Gcircumflex\xFE\xC4\x9C\xFF\
+    Gcommaaccent\xFE\xC4\xA2\xFF\
+    Gdot\xFE\xC4\xA0\xFF\
+    Gdotaccent\xFE\xC4\xA0\xFF\
+    Gecyrillic\xFE\xD0\x93\xFF\
+    Ghadarmenian\xFE\xD5\x82\xFF\
+    Ghemiddlehookcyrillic\xFE\xD2\x94\xFF\
+    Ghestrokecyrillic\xFE\xD2\x92\xFF\
+    Gheupturncyrillic\xFE\xD2\x90\xFF\
+    Ghook\xFE\xC6\x93\xFF\
+    Gimarmenian\xFE\xD4\xB3\xFF\
+    Gjecyrillic\xFE\xD0\x83\xFF\
+    Gmacron\xFE\xE1\xB8\xA0\xFF\
+    Gmonospace\xFE\xEF\xBC\xA7\xFF\
+    Grave\xFE\xEF\x9B\x8E\xFF\
+    Gravesmall\xFE\xEF\x9D\xA0\xFF\
+    Gsmall\xFE\xEF\x9D\xA7\xFF\
+    Gsmallhook\xFE\xCA\x9B\xFF\
+    Gstroke\xFE\xC7\xA4\xFF\
+    H\xFEH\xFF\
+    H18533\xFE\xE2\x97\x8F\xFF\
+    H18543\xFE\xE2\x96\xAA\xFF\
+    H18551\xFE\xE2\x96\xAB\xFF\
+    H22073\xFE\xE2\x96\xA1\xFF\
+    HPsquare\xFE\xE3\x8F\x8B\xFF\
+    Haabkhasiancyrillic\xFE\xD2\xA8\xFF\
+    Hadescendercyrillic\xFE\xD2\xB2\xFF\
+    Hardsigncyrillic\xFE\xD0\xAA\xFF\
+    Hbar\xFE\xC4\xA6\xFF\
+    Hbrevebelow\xFE\xE1\xB8\xAA\xFF\
+    Hcedilla\xFE\xE1\xB8\xA8\xFF\
+    Hcircle\xFE\xE2\x92\xBD\xFF\
+    Hcircumflex\xFE\xC4\xA4\xFF\
+    Hdieresis\xFE\xE1\xB8\xA6\xFF\
+    Hdotaccent\xFE\xE1\xB8\xA2\xFF\
+    Hdotbelow\xFE\xE1\xB8\xA4\xFF\
+    Hmonospace\xFE\xEF\xBC\xA8\xFF\
+    Hoarmenian\xFE\xD5\x80\xFF\
+    Horicoptic\xFE\xCF\xA8\xFF\
+    Hsmall\xFE\xEF\x9D\xA8\xFF\
+    Hungarumlaut\xFE\xEF\x9B\x8F\xFF\
+    Hungarumlautsmall\xFE\xEF\x9B\xB8\xFF\
+    Hzsquare\xFE\xE3\x8E\x90\xFF\
+    I\xFEI\xFF\
+    IAcyrillic\xFE\xD0\xAF\xFF\
+    IJ\xFE\xC4\xB2\xFF\
+    IUcyrillic\xFE\xD0\xAE\xFF\
+    Iacute\xFE\xC3\x8D\xFF\
+    Iacutesmall\xFE\xEF\x9F\xAD\xFF\
+    Ibreve\xFE\xC4\xAC\xFF\
+    Icaron\xFE\xC7\x8F\xFF\
+    Icircle\xFE\xE2\x92\xBE\xFF\
+    Icircumflex\xFE\xC3\x8E\xFF\
+    Icircumflexsmall\xFE\xEF\x9F\xAE\xFF\
+    Icyrillic\xFE\xD0\x86\xFF\
+    Idblgrave\xFE\xC8\x88\xFF\
+    Idieresis\xFE\xC3\x8F\xFF\
+    Idieresisacute\xFE\xE1\xB8\xAE\xFF\
+    Idieresiscyrillic\xFE\xD3\xA4\xFF\
+    Idieresissmall\xFE\xEF\x9F\xAF\xFF\
+    Idot\xFE\xC4\xB0\xFF\
+    Idotaccent\xFE\xC4\xB0\xFF\
+    Idotbelow\xFE\xE1\xBB\x8A\xFF\
+    Iebrevecyrillic\xFE\xD3\x96\xFF\
+    Iecyrillic\xFE\xD0\x95\xFF\
+    Ifraktur\xFE\xE2\x84\x91\xFF\
+    Igrave\xFE\xC3\x8C\xFF\
+    Igravesmall\xFE\xEF\x9F\xAC\xFF\
+    Ihookabove\xFE\xE1\xBB\x88\xFF\
+    Iicyrillic\xFE\xD0\x98\xFF\
+    Iinvertedbreve\xFE\xC8\x8A\xFF\
+    Iishortcyrillic\xFE\xD0\x99\xFF\
+    Imacron\xFE\xC4\xAA\xFF\
+    Imacroncyrillic\xFE\xD3\xA2\xFF\
+    Imonospace\xFE\xEF\xBC\xA9\xFF\
+    Iniarmenian\xFE\xD4\xBB\xFF\
+    Iocyrillic\xFE\xD0\x81\xFF\
+    Iogonek\xFE\xC4\xAE\xFF\
+    Iota\xFE\xCE\x99\xFF\
+    Iotaafrican\xFE\xC6\x96\xFF\
+    Iotadieresis\xFE\xCE\xAA\xFF\
+    Iotatonos\xFE\xCE\x8A\xFF\
+    Ismall\xFE\xEF\x9D\xA9\xFF\
+    Istroke\xFE\xC6\x97\xFF\
+    Itilde\xFE\xC4\xA8\xFF\
+    Itildebelow\xFE\xE1\xB8\xAC\xFF\
+    Izhitsacyrillic\xFE\xD1\xB4\xFF\
+    Izhitsadblgravecyrillic\xFE\xD1\xB6\xFF\
+    J\xFEJ\xFF\
+    Jaarmenian\xFE\xD5\x81\xFF\
+    Jcircle\xFE\xE2\x92\xBF\xFF\
+    Jcircumflex\xFE\xC4\xB4\xFF\
+    Jecyrillic\xFE\xD0\x88\xFF\
+    Jheharmenian\xFE\xD5\x8B\xFF\
+    Jmonospace\xFE\xEF\xBC\xAA\xFF\
+    Jsmall\xFE\xEF\x9D\xAA\xFF\
+    K\xFEK\xFF\
+    KBsquare\xFE\xE3\x8E\x85\xFF\
+    KKsquare\xFE\xE3\x8F\x8D\xFF\
+    Kabashkircyrillic\xFE\xD2\xA0\xFF\
+    Kacute\xFE\xE1\xB8\xB0\xFF\
+    Kacyrillic\xFE\xD0\x9A\xFF\
+    Kadescendercyrillic\xFE\xD2\x9A\xFF\
+    Kahookcyrillic\xFE\xD3\x83\xFF\
+    Kappa\xFE\xCE\x9A\xFF\
+    Kastrokecyrillic\xFE\xD2\x9E\xFF\
+    Kaverticalstrokecyrillic\xFE\xD2\x9C\xFF\
+    Kcaron\xFE\xC7\xA8\xFF\
+    Kcedilla\xFE\xC4\xB6\xFF\
+    Kcircle\xFE\xE2\x93\x80\xFF\
+    Kcommaaccent\xFE\xC4\xB6\xFF\
+    Kdotbelow\xFE\xE1\xB8\xB2\xFF\
+    Keharmenian\xFE\xD5\x94\xFF\
+    Kenarmenian\xFE\xD4\xBF\xFF\
+    Khacyrillic\xFE\xD0\xA5\xFF\
+    Kheicoptic\xFE\xCF\xA6\xFF\
+    Khook\xFE\xC6\x98\xFF\
+    Kjecyrillic\xFE\xD0\x8C\xFF\
+    Klinebelow\xFE\xE1\xB8\xB4\xFF\
+    Kmonospace\xFE\xEF\xBC\xAB\xFF\
+    Koppacyrillic\xFE\xD2\x80\xFF\
+    Koppagreek\xFE\xCF\x9E\xFF\
+    Ksicyrillic\xFE\xD1\xAE\xFF\
+    Ksmall\xFE\xEF\x9D\xAB\xFF\
+    L\xFEL\xFF\
+    LJ\xFE\xC7\x87\xFF\
+    LL\xFE\xEF\x9A\xBF\xFF\
+    Lacute\xFE\xC4\xB9\xFF\
+    Lambda\xFE\xCE\x9B\xFF\
+    Lcaron\xFE\xC4\xBD\xFF\
+    Lcedilla\xFE\xC4\xBB\xFF\
+    Lcircle\xFE\xE2\x93\x81\xFF\
+    Lcircumflexbelow\xFE\xE1\xB8\xBC\xFF\
+    Lcommaaccent\xFE\xC4\xBB\xFF\
+    Ldot\xFE\xC4\xBF\xFF\
+    Ldotaccent\xFE\xC4\xBF\xFF\
+    Ldotbelow\xFE\xE1\xB8\xB6\xFF\
+    Ldotbelowmacron\xFE\xE1\xB8\xB8\xFF\
+    Liwnarmenian\xFE\xD4\xBC\xFF\
+    Lj\xFE\xC7\x88\xFF\
+    Ljecyrillic\xFE\xD0\x89\xFF\
+    Llinebelow\xFE\xE1\xB8\xBA\xFF\
+    Lmonospace\xFE\xEF\xBC\xAC\xFF\
+    Lslash\xFE\xC5\x81\xFF\
+    Lslashsmall\xFE\xEF\x9B\xB9\xFF\
+    Lsmall\xFE\xEF\x9D\xAC\xFF\
+    M\xFEM\xFF\
+    MBsquare\xFE\xE3\x8E\x86\xFF\
+    Macron\xFE\xEF\x9B\x90\xFF\
+    Macronsmall\xFE\xEF\x9E\xAF\xFF\
+    Macute\xFE\xE1\xB8\xBE\xFF\
+    Mcircle\xFE\xE2\x93\x82\xFF\
+    Mdotaccent\xFE\xE1\xB9\x80\xFF\
+    Mdotbelow\xFE\xE1\xB9\x82\xFF\
+    Menarmenian\xFE\xD5\x84\xFF\
+    Mmonospace\xFE\xEF\xBC\xAD\xFF\
+    Msmall\xFE\xEF\x9D\xAD\xFF\
+    Mturned\xFE\xC6\x9C\xFF\
+    Mu\xFE\xCE\x9C\xFF\
+    N\xFEN\xFF\
+    NJ\xFE\xC7\x8A\xFF\
+    Nacute\xFE\xC5\x83\xFF\
+    Ncaron\xFE\xC5\x87\xFF\
+    Ncedilla\xFE\xC5\x85\xFF\
+    Ncircle\xFE\xE2\x93\x83\xFF\
+    Ncircumflexbelow\xFE\xE1\xB9\x8A\xFF\
+    Ncommaaccent\xFE\xC5\x85\xFF\
+    Ndotaccent\xFE\xE1\xB9\x84\xFF\
+    Ndotbelow\xFE\xE1\xB9\x86\xFF\
+    Nhookleft\xFE\xC6\x9D\xFF\
+    Nineroman\xFE\xE2\x85\xA8\xFF\
+    Nj\xFE\xC7\x8B\xFF\
+    Njecyrillic\xFE\xD0\x8A\xFF\
+    Nlinebelow\xFE\xE1\xB9\x88\xFF\
+    Nmonospace\xFE\xEF\xBC\xAE\xFF\
+    Nowarmenian\xFE\xD5\x86\xFF\
+    Nsmall\xFE\xEF\x9D\xAE\xFF\
+    Ntilde\xFE\xC3\x91\xFF\
+    Ntildesmall\xFE\xEF\x9F\xB1\xFF\
+    Nu\xFE\xCE\x9D\xFF\
+    O\xFEO\xFF\
+    OE\xFE\xC5\x92\xFF\
+    OEsmall\xFE\xEF\x9B\xBA\xFF\
+    Oacute\xFE\xC3\x93\xFF\
+    Oacutesmall\xFE\xEF\x9F\xB3\xFF\
+    Obarredcyrillic\xFE\xD3\xA8\xFF\
+    Obarreddieresiscyrillic\xFE\xD3\xAA\xFF\
+    Obreve\xFE\xC5\x8E\xFF\
+    Ocaron\xFE\xC7\x91\xFF\
+    Ocenteredtilde\xFE\xC6\x9F\xFF\
+    Ocircle\xFE\xE2\x93\x84\xFF\
+    Ocircumflex\xFE\xC3\x94\xFF\
+    Ocircumflexacute\xFE\xE1\xBB\x90\xFF\
+    Ocircumflexdotbelow\xFE\xE1\xBB\x98\xFF\
+    Ocircumflexgrave\xFE\xE1\xBB\x92\xFF\
+    Ocircumflexhookabove\xFE\xE1\xBB\x94\xFF\
+    Ocircumflexsmall\xFE\xEF\x9F\xB4\xFF\
+    Ocircumflextilde\xFE\xE1\xBB\x96\xFF\
+    Ocyrillic\xFE\xD0\x9E\xFF\
+    Odblacute\xFE\xC5\x90\xFF\
+    Odblgrave\xFE\xC8\x8C\xFF\
+    Odieresis\xFE\xC3\x96\xFF\
+    Odieresiscyrillic\xFE\xD3\xA6\xFF\
+    Odieresissmall\xFE\xEF\x9F\xB6\xFF\
+    Odotbelow\xFE\xE1\xBB\x8C\xFF\
+    Ogoneksmall\xFE\xEF\x9B\xBB\xFF\
+    Ograve\xFE\xC3\x92\xFF\
+    Ogravesmall\xFE\xEF\x9F\xB2\xFF\
+    Oharmenian\xFE\xD5\x95\xFF\
+    Ohm\xFE\xE2\x84\xA6\xFF\
+    Ohookabove\xFE\xE1\xBB\x8E\xFF\
+    Ohorn\xFE\xC6\xA0\xFF\
+    Ohornacute\xFE\xE1\xBB\x9A\xFF\
+    Ohorndotbelow\xFE\xE1\xBB\xA2\xFF\
+    Ohorngrave\xFE\xE1\xBB\x9C\xFF\
+    Ohornhookabove\xFE\xE1\xBB\x9E\xFF\
+    Ohorntilde\xFE\xE1\xBB\xA0\xFF\
+    Ohungarumlaut\xFE\xC5\x90\xFF\
+    Oi\xFE\xC6\xA2\xFF\
+    Oinvertedbreve\xFE\xC8\x8E\xFF\
+    Omacron\xFE\xC5\x8C\xFF\
+    Omacronacute\xFE\xE1\xB9\x92\xFF\
+    Omacrongrave\xFE\xE1\xB9\x90\xFF\
+    Omega\xFE\xE2\x84\xA6\xFF\
+    Omegacyrillic\xFE\xD1\xA0\xFF\
+    Omegagreek\xFE\xCE\xA9\xFF\
+    Omegaroundcyrillic\xFE\xD1\xBA\xFF\
+    Omegatitlocyrillic\xFE\xD1\xBC\xFF\
+    Omegatonos\xFE\xCE\x8F\xFF\
+    Omicron\xFE\xCE\x9F\xFF\
+    Omicrontonos\xFE\xCE\x8C\xFF\
+    Omonospace\xFE\xEF\xBC\xAF\xFF\
+    Oneroman\xFE\xE2\x85\xA0\xFF\
+    Oogonek\xFE\xC7\xAA\xFF\
+    Oogonekmacron\xFE\xC7\xAC\xFF\
+    Oopen\xFE\xC6\x86\xFF\
+    Oslash\xFE\xC3\x98\xFF\
+    Oslashacute\xFE\xC7\xBE\xFF\
+    Oslashsmall\xFE\xEF\x9F\xB8\xFF\
+    Osmall\xFE\xEF\x9D\xAF\xFF\
+    Ostrokeacute\xFE\xC7\xBE\xFF\
+    Otcyrillic\xFE\xD1\xBE\xFF\
+    Otilde\xFE\xC3\x95\xFF\
+    Otildeacute\xFE\xE1\xB9\x8C\xFF\
+    Otildedieresis\xFE\xE1\xB9\x8E\xFF\
+    Otildesmall\xFE\xEF\x9F\xB5\xFF\
+    P\xFEP\xFF\
+    Pacute\xFE\xE1\xB9\x94\xFF\
+    Pcircle\xFE\xE2\x93\x85\xFF\
+    Pdotaccent\xFE\xE1\xB9\x96\xFF\
+    Pecyrillic\xFE\xD0\x9F\xFF\
+    Peharmenian\xFE\xD5\x8A\xFF\
+    Pemiddlehookcyrillic\xFE\xD2\xA6\xFF\
+    Phi\xFE\xCE\xA6\xFF\
+    Phook\xFE\xC6\xA4\xFF\
+    Pi\xFE\xCE\xA0\xFF\
+    Piwrarmenian\xFE\xD5\x93\xFF\
+    Pmonospace\xFE\xEF\xBC\xB0\xFF\
+    Psi\xFE\xCE\xA8\xFF\
+    Psicyrillic\xFE\xD1\xB0\xFF\
+    Psmall\xFE\xEF\x9D\xB0\xFF\
+    Q\xFEQ\xFF\
+    Qcircle\xFE\xE2\x93\x86\xFF\
+    Qmonospace\xFE\xEF\xBC\xB1\xFF\
+    Qsmall\xFE\xEF\x9D\xB1\xFF\
+    R\xFER\xFF\
+    Raarmenian\xFE\xD5\x8C\xFF\
+    Racute\xFE\xC5\x94\xFF\
+    Rcaron\xFE\xC5\x98\xFF\
+    Rcedilla\xFE\xC5\x96\xFF\
+    Rcircle\xFE\xE2\x93\x87\xFF\
+    Rcommaaccent\xFE\xC5\x96\xFF\
+    Rdblgrave\xFE\xC8\x90\xFF\
+    Rdotaccent\xFE\xE1\xB9\x98\xFF\
+    Rdotbelow\xFE\xE1\xB9\x9A\xFF\
+    Rdotbelowmacron\xFE\xE1\xB9\x9C\xFF\
+    Reharmenian\xFE\xD5\x90\xFF\
+    Rfraktur\xFE\xE2\x84\x9C\xFF\
+    Rho\xFE\xCE\xA1\xFF\
+    Ringsmall\xFE\xEF\x9B\xBC\xFF\
+    Rinvertedbreve\xFE\xC8\x92\xFF\
+    Rlinebelow\xFE\xE1\xB9\x9E\xFF\
+    Rmonospace\xFE\xEF\xBC\xB2\xFF\
+    Rsmall\xFE\xEF\x9D\xB2\xFF\
+    Rsmallinverted\xFE\xCA\x81\xFF\
+    Rsmallinvertedsuperior\xFE\xCA\xB6\xFF\
+    S\xFES\xFF\
+    SF010000\xFE\xE2\x94\x8C\xFF\
+    SF020000\xFE\xE2\x94\x94\xFF\
+    SF030000\xFE\xE2\x94\x90\xFF\
+    SF040000\xFE\xE2\x94\x98\xFF\
+    SF050000\xFE\xE2\x94\xBC\xFF\
+    SF060000\xFE\xE2\x94\xAC\xFF\
+    SF070000\xFE\xE2\x94\xB4\xFF\
+    SF080000\xFE\xE2\x94\x9C\xFF\
+    SF090000\xFE\xE2\x94\xA4\xFF\
+    SF100000\xFE\xE2\x94\x80\xFF\
+    SF110000\xFE\xE2\x94\x82\xFF\
+    SF190000\xFE\xE2\x95\xA1\xFF\
+    SF200000\xFE\xE2\x95\xA2\xFF\
+    SF210000\xFE\xE2\x95\x96\xFF\
+    SF220000\xFE\xE2\x95\x95\xFF\
+    SF230000\xFE\xE2\x95\xA3\xFF\
+    SF240000\xFE\xE2\x95\x91\xFF\
+    SF250000\xFE\xE2\x95\x97\xFF\
+    SF260000\xFE\xE2\x95\x9D\xFF\
+    SF270000\xFE\xE2\x95\x9C\xFF\
+    SF280000\xFE\xE2\x95\x9B\xFF\
+    SF360000\xFE\xE2\x95\x9E\xFF\
+    SF370000\xFE\xE2\x95\x9F\xFF\
+    SF380000\xFE\xE2\x95\x9A\xFF\
+    SF390000\xFE\xE2\x95\x94\xFF\
+    SF400000\xFE\xE2\x95\xA9\xFF\
+    SF410000\xFE\xE2\x95\xA6\xFF\
+    SF420000\xFE\xE2\x95\xA0\xFF\
+    SF430000\xFE\xE2\x95\x90\xFF\
+    SF440000\xFE\xE2\x95\xAC\xFF\
+    SF450000\xFE\xE2\x95\xA7\xFF\
+    SF460000\xFE\xE2\x95\xA8\xFF\
+    SF470000\xFE\xE2\x95\xA4\xFF\
+    SF480000\xFE\xE2\x95\xA5\xFF\
+    SF490000\xFE\xE2\x95\x99\xFF\
+    SF500000\xFE\xE2\x95\x98\xFF\
+    SF510000\xFE\xE2\x95\x92\xFF\
+    SF520000\xFE\xE2\x95\x93\xFF\
+    SF530000\xFE\xE2\x95\xAB\xFF\
+    SF540000\xFE\xE2\x95\xAA\xFF\
+    Sacute\xFE\xC5\x9A\xFF\
+    Sacutedotaccent\xFE\xE1\xB9\xA4\xFF\
+    Sampigreek\xFE\xCF\xA0\xFF\
+    Scaron\xFE\xC5\xA0\xFF\
+    Scarondotaccent\xFE\xE1\xB9\xA6\xFF\
+    Scaronsmall\xFE\xEF\x9B\xBD\xFF\
+    Scedilla\xFE\xC5\x9E\xFF\
+    Schwa\xFE\xC6\x8F\xFF\
+    Schwacyrillic\xFE\xD3\x98\xFF\
+    Schwadieresiscyrillic\xFE\xD3\x9A\xFF\
+    Scircle\xFE\xE2\x93\x88\xFF\
+    Scircumflex\xFE\xC5\x9C\xFF\
+    Scommaaccent\xFE\xC8\x98\xFF\
+    Sdotaccent\xFE\xE1\xB9\xA0\xFF\
+    Sdotbelow\xFE\xE1\xB9\xA2\xFF\
+    Sdotbelowdotaccent\xFE\xE1\xB9\xA8\xFF\
+    Seharmenian\xFE\xD5\x8D\xFF\
+    Sevenroman\xFE\xE2\x85\xA6\xFF\
+    Shaarmenian\xFE\xD5\x87\xFF\
+    Shacyrillic\xFE\xD0\xA8\xFF\
+    Shchacyrillic\xFE\xD0\xA9\xFF\
+    Sheicoptic\xFE\xCF\xA2\xFF\
+    Shhacyrillic\xFE\xD2\xBA\xFF\
+    Shimacoptic\xFE\xCF\xAC\xFF\
+    Sigma\xFE\xCE\xA3\xFF\
+    Sixroman\xFE\xE2\x85\xA5\xFF\
+    Smonospace\xFE\xEF\xBC\xB3\xFF\
+    Softsigncyrillic\xFE\xD0\xAC\xFF\
+    Ssmall\xFE\xEF\x9D\xB3\xFF\
+    Stigmagreek\xFE\xCF\x9A\xFF\
+    T\xFET\xFF\
+    Tau\xFE\xCE\xA4\xFF\
+    Tbar\xFE\xC5\xA6\xFF\
+    Tcaron\xFE\xC5\xA4\xFF\
+    Tcedilla\xFE\xC5\xA2\xFF\
+    Tcircle\xFE\xE2\x93\x89\xFF\
+    Tcircumflexbelow\xFE\xE1\xB9\xB0\xFF\
+    Tcommaaccent\xFE\xC5\xA2\xFF\
+    Tdotaccent\xFE\xE1\xB9\xAA\xFF\
+    Tdotbelow\xFE\xE1\xB9\xAC\xFF\
+    Tecyrillic\xFE\xD0\xA2\xFF\
+    Tedescendercyrillic\xFE\xD2\xAC\xFF\
+    Tenroman\xFE\xE2\x85\xA9\xFF\
+    Tetsecyrillic\xFE\xD2\xB4\xFF\
+    Theta\xFE\xCE\x98\xFF\
+    Thook\xFE\xC6\xAC\xFF\
+    Thorn\xFE\xC3\x9E\xFF\
+    Thornsmall\xFE\xEF\x9F\xBE\xFF\
+    Threeroman\xFE\xE2\x85\xA2\xFF\
+    Tildesmall\xFE\xEF\x9B\xBE\xFF\
+    Tiwnarmenian\xFE\xD5\x8F\xFF\
+    Tlinebelow\xFE\xE1\xB9\xAE\xFF\
+    Tmonospace\xFE\xEF\xBC\xB4\xFF\
+    Toarmenian\xFE\xD4\xB9\xFF\
+    Tonefive\xFE\xC6\xBC\xFF\
+    Tonesix\xFE\xC6\x84\xFF\
+    Tonetwo\xFE\xC6\xA7\xFF\
+    Tretroflexhook\xFE\xC6\xAE\xFF\
+    Tsecyrillic\xFE\xD0\xA6\xFF\
+    Tshecyrillic\xFE\xD0\x8B\xFF\
+    Tsmall\xFE\xEF\x9D\xB4\xFF\
+    Twelveroman\xFE\xE2\x85\xAB\xFF\
+    Tworoman\xFE\xE2\x85\xA1\xFF\
+    U\xFEU\xFF\
+    Uacute\xFE\xC3\x9A\xFF\
+    Uacutesmall\xFE\xEF\x9F\xBA\xFF\
+    Ubreve\xFE\xC5\xAC\xFF\
+    Ucaron\xFE\xC7\x93\xFF\
+    Ucircle\xFE\xE2\x93\x8A\xFF\
+    Ucircumflex\xFE\xC3\x9B\xFF\
+    Ucircumflexbelow\xFE\xE1\xB9\xB6\xFF\
+    Ucircumflexsmall\xFE\xEF\x9F\xBB\xFF\
+    Ucyrillic\xFE\xD0\xA3\xFF\
+    Udblacute\xFE\xC5\xB0\xFF\
+    Udblgrave\xFE\xC8\x94\xFF\
+    Udieresis\xFE\xC3\x9C\xFF\
+    Udieresisacute\xFE\xC7\x97\xFF\
+    Udieresisbelow\xFE\xE1\xB9\xB2\xFF\
+    Udieresiscaron\xFE\xC7\x99\xFF\
+    Udieresiscyrillic\xFE\xD3\xB0\xFF\
+    Udieresisgrave\xFE\xC7\x9B\xFF\
+    Udieresismacron\xFE\xC7\x95\xFF\
+    Udieresissmall\xFE\xEF\x9F\xBC\xFF\
+    Udotbelow\xFE\xE1\xBB\xA4\xFF\
+    Ugrave\xFE\xC3\x99\xFF\
+    Ugravesmall\xFE\xEF\x9F\xB9\xFF\
+    Uhookabove\xFE\xE1\xBB\xA6\xFF\
+    Uhorn\xFE\xC6\xAF\xFF\
+    Uhornacute\xFE\xE1\xBB\xA8\xFF\
+    Uhorndotbelow\xFE\xE1\xBB\xB0\xFF\
+    Uhorngrave\xFE\xE1\xBB\xAA\xFF\
+    Uhornhookabove\xFE\xE1\xBB\xAC\xFF\
+    Uhorntilde\xFE\xE1\xBB\xAE\xFF\
+    Uhungarumlaut\xFE\xC5\xB0\xFF\
+    Uhungarumlautcyrillic\xFE\xD3\xB2\xFF\
+    Uinvertedbreve\xFE\xC8\x96\xFF\
+    Ukcyrillic\xFE\xD1\xB8\xFF\
+    Umacron\xFE\xC5\xAA\xFF\
+    Umacroncyrillic\xFE\xD3\xAE\xFF\
+    Umacrondieresis\xFE\xE1\xB9\xBA\xFF\
+    Umonospace\xFE\xEF\xBC\xB5\xFF\
+    Uogonek\xFE\xC5\xB2\xFF\
+    Upsilon\xFE\xCE\xA5\xFF\
+    Upsilon1\xFE\xCF\x92\xFF\
+    Upsilonacutehooksymbolgreek\xFE\xCF\x93\xFF\
+    Upsilonafrican\xFE\xC6\xB1\xFF\
+    Upsilondieresis\xFE\xCE\xAB\xFF\
+    Upsilondieresishooksymbolgreek\xFE\xCF\x94\xFF\
+    Upsilonhooksymbol\xFE\xCF\x92\xFF\
+    Upsilontonos\xFE\xCE\x8E\xFF\
+    Uring\xFE\xC5\xAE\xFF\
+    Ushortcyrillic\xFE\xD0\x8E\xFF\
+    Usmall\xFE\xEF\x9D\xB5\xFF\
+    Ustraightcyrillic\xFE\xD2\xAE\xFF\
+    Ustraightstrokecyrillic\xFE\xD2\xB0\xFF\
+    Utilde\xFE\xC5\xA8\xFF\
+    Utildeacute\xFE\xE1\xB9\xB8\xFF\
+    Utildebelow\xFE\xE1\xB9\xB4\xFF\
+    V\xFEV\xFF\
+    Vcircle\xFE\xE2\x93\x8B\xFF\
+    Vdotbelow\xFE\xE1\xB9\xBE\xFF\
+    Vecyrillic\xFE\xD0\x92\xFF\
+    Vewarmenian\xFE\xD5\x8E\xFF\
+    Vhook\xFE\xC6\xB2\xFF\
+    Vmonospace\xFE\xEF\xBC\xB6\xFF\
+    Voarmenian\xFE\xD5\x88\xFF\
+    Vsmall\xFE\xEF\x9D\xB6\xFF\
+    Vtilde\xFE\xE1\xB9\xBC\xFF\
+    W\xFEW\xFF\
+    Wacute\xFE\xE1\xBA\x82\xFF\
+    Wcircle\xFE\xE2\x93\x8C\xFF\
+    Wcircumflex\xFE\xC5\xB4\xFF\
+    Wdieresis\xFE\xE1\xBA\x84\xFF\
+    Wdotaccent\xFE\xE1\xBA\x86\xFF\
+    Wdotbelow\xFE\xE1\xBA\x88\xFF\
+    Wgrave\xFE\xE1\xBA\x80\xFF\
+    Wmonospace\xFE\xEF\xBC\xB7\xFF\
+    Wsmall\xFE\xEF\x9D\xB7\xFF\
+    X\xFEX\xFF\
+    Xcircle\xFE\xE2\x93\x8D\xFF\
+    Xdieresis\xFE\xE1\xBA\x8C\xFF\
+    Xdotaccent\xFE\xE1\xBA\x8A\xFF\
+    Xeharmenian\xFE\xD4\xBD\xFF\
+    Xi\xFE\xCE\x9E\xFF\
+    Xmonospace\xFE\xEF\xBC\xB8\xFF\
+    Xsmall\xFE\xEF\x9D\xB8\xFF\
+    Y\xFEY\xFF\
+    Yacute\xFE\xC3\x9D\xFF\
+    Yacutesmall\xFE\xEF\x9F\xBD\xFF\
+    Yatcyrillic\xFE\xD1\xA2\xFF\
+    Ycircle\xFE\xE2\x93\x8E\xFF\
+    Ycircumflex\xFE\xC5\xB6\xFF\
+    Ydieresis\xFE\xC5\xB8\xFF\
+    Ydieresissmall\xFE\xEF\x9F\xBF\xFF\
+    Ydotaccent\xFE\xE1\xBA\x8E\xFF\
+    Ydotbelow\xFE\xE1\xBB\xB4\xFF\
+    Yericyrillic\xFE\xD0\xAB\xFF\
+    Yerudieresiscyrillic\xFE\xD3\xB8\xFF\
+    Ygrave\xFE\xE1\xBB\xB2\xFF\
+    Yhook\xFE\xC6\xB3\xFF\
+    Yhookabove\xFE\xE1\xBB\xB6\xFF\
+    Yiarmenian\xFE\xD5\x85\xFF\
+    Yicyrillic\xFE\xD0\x87\xFF\
+    Yiwnarmenian\xFE\xD5\x92\xFF\
+    Ymonospace\xFE\xEF\xBC\xB9\xFF\
+    Ysmall\xFE\xEF\x9D\xB9\xFF\
+    Ytilde\xFE\xE1\xBB\xB8\xFF\
+    Yusbigcyrillic\xFE\xD1\xAA\xFF\
+    Yusbigiotifiedcyrillic\xFE\xD1\xAC\xFF\
+    Yuslittlecyrillic\xFE\xD1\xA6\xFF\
+    Yuslittleiotifiedcyrillic\xFE\xD1\xA8\xFF\
+    Z\xFEZ\xFF\
+    Zaarmenian\xFE\xD4\xB6\xFF\
+    Zacute\xFE\xC5\xB9\xFF\
+    Zcaron\xFE\xC5\xBD\xFF\
+    Zcaronsmall\xFE\xEF\x9B\xBF\xFF\
+    Zcircle\xFE\xE2\x93\x8F\xFF\
+    Zcircumflex\xFE\xE1\xBA\x90\xFF\
+    Zdot\xFE\xC5\xBB\xFF\
+    Zdotaccent\xFE\xC5\xBB\xFF\
+    Zdotbelow\xFE\xE1\xBA\x92\xFF\
+    Zecyrillic\xFE\xD0\x97\xFF\
+    Zedescendercyrillic\xFE\xD2\x98\xFF\
+    Zedieresiscyrillic\xFE\xD3\x9E\xFF\
+    Zeta\xFE\xCE\x96\xFF\
+    Zhearmenian\xFE\xD4\xBA\xFF\
+    Zhebrevecyrillic\xFE\xD3\x81\xFF\
+    Zhecyrillic\xFE\xD0\x96\xFF\
+    Zhedescendercyrillic\xFE\xD2\x96\xFF\
+    Zhedieresiscyrillic\xFE\xD3\x9C\xFF\
+    Zlinebelow\xFE\xE1\xBA\x94\xFF\
+    Zmonospace\xFE\xEF\xBC\xBA\xFF\
+    Zsmall\xFE\xEF\x9D\xBA\xFF\
+    Zstroke\xFE\xC6\xB5\xFF\
+    a\xFEa\xFF\
+    aabengali\xFE\xE0\xA6\x86\xFF\
+    aacute\xFE\xC3\xA1\xFF\
+    aadeva\xFE\xE0\xA4\x86\xFF\
+    aagujarati\xFE\xE0\xAA\x86\xFF\
+    aagurmukhi\xFE\xE0\xA8\x86\xFF\
+    aamatragurmukhi\xFE\xE0\xA8\xBE\xFF\
+    aarusquare\xFE\xE3\x8C\x83\xFF\
+    aavowelsignbengali\xFE\xE0\xA6\xBE\xFF\
+    aavowelsigndeva\xFE\xE0\xA4\xBE\xFF\
+    aavowelsigngujarati\xFE\xE0\xAA\xBE\xFF\
+    abbreviationmarkarmenian\xFE\xD5\x9F\xFF\
+    abbreviationsigndeva\xFE\xE0\xA5\xB0\xFF\
+    abengali\xFE\xE0\xA6\x85\xFF\
+    abopomofo\xFE\xE3\x84\x9A\xFF\
+    abreve\xFE\xC4\x83\xFF\
+    abreveacute\xFE\xE1\xBA\xAF\xFF\
+    abrevecyrillic\xFE\xD3\x91\xFF\
+    abrevedotbelow\xFE\xE1\xBA\xB7\xFF\
+    abrevegrave\xFE\xE1\xBA\xB1\xFF\
+    abrevehookabove\xFE\xE1\xBA\xB3\xFF\
+    abrevetilde\xFE\xE1\xBA\xB5\xFF\
+    acaron\xFE\xC7\x8E\xFF\
+    acircle\xFE\xE2\x93\x90\xFF\
+    acircumflex\xFE\xC3\xA2\xFF\
+    acircumflexacute\xFE\xE1\xBA\xA5\xFF\
+    acircumflexdotbelow\xFE\xE1\xBA\xAD\xFF\
+    acircumflexgrave\xFE\xE1\xBA\xA7\xFF\
+    acircumflexhookabove\xFE\xE1\xBA\xA9\xFF\
+    acircumflextilde\xFE\xE1\xBA\xAB\xFF\
+    acute\xFE\xC2\xB4\xFF\
+    acutebelowcmb\xFE\xCC\x97\xFF\
+    acutecmb\xFE\xCC\x81\xFF\
+    acutecomb\xFE\xCC\x81\xFF\
+    acutedeva\xFE\xE0\xA5\x94\xFF\
+    acutelowmod\xFE\xCB\x8F\xFF\
+    acutetonecmb\xFE\xCD\x81\xFF\
+    acyrillic\xFE\xD0\xB0\xFF\
+    adblgrave\xFE\xC8\x81\xFF\
+    addakgurmukhi\xFE\xE0\xA9\xB1\xFF\
+    adeva\xFE\xE0\xA4\x85\xFF\
+    adieresis\xFE\xC3\xA4\xFF\
+    adieresiscyrillic\xFE\xD3\x93\xFF\
+    adieresismacron\xFE\xC7\x9F\xFF\
+    adotbelow\xFE\xE1\xBA\xA1\xFF\
+    adotmacron\xFE\xC7\xA1\xFF\
+    ae\xFE\xC3\xA6\xFF\
+    aeacute\xFE\xC7\xBD\xFF\
+    aekorean\xFE\xE3\x85\x90\xFF\
+    aemacron\xFE\xC7\xA3\xFF\
+    afii00208\xFE\xE2\x80\x95\xFF\
+    afii08941\xFE\xE2\x82\xA4\xFF\
+    afii10017\xFE\xD0\x90\xFF\
+    afii10018\xFE\xD0\x91\xFF\
+    afii10019\xFE\xD0\x92\xFF\
+    afii10020\xFE\xD0\x93\xFF\
+    afii10021\xFE\xD0\x94\xFF\
+    afii10022\xFE\xD0\x95\xFF\
+    afii10023\xFE\xD0\x81\xFF\
+    afii10024\xFE\xD0\x96\xFF\
+    afii10025\xFE\xD0\x97\xFF\
+    afii10026\xFE\xD0\x98\xFF\
+    afii10027\xFE\xD0\x99\xFF\
+    afii10028\xFE\xD0\x9A\xFF\
+    afii10029\xFE\xD0\x9B\xFF\
+    afii10030\xFE\xD0\x9C\xFF\
+    afii10031\xFE\xD0\x9D\xFF\
+    afii10032\xFE\xD0\x9E\xFF\
+    afii10033\xFE\xD0\x9F\xFF\
+    afii10034\xFE\xD0\xA0\xFF\
+    afii10035\xFE\xD0\xA1\xFF\
+    afii10036\xFE\xD0\xA2\xFF\
+    afii10037\xFE\xD0\xA3\xFF\
+    afii10038\xFE\xD0\xA4\xFF\
+    afii10039\xFE\xD0\xA5\xFF\
+    afii10040\xFE\xD0\xA6\xFF\
+    afii10041\xFE\xD0\xA7\xFF\
+    afii10042\xFE\xD0\xA8\xFF\
+    afii10043\xFE\xD0\xA9\xFF\
+    afii10044\xFE\xD0\xAA\xFF\
+    afii10045\xFE\xD0\xAB\xFF\
+    afii10046\xFE\xD0\xAC\xFF\
+    afii10047\xFE\xD0\xAD\xFF\
+    afii10048\xFE\xD0\xAE\xFF\
+    afii10049\xFE\xD0\xAF\xFF\
+    afii10050\xFE\xD2\x90\xFF\
+    afii10051\xFE\xD0\x82\xFF\
+    afii10052\xFE\xD0\x83\xFF\
+    afii10053\xFE\xD0\x84\xFF\
+    afii10054\xFE\xD0\x85\xFF\
+    afii10055\xFE\xD0\x86\xFF\
+    afii10056\xFE\xD0\x87\xFF\
+    afii10057\xFE\xD0\x88\xFF\
+    afii10058\xFE\xD0\x89\xFF\
+    afii10059\xFE\xD0\x8A\xFF\
+    afii10060\xFE\xD0\x8B\xFF\
+    afii10061\xFE\xD0\x8C\xFF\
+    afii10062\xFE\xD0\x8E\xFF\
+    afii10063\xFE\xEF\x9B\x84\xFF\
+    afii10064\xFE\xEF\x9B\x85\xFF\
+    afii10065\xFE\xD0\xB0\xFF\
+    afii10066\xFE\xD0\xB1\xFF\
+    afii10067\xFE\xD0\xB2\xFF\
+    afii10068\xFE\xD0\xB3\xFF\
+    afii10069\xFE\xD0\xB4\xFF\
+    afii10070\xFE\xD0\xB5\xFF\
+    afii10071\xFE\xD1\x91\xFF\
+    afii10072\xFE\xD0\xB6\xFF\
+    afii10073\xFE\xD0\xB7\xFF\
+    afii10074\xFE\xD0\xB8\xFF\
+    afii10075\xFE\xD0\xB9\xFF\
+    afii10076\xFE\xD0\xBA\xFF\
+    afii10077\xFE\xD0\xBB\xFF\
+    afii10078\xFE\xD0\xBC\xFF\
+    afii10079\xFE\xD0\xBD\xFF\
+    afii10080\xFE\xD0\xBE\xFF\
+    afii10081\xFE\xD0\xBF\xFF\
+    afii10082\xFE\xD1\x80\xFF\
+    afii10083\xFE\xD1\x81\xFF\
+    afii10084\xFE\xD1\x82\xFF\
+    afii10085\xFE\xD1\x83\xFF\
+    afii10086\xFE\xD1\x84\xFF\
+    afii10087\xFE\xD1\x85\xFF\
+    afii10088\xFE\xD1\x86\xFF\
+    afii10089\xFE\xD1\x87\xFF\
+    afii10090\xFE\xD1\x88\xFF\
+    afii10091\xFE\xD1\x89\xFF\
+    afii10092\xFE\xD1\x8A\xFF\
+    afii10093\xFE\xD1\x8B\xFF\
+    afii10094\xFE\xD1\x8C\xFF\
+    afii10095\xFE\xD1\x8D\xFF\
+    afii10096\xFE\xD1\x8E\xFF\
+    afii10097\xFE\xD1\x8F\xFF\
+    afii10098\xFE\xD2\x91\xFF\
+    afii10099\xFE\xD1\x92\xFF\
+    afii10100\xFE\xD1\x93\xFF\
+    afii10101\xFE\xD1\x94\xFF\
+    afii10102\xFE\xD1\x95\xFF\
+    afii10103\xFE\xD1\x96\xFF\
+    afii10104\xFE\xD1\x97\xFF\
+    afii10105\xFE\xD1\x98\xFF\
+    afii10106\xFE\xD1\x99\xFF\
+    afii10107\xFE\xD1\x9A\xFF\
+    afii10108\xFE\xD1\x9B\xFF\
+    afii10109\xFE\xD1\x9C\xFF\
+    afii10110\xFE\xD1\x9E\xFF\
+    afii10145\xFE\xD0\x8F\xFF\
+    afii10146\xFE\xD1\xA2\xFF\
+    afii10147\xFE\xD1\xB2\xFF\
+    afii10148\xFE\xD1\xB4\xFF\
+    afii10192\xFE\xEF\x9B\x86\xFF\
+    afii10193\xFE\xD1\x9F\xFF\
+    afii10194\xFE\xD1\xA3\xFF\
+    afii10195\xFE\xD1\xB3\xFF\
+    afii10196\xFE\xD1\xB5\xFF\
+    afii10831\xFE\xEF\x9B\x87\xFF\
+    afii10832\xFE\xEF\x9B\x88\xFF\
+    afii10846\xFE\xD3\x99\xFF\
+    afii299\xFE\xE2\x80\x8E\xFF\
+    afii300\xFE\xE2\x80\x8F\xFF\
+    afii301\xFE\xE2\x80\x8D\xFF\
+    afii57381\xFE\xD9\xAA\xFF\
+    afii57388\xFE\xD8\x8C\xFF\
+    afii57392\xFE\xD9\xA0\xFF\
+    afii57393\xFE\xD9\xA1\xFF\
+    afii57394\xFE\xD9\xA2\xFF\
+    afii57395\xFE\xD9\xA3\xFF\
+    afii57396\xFE\xD9\xA4\xFF\
+    afii57397\xFE\xD9\xA5\xFF\
+    afii57398\xFE\xD9\xA6\xFF\
+    afii57399\xFE\xD9\xA7\xFF\
+    afii57400\xFE\xD9\xA8\xFF\
+    afii57401\xFE\xD9\xA9\xFF\
+    afii57403\xFE\xD8\x9B\xFF\
+    afii57407\xFE\xD8\x9F\xFF\
+    afii57409\xFE\xD8\xA1\xFF\
+    afii57410\xFE\xD8\xA2\xFF\
+    afii57411\xFE\xD8\xA3\xFF\
+    afii57412\xFE\xD8\xA4\xFF\
+    afii57413\xFE\xD8\xA5\xFF\
+    afii57414\xFE\xD8\xA6\xFF\
+    afii57415\xFE\xD8\xA7\xFF\
+    afii57416\xFE\xD8\xA8\xFF\
+    afii57417\xFE\xD8\xA9\xFF\
+    afii57418\xFE\xD8\xAA\xFF\
+    afii57419\xFE\xD8\xAB\xFF\
+    afii57420\xFE\xD8\xAC\xFF\
+    afii57421\xFE\xD8\xAD\xFF\
+    afii57422\xFE\xD8\xAE\xFF\
+    afii57423\xFE\xD8\xAF\xFF\
+    afii57424\xFE\xD8\xB0\xFF\
+    afii57425\xFE\xD8\xB1\xFF\
+    afii57426\xFE\xD8\xB2\xFF\
+    afii57427\xFE\xD8\xB3\xFF\
+    afii57428\xFE\xD8\xB4\xFF\
+    afii57429\xFE\xD8\xB5\xFF\
+    afii57430\xFE\xD8\xB6\xFF\
+    afii57431\xFE\xD8\xB7\xFF\
+    afii57432\xFE\xD8\xB8\xFF\
+    afii57433\xFE\xD8\xB9\xFF\
+    afii57434\xFE\xD8\xBA\xFF\
+    afii57440\xFE\xD9\x80\xFF\
+    afii57441\xFE\xD9\x81\xFF\
+    afii57442\xFE\xD9\x82\xFF\
+    afii57443\xFE\xD9\x83\xFF\
+    afii57444\xFE\xD9\x84\xFF\
+    afii57445\xFE\xD9\x85\xFF\
+    afii57446\xFE\xD9\x86\xFF\
+    afii57448\xFE\xD9\x88\xFF\
+    afii57449\xFE\xD9\x89\xFF\
+    afii57450\xFE\xD9\x8A\xFF\
+    afii57451\xFE\xD9\x8B\xFF\
+    afii57452\xFE\xD9\x8C\xFF\
+    afii57453\xFE\xD9\x8D\xFF\
+    afii57454\xFE\xD9\x8E\xFF\
+    afii57455\xFE\xD9\x8F\xFF\
+    afii57456\xFE\xD9\x90\xFF\
+    afii57457\xFE\xD9\x91\xFF\
+    afii57458\xFE\xD9\x92\xFF\
+    afii57470\xFE\xD9\x87\xFF\
+    afii57505\xFE\xDA\xA4\xFF\
+    afii57506\xFE\xD9\xBE\xFF\
+    afii57507\xFE\xDA\x86\xFF\
+    afii57508\xFE\xDA\x98\xFF\
+    afii57509\xFE\xDA\xAF\xFF\
+    afii57511\xFE\xD9\xB9\xFF\
+    afii57512\xFE\xDA\x88\xFF\
+    afii57513\xFE\xDA\x91\xFF\
+    afii57514\xFE\xDA\xBA\xFF\
+    afii57519\xFE\xDB\x92\xFF\
+    afii57534\xFE\xDB\x95\xFF\
+    afii57636\xFE\xE2\x82\xAA\xFF\
+    afii57645\xFE\xD6\xBE\xFF\
+    afii57658\xFE\xD7\x83\xFF\
+    afii57664\xFE\xD7\x90\xFF\
+    afii57665\xFE\xD7\x91\xFF\
+    afii57666\xFE\xD7\x92\xFF\
+    afii57667\xFE\xD7\x93\xFF\
+    afii57668\xFE\xD7\x94\xFF\
+    afii57669\xFE\xD7\x95\xFF\
+    afii57670\xFE\xD7\x96\xFF\
+    afii57671\xFE\xD7\x97\xFF\
+    afii57672\xFE\xD7\x98\xFF\
+    afii57673\xFE\xD7\x99\xFF\
+    afii57674\xFE\xD7\x9A\xFF\
+    afii57675\xFE\xD7\x9B\xFF\
+    afii57676\xFE\xD7\x9C\xFF\
+    afii57677\xFE\xD7\x9D\xFF\
+    afii57678\xFE\xD7\x9E\xFF\
+    afii57679\xFE\xD7\x9F\xFF\
+    afii57680\xFE\xD7\xA0\xFF\
+    afii57681\xFE\xD7\xA1\xFF\
+    afii57682\xFE\xD7\xA2\xFF\
+    afii57683\xFE\xD7\xA3\xFF\
+    afii57684\xFE\xD7\xA4\xFF\
+    afii57685\xFE\xD7\xA5\xFF\
+    afii57686\xFE\xD7\xA6\xFF\
+    afii57687\xFE\xD7\xA7\xFF\
+    afii57688\xFE\xD7\xA8\xFF\
+    afii57689\xFE\xD7\xA9\xFF\
+    afii57690\xFE\xD7\xAA\xFF\
+    afii57694\xFE\xEF\xAC\xAA\xFF\
+    afii57695\xFE\xEF\xAC\xAB\xFF\
+    afii57700\xFE\xEF\xAD\x8B\xFF\
+    afii57705\xFE\xEF\xAC\x9F\xFF\
+    afii57716\xFE\xD7\xB0\xFF\
+    afii57717\xFE\xD7\xB1\xFF\
+    afii57718\xFE\xD7\xB2\xFF\
+    afii57723\xFE\xEF\xAC\xB5\xFF\
+    afii57793\xFE\xD6\xB4\xFF\
+    afii57794\xFE\xD6\xB5\xFF\
+    afii57795\xFE\xD6\xB6\xFF\
+    afii57796\xFE\xD6\xBB\xFF\
+    afii57797\xFE\xD6\xB8\xFF\
+    afii57798\xFE\xD6\xB7\xFF\
+    afii57799\xFE\xD6\xB0\xFF\
+    afii57800\xFE\xD6\xB2\xFF\
+    afii57801\xFE\xD6\xB1\xFF\
+    afii57802\xFE\xD6\xB3\xFF\
+    afii57803\xFE\xD7\x82\xFF\
+    afii57804\xFE\xD7\x81\xFF\
+    afii57806\xFE\xD6\xB9\xFF\
+    afii57807\xFE\xD6\xBC\xFF\
+    afii57839\xFE\xD6\xBD\xFF\
+    afii57841\xFE\xD6\xBF\xFF\
+    afii57842\xFE\xD7\x80\xFF\
+    afii57929\xFE\xCA\xBC\xFF\
+    afii61248\xFE\xE2\x84\x85\xFF\
+    afii61289\xFE\xE2\x84\x93\xFF\
+    afii61352\xFE\xE2\x84\x96\xFF\
+    afii61573\xFE\xE2\x80\xAC\xFF\
+    afii61574\xFE\xE2\x80\xAD\xFF\
+    afii61575\xFE\xE2\x80\xAE\xFF\
+    afii61664\xFE\xE2\x80\x8C\xFF\
+    afii63167\xFE\xD9\xAD\xFF\
+    afii64937\xFE\xCA\xBD\xFF\
+    agrave\xFE\xC3\xA0\xFF\
+    agujarati\xFE\xE0\xAA\x85\xFF\
+    agurmukhi\xFE\xE0\xA8\x85\xFF\
+    ahiragana\xFE\xE3\x81\x82\xFF\
+    ahookabove\xFE\xE1\xBA\xA3\xFF\
+    aibengali\xFE\xE0\xA6\x90\xFF\
+    aibopomofo\xFE\xE3\x84\x9E\xFF\
+    aideva\xFE\xE0\xA4\x90\xFF\
+    aiecyrillic\xFE\xD3\x95\xFF\
+    aigujarati\xFE\xE0\xAA\x90\xFF\
+    aigurmukhi\xFE\xE0\xA8\x90\xFF\
+    aimatragurmukhi\xFE\xE0\xA9\x88\xFF\
+    ainarabic\xFE\xD8\xB9\xFF\
+    ainfinalarabic\xFE\xEF\xBB\x8A\xFF\
+    aininitialarabic\xFE\xEF\xBB\x8B\xFF\
+    ainmedialarabic\xFE\xEF\xBB\x8C\xFF\
+    ainvertedbreve\xFE\xC8\x83\xFF\
+    aivowelsignbengali\xFE\xE0\xA7\x88\xFF\
+    aivowelsigndeva\xFE\xE0\xA5\x88\xFF\
+    aivowelsigngujarati\xFE\xE0\xAB\x88\xFF\
+    akatakana\xFE\xE3\x82\xA2\xFF\
+    akatakanahalfwidth\xFE\xEF\xBD\xB1\xFF\
+    akorean\xFE\xE3\x85\x8F\xFF\
+    alef\xFE\xD7\x90\xFF\
+    alefarabic\xFE\xD8\xA7\xFF\
+    alefdageshhebrew\xFE\xEF\xAC\xB0\xFF\
+    aleffinalarabic\xFE\xEF\xBA\x8E\xFF\
+    alefhamzaabovearabic\xFE\xD8\xA3\xFF\
+    alefhamzaabovefinalarabic\xFE\xEF\xBA\x84\xFF\
+    alefhamzabelowarabic\xFE\xD8\xA5\xFF\
+    alefhamzabelowfinalarabic\xFE\xEF\xBA\x88\xFF\
+    alefhebrew\xFE\xD7\x90\xFF\
+    aleflamedhebrew\xFE\xEF\xAD\x8F\xFF\
+    alefmaddaabovearabic\xFE\xD8\xA2\xFF\
+    alefmaddaabovefinalarabic\xFE\xEF\xBA\x82\xFF\
+    alefmaksuraarabic\xFE\xD9\x89\xFF\
+    alefmaksurafinalarabic\xFE\xEF\xBB\xB0\xFF\
+    alefmaksurainitialarabic\xFE\xEF\xBB\xB3\xFF\
+    alefmaksuramedialarabic\xFE\xEF\xBB\xB4\xFF\
+    alefpatahhebrew\xFE\xEF\xAC\xAE\xFF\
+    alefqamatshebrew\xFE\xEF\xAC\xAF\xFF\
+    aleph\xFE\xE2\x84\xB5\xFF\
+    allequal\xFE\xE2\x89\x8C\xFF\
+    alpha\xFE\xCE\xB1\xFF\
+    alphatonos\xFE\xCE\xAC\xFF\
+    amacron\xFE\xC4\x81\xFF\
+    amonospace\xFE\xEF\xBD\x81\xFF\
+    ampersand\xFE&\xFF\
+    ampersandmonospace\xFE\xEF\xBC\x86\xFF\
+    ampersandsmall\xFE\xEF\x9C\xA6\xFF\
+    amsquare\xFE\xE3\x8F\x82\xFF\
+    anbopomofo\xFE\xE3\x84\xA2\xFF\
+    angbopomofo\xFE\xE3\x84\xA4\xFF\
+    angbracketleft\xFE\xE3\x80\x88\xFF\
+    angbracketleftBig\xFE\xE2\x8C\xA9\xFF\
+    angbracketleftBigg\xFE\xE2\x8C\xA9\xFF\
+    angbracketleftbig\xFE\xE2\x8C\xA9\xFF\
+    angbracketleftbigg\xFE\xE2\x8C\xA9\xFF\
+    angbracketright\xFE\xE3\x80\x89\xFF\
+    angbracketrightBig\xFE\xE2\x8C\xAA\xFF\
+    angbracketrightBigg\xFE\xE2\x8C\xAA\xFF\
+    angbracketrightbig\xFE\xE2\x8C\xAA\xFF\
+    angbracketrightbigg\xFE\xE2\x8C\xAA\xFF\
+    angkhankhuthai\xFE\xE0\xB9\x9A\xFF\
+    angle\xFE\xE2\x88\xA0\xFF\
+    anglebracketleft\xFE\xE3\x80\x88\xFF\
+    anglebracketleftvertical\xFE\xEF\xB8\xBF\xFF\
+    anglebracketright\xFE\xE3\x80\x89\xFF\
+    anglebracketrightvertical\xFE\xEF\xB9\x80\xFF\
+    angleleft\xFE\xE2\x8C\xA9\xFF\
+    angleright\xFE\xE2\x8C\xAA\xFF\
+    angstrom\xFE\xE2\x84\xAB\xFF\
+    anoteleia\xFE\xCE\x87\xFF\
+    anudattadeva\xFE\xE0\xA5\x92\xFF\
+    anusvarabengali\xFE\xE0\xA6\x82\xFF\
+    anusvaradeva\xFE\xE0\xA4\x82\xFF\
+    anusvaragujarati\xFE\xE0\xAA\x82\xFF\
+    aogonek\xFE\xC4\x85\xFF\
+    apaatosquare\xFE\xE3\x8C\x80\xFF\
+    aparen\xFE\xE2\x92\x9C\xFF\
+    apostrophearmenian\xFE\xD5\x9A\xFF\
+    apostrophemod\xFE\xCA\xBC\xFF\
+    apple\xFE\xEF\xA3\xBF\xFF\
+    approaches\xFE\xE2\x89\x90\xFF\
+    approxequal\xFE\xE2\x89\x88\xFF\
+    approxequalorimage\xFE\xE2\x89\x92\xFF\
+    approximatelyequal\xFE\xE2\x89\x85\xFF\
+    araeaekorean\xFE\xE3\x86\x8E\xFF\
+    araeakorean\xFE\xE3\x86\x8D\xFF\
+    arc\xFE\xE2\x8C\x92\xFF\
+    arighthalfring\xFE\xE1\xBA\x9A\xFF\
+    aring\xFE\xC3\xA5\xFF\
+    aringacute\xFE\xC7\xBB\xFF\
+    aringbelow\xFE\xE1\xB8\x81\xFF\
+    arrowboth\xFE\xE2\x86\x94\xFF\
+    arrowdashdown\xFE\xE2\x87\xA3\xFF\
+    arrowdashleft\xFE\xE2\x87\xA0\xFF\
+    arrowdashright\xFE\xE2\x87\xA2\xFF\
+    arrowdashup\xFE\xE2\x87\xA1\xFF\
+    arrowdblboth\xFE\xE2\x87\x94\xFF\
+    arrowdbldown\xFE\xE2\x87\x93\xFF\
+    arrowdblleft\xFE\xE2\x87\x90\xFF\
+    arrowdblright\xFE\xE2\x87\x92\xFF\
+    arrowdblup\xFE\xE2\x87\x91\xFF\
+    arrowdown\xFE\xE2\x86\x93\xFF\
+    arrowdownleft\xFE\xE2\x86\x99\xFF\
+    arrowdownright\xFE\xE2\x86\x98\xFF\
+    arrowdownwhite\xFE\xE2\x87\xA9\xFF\
+    arrowheaddownmod\xFE\xCB\x85\xFF\
+    arrowheadleftmod\xFE\xCB\x82\xFF\
+    arrowheadrightmod\xFE\xCB\x83\xFF\
+    arrowheadupmod\xFE\xCB\x84\xFF\
+    arrowhookleft\xFE\xE2\x86\xAA\xFF\
+    arrowhookright\xFE\xE2\x86\xA9\xFF\
+    arrowhorizex\xFE\xEF\xA3\xA7\xFF\
+    arrowleft\xFE\xE2\x86\x90\xFF\
+    arrowleftbothalf\xFE\xE2\x86\xBD\xFF\
+    arrowleftdbl\xFE\xE2\x87\x90\xFF\
+    arrowleftdblstroke\xFE\xE2\x87\x8D\xFF\
+    arrowleftoverright\xFE\xE2\x87\x86\xFF\
+    arrowlefttophalf\xFE\xE2\x86\xBC\xFF\
+    arrowleftwhite\xFE\xE2\x87\xA6\xFF\
+    arrownortheast\xFE\xE2\x86\x97\xFF\
+    arrownorthwest\xFE\xE2\x86\x96\xFF\
+    arrowright\xFE\xE2\x86\x92\xFF\
+    arrowrightbothalf\xFE\xE2\x87\x81\xFF\
+    arrowrightdblstroke\xFE\xE2\x87\x8F\xFF\
+    arrowrightheavy\xFE\xE2\x9E\x9E\xFF\
+    arrowrightoverleft\xFE\xE2\x87\x84\xFF\
+    arrowrighttophalf\xFE\xE2\x87\x80\xFF\
+    arrowrightwhite\xFE\xE2\x87\xA8\xFF\
+    arrowsoutheast\xFE\xE2\x86\x98\xFF\
+    arrowsouthwest\xFE\xE2\x86\x99\xFF\
+    arrowtableft\xFE\xE2\x87\xA4\xFF\
+    arrowtabright\xFE\xE2\x87\xA5\xFF\
+    arrowup\xFE\xE2\x86\x91\xFF\
+    arrowupdn\xFE\xE2\x86\x95\xFF\
+    arrowupdnbse\xFE\xE2\x86\xA8\xFF\
+    arrowupdownbase\xFE\xE2\x86\xA8\xFF\
+    arrowupleft\xFE\xE2\x86\x96\xFF\
+    arrowupleftofdown\xFE\xE2\x87\x85\xFF\
+    arrowupright\xFE\xE2\x86\x97\xFF\
+    arrowupwhite\xFE\xE2\x87\xA7\xFF\
+    arrowvertex\xFE\xEF\xA3\xA6\xFF\
+    asciicircum\xFE^\xFF\
+    asciicircummonospace\xFE\xEF\xBC\xBE\xFF\
+    asciitilde\xFE~\xFF\
+    asciitildemonospace\xFE\xEF\xBD\x9E\xFF\
+    ascript\xFE\xC9\x91\xFF\
+    ascriptturned\xFE\xC9\x92\xFF\
+    asmallhiragana\xFE\xE3\x81\x81\xFF\
+    asmallkatakana\xFE\xE3\x82\xA1\xFF\
+    asmallkatakanahalfwidth\xFE\xEF\xBD\xA7\xFF\
+    asterisk\xFE*\xFF\
+    asteriskaltonearabic\xFE\xD9\xAD\xFF\
+    asteriskarabic\xFE\xD9\xAD\xFF\
+    asteriskmath\xFE\xE2\x88\x97\xFF\
+    asteriskmonospace\xFE\xEF\xBC\x8A\xFF\
+    asterisksmall\xFE\xEF\xB9\xA1\xFF\
+    asterism\xFE\xE2\x81\x82\xFF\
+    asuperior\xFE\xEF\x9B\xA9\xFF\
+    asymptoticallyequal\xFE\xE2\x89\x83\xFF\
+    at\xFE@\xFF\
+    atilde\xFE\xC3\xA3\xFF\
+    atmonospace\xFE\xEF\xBC\xA0\xFF\
+    atsmall\xFE\xEF\xB9\xAB\xFF\
+    aturned\xFE\xC9\x90\xFF\
+    aubengali\xFE\xE0\xA6\x94\xFF\
+    aubopomofo\xFE\xE3\x84\xA0\xFF\
+    audeva\xFE\xE0\xA4\x94\xFF\
+    augujarati\xFE\xE0\xAA\x94\xFF\
+    augurmukhi\xFE\xE0\xA8\x94\xFF\
+    aulengthmarkbengali\xFE\xE0\xA7\x97\xFF\
+    aumatragurmukhi\xFE\xE0\xA9\x8C\xFF\
+    auvowelsignbengali\xFE\xE0\xA7\x8C\xFF\
+    auvowelsigndeva\xFE\xE0\xA5\x8C\xFF\
+    auvowelsigngujarati\xFE\xE0\xAB\x8C\xFF\
+    avagrahadeva\xFE\xE0\xA4\xBD\xFF\
+    aybarmenian\xFE\xD5\xA1\xFF\
+    ayin\xFE\xD7\xA2\xFF\
+    ayinaltonehebrew\xFE\xEF\xAC\xA0\xFF\
+    ayinhebrew\xFE\xD7\xA2\xFF\
+    b\xFEb\xFF\
+    babengali\xFE\xE0\xA6\xAC\xFF\
+    backslash\xFE\x5C\xFF\
+    backslashBig\xFE\xE2\x88\x96\xFF\
+    backslashBigg\xFE\xE2\x88\x96\xFF\
+    backslashbig\xFE\xE2\x88\x96\xFF\
+    backslashbigg\xFE\xE2\x88\x96\xFF\
+    backslashmonospace\xFE\xEF\xBC\xBC\xFF\
+    badeva\xFE\xE0\xA4\xAC\xFF\
+    bagujarati\xFE\xE0\xAA\xAC\xFF\
+    bagurmukhi\xFE\xE0\xA8\xAC\xFF\
+    bahiragana\xFE\xE3\x81\xB0\xFF\
+    bahtthai\xFE\xE0\xB8\xBF\xFF\
+    bakatakana\xFE\xE3\x83\x90\xFF\
+    bar\xFE|\xFF\
+    bardbl\xFE\xE2\x80\x96\xFF\
+    barmonospace\xFE\xEF\xBD\x9C\xFF\
+    bbopomofo\xFE\xE3\x84\x85\xFF\
+    bcircle\xFE\xE2\x93\x91\xFF\
+    bdotaccent\xFE\xE1\xB8\x83\xFF\
+    bdotbelow\xFE\xE1\xB8\x85\xFF\
+    beamedsixteenthnotes\xFE\xE2\x99\xAC\xFF\
+    because\xFE\xE2\x88\xB5\xFF\
+    becyrillic\xFE\xD0\xB1\xFF\
+    beharabic\xFE\xD8\xA8\xFF\
+    behfinalarabic\xFE\xEF\xBA\x90\xFF\
+    behinitialarabic\xFE\xEF\xBA\x91\xFF\
+    behiragana\xFE\xE3\x81\xB9\xFF\
+    behmedialarabic\xFE\xEF\xBA\x92\xFF\
+    behmeeminitialarabic\xFE\xEF\xB2\x9F\xFF\
+    behmeemisolatedarabic\xFE\xEF\xB0\x88\xFF\
+    behnoonfinalarabic\xFE\xEF\xB1\xAD\xFF\
+    bekatakana\xFE\xE3\x83\x99\xFF\
+    benarmenian\xFE\xD5\xA2\xFF\
+    bet\xFE\xD7\x91\xFF\
+    beta\xFE\xCE\xB2\xFF\
+    betasymbolgreek\xFE\xCF\x90\xFF\
+    betdagesh\xFE\xEF\xAC\xB1\xFF\
+    betdageshhebrew\xFE\xEF\xAC\xB1\xFF\
+    bethebrew\xFE\xD7\x91\xFF\
+    betrafehebrew\xFE\xEF\xAD\x8C\xFF\
+    bhabengali\xFE\xE0\xA6\xAD\xFF\
+    bhadeva\xFE\xE0\xA4\xAD\xFF\
+    bhagujarati\xFE\xE0\xAA\xAD\xFF\
+    bhagurmukhi\xFE\xE0\xA8\xAD\xFF\
+    bhook\xFE\xC9\x93\xFF\
+    bihiragana\xFE\xE3\x81\xB3\xFF\
+    bikatakana\xFE\xE3\x83\x93\xFF\
+    bilabialclick\xFE\xCA\x98\xFF\
+    bindigurmukhi\xFE\xE0\xA8\x82\xFF\
+    birusquare\xFE\xE3\x8C\xB1\xFF\
+    blackcircle\xFE\xE2\x97\x8F\xFF\
+    blackdiamond\xFE\xE2\x97\x86\xFF\
+    blackdownpointingtriangle\xFE\xE2\x96\xBC\xFF\
+    blackleftpointingpointer\xFE\xE2\x97\x84\xFF\
+    blackleftpointingtriangle\xFE\xE2\x97\x80\xFF\
+    blacklenticularbracketleft\xFE\xE3\x80\x90\xFF\
+    blacklenticularbracketleftvertical\xFE\xEF\xB8\xBB\xFF\
+    blacklenticularbracketright\xFE\xE3\x80\x91\xFF\
+    blacklenticularbracketrightvertical\xFE\xEF\xB8\xBC\xFF\
+    blacklowerlefttriangle\xFE\xE2\x97\xA3\xFF\
+    blacklowerrighttriangle\xFE\xE2\x97\xA2\xFF\
+    blackrectangle\xFE\xE2\x96\xAC\xFF\
+    blackrightpointingpointer\xFE\xE2\x96\xBA\xFF\
+    blackrightpointingtriangle\xFE\xE2\x96\xB6\xFF\
+    blacksmallsquare\xFE\xE2\x96\xAA\xFF\
+    blacksmilingface\xFE\xE2\x98\xBB\xFF\
+    blacksquare\xFE\xE2\x96\xA0\xFF\
+    blackstar\xFE\xE2\x98\x85\xFF\
+    blackupperlefttriangle\xFE\xE2\x97\xA4\xFF\
+    blackupperrighttriangle\xFE\xE2\x97\xA5\xFF\
+    blackuppointingsmalltriangle\xFE\xE2\x96\xB4\xFF\
+    blackuppointingtriangle\xFE\xE2\x96\xB2\xFF\
+    blank\xFE\xE2\x90\xA3\xFF\
+    blinebelow\xFE\xE1\xB8\x87\xFF\
+    block\xFE\xE2\x96\x88\xFF\
+    bmonospace\xFE\xEF\xBD\x82\xFF\
+    bobaimaithai\xFE\xE0\xB8\x9A\xFF\
+    bohiragana\xFE\xE3\x81\xBC\xFF\
+    bokatakana\xFE\xE3\x83\x9C\xFF\
+    bparen\xFE\xE2\x92\x9D\xFF\
+    bqsquare\xFE\xE3\x8F\x83\xFF\
+    braceex\xFE\xEF\xA3\xB4\xFF\
+    bracehtipdownleft\xFE\xEF\xB8\xB7\xFF\
+    bracehtipdownright\xFE\xEF\xB8\xB7\xFF\
+    bracehtipupleft\xFE\xEF\xB8\xB8\xFF\
+    bracehtipupright\xFE\xEF\xB8\xB8\xFF\
+    braceleft\xFE{\xFF\
+    braceleftBig\xFE{\xFF\
+    braceleftBigg\xFE{\xFF\
+    braceleftbig\xFE{\xFF\
+    braceleftbigg\xFE{\xFF\
+    braceleftbt\xFE\xEF\xA3\xB3\xFF\
+    braceleftmid\xFE\xEF\xA3\xB2\xFF\
+    braceleftmonospace\xFE\xEF\xBD\x9B\xFF\
+    braceleftsmall\xFE\xEF\xB9\x9B\xFF\
+    bracelefttp\xFE\xEF\xA3\xB1\xFF\
+    braceleftvertical\xFE\xEF\xB8\xB7\xFF\
+    braceright\xFE}\xFF\
+    bracerightBig\xFE}\xFF\
+    bracerightBigg\xFE}\xFF\
+    bracerightbig\xFE}\xFF\
+    bracerightbigg\xFE}\xFF\
+    bracerightbt\xFE\xEF\xA3\xBE\xFF\
+    bracerightmid\xFE\xEF\xA3\xBD\xFF\
+    bracerightmonospace\xFE\xEF\xBD\x9D\xFF\
+    bracerightsmall\xFE\xEF\xB9\x9C\xFF\
+    bracerighttp\xFE\xEF\xA3\xBC\xFF\
+    bracerightvertical\xFE\xEF\xB8\xB8\xFF\
+    bracketleft\xFE[\xFF\
+    bracketleftBig\xFE[\xFF\
+    bracketleftBigg\xFE[\xFF\
+    bracketleftbig\xFE[\xFF\
+    bracketleftbigg\xFE[\xFF\
+    bracketleftbt\xFE\xEF\xA3\xB0\xFF\
+    bracketleftex\xFE\xEF\xA3\xAF\xFF\
+    bracketleftmath\xFE[\xFF\
+    bracketleftmonospace\xFE\xEF\xBC\xBB\xFF\
+    bracketlefttp\xFE\xEF\xA3\xAE\xFF\
+    bracketright\xFE]\xFF\
+    bracketrightBig\xFE]\xFF\
+    bracketrightBigg\xFE]\xFF\
+    bracketrightbig\xFE]\xFF\
+    bracketrightbigg\xFE]\xFF\
+    bracketrightbt\xFE\xEF\xA3\xBB\xFF\
+    bracketrightex\xFE\xEF\xA3\xBA\xFF\
+    bracketrightmath\xFE]\xFF\
+    bracketrightmonospace\xFE\xEF\xBC\xBD\xFF\
+    bracketrighttp\xFE\xEF\xA3\xB9\xFF\
+    breve\xFE\xCB\x98\xFF\
+    brevebelowcmb\xFE\xCC\xAE\xFF\
+    brevecmb\xFE\xCC\x86\xFF\
+    breveinvertedbelowcmb\xFE\xCC\xAF\xFF\
+    breveinvertedcmb\xFE\xCC\x91\xFF\
+    breveinverteddoublecmb\xFE\xCD\xA1\xFF\
+    bridgebelowcmb\xFE\xCC\xAA\xFF\
+    bridgeinvertedbelowcmb\xFE\xCC\xBA\xFF\
+    brokenbar\xFE\xC2\xA6\xFF\
+    bstroke\xFE\xC6\x80\xFF\
+    bsuperior\xFE\xEF\x9B\xAA\xFF\
+    btopbar\xFE\xC6\x83\xFF\
+    buhiragana\xFE\xE3\x81\xB6\xFF\
+    bukatakana\xFE\xE3\x83\x96\xFF\
+    bullet\xFE\xE2\x80\xA2\xFF\
+    bulletinverse\xFE\xE2\x97\x98\xFF\
+    bulletoperator\xFE\xE2\x88\x99\xFF\
+    bullseye\xFE\xE2\x97\x8E\xFF\
+    c\xFEc\xFF\
+    caarmenian\xFE\xD5\xAE\xFF\
+    cabengali\xFE\xE0\xA6\x9A\xFF\
+    cacute\xFE\xC4\x87\xFF\
+    cadeva\xFE\xE0\xA4\x9A\xFF\
+    cagujarati\xFE\xE0\xAA\x9A\xFF\
+    cagurmukhi\xFE\xE0\xA8\x9A\xFF\
+    calsquare\xFE\xE3\x8E\x88\xFF\
+    candrabindubengali\xFE\xE0\xA6\x81\xFF\
+    candrabinducmb\xFE\xCC\x90\xFF\
+    candrabindudeva\xFE\xE0\xA4\x81\xFF\
+    candrabindugujarati\xFE\xE0\xAA\x81\xFF\
+    capslock\xFE\xE2\x87\xAA\xFF\
+    careof\xFE\xE2\x84\x85\xFF\
+    caron\xFE\xCB\x87\xFF\
+    caronbelowcmb\xFE\xCC\xAC\xFF\
+    caroncmb\xFE\xCC\x8C\xFF\
+    carriagereturn\xFE\xE2\x86\xB5\xFF\
+    cbopomofo\xFE\xE3\x84\x98\xFF\
+    ccaron\xFE\xC4\x8D\xFF\
+    ccedilla\xFE\xC3\xA7\xFF\
+    ccedillaacute\xFE\xE1\xB8\x89\xFF\
+    ccircle\xFE\xE2\x93\x92\xFF\
+    ccircumflex\xFE\xC4\x89\xFF\
+    ccurl\xFE\xC9\x95\xFF\
+    cdot\xFE\xC4\x8B\xFF\
+    cdotaccent\xFE\xC4\x8B\xFF\
+    cdsquare\xFE\xE3\x8F\x85\xFF\
+    cedilla\xFE\xC2\xB8\xFF\
+    cedillacmb\xFE\xCC\xA7\xFF\
+    ceilingleftBig\xFE\xE2\x8C\x88\xFF\
+    ceilingleftBigg\xFE\xE2\x8C\x88\xFF\
+    ceilingleftbig\xFE\xE2\x8C\x88\xFF\
+    ceilingleftbigg\xFE\xE2\x8C\x88\xFF\
+    ceilingrightBig\xFE\xE2\x8C\x89\xFF\
+    ceilingrightBigg\xFE\xE2\x8C\x89\xFF\
+    ceilingrightbig\xFE\xE2\x8C\x89\xFF\
+    ceilingrightbigg\xFE\xE2\x8C\x89\xFF\
+    cent\xFE\xC2\xA2\xFF\
+    centigrade\xFE\xE2\x84\x83\xFF\
+    centinferior\xFE\xEF\x9B\x9F\xFF\
+    centmonospace\xFE\xEF\xBF\xA0\xFF\
+    centoldstyle\xFE\xEF\x9E\xA2\xFF\
+    centsuperior\xFE\xEF\x9B\xA0\xFF\
+    chaarmenian\xFE\xD5\xB9\xFF\
+    chabengali\xFE\xE0\xA6\x9B\xFF\
+    chadeva\xFE\xE0\xA4\x9B\xFF\
+    chagujarati\xFE\xE0\xAA\x9B\xFF\
+    chagurmukhi\xFE\xE0\xA8\x9B\xFF\
+    chbopomofo\xFE\xE3\x84\x94\xFF\
+    cheabkhasiancyrillic\xFE\xD2\xBD\xFF\
+    checkmark\xFE\xE2\x9C\x93\xFF\
+    checyrillic\xFE\xD1\x87\xFF\
+    chedescenderabkhasiancyrillic\xFE\xD2\xBF\xFF\
+    chedescendercyrillic\xFE\xD2\xB7\xFF\
+    chedieresiscyrillic\xFE\xD3\xB5\xFF\
+    cheharmenian\xFE\xD5\xB3\xFF\
+    chekhakassiancyrillic\xFE\xD3\x8C\xFF\
+    cheverticalstrokecyrillic\xFE\xD2\xB9\xFF\
+    chi\xFE\xCF\x87\xFF\
+    chieuchacirclekorean\xFE\xE3\x89\xB7\xFF\
+    chieuchaparenkorean\xFE\xE3\x88\x97\xFF\
+    chieuchcirclekorean\xFE\xE3\x89\xA9\xFF\
+    chieuchkorean\xFE\xE3\x85\x8A\xFF\
+    chieuchparenkorean\xFE\xE3\x88\x89\xFF\
+    chochangthai\xFE\xE0\xB8\x8A\xFF\
+    chochanthai\xFE\xE0\xB8\x88\xFF\
+    chochingthai\xFE\xE0\xB8\x89\xFF\
+    chochoethai\xFE\xE0\xB8\x8C\xFF\
+    chook\xFE\xC6\x88\xFF\
+    cieucacirclekorean\xFE\xE3\x89\xB6\xFF\
+    cieucaparenkorean\xFE\xE3\x88\x96\xFF\
+    cieuccirclekorean\xFE\xE3\x89\xA8\xFF\
+    cieuckorean\xFE\xE3\x85\x88\xFF\
+    cieucparenkorean\xFE\xE3\x88\x88\xFF\
+    cieucuparenkorean\xFE\xE3\x88\x9C\xFF\
+    circle\xFE\xE2\x97\x8B\xFF\
+    circlecopyrt\xFE\xC2\xA9\xFF\
+    circledotdisplay\xFE\xE2\x8A\x99\xFF\
+    circledottext\xFE\xE2\x8A\x99\xFF\
+    circlemultiply\xFE\xE2\x8A\x97\xFF\
+    circlemultiplydisplay\xFE\xE2\x8A\x97\xFF\
+    circlemultiplytext\xFE\xE2\x8A\x97\xFF\
+    circleot\xFE\xE2\x8A\x99\xFF\
+    circleplus\xFE\xE2\x8A\x95\xFF\
+    circleplusdisplay\xFE\xE2\x8A\x95\xFF\
+    circleplustext\xFE\xE2\x8A\x95\xFF\
+    circlepostalmark\xFE\xE3\x80\xB6\xFF\
+    circlewithlefthalfblack\xFE\xE2\x97\x90\xFF\
+    circlewithrighthalfblack\xFE\xE2\x97\x91\xFF\
+    circumflex\xFE\xCB\x86\xFF\
+    circumflexbelowcmb\xFE\xCC\xAD\xFF\
+    circumflexcmb\xFE\xCC\x82\xFF\
+    clear\xFE\xE2\x8C\xA7\xFF\
+    clickalveolar\xFE\xC7\x82\xFF\
+    clickdental\xFE\xC7\x80\xFF\
+    clicklateral\xFE\xC7\x81\xFF\
+    clickretroflex\xFE\xC7\x83\xFF\
+    club\xFE\xE2\x99\xA3\xFF\
+    clubsuitblack\xFE\xE2\x99\xA3\xFF\
+    clubsuitwhite\xFE\xE2\x99\xA7\xFF\
+    cmcubedsquare\xFE\xE3\x8E\xA4\xFF\
+    cmonospace\xFE\xEF\xBD\x83\xFF\
+    cmsquaredsquare\xFE\xE3\x8E\xA0\xFF\
+    coarmenian\xFE\xD6\x81\xFF\
+    colon\xFE:\xFF\
+    colonmonetary\xFE\xE2\x82\xA1\xFF\
+    colonmonospace\xFE\xEF\xBC\x9A\xFF\
+    colonsign\xFE\xE2\x82\xA1\xFF\
+    colonsmall\xFE\xEF\xB9\x95\xFF\
+    colontriangularhalfmod\xFE\xCB\x91\xFF\
+    colontriangularmod\xFE\xCB\x90\xFF\
+    comma\xFE,\xFF\
+    commaabovecmb\xFE\xCC\x93\xFF\
+    commaaboverightcmb\xFE\xCC\x95\xFF\
+    commaaccent\xFE\xEF\x9B\x83\xFF\
+    commaarabic\xFE\xD8\x8C\xFF\
+    commaarmenian\xFE\xD5\x9D\xFF\
+    commainferior\xFE\xEF\x9B\xA1\xFF\
+    commamonospace\xFE\xEF\xBC\x8C\xFF\
+    commareversedabovecmb\xFE\xCC\x94\xFF\
+    commareversedmod\xFE\xCA\xBD\xFF\
+    commasmall\xFE\xEF\xB9\x90\xFF\
+    commasuperior\xFE\xEF\x9B\xA2\xFF\
+    commaturnedabovecmb\xFE\xCC\x92\xFF\
+    commaturnedmod\xFE\xCA\xBB\xFF\
+    compass\xFE\xE2\x98\xBC\xFF\
+    congruent\xFE\xE2\x89\x85\xFF\
+    contintegraldisplay\xFE\xE2\x88\xAE\xFF\
+    contintegraltext\xFE\xE2\x88\xAE\xFF\
+    contourintegral\xFE\xE2\x88\xAE\xFF\
+    control\xFE\xE2\x8C\x83\xFF\
+    controlACK\xFE\x06\xFF\
+    controlBEL\xFE\x07\xFF\
+    controlBS\xFE\x08\xFF\
+    controlCAN\xFE\x18\xFF\
+    controlCR\xFE\x0D\xFF\
+    controlDC1\xFE\x11\xFF\
+    controlDC2\xFE\x12\xFF\
+    controlDC3\xFE\x13\xFF\
+    controlDC4\xFE\x14\xFF\
+    controlDEL\xFE\x7F\xFF\
+    controlDLE\xFE\x10\xFF\
+    controlEM\xFE\x19\xFF\
+    controlENQ\xFE\x05\xFF\
+    controlEOT\xFE\x04\xFF\
+    controlESC\xFE\x1B\xFF\
+    controlETB\xFE\x17\xFF\
+    controlETX\xFE\x03\xFF\
+    controlFF\xFE\x0C\xFF\
+    controlFS\xFE\x1C\xFF\
+    controlGS\xFE\x1D\xFF\
+    controlHT\xFE\x09\xFF\
+    controlLF\xFE\x0A\xFF\
+    controlNAK\xFE\x15\xFF\
+    controlNULL\xFE\x00\xFF\
+    controlRS\xFE\x1E\xFF\
+    controlSI\xFE\x0F\xFF\
+    controlSO\xFE\x0E\xFF\
+    controlSOT\xFE\x02\xFF\
+    controlSTX\xFE\x01\xFF\
+    controlSUB\xFE\x1A\xFF\
+    controlSYN\xFE\x16\xFF\
+    controlUS\xFE\x1F\xFF\
+    controlVT\xFE\x0B\xFF\
+    coproductdisplay\xFE\xE2\x88\x90\xFF\
+    coproducttext\xFE\xE2\x88\x90\xFF\
+    copyright\xFE\xC2\xA9\xFF\
+    copyrightsans\xFE\xEF\xA3\xA9\xFF\
+    copyrightserif\xFE\xEF\x9B\x99\xFF\
+    cornerbracketleft\xFE\xE3\x80\x8C\xFF\
+    cornerbracketlefthalfwidth\xFE\xEF\xBD\xA2\xFF\
+    cornerbracketleftvertical\xFE\xEF\xB9\x81\xFF\
+    cornerbracketright\xFE\xE3\x80\x8D\xFF\
+    cornerbracketrighthalfwidth\xFE\xEF\xBD\xA3\xFF\
+    cornerbracketrightvertical\xFE\xEF\xB9\x82\xFF\
+    corporationsquare\xFE\xE3\x8D\xBF\xFF\
+    cosquare\xFE\xE3\x8F\x87\xFF\
+    coverkgsquare\xFE\xE3\x8F\x86\xFF\
+    cparen\xFE\xE2\x92\x9E\xFF\
+    cruzeiro\xFE\xE2\x82\xA2\xFF\
+    cstretched\xFE\xCA\x97\xFF\
+    curlyand\xFE\xE2\x8B\x8F\xFF\
+    curlyor\xFE\xE2\x8B\x8E\xFF\
+    currency\xFE\xC2\xA4\xFF\
+    cyrBreve\xFE\xEF\x9B\x91\xFF\
+    cyrFlex\xFE\xEF\x9B\x92\xFF\
+    cyrbreve\xFE\xEF\x9B\x94\xFF\
+    cyrflex\xFE\xEF\x9B\x95\xFF\
+    d\xFEd\xFF\
+    daarmenian\xFE\xD5\xA4\xFF\
+    dabengali\xFE\xE0\xA6\xA6\xFF\
+    dadarabic\xFE\xD8\xB6\xFF\
+    dadeva\xFE\xE0\xA4\xA6\xFF\
+    dadfinalarabic\xFE\xEF\xBA\xBE\xFF\
+    dadinitialarabic\xFE\xEF\xBA\xBF\xFF\
+    dadmedialarabic\xFE\xEF\xBB\x80\xFF\
+    dagesh\xFE\xD6\xBC\xFF\
+    dageshhebrew\xFE\xD6\xBC\xFF\
+    dagger\xFE\xE2\x80\xA0\xFF\
+    daggerdbl\xFE\xE2\x80\xA1\xFF\
+    dagujarati\xFE\xE0\xAA\xA6\xFF\
+    dagurmukhi\xFE\xE0\xA8\xA6\xFF\
+    dahiragana\xFE\xE3\x81\xA0\xFF\
+    dakatakana\xFE\xE3\x83\x80\xFF\
+    dalarabic\xFE\xD8\xAF\xFF\
+    dalet\xFE\xD7\x93\xFF\
+    daletdagesh\xFE\xEF\xAC\xB3\xFF\
+    daletdageshhebrew\xFE\xEF\xAC\xB3\xFF\
+    dalethatafpatah\xFE\xD7\x93\xD6\xB2\xFF\
+    dalethatafpatahhebrew\xFE\xD7\x93\xD6\xB2\xFF\
+    dalethatafsegol\xFE\xD7\x93\xD6\xB1\xFF\
+    dalethatafsegolhebrew\xFE\xD7\x93\xD6\xB1\xFF\
+    dalethebrew\xFE\xD7\x93\xFF\
+    dalethiriq\xFE\xD7\x93\xD6\xB4\xFF\
+    dalethiriqhebrew\xFE\xD7\x93\xD6\xB4\xFF\
+    daletholam\xFE\xD7\x93\xD6\xB9\xFF\
+    daletholamhebrew\xFE\xD7\x93\xD6\xB9\xFF\
+    daletpatah\xFE\xD7\x93\xD6\xB7\xFF\
+    daletpatahhebrew\xFE\xD7\x93\xD6\xB7\xFF\
+    daletqamats\xFE\xD7\x93\xD6\xB8\xFF\
+    daletqamatshebrew\xFE\xD7\x93\xD6\xB8\xFF\
+    daletqubuts\xFE\xD7\x93\xD6\xBB\xFF\
+    daletqubutshebrew\xFE\xD7\x93\xD6\xBB\xFF\
+    daletsegol\xFE\xD7\x93\xD6\xB6\xFF\
+    daletsegolhebrew\xFE\xD7\x93\xD6\xB6\xFF\
+    daletsheva\xFE\xD7\x93\xD6\xB0\xFF\
+    daletshevahebrew\xFE\xD7\x93\xD6\xB0\xFF\
+    dalettsere\xFE\xD7\x93\xD6\xB5\xFF\
+    dalettserehebrew\xFE\xD7\x93\xD6\xB5\xFF\
+    dalfinalarabic\xFE\xEF\xBA\xAA\xFF\
+    dammaarabic\xFE\xD9\x8F\xFF\
+    dammalowarabic\xFE\xD9\x8F\xFF\
+    dammatanaltonearabic\xFE\xD9\x8C\xFF\
+    dammatanarabic\xFE\xD9\x8C\xFF\
+    danda\xFE\xE0\xA5\xA4\xFF\
+    dargahebrew\xFE\xD6\xA7\xFF\
+    dargalefthebrew\xFE\xD6\xA7\xFF\
+    dasiapneumatacyrilliccmb\xFE\xD2\x85\xFF\
+    dblGrave\xFE\xEF\x9B\x93\xFF\
+    dblanglebracketleft\xFE\xE3\x80\x8A\xFF\
+    dblanglebracketleftvertical\xFE\xEF\xB8\xBD\xFF\
+    dblanglebracketright\xFE\xE3\x80\x8B\xFF\
+    dblanglebracketrightvertical\xFE\xEF\xB8\xBE\xFF\
+    dblarchinvertedbelowcmb\xFE\xCC\xAB\xFF\
+    dblarrowleft\xFE\xE2\x87\x94\xFF\
+    dblarrowright\xFE\xE2\x87\x92\xFF\
+    dbldanda\xFE\xE0\xA5\xA5\xFF\
+    dblgrave\xFE\xEF\x9B\x96\xFF\
+    dblgravecmb\xFE\xCC\x8F\xFF\
+    dblintegral\xFE\xE2\x88\xAC\xFF\
+    dbllowline\xFE\xE2\x80\x97\xFF\
+    dbllowlinecmb\xFE\xCC\xB3\xFF\
+    dbloverlinecmb\xFE\xCC\xBF\xFF\
+    dblprimemod\xFE\xCA\xBA\xFF\
+    dblverticalbar\xFE\xE2\x80\x96\xFF\
+    dblverticallineabovecmb\xFE\xCC\x8E\xFF\
+    dbopomofo\xFE\xE3\x84\x89\xFF\
+    dbsquare\xFE\xE3\x8F\x88\xFF\
+    dcaron\xFE\xC4\x8F\xFF\
+    dcedilla\xFE\xE1\xB8\x91\xFF\
+    dcircle\xFE\xE2\x93\x93\xFF\
+    dcircumflexbelow\xFE\xE1\xB8\x93\xFF\
+    dcroat\xFE\xC4\x91\xFF\
+    ddabengali\xFE\xE0\xA6\xA1\xFF\
+    ddadeva\xFE\xE0\xA4\xA1\xFF\
+    ddagujarati\xFE\xE0\xAA\xA1\xFF\
+    ddagurmukhi\xFE\xE0\xA8\xA1\xFF\
+    ddalarabic\xFE\xDA\x88\xFF\
+    ddalfinalarabic\xFE\xEF\xAE\x89\xFF\
+    dddhadeva\xFE\xE0\xA5\x9C\xFF\
+    ddhabengali\xFE\xE0\xA6\xA2\xFF\
+    ddhadeva\xFE\xE0\xA4\xA2\xFF\
+    ddhagujarati\xFE\xE0\xAA\xA2\xFF\
+    ddhagurmukhi\xFE\xE0\xA8\xA2\xFF\
+    ddotaccent\xFE\xE1\xB8\x8B\xFF\
+    ddotbelow\xFE\xE1\xB8\x8D\xFF\
+    decimalseparatorarabic\xFE\xD9\xAB\xFF\
+    decimalseparatorpersian\xFE\xD9\xAB\xFF\
+    decyrillic\xFE\xD0\xB4\xFF\
+    degree\xFE\xC2\xB0\xFF\
+    dehihebrew\xFE\xD6\xAD\xFF\
+    dehiragana\xFE\xE3\x81\xA7\xFF\
+    deicoptic\xFE\xCF\xAF\xFF\
+    dekatakana\xFE\xE3\x83\x87\xFF\
+    deleteleft\xFE\xE2\x8C\xAB\xFF\
+    deleteright\xFE\xE2\x8C\xA6\xFF\
+    delta\xFE\xCE\xB4\xFF\
+    deltaturned\xFE\xC6\x8D\xFF\
+    denominatorminusonenumeratorbengali\xFE\xE0\xA7\xB8\xFF\
+    dezh\xFE\xCA\xA4\xFF\
+    dhabengali\xFE\xE0\xA6\xA7\xFF\
+    dhadeva\xFE\xE0\xA4\xA7\xFF\
+    dhagujarati\xFE\xE0\xAA\xA7\xFF\
+    dhagurmukhi\xFE\xE0\xA8\xA7\xFF\
+    dhook\xFE\xC9\x97\xFF\
+    dialytikatonos\xFE\xCE\x85\xFF\
+    dialytikatonoscmb\xFE\xCD\x84\xFF\
+    diamond\xFE\xE2\x99\xA6\xFF\
+    diamondsuitwhite\xFE\xE2\x99\xA2\xFF\
+    dieresis\xFE\xC2\xA8\xFF\
+    dieresisacute\xFE\xEF\x9B\x97\xFF\
+    dieresisbelowcmb\xFE\xCC\xA4\xFF\
+    dieresiscmb\xFE\xCC\x88\xFF\
+    dieresisgrave\xFE\xEF\x9B\x98\xFF\
+    dieresistonos\xFE\xCE\x85\xFF\
+    dihiragana\xFE\xE3\x81\xA2\xFF\
+    dikatakana\xFE\xE3\x83\x82\xFF\
+    dittomark\xFE\xE3\x80\x83\xFF\
+    divide\xFE\xC3\xB7\xFF\
+    divides\xFE\xE2\x88\xA3\xFF\
+    divisionslash\xFE\xE2\x88\x95\xFF\
+    djecyrillic\xFE\xD1\x92\xFF\
+    dkshade\xFE\xE2\x96\x93\xFF\
+    dlinebelow\xFE\xE1\xB8\x8F\xFF\
+    dlsquare\xFE\xE3\x8E\x97\xFF\
+    dmacron\xFE\xC4\x91\xFF\
+    dmonospace\xFE\xEF\xBD\x84\xFF\
+    dnblock\xFE\xE2\x96\x84\xFF\
+    dochadathai\xFE\xE0\xB8\x8E\xFF\
+    dodekthai\xFE\xE0\xB8\x94\xFF\
+    dohiragana\xFE\xE3\x81\xA9\xFF\
+    dokatakana\xFE\xE3\x83\x89\xFF\
+    dollar\xFE$\xFF\
+    dollarinferior\xFE\xEF\x9B\xA3\xFF\
+    dollarmonospace\xFE\xEF\xBC\x84\xFF\
+    dollaroldstyle\xFE\xEF\x9C\xA4\xFF\
+    dollarsmall\xFE\xEF\xB9\xA9\xFF\
+    dollarsuperior\xFE\xEF\x9B\xA4\xFF\
+    dong\xFE\xE2\x82\xAB\xFF\
+    dorusquare\xFE\xE3\x8C\xA6\xFF\
+    dotaccent\xFE\xCB\x99\xFF\
+    dotaccentcmb\xFE\xCC\x87\xFF\
+    dotbelowcmb\xFE\xCC\xA3\xFF\
+    dotbelowcomb\xFE\xCC\xA3\xFF\
+    dotkatakana\xFE\xE3\x83\xBB\xFF\
+    dotlessi\xFE\xC4\xB1\xFF\
+    dotlessj\xFE\xEF\x9A\xBE\xFF\
+    dotlessjstrokehook\xFE\xCA\x84\xFF\
+    dotmath\xFE\xE2\x8B\x85\xFF\
+    dottedcircle\xFE\xE2\x97\x8C\xFF\
+    doubleyodpatah\xFE\xEF\xAC\x9F\xFF\
+    doubleyodpatahhebrew\xFE\xEF\xAC\x9F\xFF\
+    downtackbelowcmb\xFE\xCC\x9E\xFF\
+    downtackmod\xFE\xCB\x95\xFF\
+    dparen\xFE\xE2\x92\x9F\xFF\
+    dsuperior\xFE\xEF\x9B\xAB\xFF\
+    dtail\xFE\xC9\x96\xFF\
+    dtopbar\xFE\xC6\x8C\xFF\
+    duhiragana\xFE\xE3\x81\xA5\xFF\
+    dukatakana\xFE\xE3\x83\x85\xFF\
+    dz\xFE\xC7\xB3\xFF\
+    dzaltone\xFE\xCA\xA3\xFF\
+    dzcaron\xFE\xC7\x86\xFF\
+    dzcurl\xFE\xCA\xA5\xFF\
+    dzeabkhasiancyrillic\xFE\xD3\xA1\xFF\
+    dzecyrillic\xFE\xD1\x95\xFF\
+    dzhecyrillic\xFE\xD1\x9F\xFF\
+    e\xFEe\xFF\
+    eacute\xFE\xC3\xA9\xFF\
+    earth\xFE\xE2\x99\x81\xFF\
+    ebengali\xFE\xE0\xA6\x8F\xFF\
+    ebopomofo\xFE\xE3\x84\x9C\xFF\
+    ebreve\xFE\xC4\x95\xFF\
+    ecandradeva\xFE\xE0\xA4\x8D\xFF\
+    ecandragujarati\xFE\xE0\xAA\x8D\xFF\
+    ecandravowelsigndeva\xFE\xE0\xA5\x85\xFF\
+    ecandravowelsigngujarati\xFE\xE0\xAB\x85\xFF\
+    ecaron\xFE\xC4\x9B\xFF\
+    ecedillabreve\xFE\xE1\xB8\x9D\xFF\
+    echarmenian\xFE\xD5\xA5\xFF\
+    echyiwnarmenian\xFE\xD6\x87\xFF\
+    ecircle\xFE\xE2\x93\x94\xFF\
+    ecircumflex\xFE\xC3\xAA\xFF\
+    ecircumflexacute\xFE\xE1\xBA\xBF\xFF\
+    ecircumflexbelow\xFE\xE1\xB8\x99\xFF\
+    ecircumflexdotbelow\xFE\xE1\xBB\x87\xFF\
+    ecircumflexgrave\xFE\xE1\xBB\x81\xFF\
+    ecircumflexhookabove\xFE\xE1\xBB\x83\xFF\
+    ecircumflextilde\xFE\xE1\xBB\x85\xFF\
+    ecyrillic\xFE\xD1\x94\xFF\
+    edblgrave\xFE\xC8\x85\xFF\
+    edeva\xFE\xE0\xA4\x8F\xFF\
+    edieresis\xFE\xC3\xAB\xFF\
+    edot\xFE\xC4\x97\xFF\
+    edotaccent\xFE\xC4\x97\xFF\
+    edotbelow\xFE\xE1\xBA\xB9\xFF\
+    eegurmukhi\xFE\xE0\xA8\x8F\xFF\
+    eematragurmukhi\xFE\xE0\xA9\x87\xFF\
+    efcyrillic\xFE\xD1\x84\xFF\
+    egrave\xFE\xC3\xA8\xFF\
+    egujarati\xFE\xE0\xAA\x8F\xFF\
+    eharmenian\xFE\xD5\xA7\xFF\
+    ehbopomofo\xFE\xE3\x84\x9D\xFF\
+    ehiragana\xFE\xE3\x81\x88\xFF\
+    ehookabove\xFE\xE1\xBA\xBB\xFF\
+    eibopomofo\xFE\xE3\x84\x9F\xFF\
+    eight\xFE8\xFF\
+    eightarabic\xFE\xD9\xA8\xFF\
+    eightbengali\xFE\xE0\xA7\xAE\xFF\
+    eightcircle\xFE\xE2\x91\xA7\xFF\
+    eightcircleinversesansserif\xFE\xE2\x9E\x91\xFF\
+    eightdeva\xFE\xE0\xA5\xAE\xFF\
+    eighteencircle\xFE\xE2\x91\xB1\xFF\
+    eighteenparen\xFE\xE2\x92\x85\xFF\
+    eighteenperiod\xFE\xE2\x92\x99\xFF\
+    eightgujarati\xFE\xE0\xAB\xAE\xFF\
+    eightgurmukhi\xFE\xE0\xA9\xAE\xFF\
+    eighthackarabic\xFE\xD9\xA8\xFF\
+    eighthangzhou\xFE\xE3\x80\xA8\xFF\
+    eighthnotebeamed\xFE\xE2\x99\xAB\xFF\
+    eightideographicparen\xFE\xE3\x88\xA7\xFF\
+    eightinferior\xFE\xE2\x82\x88\xFF\
+    eightmonospace\xFE\xEF\xBC\x98\xFF\
+    eightoldstyle\xFE\xEF\x9C\xB8\xFF\
+    eightparen\xFE\xE2\x91\xBB\xFF\
+    eightperiod\xFE\xE2\x92\x8F\xFF\
+    eightpersian\xFE\xDB\xB8\xFF\
+    eightroman\xFE\xE2\x85\xB7\xFF\
+    eightsuperior\xFE\xE2\x81\xB8\xFF\
+    eightthai\xFE\xE0\xB9\x98\xFF\
+    einvertedbreve\xFE\xC8\x87\xFF\
+    eiotifiedcyrillic\xFE\xD1\xA5\xFF\
+    ekatakana\xFE\xE3\x82\xA8\xFF\
+    ekatakanahalfwidth\xFE\xEF\xBD\xB4\xFF\
+    ekonkargurmukhi\xFE\xE0\xA9\xB4\xFF\
+    ekorean\xFE\xE3\x85\x94\xFF\
+    elcyrillic\xFE\xD0\xBB\xFF\
+    element\xFE\xE2\x88\x88\xFF\
+    elevencircle\xFE\xE2\x91\xAA\xFF\
+    elevenparen\xFE\xE2\x91\xBE\xFF\
+    elevenperiod\xFE\xE2\x92\x92\xFF\
+    elevenroman\xFE\xE2\x85\xBA\xFF\
+    ellipsis\xFE\xE2\x80\xA6\xFF\
+    ellipsisvertical\xFE\xE2\x8B\xAE\xFF\
+    emacron\xFE\xC4\x93\xFF\
+    emacronacute\xFE\xE1\xB8\x97\xFF\
+    emacrongrave\xFE\xE1\xB8\x95\xFF\
+    emcyrillic\xFE\xD0\xBC\xFF\
+    emdash\xFE\xE2\x80\x94\xFF\
+    emdashvertical\xFE\xEF\xB8\xB1\xFF\
+    emonospace\xFE\xEF\xBD\x85\xFF\
+    emphasismarkarmenian\xFE\xD5\x9B\xFF\
+    emptyset\xFE\xE2\x88\x85\xFF\
+    enbopomofo\xFE\xE3\x84\xA3\xFF\
+    encyrillic\xFE\xD0\xBD\xFF\
+    endash\xFE\xE2\x80\x93\xFF\
+    endashvertical\xFE\xEF\xB8\xB2\xFF\
+    endescendercyrillic\xFE\xD2\xA3\xFF\
+    eng\xFE\xC5\x8B\xFF\
+    engbopomofo\xFE\xE3\x84\xA5\xFF\
+    enghecyrillic\xFE\xD2\xA5\xFF\
+    enhookcyrillic\xFE\xD3\x88\xFF\
+    enspace\xFE\xE2\x80\x82\xFF\
+    eogonek\xFE\xC4\x99\xFF\
+    eokorean\xFE\xE3\x85\x93\xFF\
+    eopen\xFE\xC9\x9B\xFF\
+    eopenclosed\xFE\xCA\x9A\xFF\
+    eopenreversed\xFE\xC9\x9C\xFF\
+    eopenreversedclosed\xFE\xC9\x9E\xFF\
+    eopenreversedhook\xFE\xC9\x9D\xFF\
+    eparen\xFE\xE2\x92\xA0\xFF\
+    epsilon\xFE\xCE\xB5\xFF\
+    epsilon1\xFE\xCE\xB5\xFF\
+    epsilontonos\xFE\xCE\xAD\xFF\
+    equal\xFE=\xFF\
+    equalmath\xFE=\xFF\
+    equalmonospace\xFE\xEF\xBC\x9D\xFF\
+    equalsmall\xFE\xEF\xB9\xA6\xFF\
+    equalsuperior\xFE\xE2\x81\xBC\xFF\
+    equivalence\xFE\xE2\x89\xA1\xFF\
+    erbopomofo\xFE\xE3\x84\xA6\xFF\
+    ercyrillic\xFE\xD1\x80\xFF\
+    ereversed\xFE\xC9\x98\xFF\
+    ereversedcyrillic\xFE\xD1\x8D\xFF\
+    escyrillic\xFE\xD1\x81\xFF\
+    esdescendercyrillic\xFE\xD2\xAB\xFF\
+    esh\xFE\xCA\x83\xFF\
+    eshcurl\xFE\xCA\x86\xFF\
+    eshortdeva\xFE\xE0\xA4\x8E\xFF\
+    eshortvowelsigndeva\xFE\xE0\xA5\x86\xFF\
+    eshreversedloop\xFE\xC6\xAA\xFF\
+    eshsquatreversed\xFE\xCA\x85\xFF\
+    esmallhiragana\xFE\xE3\x81\x87\xFF\
+    esmallkatakana\xFE\xE3\x82\xA7\xFF\
+    esmallkatakanahalfwidth\xFE\xEF\xBD\xAA\xFF\
+    estimated\xFE\xE2\x84\xAE\xFF\
+    esuperior\xFE\xEF\x9B\xAC\xFF\
+    eta\xFE\xCE\xB7\xFF\
+    etarmenian\xFE\xD5\xA8\xFF\
+    etatonos\xFE\xCE\xAE\xFF\
+    eth\xFE\xC3\xB0\xFF\
+    etilde\xFE\xE1\xBA\xBD\xFF\
+    etildebelow\xFE\xE1\xB8\x9B\xFF\
+    etnahtafoukhhebrew\xFE\xD6\x91\xFF\
+    etnahtafoukhlefthebrew\xFE\xD6\x91\xFF\
+    etnahtahebrew\xFE\xD6\x91\xFF\
+    etnahtalefthebrew\xFE\xD6\x91\xFF\
+    eturned\xFE\xC7\x9D\xFF\
+    eukorean\xFE\xE3\x85\xA1\xFF\
+    euro\xFE\xE2\x82\xAC\xFF\
+    evowelsignbengali\xFE\xE0\xA7\x87\xFF\
+    evowelsigndeva\xFE\xE0\xA5\x87\xFF\
+    evowelsigngujarati\xFE\xE0\xAB\x87\xFF\
+    exclam\xFE!\xFF\
+    exclamarmenian\xFE\xD5\x9C\xFF\
+    exclamdbl\xFE\xE2\x80\xBC\xFF\
+    exclamdown\xFE\xC2\xA1\xFF\
+    exclamdownsmall\xFE\xEF\x9E\xA1\xFF\
+    exclammonospace\xFE\xEF\xBC\x81\xFF\
+    exclamsmall\xFE\xEF\x9C\xA1\xFF\
+    existential\xFE\xE2\x88\x83\xFF\
+    ezh\xFE\xCA\x92\xFF\
+    ezhcaron\xFE\xC7\xAF\xFF\
+    ezhcurl\xFE\xCA\x93\xFF\
+    ezhreversed\xFE\xC6\xB9\xFF\
+    ezhtail\xFE\xC6\xBA\xFF\
+    f\xFEf\xFF\
+    fadeva\xFE\xE0\xA5\x9E\xFF\
+    fagurmukhi\xFE\xE0\xA9\x9E\xFF\
+    fahrenheit\xFE\xE2\x84\x89\xFF\
+    fathaarabic\xFE\xD9\x8E\xFF\
+    fathalowarabic\xFE\xD9\x8E\xFF\
+    fathatanarabic\xFE\xD9\x8B\xFF\
+    fbopomofo\xFE\xE3\x84\x88\xFF\
+    fcircle\xFE\xE2\x93\x95\xFF\
+    fdotaccent\xFE\xE1\xB8\x9F\xFF\
+    feharabic\xFE\xD9\x81\xFF\
+    feharmenian\xFE\xD6\x86\xFF\
+    fehfinalarabic\xFE\xEF\xBB\x92\xFF\
+    fehinitialarabic\xFE\xEF\xBB\x93\xFF\
+    fehmedialarabic\xFE\xEF\xBB\x94\xFF\
+    feicoptic\xFE\xCF\xA5\xFF\
+    female\xFE\xE2\x99\x80\xFF\
+    ff\xFE\xEF\xAC\x80\xFF\
+    ffi\xFE\xEF\xAC\x83\xFF\
+    ffl\xFE\xEF\xAC\x84\xFF\
+    fi\xFE\xEF\xAC\x81\xFF\
+    fifteencircle\xFE\xE2\x91\xAE\xFF\
+    fifteenparen\xFE\xE2\x92\x82\xFF\
+    fifteenperiod\xFE\xE2\x92\x96\xFF\
+    figuredash\xFE\xE2\x80\x92\xFF\
+    filledbox\xFE\xE2\x96\xA0\xFF\
+    filledrect\xFE\xE2\x96\xAC\xFF\
+    finalkaf\xFE\xD7\x9A\xFF\
+    finalkafdagesh\xFE\xEF\xAC\xBA\xFF\
+    finalkafdageshhebrew\xFE\xEF\xAC\xBA\xFF\
+    finalkafhebrew\xFE\xD7\x9A\xFF\
+    finalkafqamats\xFE\xD7\x9A\xD6\xB8\xFF\
+    finalkafqamatshebrew\xFE\xD7\x9A\xD6\xB8\xFF\
+    finalkafsheva\xFE\xD7\x9A\xD6\xB0\xFF\
+    finalkafshevahebrew\xFE\xD7\x9A\xD6\xB0\xFF\
+    finalmem\xFE\xD7\x9D\xFF\
+    finalmemhebrew\xFE\xD7\x9D\xFF\
+    finalnun\xFE\xD7\x9F\xFF\
+    finalnunhebrew\xFE\xD7\x9F\xFF\
+    finalpe\xFE\xD7\xA3\xFF\
+    finalpehebrew\xFE\xD7\xA3\xFF\
+    finaltsadi\xFE\xD7\xA5\xFF\
+    finaltsadihebrew\xFE\xD7\xA5\xFF\
+    firsttonechinese\xFE\xCB\x89\xFF\
+    fisheye\xFE\xE2\x97\x89\xFF\
+    fitacyrillic\xFE\xD1\xB3\xFF\
+    five\xFE5\xFF\
+    fivearabic\xFE\xD9\xA5\xFF\
+    fivebengali\xFE\xE0\xA7\xAB\xFF\
+    fivecircle\xFE\xE2\x91\xA4\xFF\
+    fivecircleinversesansserif\xFE\xE2\x9E\x8E\xFF\
+    fivedeva\xFE\xE0\xA5\xAB\xFF\
+    fiveeighths\xFE\xE2\x85\x9D\xFF\
+    fivegujarati\xFE\xE0\xAB\xAB\xFF\
+    fivegurmukhi\xFE\xE0\xA9\xAB\xFF\
+    fivehackarabic\xFE\xD9\xA5\xFF\
+    fivehangzhou\xFE\xE3\x80\xA5\xFF\
+    fiveideographicparen\xFE\xE3\x88\xA4\xFF\
+    fiveinferior\xFE\xE2\x82\x85\xFF\
+    fivemonospace\xFE\xEF\xBC\x95\xFF\
+    fiveoldstyle\xFE\xEF\x9C\xB5\xFF\
+    fiveparen\xFE\xE2\x91\xB8\xFF\
+    fiveperiod\xFE\xE2\x92\x8C\xFF\
+    fivepersian\xFE\xDB\xB5\xFF\
+    fiveroman\xFE\xE2\x85\xB4\xFF\
+    fivesuperior\xFE\xE2\x81\xB5\xFF\
+    fivethai\xFE\xE0\xB9\x95\xFF\
+    fl\xFE\xEF\xAC\x82\xFF\
+    floorleftBig\xFE\xE2\x8C\x8A\xFF\
+    floorleftBigg\xFE\xE2\x8C\x8A\xFF\
+    floorleftbig\xFE\xE2\x8C\x8A\xFF\
+    floorleftbigg\xFE\xE2\x8C\x8A\xFF\
+    floorrightBig\xFE\xE2\x8C\x8B\xFF\
+    floorrightBigg\xFE\xE2\x8C\x8B\xFF\
+    floorrightbig\xFE\xE2\x8C\x8B\xFF\
+    floorrightbigg\xFE\xE2\x8C\x8B\xFF\
+    florin\xFE\xC6\x92\xFF\
+    fmonospace\xFE\xEF\xBD\x86\xFF\
+    fmsquare\xFE\xE3\x8E\x99\xFF\
+    fofanthai\xFE\xE0\xB8\x9F\xFF\
+    fofathai\xFE\xE0\xB8\x9D\xFF\
+    fongmanthai\xFE\xE0\xB9\x8F\xFF\
+    forall\xFE\xE2\x88\x80\xFF\
+    four\xFE4\xFF\
+    fourarabic\xFE\xD9\xA4\xFF\
+    fourbengali\xFE\xE0\xA7\xAA\xFF\
+    fourcircle\xFE\xE2\x91\xA3\xFF\
+    fourcircleinversesansserif\xFE\xE2\x9E\x8D\xFF\
+    fourdeva\xFE\xE0\xA5\xAA\xFF\
+    fourgujarati\xFE\xE0\xAB\xAA\xFF\
+    fourgurmukhi\xFE\xE0\xA9\xAA\xFF\
+    fourhackarabic\xFE\xD9\xA4\xFF\
+    fourhangzhou\xFE\xE3\x80\xA4\xFF\
+    fourideographicparen\xFE\xE3\x88\xA3\xFF\
+    fourinferior\xFE\xE2\x82\x84\xFF\
+    fourmonospace\xFE\xEF\xBC\x94\xFF\
+    fournumeratorbengali\xFE\xE0\xA7\xB7\xFF\
+    fouroldstyle\xFE\xEF\x9C\xB4\xFF\
+    fourparen\xFE\xE2\x91\xB7\xFF\
+    fourperiod\xFE\xE2\x92\x8B\xFF\
+    fourpersian\xFE\xDB\xB4\xFF\
+    fourroman\xFE\xE2\x85\xB3\xFF\
+    foursuperior\xFE\xE2\x81\xB4\xFF\
+    fourteencircle\xFE\xE2\x91\xAD\xFF\
+    fourteenparen\xFE\xE2\x92\x81\xFF\
+    fourteenperiod\xFE\xE2\x92\x95\xFF\
+    fourthai\xFE\xE0\xB9\x94\xFF\
+    fourthtonechinese\xFE\xCB\x8B\xFF\
+    fparen\xFE\xE2\x92\xA1\xFF\
+    fraction\xFE\xE2\x81\x84\xFF\
+    franc\xFE\xE2\x82\xA3\xFF\
+    g\xFEg\xFF\
+    gabengali\xFE\xE0\xA6\x97\xFF\
+    gacute\xFE\xC7\xB5\xFF\
+    gadeva\xFE\xE0\xA4\x97\xFF\
+    gafarabic\xFE\xDA\xAF\xFF\
+    gaffinalarabic\xFE\xEF\xAE\x93\xFF\
+    gafinitialarabic\xFE\xEF\xAE\x94\xFF\
+    gafmedialarabic\xFE\xEF\xAE\x95\xFF\
+    gagujarati\xFE\xE0\xAA\x97\xFF\
+    gagurmukhi\xFE\xE0\xA8\x97\xFF\
+    gahiragana\xFE\xE3\x81\x8C\xFF\
+    gakatakana\xFE\xE3\x82\xAC\xFF\
+    gamma\xFE\xCE\xB3\xFF\
+    gammalatinsmall\xFE\xC9\xA3\xFF\
+    gammasuperior\xFE\xCB\xA0\xFF\
+    gangiacoptic\xFE\xCF\xAB\xFF\
+    gbopomofo\xFE\xE3\x84\x8D\xFF\
+    gbreve\xFE\xC4\x9F\xFF\
+    gcaron\xFE\xC7\xA7\xFF\
+    gcedilla\xFE\xC4\xA3\xFF\
+    gcircle\xFE\xE2\x93\x96\xFF\
+    gcircumflex\xFE\xC4\x9D\xFF\
+    gcommaaccent\xFE\xC4\xA3\xFF\
+    gdot\xFE\xC4\xA1\xFF\
+    gdotaccent\xFE\xC4\xA1\xFF\
+    gecyrillic\xFE\xD0\xB3\xFF\
+    gehiragana\xFE\xE3\x81\x92\xFF\
+    gekatakana\xFE\xE3\x82\xB2\xFF\
+    geometricallyequal\xFE\xE2\x89\x91\xFF\
+    gereshaccenthebrew\xFE\xD6\x9C\xFF\
+    gereshhebrew\xFE\xD7\xB3\xFF\
+    gereshmuqdamhebrew\xFE\xD6\x9D\xFF\
+    germandbls\xFE\xC3\x9F\xFF\
+    gershayimaccenthebrew\xFE\xD6\x9E\xFF\
+    gershayimhebrew\xFE\xD7\xB4\xFF\
+    getamark\xFE\xE3\x80\x93\xFF\
+    ghabengali\xFE\xE0\xA6\x98\xFF\
+    ghadarmenian\xFE\xD5\xB2\xFF\
+    ghadeva\xFE\xE0\xA4\x98\xFF\
+    ghagujarati\xFE\xE0\xAA\x98\xFF\
+    ghagurmukhi\xFE\xE0\xA8\x98\xFF\
+    ghainarabic\xFE\xD8\xBA\xFF\
+    ghainfinalarabic\xFE\xEF\xBB\x8E\xFF\
+    ghaininitialarabic\xFE\xEF\xBB\x8F\xFF\
+    ghainmedialarabic\xFE\xEF\xBB\x90\xFF\
+    ghemiddlehookcyrillic\xFE\xD2\x95\xFF\
+    ghestrokecyrillic\xFE\xD2\x93\xFF\
+    gheupturncyrillic\xFE\xD2\x91\xFF\
+    ghhadeva\xFE\xE0\xA5\x9A\xFF\
+    ghhagurmukhi\xFE\xE0\xA9\x9A\xFF\
+    ghook\xFE\xC9\xA0\xFF\
+    ghzsquare\xFE\xE3\x8E\x93\xFF\
+    gihiragana\xFE\xE3\x81\x8E\xFF\
+    gikatakana\xFE\xE3\x82\xAE\xFF\
+    gimarmenian\xFE\xD5\xA3\xFF\
+    gimel\xFE\xD7\x92\xFF\
+    gimeldagesh\xFE\xEF\xAC\xB2\xFF\
+    gimeldageshhebrew\xFE\xEF\xAC\xB2\xFF\
+    gimelhebrew\xFE\xD7\x92\xFF\
+    gjecyrillic\xFE\xD1\x93\xFF\
+    glottalinvertedstroke\xFE\xC6\xBE\xFF\
+    glottalstop\xFE\xCA\x94\xFF\
+    glottalstopinverted\xFE\xCA\x96\xFF\
+    glottalstopmod\xFE\xCB\x80\xFF\
+    glottalstopreversed\xFE\xCA\x95\xFF\
+    glottalstopreversedmod\xFE\xCB\x81\xFF\
+    glottalstopreversedsuperior\xFE\xCB\xA4\xFF\
+    glottalstopstroke\xFE\xCA\xA1\xFF\
+    glottalstopstrokereversed\xFE\xCA\xA2\xFF\
+    gmacron\xFE\xE1\xB8\xA1\xFF\
+    gmonospace\xFE\xEF\xBD\x87\xFF\
+    gohiragana\xFE\xE3\x81\x94\xFF\
+    gokatakana\xFE\xE3\x82\xB4\xFF\
+    gparen\xFE\xE2\x92\xA2\xFF\
+    gpasquare\xFE\xE3\x8E\xAC\xFF\
+    gradient\xFE\xE2\x88\x87\xFF\
+    grave\xFE`\xFF\
+    gravebelowcmb\xFE\xCC\x96\xFF\
+    gravecmb\xFE\xCC\x80\xFF\
+    gravecomb\xFE\xCC\x80\xFF\
+    gravedeva\xFE\xE0\xA5\x93\xFF\
+    gravelowmod\xFE\xCB\x8E\xFF\
+    gravemonospace\xFE\xEF\xBD\x80\xFF\
+    gravetonecmb\xFE\xCD\x80\xFF\
+    greater\xFE>\xFF\
+    greaterequal\xFE\xE2\x89\xA5\xFF\
+    greaterequalorless\xFE\xE2\x8B\x9B\xFF\
+    greatermonospace\xFE\xEF\xBC\x9E\xFF\
+    greaterorequivalent\xFE\xE2\x89\xB3\xFF\
+    greaterorless\xFE\xE2\x89\xB7\xFF\
+    greateroverequal\xFE\xE2\x89\xA7\xFF\
+    greatersmall\xFE\xEF\xB9\xA5\xFF\
+    gscript\xFE\xC9\xA1\xFF\
+    gstroke\xFE\xC7\xA5\xFF\
+    guhiragana\xFE\xE3\x81\x90\xFF\
+    guillemotleft\xFE\xC2\xAB\xFF\
+    guillemotright\xFE\xC2\xBB\xFF\
+    guilsinglleft\xFE\xE2\x80\xB9\xFF\
+    guilsinglright\xFE\xE2\x80\xBA\xFF\
+    gukatakana\xFE\xE3\x82\xB0\xFF\
+    guramusquare\xFE\xE3\x8C\x98\xFF\
+    gysquare\xFE\xE3\x8F\x89\xFF\
+    h\xFEh\xFF\
+    haabkhasiancyrillic\xFE\xD2\xA9\xFF\
+    haaltonearabic\xFE\xDB\x81\xFF\
+    habengali\xFE\xE0\xA6\xB9\xFF\
+    hadescendercyrillic\xFE\xD2\xB3\xFF\
+    hadeva\xFE\xE0\xA4\xB9\xFF\
+    hagujarati\xFE\xE0\xAA\xB9\xFF\
+    hagurmukhi\xFE\xE0\xA8\xB9\xFF\
+    haharabic\xFE\xD8\xAD\xFF\
+    hahfinalarabic\xFE\xEF\xBA\xA2\xFF\
+    hahinitialarabic\xFE\xEF\xBA\xA3\xFF\
+    hahiragana\xFE\xE3\x81\xAF\xFF\
+    hahmedialarabic\xFE\xEF\xBA\xA4\xFF\
+    haitusquare\xFE\xE3\x8C\xAA\xFF\
+    hakatakana\xFE\xE3\x83\x8F\xFF\
+    hakatakanahalfwidth\xFE\xEF\xBE\x8A\xFF\
+    halantgurmukhi\xFE\xE0\xA9\x8D\xFF\
+    hamzaarabic\xFE\xD8\xA1\xFF\
+    hamzadammaarabic\xFE\xD8\xA1\xD9\x8F\xFF\
+    hamzadammatanarabic\xFE\xD8\xA1\xD9\x8C\xFF\
+    hamzafathaarabic\xFE\xD8\xA1\xD9\x8E\xFF\
+    hamzafathatanarabic\xFE\xD8\xA1\xD9\x8B\xFF\
+    hamzalowarabic\xFE\xD8\xA1\xFF\
+    hamzalowkasraarabic\xFE\xD8\xA1\xD9\x90\xFF\
+    hamzalowkasratanarabic\xFE\xD8\xA1\xD9\x8D\xFF\
+    hamzasukunarabic\xFE\xD8\xA1\xD9\x92\xFF\
+    hangulfiller\xFE\xE3\x85\xA4\xFF\
+    hardsigncyrillic\xFE\xD1\x8A\xFF\
+    harpoonleftbarbup\xFE\xE2\x86\xBC\xFF\
+    harpoonrightbarbup\xFE\xE2\x87\x80\xFF\
+    hasquare\xFE\xE3\x8F\x8A\xFF\
+    hatafpatah\xFE\xD6\xB2\xFF\
+    hatafpatah16\xFE\xD6\xB2\xFF\
+    hatafpatah23\xFE\xD6\xB2\xFF\
+    hatafpatah2f\xFE\xD6\xB2\xFF\
+    hatafpatahhebrew\xFE\xD6\xB2\xFF\
+    hatafpatahnarrowhebrew\xFE\xD6\xB2\xFF\
+    hatafpatahquarterhebrew\xFE\xD6\xB2\xFF\
+    hatafpatahwidehebrew\xFE\xD6\xB2\xFF\
+    hatafqamats\xFE\xD6\xB3\xFF\
+    hatafqamats1b\xFE\xD6\xB3\xFF\
+    hatafqamats28\xFE\xD6\xB3\xFF\
+    hatafqamats34\xFE\xD6\xB3\xFF\
+    hatafqamatshebrew\xFE\xD6\xB3\xFF\
+    hatafqamatsnarrowhebrew\xFE\xD6\xB3\xFF\
+    hatafqamatsquarterhebrew\xFE\xD6\xB3\xFF\
+    hatafqamatswidehebrew\xFE\xD6\xB3\xFF\
+    hatafsegol\xFE\xD6\xB1\xFF\
+    hatafsegol17\xFE\xD6\xB1\xFF\
+    hatafsegol24\xFE\xD6\xB1\xFF\
+    hatafsegol30\xFE\xD6\xB1\xFF\
+    hatafsegolhebrew\xFE\xD6\xB1\xFF\
+    hatafsegolnarrowhebrew\xFE\xD6\xB1\xFF\
+    hatafsegolquarterhebrew\xFE\xD6\xB1\xFF\
+    hatafsegolwidehebrew\xFE\xD6\xB1\xFF\
+    hatwide\xFE\xCC\x82\xFF\
+    hatwider\xFE\xCC\x82\xFF\
+    hatwidest\xFE\xCC\x82\xFF\
+    hbar\xFE\xC4\xA7\xFF\
+    hbopomofo\xFE\xE3\x84\x8F\xFF\
+    hbrevebelow\xFE\xE1\xB8\xAB\xFF\
+    hcedilla\xFE\xE1\xB8\xA9\xFF\
+    hcircle\xFE\xE2\x93\x97\xFF\
+    hcircumflex\xFE\xC4\xA5\xFF\
+    hdieresis\xFE\xE1\xB8\xA7\xFF\
+    hdotaccent\xFE\xE1\xB8\xA3\xFF\
+    hdotbelow\xFE\xE1\xB8\xA5\xFF\
+    he\xFE\xD7\x94\xFF\
+    heart\xFE\xE2\x99\xA5\xFF\
+    heartsuitblack\xFE\xE2\x99\xA5\xFF\
+    heartsuitwhite\xFE\xE2\x99\xA1\xFF\
+    hedagesh\xFE\xEF\xAC\xB4\xFF\
+    hedageshhebrew\xFE\xEF\xAC\xB4\xFF\
+    hehaltonearabic\xFE\xDB\x81\xFF\
+    heharabic\xFE\xD9\x87\xFF\
+    hehebrew\xFE\xD7\x94\xFF\
+    hehfinalaltonearabic\xFE\xEF\xAE\xA7\xFF\
+    hehfinalalttwoarabic\xFE\xEF\xBB\xAA\xFF\
+    hehfinalarabic\xFE\xEF\xBB\xAA\xFF\
+    hehhamzaabovefinalarabic\xFE\xEF\xAE\xA5\xFF\
+    hehhamzaaboveisolatedarabic\xFE\xEF\xAE\xA4\xFF\
+    hehinitialaltonearabic\xFE\xEF\xAE\xA8\xFF\
+    hehinitialarabic\xFE\xEF\xBB\xAB\xFF\
+    hehiragana\xFE\xE3\x81\xB8\xFF\
+    hehmedialaltonearabic\xFE\xEF\xAE\xA9\xFF\
+    hehmedialarabic\xFE\xEF\xBB\xAC\xFF\
+    heiseierasquare\xFE\xE3\x8D\xBB\xFF\
+    hekatakana\xFE\xE3\x83\x98\xFF\
+    hekatakanahalfwidth\xFE\xEF\xBE\x8D\xFF\
+    hekutaarusquare\xFE\xE3\x8C\xB6\xFF\
+    henghook\xFE\xC9\xA7\xFF\
+    herutusquare\xFE\xE3\x8C\xB9\xFF\
+    het\xFE\xD7\x97\xFF\
+    hethebrew\xFE\xD7\x97\xFF\
+    hhook\xFE\xC9\xA6\xFF\
+    hhooksuperior\xFE\xCA\xB1\xFF\
+    hieuhacirclekorean\xFE\xE3\x89\xBB\xFF\
+    hieuhaparenkorean\xFE\xE3\x88\x9B\xFF\
+    hieuhcirclekorean\xFE\xE3\x89\xAD\xFF\
+    hieuhkorean\xFE\xE3\x85\x8E\xFF\
+    hieuhparenkorean\xFE\xE3\x88\x8D\xFF\
+    hihiragana\xFE\xE3\x81\xB2\xFF\
+    hikatakana\xFE\xE3\x83\x92\xFF\
+    hikatakanahalfwidth\xFE\xEF\xBE\x8B\xFF\
+    hiriq\xFE\xD6\xB4\xFF\
+    hiriq14\xFE\xD6\xB4\xFF\
+    hiriq21\xFE\xD6\xB4\xFF\
+    hiriq2d\xFE\xD6\xB4\xFF\
+    hiriqhebrew\xFE\xD6\xB4\xFF\
+    hiriqnarrowhebrew\xFE\xD6\xB4\xFF\
+    hiriqquarterhebrew\xFE\xD6\xB4\xFF\
+    hiriqwidehebrew\xFE\xD6\xB4\xFF\
+    hlinebelow\xFE\xE1\xBA\x96\xFF\
+    hmonospace\xFE\xEF\xBD\x88\xFF\
+    hoarmenian\xFE\xD5\xB0\xFF\
+    hohipthai\xFE\xE0\xB8\xAB\xFF\
+    hohiragana\xFE\xE3\x81\xBB\xFF\
+    hokatakana\xFE\xE3\x83\x9B\xFF\
+    hokatakanahalfwidth\xFE\xEF\xBE\x8E\xFF\
+    holam\xFE\xD6\xB9\xFF\
+    holam19\xFE\xD6\xB9\xFF\
+    holam26\xFE\xD6\xB9\xFF\
+    holam32\xFE\xD6\xB9\xFF\
+    holamhebrew\xFE\xD6\xB9\xFF\
+    holamnarrowhebrew\xFE\xD6\xB9\xFF\
+    holamquarterhebrew\xFE\xD6\xB9\xFF\
+    holamwidehebrew\xFE\xD6\xB9\xFF\
+    honokhukthai\xFE\xE0\xB8\xAE\xFF\
+    hookabovecomb\xFE\xCC\x89\xFF\
+    hookcmb\xFE\xCC\x89\xFF\
+    hookpalatalizedbelowcmb\xFE\xCC\xA1\xFF\
+    hookretroflexbelowcmb\xFE\xCC\xA2\xFF\
+    hoonsquare\xFE\xE3\x8D\x82\xFF\
+    horicoptic\xFE\xCF\xA9\xFF\
+    horizontalbar\xFE\xE2\x80\x95\xFF\
+    horncmb\xFE\xCC\x9B\xFF\
+    hotsprings\xFE\xE2\x99\xA8\xFF\
+    house\xFE\xE2\x8C\x82\xFF\
+    hparen\xFE\xE2\x92\xA3\xFF\
+    hsuperior\xFE\xCA\xB0\xFF\
+    hturned\xFE\xC9\xA5\xFF\
+    huhiragana\xFE\xE3\x81\xB5\xFF\
+    huiitosquare\xFE\xE3\x8C\xB3\xFF\
+    hukatakana\xFE\xE3\x83\x95\xFF\
+    hukatakanahalfwidth\xFE\xEF\xBE\x8C\xFF\
+    hungarumlaut\xFE\xCB\x9D\xFF\
+    hungarumlautcmb\xFE\xCC\x8B\xFF\
+    hv\xFE\xC6\x95\xFF\
+    hyphen\xFE-\xFF\
+    hypheninferior\xFE\xEF\x9B\xA5\xFF\
+    hyphenmonospace\xFE\xEF\xBC\x8D\xFF\
+    hyphensmall\xFE\xEF\xB9\xA3\xFF\
+    hyphensuperior\xFE\xEF\x9B\xA6\xFF\
+    hyphentwo\xFE\xE2\x80\x90\xFF\
+    i\xFEi\xFF\
+    iacute\xFE\xC3\xAD\xFF\
+    iacyrillic\xFE\xD1\x8F\xFF\
+    ibengali\xFE\xE0\xA6\x87\xFF\
+    ibopomofo\xFE\xE3\x84\xA7\xFF\
+    ibreve\xFE\xC4\xAD\xFF\
+    icaron\xFE\xC7\x90\xFF\
+    icircle\xFE\xE2\x93\x98\xFF\
+    icircumflex\xFE\xC3\xAE\xFF\
+    icyrillic\xFE\xD1\x96\xFF\
+    idblgrave\xFE\xC8\x89\xFF\
+    ideographearthcircle\xFE\xE3\x8A\x8F\xFF\
+    ideographfirecircle\xFE\xE3\x8A\x8B\xFF\
+    ideographicallianceparen\xFE\xE3\x88\xBF\xFF\
+    ideographiccallparen\xFE\xE3\x88\xBA\xFF\
+    ideographiccentrecircle\xFE\xE3\x8A\xA5\xFF\
+    ideographicclose\xFE\xE3\x80\x86\xFF\
+    ideographiccomma\xFE\xE3\x80\x81\xFF\
+    ideographiccommaleft\xFE\xEF\xBD\xA4\xFF\
+    ideographiccongratulationparen\xFE\xE3\x88\xB7\xFF\
+    ideographiccorrectcircle\xFE\xE3\x8A\xA3\xFF\
+    ideographicearthparen\xFE\xE3\x88\xAF\xFF\
+    ideographicenterpriseparen\xFE\xE3\x88\xBD\xFF\
+    ideographicexcellentcircle\xFE\xE3\x8A\x9D\xFF\
+    ideographicfestivalparen\xFE\xE3\x89\x80\xFF\
+    ideographicfinancialcircle\xFE\xE3\x8A\x96\xFF\
+    ideographicfinancialparen\xFE\xE3\x88\xB6\xFF\
+    ideographicfireparen\xFE\xE3\x88\xAB\xFF\
+    ideographichaveparen\xFE\xE3\x88\xB2\xFF\
+    ideographichighcircle\xFE\xE3\x8A\xA4\xFF\
+    ideographiciterationmark\xFE\xE3\x80\x85\xFF\
+    ideographiclaborcircle\xFE\xE3\x8A\x98\xFF\
+    ideographiclaborparen\xFE\xE3\x88\xB8\xFF\
+    ideographicleftcircle\xFE\xE3\x8A\xA7\xFF\
+    ideographiclowcircle\xFE\xE3\x8A\xA6\xFF\
+    ideographicmedicinecircle\xFE\xE3\x8A\xA9\xFF\
+    ideographicmetalparen\xFE\xE3\x88\xAE\xFF\
+    ideographicmoonparen\xFE\xE3\x88\xAA\xFF\
+    ideographicnameparen\xFE\xE3\x88\xB4\xFF\
+    ideographicperiod\xFE\xE3\x80\x82\xFF\
+    ideographicprintcircle\xFE\xE3\x8A\x9E\xFF\
+    ideographicreachparen\xFE\xE3\x89\x83\xFF\
+    ideographicrepresentparen\xFE\xE3\x88\xB9\xFF\
+    ideographicresourceparen\xFE\xE3\x88\xBE\xFF\
+    ideographicrightcircle\xFE\xE3\x8A\xA8\xFF\
+    ideographicsecretcircle\xFE\xE3\x8A\x99\xFF\
+    ideographicselfparen\xFE\xE3\x89\x82\xFF\
+    ideographicsocietyparen\xFE\xE3\x88\xB3\xFF\
+    ideographicspace\xFE\xE3\x80\x80\xFF\
+    ideographicspecialparen\xFE\xE3\x88\xB5\xFF\
+    ideographicstockparen\xFE\xE3\x88\xB1\xFF\
+    ideographicstudyparen\xFE\xE3\x88\xBB\xFF\
+    ideographicsunparen\xFE\xE3\x88\xB0\xFF\
+    ideographicsuperviseparen\xFE\xE3\x88\xBC\xFF\
+    ideographicwaterparen\xFE\xE3\x88\xAC\xFF\
+    ideographicwoodparen\xFE\xE3\x88\xAD\xFF\
+    ideographiczero\xFE\xE3\x80\x87\xFF\
+    ideographmetalcircle\xFE\xE3\x8A\x8E\xFF\
+    ideographmooncircle\xFE\xE3\x8A\x8A\xFF\
+    ideographnamecircle\xFE\xE3\x8A\x94\xFF\
+    ideographsuncircle\xFE\xE3\x8A\x90\xFF\
+    ideographwatercircle\xFE\xE3\x8A\x8C\xFF\
+    ideographwoodcircle\xFE\xE3\x8A\x8D\xFF\
+    ideva\xFE\xE0\xA4\x87\xFF\
+    idieresis\xFE\xC3\xAF\xFF\
+    idieresisacute\xFE\xE1\xB8\xAF\xFF\
+    idieresiscyrillic\xFE\xD3\xA5\xFF\
+    idotbelow\xFE\xE1\xBB\x8B\xFF\
+    iebrevecyrillic\xFE\xD3\x97\xFF\
+    iecyrillic\xFE\xD0\xB5\xFF\
+    ieungacirclekorean\xFE\xE3\x89\xB5\xFF\
+    ieungaparenkorean\xFE\xE3\x88\x95\xFF\
+    ieungcirclekorean\xFE\xE3\x89\xA7\xFF\
+    ieungkorean\xFE\xE3\x85\x87\xFF\
+    ieungparenkorean\xFE\xE3\x88\x87\xFF\
+    igrave\xFE\xC3\xAC\xFF\
+    igujarati\xFE\xE0\xAA\x87\xFF\
+    igurmukhi\xFE\xE0\xA8\x87\xFF\
+    ihiragana\xFE\xE3\x81\x84\xFF\
+    ihookabove\xFE\xE1\xBB\x89\xFF\
+    iibengali\xFE\xE0\xA6\x88\xFF\
+    iicyrillic\xFE\xD0\xB8\xFF\
+    iideva\xFE\xE0\xA4\x88\xFF\
+    iigujarati\xFE\xE0\xAA\x88\xFF\
+    iigurmukhi\xFE\xE0\xA8\x88\xFF\
+    iimatragurmukhi\xFE\xE0\xA9\x80\xFF\
+    iinvertedbreve\xFE\xC8\x8B\xFF\
+    iishortcyrillic\xFE\xD0\xB9\xFF\
+    iivowelsignbengali\xFE\xE0\xA7\x80\xFF\
+    iivowelsigndeva\xFE\xE0\xA5\x80\xFF\
+    iivowelsigngujarati\xFE\xE0\xAB\x80\xFF\
+    ij\xFE\xC4\xB3\xFF\
+    ikatakana\xFE\xE3\x82\xA4\xFF\
+    ikatakanahalfwidth\xFE\xEF\xBD\xB2\xFF\
+    ikorean\xFE\xE3\x85\xA3\xFF\
+    ilde\xFE\xCB\x9C\xFF\
+    iluyhebrew\xFE\xD6\xAC\xFF\
+    imacron\xFE\xC4\xAB\xFF\
+    imacroncyrillic\xFE\xD3\xA3\xFF\
+    imageorapproximatelyequal\xFE\xE2\x89\x93\xFF\
+    imatragurmukhi\xFE\xE0\xA8\xBF\xFF\
+    imonospace\xFE\xEF\xBD\x89\xFF\
+    increment\xFE\xE2\x88\x86\xFF\
+    infinity\xFE\xE2\x88\x9E\xFF\
+    iniarmenian\xFE\xD5\xAB\xFF\
+    integral\xFE\xE2\x88\xAB\xFF\
+    integralbottom\xFE\xE2\x8C\xA1\xFF\
+    integralbt\xFE\xE2\x8C\xA1\xFF\
+    integraldisplay\xFE\xE2\x88\xAB\xFF\
+    integralex\xFE\xEF\xA3\xB5\xFF\
+    integraltext\xFE\xE2\x88\xAB\xFF\
+    integraltop\xFE\xE2\x8C\xA0\xFF\
+    integraltp\xFE\xE2\x8C\xA0\xFF\
+    intercal\xFE\xE1\xB5\x80\xFF\
+    intersection\xFE\xE2\x88\xA9\xFF\
+    intersectiondisplay\xFE\xE2\x8B\x82\xFF\
+    intersectiontext\xFE\xE2\x8B\x82\xFF\
+    intisquare\xFE\xE3\x8C\x85\xFF\
+    invbullet\xFE\xE2\x97\x98\xFF\
+    invcircle\xFE\xE2\x97\x99\xFF\
+    invsmileface\xFE\xE2\x98\xBB\xFF\
+    iocyrillic\xFE\xD1\x91\xFF\
+    iogonek\xFE\xC4\xAF\xFF\
+    iota\xFE\xCE\xB9\xFF\
+    iotadieresis\xFE\xCF\x8A\xFF\
+    iotadieresistonos\xFE\xCE\x90\xFF\
+    iotalatin\xFE\xC9\xA9\xFF\
+    iotatonos\xFE\xCE\xAF\xFF\
+    iparen\xFE\xE2\x92\xA4\xFF\
+    irigurmukhi\xFE\xE0\xA9\xB2\xFF\
+    ismallhiragana\xFE\xE3\x81\x83\xFF\
+    ismallkatakana\xFE\xE3\x82\xA3\xFF\
+    ismallkatakanahalfwidth\xFE\xEF\xBD\xA8\xFF\
+    issharbengali\xFE\xE0\xA7\xBA\xFF\
+    istroke\xFE\xC9\xA8\xFF\
+    isuperior\xFE\xEF\x9B\xAD\xFF\
+    iterationhiragana\xFE\xE3\x82\x9D\xFF\
+    iterationkatakana\xFE\xE3\x83\xBD\xFF\
+    itilde\xFE\xC4\xA9\xFF\
+    itildebelow\xFE\xE1\xB8\xAD\xFF\
+    iubopomofo\xFE\xE3\x84\xA9\xFF\
+    iucyrillic\xFE\xD1\x8E\xFF\
+    ivowelsignbengali\xFE\xE0\xA6\xBF\xFF\
+    ivowelsigndeva\xFE\xE0\xA4\xBF\xFF\
+    ivowelsigngujarati\xFE\xE0\xAA\xBF\xFF\
+    izhitsacyrillic\xFE\xD1\xB5\xFF\
+    izhitsadblgravecyrillic\xFE\xD1\xB7\xFF\
+    j\xFEj\xFF\
+    jaarmenian\xFE\xD5\xB1\xFF\
+    jabengali\xFE\xE0\xA6\x9C\xFF\
+    jadeva\xFE\xE0\xA4\x9C\xFF\
+    jagujarati\xFE\xE0\xAA\x9C\xFF\
+    jagurmukhi\xFE\xE0\xA8\x9C\xFF\
+    jbopomofo\xFE\xE3\x84\x90\xFF\
+    jcaron\xFE\xC7\xB0\xFF\
+    jcircle\xFE\xE2\x93\x99\xFF\
+    jcircumflex\xFE\xC4\xB5\xFF\
+    jcrossedtail\xFE\xCA\x9D\xFF\
+    jdotlessstroke\xFE\xC9\x9F\xFF\
+    jecyrillic\xFE\xD1\x98\xFF\
+    jeemarabic\xFE\xD8\xAC\xFF\
+    jeemfinalarabic\xFE\xEF\xBA\x9E\xFF\
+    jeeminitialarabic\xFE\xEF\xBA\x9F\xFF\
+    jeemmedialarabic\xFE\xEF\xBA\xA0\xFF\
+    jeharabic\xFE\xDA\x98\xFF\
+    jehfinalarabic\xFE\xEF\xAE\x8B\xFF\
+    jhabengali\xFE\xE0\xA6\x9D\xFF\
+    jhadeva\xFE\xE0\xA4\x9D\xFF\
+    jhagujarati\xFE\xE0\xAA\x9D\xFF\
+    jhagurmukhi\xFE\xE0\xA8\x9D\xFF\
+    jheharmenian\xFE\xD5\xBB\xFF\
+    jis\xFE\xE3\x80\x84\xFF\
+    jmonospace\xFE\xEF\xBD\x8A\xFF\
+    jparen\xFE\xE2\x92\xA5\xFF\
+    jsuperior\xFE\xCA\xB2\xFF\
+    k\xFEk\xFF\
+    kabashkircyrillic\xFE\xD2\xA1\xFF\
+    kabengali\xFE\xE0\xA6\x95\xFF\
+    kacute\xFE\xE1\xB8\xB1\xFF\
+    kacyrillic\xFE\xD0\xBA\xFF\
+    kadescendercyrillic\xFE\xD2\x9B\xFF\
+    kadeva\xFE\xE0\xA4\x95\xFF\
+    kaf\xFE\xD7\x9B\xFF\
+    kafarabic\xFE\xD9\x83\xFF\
+    kafdagesh\xFE\xEF\xAC\xBB\xFF\
+    kafdageshhebrew\xFE\xEF\xAC\xBB\xFF\
+    kaffinalarabic\xFE\xEF\xBB\x9A\xFF\
+    kafhebrew\xFE\xD7\x9B\xFF\
+    kafinitialarabic\xFE\xEF\xBB\x9B\xFF\
+    kafmedialarabic\xFE\xEF\xBB\x9C\xFF\
+    kafrafehebrew\xFE\xEF\xAD\x8D\xFF\
+    kagujarati\xFE\xE0\xAA\x95\xFF\
+    kagurmukhi\xFE\xE0\xA8\x95\xFF\
+    kahiragana\xFE\xE3\x81\x8B\xFF\
+    kahookcyrillic\xFE\xD3\x84\xFF\
+    kakatakana\xFE\xE3\x82\xAB\xFF\
+    kakatakanahalfwidth\xFE\xEF\xBD\xB6\xFF\
+    kappa\xFE\xCE\xBA\xFF\
+    kappasymbolgreek\xFE\xCF\xB0\xFF\
+    kapyeounmieumkorean\xFE\xE3\x85\xB1\xFF\
+    kapyeounphieuphkorean\xFE\xE3\x86\x84\xFF\
+    kapyeounpieupkorean\xFE\xE3\x85\xB8\xFF\
+    kapyeounssangpieupkorean\xFE\xE3\x85\xB9\xFF\
+    karoriisquare\xFE\xE3\x8C\x8D\xFF\
+    kashidaautoarabic\xFE\xD9\x80\xFF\
+    kashidaautonosidebearingarabic\xFE\xD9\x80\xFF\
+    kasmallkatakana\xFE\xE3\x83\xB5\xFF\
+    kasquare\xFE\xE3\x8E\x84\xFF\
+    kasraarabic\xFE\xD9\x90\xFF\
+    kasratanarabic\xFE\xD9\x8D\xFF\
+    kastrokecyrillic\xFE\xD2\x9F\xFF\
+    katahiraprolongmarkhalfwidth\xFE\xEF\xBD\xB0\xFF\
+    kaverticalstrokecyrillic\xFE\xD2\x9D\xFF\
+    kbopomofo\xFE\xE3\x84\x8E\xFF\
+    kcalsquare\xFE\xE3\x8E\x89\xFF\
+    kcaron\xFE\xC7\xA9\xFF\
+    kcedilla\xFE\xC4\xB7\xFF\
+    kcircle\xFE\xE2\x93\x9A\xFF\
+    kcommaaccent\xFE\xC4\xB7\xFF\
+    kdotbelow\xFE\xE1\xB8\xB3\xFF\
+    keharmenian\xFE\xD6\x84\xFF\
+    kehiragana\xFE\xE3\x81\x91\xFF\
+    kekatakana\xFE\xE3\x82\xB1\xFF\
+    kekatakanahalfwidth\xFE\xEF\xBD\xB9\xFF\
+    kenarmenian\xFE\xD5\xAF\xFF\
+    kesmallkatakana\xFE\xE3\x83\xB6\xFF\
+    kgreenlandic\xFE\xC4\xB8\xFF\
+    khabengali\xFE\xE0\xA6\x96\xFF\
+    khacyrillic\xFE\xD1\x85\xFF\
+    khadeva\xFE\xE0\xA4\x96\xFF\
+    khagujarati\xFE\xE0\xAA\x96\xFF\
+    khagurmukhi\xFE\xE0\xA8\x96\xFF\
+    khaharabic\xFE\xD8\xAE\xFF\
+    khahfinalarabic\xFE\xEF\xBA\xA6\xFF\
+    khahinitialarabic\xFE\xEF\xBA\xA7\xFF\
+    khahmedialarabic\xFE\xEF\xBA\xA8\xFF\
+    kheicoptic\xFE\xCF\xA7\xFF\
+    khhadeva\xFE\xE0\xA5\x99\xFF\
+    khhagurmukhi\xFE\xE0\xA9\x99\xFF\
+    khieukhacirclekorean\xFE\xE3\x89\xB8\xFF\
+    khieukhaparenkorean\xFE\xE3\x88\x98\xFF\
+    khieukhcirclekorean\xFE\xE3\x89\xAA\xFF\
+    khieukhkorean\xFE\xE3\x85\x8B\xFF\
+    khieukhparenkorean\xFE\xE3\x88\x8A\xFF\
+    khokhaithai\xFE\xE0\xB8\x82\xFF\
+    khokhonthai\xFE\xE0\xB8\x85\xFF\
+    khokhuatthai\xFE\xE0\xB8\x83\xFF\
+    khokhwaithai\xFE\xE0\xB8\x84\xFF\
+    khomutthai\xFE\xE0\xB9\x9B\xFF\
+    khook\xFE\xC6\x99\xFF\
+    khorakhangthai\xFE\xE0\xB8\x86\xFF\
+    khzsquare\xFE\xE3\x8E\x91\xFF\
+    kihiragana\xFE\xE3\x81\x8D\xFF\
+    kikatakana\xFE\xE3\x82\xAD\xFF\
+    kikatakanahalfwidth\xFE\xEF\xBD\xB7\xFF\
+    kiroguramusquare\xFE\xE3\x8C\x95\xFF\
+    kiromeetorusquare\xFE\xE3\x8C\x96\xFF\
+    kirosquare\xFE\xE3\x8C\x94\xFF\
+    kiyeokacirclekorean\xFE\xE3\x89\xAE\xFF\
+    kiyeokaparenkorean\xFE\xE3\x88\x8E\xFF\
+    kiyeokcirclekorean\xFE\xE3\x89\xA0\xFF\
+    kiyeokkorean\xFE\xE3\x84\xB1\xFF\
+    kiyeokparenkorean\xFE\xE3\x88\x80\xFF\
+    kiyeoksioskorean\xFE\xE3\x84\xB3\xFF\
+    kjecyrillic\xFE\xD1\x9C\xFF\
+    klinebelow\xFE\xE1\xB8\xB5\xFF\
+    klsquare\xFE\xE3\x8E\x98\xFF\
+    kmcubedsquare\xFE\xE3\x8E\xA6\xFF\
+    kmonospace\xFE\xEF\xBD\x8B\xFF\
+    kmsquaredsquare\xFE\xE3\x8E\xA2\xFF\
+    kohiragana\xFE\xE3\x81\x93\xFF\
+    kohmsquare\xFE\xE3\x8F\x80\xFF\
+    kokaithai\xFE\xE0\xB8\x81\xFF\
+    kokatakana\xFE\xE3\x82\xB3\xFF\
+    kokatakanahalfwidth\xFE\xEF\xBD\xBA\xFF\
+    kooposquare\xFE\xE3\x8C\x9E\xFF\
+    koppacyrillic\xFE\xD2\x81\xFF\
+    koreanstandardsymbol\xFE\xE3\x89\xBF\xFF\
+    koroniscmb\xFE\xCD\x83\xFF\
+    kparen\xFE\xE2\x92\xA6\xFF\
+    kpasquare\xFE\xE3\x8E\xAA\xFF\
+    ksicyrillic\xFE\xD1\xAF\xFF\
+    ktsquare\xFE\xE3\x8F\x8F\xFF\
+    kturned\xFE\xCA\x9E\xFF\
+    kuhiragana\xFE\xE3\x81\x8F\xFF\
+    kukatakana\xFE\xE3\x82\xAF\xFF\
+    kukatakanahalfwidth\xFE\xEF\xBD\xB8\xFF\
+    kvsquare\xFE\xE3\x8E\xB8\xFF\
+    kwsquare\xFE\xE3\x8E\xBE\xFF\
+    l\xFEl\xFF\
+    labengali\xFE\xE0\xA6\xB2\xFF\
+    lacute\xFE\xC4\xBA\xFF\
+    ladeva\xFE\xE0\xA4\xB2\xFF\
+    lagujarati\xFE\xE0\xAA\xB2\xFF\
+    lagurmukhi\xFE\xE0\xA8\xB2\xFF\
+    lakkhangyaothai\xFE\xE0\xB9\x85\xFF\
+    lamaleffinalarabic\xFE\xEF\xBB\xBC\xFF\
+    lamalefhamzaabovefinalarabic\xFE\xEF\xBB\xB8\xFF\
+    lamalefhamzaaboveisolatedarabic\xFE\xEF\xBB\xB7\xFF\
+    lamalefhamzabelowfinalarabic\xFE\xEF\xBB\xBA\xFF\
+    lamalefhamzabelowisolatedarabic\xFE\xEF\xBB\xB9\xFF\
+    lamalefisolatedarabic\xFE\xEF\xBB\xBB\xFF\
+    lamalefmaddaabovefinalarabic\xFE\xEF\xBB\xB6\xFF\
+    lamalefmaddaaboveisolatedarabic\xFE\xEF\xBB\xB5\xFF\
+    lamarabic\xFE\xD9\x84\xFF\
+    lambda\xFE\xCE\xBB\xFF\
+    lambdastroke\xFE\xC6\x9B\xFF\
+    lamed\xFE\xD7\x9C\xFF\
+    lameddagesh\xFE\xEF\xAC\xBC\xFF\
+    lameddageshhebrew\xFE\xEF\xAC\xBC\xFF\
+    lamedhebrew\xFE\xD7\x9C\xFF\
+    lamedholam\xFE\xD7\x9C\xD6\xB9\xFF\
+    lamedholamdagesh\xFE\xD7\x9C\xD6\xB9\xD6\xBC\xFF\
+    lamedholamdageshhebrew\xFE\xD7\x9C\xD6\xB9\xD6\xBC\xFF\
+    lamedholamhebrew\xFE\xD7\x9C\xD6\xB9\xFF\
+    lamfinalarabic\xFE\xEF\xBB\x9E\xFF\
+    lamhahinitialarabic\xFE\xEF\xB3\x8A\xFF\
+    laminitialarabic\xFE\xEF\xBB\x9F\xFF\
+    lamjeeminitialarabic\xFE\xEF\xB3\x89\xFF\
+    lamkhahinitialarabic\xFE\xEF\xB3\x8B\xFF\
+    lamlamhehisolatedarabic\xFE\xEF\xB7\xB2\xFF\
+    lammedialarabic\xFE\xEF\xBB\xA0\xFF\
+    lammeemhahinitialarabic\xFE\xEF\xB6\x88\xFF\
+    lammeeminitialarabic\xFE\xEF\xB3\x8C\xFF\
+    lammeemjeeminitialarabic\xFE\xEF\xBB\x9F\xEF\xBB\xA4\xEF\xBA\xA0\xFF\
+    lammeemkhahinitialarabic\xFE\xEF\xBB\x9F\xEF\xBB\xA4\xEF\xBA\xA8\xFF\
+    largecircle\xFE\xE2\x97\xAF\xFF\
+    lbar\xFE\xC6\x9A\xFF\
+    lbelt\xFE\xC9\xAC\xFF\
+    lbopomofo\xFE\xE3\x84\x8C\xFF\
+    lcaron\xFE\xC4\xBE\xFF\
+    lcedilla\xFE\xC4\xBC\xFF\
+    lcircle\xFE\xE2\x93\x9B\xFF\
+    lcircumflexbelow\xFE\xE1\xB8\xBD\xFF\
+    lcommaaccent\xFE\xC4\xBC\xFF\
+    ldot\xFE\xC5\x80\xFF\
+    ldotaccent\xFE\xC5\x80\xFF\
+    ldotbelow\xFE\xE1\xB8\xB7\xFF\
+    ldotbelowmacron\xFE\xE1\xB8\xB9\xFF\
+    leftangleabovecmb\xFE\xCC\x9A\xFF\
+    lefttackbelowcmb\xFE\xCC\x98\xFF\
+    less\xFE<\xFF\
+    lessequal\xFE\xE2\x89\xA4\xFF\
+    lessequalorgreater\xFE\xE2\x8B\x9A\xFF\
+    lessmonospace\xFE\xEF\xBC\x9C\xFF\
+    lessorequivalent\xFE\xE2\x89\xB2\xFF\
+    lessorgreater\xFE\xE2\x89\xB6\xFF\
+    lessoverequal\xFE\xE2\x89\xA6\xFF\
+    lesssmall\xFE\xEF\xB9\xA4\xFF\
+    lezh\xFE\xC9\xAE\xFF\
+    lfblock\xFE\xE2\x96\x8C\xFF\
+    lhookretroflex\xFE\xC9\xAD\xFF\
+    lira\xFE\xE2\x82\xA4\xFF\
+    liwnarmenian\xFE\xD5\xAC\xFF\
+    lj\xFE\xC7\x89\xFF\
+    ljecyrillic\xFE\xD1\x99\xFF\
+    ll\xFE\xEF\x9B\x80\xFF\
+    lladeva\xFE\xE0\xA4\xB3\xFF\
+    llagujarati\xFE\xE0\xAA\xB3\xFF\
+    llinebelow\xFE\xE1\xB8\xBB\xFF\
+    llladeva\xFE\xE0\xA4\xB4\xFF\
+    llvocalicbengali\xFE\xE0\xA7\xA1\xFF\
+    llvocalicdeva\xFE\xE0\xA5\xA1\xFF\
+    llvocalicvowelsignbengali\xFE\xE0\xA7\xA3\xFF\
+    llvocalicvowelsigndeva\xFE\xE0\xA5\xA3\xFF\
+    lmiddletilde\xFE\xC9\xAB\xFF\
+    lmonospace\xFE\xEF\xBD\x8C\xFF\
+    lmsquare\xFE\xE3\x8F\x90\xFF\
+    lochulathai\xFE\xE0\xB8\xAC\xFF\
+    logicaland\xFE\xE2\x88\xA7\xFF\
+    logicalanddisplay\xFE\xE2\x88\xA7\xFF\
+    logicalandtext\xFE\xE2\x88\xA7\xFF\
+    logicalnot\xFE\xC2\xAC\xFF\
+    logicalnotreversed\xFE\xE2\x8C\x90\xFF\
+    logicalor\xFE\xE2\x88\xA8\xFF\
+    logicalordisplay\xFE\xE2\x88\xA8\xFF\
+    logicalortext\xFE\xE2\x88\xA8\xFF\
+    lolingthai\xFE\xE0\xB8\xA5\xFF\
+    longs\xFE\xC5\xBF\xFF\
+    lowlinecenterline\xFE\xEF\xB9\x8E\xFF\
+    lowlinecmb\xFE\xCC\xB2\xFF\
+    lowlinedashed\xFE\xEF\xB9\x8D\xFF\
+    lozenge\xFE\xE2\x97\x8A\xFF\
+    lparen\xFE\xE2\x92\xA7\xFF\
+    lslash\xFE\xC5\x82\xFF\
+    lsquare\xFE\xE2\x84\x93\xFF\
+    lsuperior\xFE\xEF\x9B\xAE\xFF\
+    ltshade\xFE\xE2\x96\x91\xFF\
+    luthai\xFE\xE0\xB8\xA6\xFF\
+    lvocalicbengali\xFE\xE0\xA6\x8C\xFF\
+    lvocalicdeva\xFE\xE0\xA4\x8C\xFF\
+    lvocalicvowelsignbengali\xFE\xE0\xA7\xA2\xFF\
+    lvocalicvowelsigndeva\xFE\xE0\xA5\xA2\xFF\
+    lxsquare\xFE\xE3\x8F\x93\xFF\
+    m\xFEm\xFF\
+    mabengali\xFE\xE0\xA6\xAE\xFF\
+    macron\xFE\xC2\xAF\xFF\
+    macronbelowcmb\xFE\xCC\xB1\xFF\
+    macroncmb\xFE\xCC\x84\xFF\
+    macronlowmod\xFE\xCB\x8D\xFF\
+    macronmonospace\xFE\xEF\xBF\xA3\xFF\
+    macute\xFE\xE1\xB8\xBF\xFF\
+    madeva\xFE\xE0\xA4\xAE\xFF\
+    magujarati\xFE\xE0\xAA\xAE\xFF\
+    magurmukhi\xFE\xE0\xA8\xAE\xFF\
+    mahapakhhebrew\xFE\xD6\xA4\xFF\
+    mahapakhlefthebrew\xFE\xD6\xA4\xFF\
+    mahiragana\xFE\xE3\x81\xBE\xFF\
+    maichattawalowleftthai\xFE\xEF\xA2\x95\xFF\
+    maichattawalowrightthai\xFE\xEF\xA2\x94\xFF\
+    maichattawathai\xFE\xE0\xB9\x8B\xFF\
+    maichattawaupperleftthai\xFE\xEF\xA2\x93\xFF\
+    maieklowleftthai\xFE\xEF\xA2\x8C\xFF\
+    maieklowrightthai\xFE\xEF\xA2\x8B\xFF\
+    maiekthai\xFE\xE0\xB9\x88\xFF\
+    maiekupperleftthai\xFE\xEF\xA2\x8A\xFF\
+    maihanakatleftthai\xFE\xEF\xA2\x84\xFF\
+    maihanakatthai\xFE\xE0\xB8\xB1\xFF\
+    maitaikhuleftthai\xFE\xEF\xA2\x89\xFF\
+    maitaikhuthai\xFE\xE0\xB9\x87\xFF\
+    maitholowleftthai\xFE\xEF\xA2\x8F\xFF\
+    maitholowrightthai\xFE\xEF\xA2\x8E\xFF\
+    maithothai\xFE\xE0\xB9\x89\xFF\
+    maithoupperleftthai\xFE\xEF\xA2\x8D\xFF\
+    maitrilowleftthai\xFE\xEF\xA2\x92\xFF\
+    maitrilowrightthai\xFE\xEF\xA2\x91\xFF\
+    maitrithai\xFE\xE0\xB9\x8A\xFF\
+    maitriupperleftthai\xFE\xEF\xA2\x90\xFF\
+    maiyamokthai\xFE\xE0\xB9\x86\xFF\
+    makatakana\xFE\xE3\x83\x9E\xFF\
+    makatakanahalfwidth\xFE\xEF\xBE\x8F\xFF\
+    male\xFE\xE2\x99\x82\xFF\
+    mansyonsquare\xFE\xE3\x8D\x87\xFF\
+    maqafhebrew\xFE\xD6\xBE\xFF\
+    mars\xFE\xE2\x99\x82\xFF\
+    masoracirclehebrew\xFE\xD6\xAF\xFF\
+    masquare\xFE\xE3\x8E\x83\xFF\
+    mbopomofo\xFE\xE3\x84\x87\xFF\
+    mbsquare\xFE\xE3\x8F\x94\xFF\
+    mcircle\xFE\xE2\x93\x9C\xFF\
+    mcubedsquare\xFE\xE3\x8E\xA5\xFF\
+    mdotaccent\xFE\xE1\xB9\x81\xFF\
+    mdotbelow\xFE\xE1\xB9\x83\xFF\
+    meemarabic\xFE\xD9\x85\xFF\
+    meemfinalarabic\xFE\xEF\xBB\xA2\xFF\
+    meeminitialarabic\xFE\xEF\xBB\xA3\xFF\
+    meemmedialarabic\xFE\xEF\xBB\xA4\xFF\
+    meemmeeminitialarabic\xFE\xEF\xB3\x91\xFF\
+    meemmeemisolatedarabic\xFE\xEF\xB1\x88\xFF\
+    meetorusquare\xFE\xE3\x8D\x8D\xFF\
+    mehiragana\xFE\xE3\x82\x81\xFF\
+    meizierasquare\xFE\xE3\x8D\xBE\xFF\
+    mekatakana\xFE\xE3\x83\xA1\xFF\
+    mekatakanahalfwidth\xFE\xEF\xBE\x92\xFF\
+    mem\xFE\xD7\x9E\xFF\
+    memdagesh\xFE\xEF\xAC\xBE\xFF\
+    memdageshhebrew\xFE\xEF\xAC\xBE\xFF\
+    memhebrew\xFE\xD7\x9E\xFF\
+    menarmenian\xFE\xD5\xB4\xFF\
+    merkhahebrew\xFE\xD6\xA5\xFF\
+    merkhakefulahebrew\xFE\xD6\xA6\xFF\
+    merkhakefulalefthebrew\xFE\xD6\xA6\xFF\
+    merkhalefthebrew\xFE\xD6\xA5\xFF\
+    mhook\xFE\xC9\xB1\xFF\
+    mhzsquare\xFE\xE3\x8E\x92\xFF\
+    middledotkatakanahalfwidth\xFE\xEF\xBD\xA5\xFF\
+    middot\xFE\xC2\xB7\xFF\
+    mieumacirclekorean\xFE\xE3\x89\xB2\xFF\
+    mieumaparenkorean\xFE\xE3\x88\x92\xFF\
+    mieumcirclekorean\xFE\xE3\x89\xA4\xFF\
+    mieumkorean\xFE\xE3\x85\x81\xFF\
+    mieumpansioskorean\xFE\xE3\x85\xB0\xFF\
+    mieumparenkorean\xFE\xE3\x88\x84\xFF\
+    mieumpieupkorean\xFE\xE3\x85\xAE\xFF\
+    mieumsioskorean\xFE\xE3\x85\xAF\xFF\
+    mihiragana\xFE\xE3\x81\xBF\xFF\
+    mikatakana\xFE\xE3\x83\x9F\xFF\
+    mikatakanahalfwidth\xFE\xEF\xBE\x90\xFF\
+    minus\xFE\xE2\x88\x92\xFF\
+    minusbelowcmb\xFE\xCC\xA0\xFF\
+    minuscircle\xFE\xE2\x8A\x96\xFF\
+    minusmod\xFE\xCB\x97\xFF\
+    minusplus\xFE\xE2\x88\x93\xFF\
+    minute\xFE\xE2\x80\xB2\xFF\
+    miribaarusquare\xFE\xE3\x8D\x8A\xFF\
+    mirisquare\xFE\xE3\x8D\x89\xFF\
+    mlonglegturned\xFE\xC9\xB0\xFF\
+    mlsquare\xFE\xE3\x8E\x96\xFF\
+    mmcubedsquare\xFE\xE3\x8E\xA3\xFF\
+    mmonospace\xFE\xEF\xBD\x8D\xFF\
+    mmsquaredsquare\xFE\xE3\x8E\x9F\xFF\
+    mohiragana\xFE\xE3\x82\x82\xFF\
+    mohmsquare\xFE\xE3\x8F\x81\xFF\
+    mokatakana\xFE\xE3\x83\xA2\xFF\
+    mokatakanahalfwidth\xFE\xEF\xBE\x93\xFF\
+    molsquare\xFE\xE3\x8F\x96\xFF\
+    momathai\xFE\xE0\xB8\xA1\xFF\
+    moverssquare\xFE\xE3\x8E\xA7\xFF\
+    moverssquaredsquare\xFE\xE3\x8E\xA8\xFF\
+    mparen\xFE\xE2\x92\xA8\xFF\
+    mpasquare\xFE\xE3\x8E\xAB\xFF\
+    mssquare\xFE\xE3\x8E\xB3\xFF\
+    msuperior\xFE\xEF\x9B\xAF\xFF\
+    mturned\xFE\xC9\xAF\xFF\
+    mu\xFE\xC2\xB5\xFF\
+    mu1\xFE\xC2\xB5\xFF\
+    muasquare\xFE\xE3\x8E\x82\xFF\
+    muchgreater\xFE\xE2\x89\xAB\xFF\
+    muchless\xFE\xE2\x89\xAA\xFF\
+    mufsquare\xFE\xE3\x8E\x8C\xFF\
+    mugreek\xFE\xCE\xBC\xFF\
+    mugsquare\xFE\xE3\x8E\x8D\xFF\
+    muhiragana\xFE\xE3\x82\x80\xFF\
+    mukatakana\xFE\xE3\x83\xA0\xFF\
+    mukatakanahalfwidth\xFE\xEF\xBE\x91\xFF\
+    mulsquare\xFE\xE3\x8E\x95\xFF\
+    multiply\xFE\xC3\x97\xFF\
+    mumsquare\xFE\xE3\x8E\x9B\xFF\
+    munahhebrew\xFE\xD6\xA3\xFF\
+    munahlefthebrew\xFE\xD6\xA3\xFF\
+    musicalnote\xFE\xE2\x99\xAA\xFF\
+    musicalnotedbl\xFE\xE2\x99\xAB\xFF\
+    musicflatsign\xFE\xE2\x99\xAD\xFF\
+    musicsharpsign\xFE\xE2\x99\xAF\xFF\
+    mussquare\xFE\xE3\x8E\xB2\xFF\
+    muvsquare\xFE\xE3\x8E\xB6\xFF\
+    muwsquare\xFE\xE3\x8E\xBC\xFF\
+    mvmegasquare\xFE\xE3\x8E\xB9\xFF\
+    mvsquare\xFE\xE3\x8E\xB7\xFF\
+    mwmegasquare\xFE\xE3\x8E\xBF\xFF\
+    mwsquare\xFE\xE3\x8E\xBD\xFF\
+    n\xFEn\xFF\
+    nabengali\xFE\xE0\xA6\xA8\xFF\
+    nabla\xFE\xE2\x88\x87\xFF\
+    nacute\xFE\xC5\x84\xFF\
+    nadeva\xFE\xE0\xA4\xA8\xFF\
+    nagujarati\xFE\xE0\xAA\xA8\xFF\
+    nagurmukhi\xFE\xE0\xA8\xA8\xFF\
+    nahiragana\xFE\xE3\x81\xAA\xFF\
+    nakatakana\xFE\xE3\x83\x8A\xFF\
+    nakatakanahalfwidth\xFE\xEF\xBE\x85\xFF\
+    napostrophe\xFE\xC5\x89\xFF\
+    nasquare\xFE\xE3\x8E\x81\xFF\
+    nbopomofo\xFE\xE3\x84\x8B\xFF\
+    nbspace\xFE\xC2\xA0\xFF\
+    ncaron\xFE\xC5\x88\xFF\
+    ncedilla\xFE\xC5\x86\xFF\
+    ncircle\xFE\xE2\x93\x9D\xFF\
+    ncircumflexbelow\xFE\xE1\xB9\x8B\xFF\
+    ncommaaccent\xFE\xC5\x86\xFF\
+    ndotaccent\xFE\xE1\xB9\x85\xFF\
+    ndotbelow\xFE\xE1\xB9\x87\xFF\
+    nehiragana\xFE\xE3\x81\xAD\xFF\
+    nekatakana\xFE\xE3\x83\x8D\xFF\
+    nekatakanahalfwidth\xFE\xEF\xBE\x88\xFF\
+    newsheqelsign\xFE\xE2\x82\xAA\xFF\
+    nfsquare\xFE\xE3\x8E\x8B\xFF\
+    ngabengali\xFE\xE0\xA6\x99\xFF\
+    ngadeva\xFE\xE0\xA4\x99\xFF\
+    ngagujarati\xFE\xE0\xAA\x99\xFF\
+    ngagurmukhi\xFE\xE0\xA8\x99\xFF\
+    ngonguthai\xFE\xE0\xB8\x87\xFF\
+    nhiragana\xFE\xE3\x82\x93\xFF\
+    nhookleft\xFE\xC9\xB2\xFF\
+    nhookretroflex\xFE\xC9\xB3\xFF\
+    nieunacirclekorean\xFE\xE3\x89\xAF\xFF\
+    nieunaparenkorean\xFE\xE3\x88\x8F\xFF\
+    nieuncieuckorean\xFE\xE3\x84\xB5\xFF\
+    nieuncirclekorean\xFE\xE3\x89\xA1\xFF\
+    nieunhieuhkorean\xFE\xE3\x84\xB6\xFF\
+    nieunkorean\xFE\xE3\x84\xB4\xFF\
+    nieunpansioskorean\xFE\xE3\x85\xA8\xFF\
+    nieunparenkorean\xFE\xE3\x88\x81\xFF\
+    nieunsioskorean\xFE\xE3\x85\xA7\xFF\
+    nieuntikeutkorean\xFE\xE3\x85\xA6\xFF\
+    nihiragana\xFE\xE3\x81\xAB\xFF\
+    nikatakana\xFE\xE3\x83\x8B\xFF\
+    nikatakanahalfwidth\xFE\xEF\xBE\x86\xFF\
+    nikhahitleftthai\xFE\xEF\xA2\x99\xFF\
+    nikhahitthai\xFE\xE0\xB9\x8D\xFF\
+    nine\xFE9\xFF\
+    ninearabic\xFE\xD9\xA9\xFF\
+    ninebengali\xFE\xE0\xA7\xAF\xFF\
+    ninecircle\xFE\xE2\x91\xA8\xFF\
+    ninecircleinversesansserif\xFE\xE2\x9E\x92\xFF\
+    ninedeva\xFE\xE0\xA5\xAF\xFF\
+    ninegujarati\xFE\xE0\xAB\xAF\xFF\
+    ninegurmukhi\xFE\xE0\xA9\xAF\xFF\
+    ninehackarabic\xFE\xD9\xA9\xFF\
+    ninehangzhou\xFE\xE3\x80\xA9\xFF\
+    nineideographicparen\xFE\xE3\x88\xA8\xFF\
+    nineinferior\xFE\xE2\x82\x89\xFF\
+    ninemonospace\xFE\xEF\xBC\x99\xFF\
+    nineoldstyle\xFE\xEF\x9C\xB9\xFF\
+    nineparen\xFE\xE2\x91\xBC\xFF\
+    nineperiod\xFE\xE2\x92\x90\xFF\
+    ninepersian\xFE\xDB\xB9\xFF\
+    nineroman\xFE\xE2\x85\xB8\xFF\
+    ninesuperior\xFE\xE2\x81\xB9\xFF\
+    nineteencircle\xFE\xE2\x91\xB2\xFF\
+    nineteenparen\xFE\xE2\x92\x86\xFF\
+    nineteenperiod\xFE\xE2\x92\x9A\xFF\
+    ninethai\xFE\xE0\xB9\x99\xFF\
+    nj\xFE\xC7\x8C\xFF\
+    njecyrillic\xFE\xD1\x9A\xFF\
+    nkatakana\xFE\xE3\x83\xB3\xFF\
+    nkatakanahalfwidth\xFE\xEF\xBE\x9D\xFF\
+    nlegrightlong\xFE\xC6\x9E\xFF\
+    nlinebelow\xFE\xE1\xB9\x89\xFF\
+    nmonospace\xFE\xEF\xBD\x8E\xFF\
+    nmsquare\xFE\xE3\x8E\x9A\xFF\
+    nnabengali\xFE\xE0\xA6\xA3\xFF\
+    nnadeva\xFE\xE0\xA4\xA3\xFF\
+    nnagujarati\xFE\xE0\xAA\xA3\xFF\
+    nnagurmukhi\xFE\xE0\xA8\xA3\xFF\
+    nnnadeva\xFE\xE0\xA4\xA9\xFF\
+    nohiragana\xFE\xE3\x81\xAE\xFF\
+    nokatakana\xFE\xE3\x83\x8E\xFF\
+    nokatakanahalfwidth\xFE\xEF\xBE\x89\xFF\
+    nonbreakingspace\xFE\xC2\xA0\xFF\
+    nonenthai\xFE\xE0\xB8\x93\xFF\
+    nonuthai\xFE\xE0\xB8\x99\xFF\
+    noonarabic\xFE\xD9\x86\xFF\
+    noonfinalarabic\xFE\xEF\xBB\xA6\xFF\
+    noonghunnaarabic\xFE\xDA\xBA\xFF\
+    noonghunnafinalarabic\xFE\xEF\xAE\x9F\xFF\
+    noonhehinitialarabic\xFE\xEF\xBB\xA7\xEF\xBB\xAC\xFF\
+    nooninitialarabic\xFE\xEF\xBB\xA7\xFF\
+    noonjeeminitialarabic\xFE\xEF\xB3\x92\xFF\
+    noonjeemisolatedarabic\xFE\xEF\xB1\x8B\xFF\
+    noonmedialarabic\xFE\xEF\xBB\xA8\xFF\
+    noonmeeminitialarabic\xFE\xEF\xB3\x95\xFF\
+    noonmeemisolatedarabic\xFE\xEF\xB1\x8E\xFF\
+    noonnoonfinalarabic\xFE\xEF\xB2\x8D\xFF\
+    notcontains\xFE\xE2\x88\x8C\xFF\
+    notelement\xFE\xE2\x88\x89\xFF\
+    notelementof\xFE\xE2\x88\x89\xFF\
+    notequal\xFE\xE2\x89\xA0\xFF\
+    notgreater\xFE\xE2\x89\xAF\xFF\
+    notgreaternorequal\xFE\xE2\x89\xB1\xFF\
+    notgreaternorless\xFE\xE2\x89\xB9\xFF\
+    notidentical\xFE\xE2\x89\xA2\xFF\
+    notless\xFE\xE2\x89\xAE\xFF\
+    notlessnorequal\xFE\xE2\x89\xB0\xFF\
+    notparallel\xFE\xE2\x88\xA6\xFF\
+    notprecedes\xFE\xE2\x8A\x80\xFF\
+    notsubset\xFE\xE2\x8A\x84\xFF\
+    notsucceeds\xFE\xE2\x8A\x81\xFF\
+    notsuperset\xFE\xE2\x8A\x85\xFF\
+    nowarmenian\xFE\xD5\xB6\xFF\
+    nparen\xFE\xE2\x92\xA9\xFF\
+    nssquare\xFE\xE3\x8E\xB1\xFF\
+    nsuperior\xFE\xE2\x81\xBF\xFF\
+    ntilde\xFE\xC3\xB1\xFF\
+    nu\xFE\xCE\xBD\xFF\
+    nuhiragana\xFE\xE3\x81\xAC\xFF\
+    nukatakana\xFE\xE3\x83\x8C\xFF\
+    nukatakanahalfwidth\xFE\xEF\xBE\x87\xFF\
+    nuktabengali\xFE\xE0\xA6\xBC\xFF\
+    nuktadeva\xFE\xE0\xA4\xBC\xFF\
+    nuktagujarati\xFE\xE0\xAA\xBC\xFF\
+    nuktagurmukhi\xFE\xE0\xA8\xBC\xFF\
+    numbersign\xFE#\xFF\
+    numbersignmonospace\xFE\xEF\xBC\x83\xFF\
+    numbersignsmall\xFE\xEF\xB9\x9F\xFF\
+    numeralsigngreek\xFE\xCD\xB4\xFF\
+    numeralsignlowergreek\xFE\xCD\xB5\xFF\
+    numero\xFE\xE2\x84\x96\xFF\
+    nun\xFE\xD7\xA0\xFF\
+    nundagesh\xFE\xEF\xAD\x80\xFF\
+    nundageshhebrew\xFE\xEF\xAD\x80\xFF\
+    nunhebrew\xFE\xD7\xA0\xFF\
+    nvsquare\xFE\xE3\x8E\xB5\xFF\
+    nwsquare\xFE\xE3\x8E\xBB\xFF\
+    nyabengali\xFE\xE0\xA6\x9E\xFF\
+    nyadeva\xFE\xE0\xA4\x9E\xFF\
+    nyagujarati\xFE\xE0\xAA\x9E\xFF\
+    nyagurmukhi\xFE\xE0\xA8\x9E\xFF\
+    o\xFEo\xFF\
+    oacute\xFE\xC3\xB3\xFF\
+    oangthai\xFE\xE0\xB8\xAD\xFF\
+    obarred\xFE\xC9\xB5\xFF\
+    obarredcyrillic\xFE\xD3\xA9\xFF\
+    obarreddieresiscyrillic\xFE\xD3\xAB\xFF\
+    obengali\xFE\xE0\xA6\x93\xFF\
+    obopomofo\xFE\xE3\x84\x9B\xFF\
+    obreve\xFE\xC5\x8F\xFF\
+    ocandradeva\xFE\xE0\xA4\x91\xFF\
+    ocandragujarati\xFE\xE0\xAA\x91\xFF\
+    ocandravowelsigndeva\xFE\xE0\xA5\x89\xFF\
+    ocandravowelsigngujarati\xFE\xE0\xAB\x89\xFF\
+    ocaron\xFE\xC7\x92\xFF\
+    ocircle\xFE\xE2\x93\x9E\xFF\
+    ocircumflex\xFE\xC3\xB4\xFF\
+    ocircumflexacute\xFE\xE1\xBB\x91\xFF\
+    ocircumflexdotbelow\xFE\xE1\xBB\x99\xFF\
+    ocircumflexgrave\xFE\xE1\xBB\x93\xFF\
+    ocircumflexhookabove\xFE\xE1\xBB\x95\xFF\
+    ocircumflextilde\xFE\xE1\xBB\x97\xFF\
+    ocyrillic\xFE\xD0\xBE\xFF\
+    odblacute\xFE\xC5\x91\xFF\
+    odblgrave\xFE\xC8\x8D\xFF\
+    odeva\xFE\xE0\xA4\x93\xFF\
+    odieresis\xFE\xC3\xB6\xFF\
+    odieresiscyrillic\xFE\xD3\xA7\xFF\
+    odotbelow\xFE\xE1\xBB\x8D\xFF\
+    oe\xFE\xC5\x93\xFF\
+    oekorean\xFE\xE3\x85\x9A\xFF\
+    ogonek\xFE\xCB\x9B\xFF\
+    ogonekcmb\xFE\xCC\xA8\xFF\
+    ograve\xFE\xC3\xB2\xFF\
+    ogujarati\xFE\xE0\xAA\x93\xFF\
+    oharmenian\xFE\xD6\x85\xFF\
+    ohiragana\xFE\xE3\x81\x8A\xFF\
+    ohookabove\xFE\xE1\xBB\x8F\xFF\
+    ohorn\xFE\xC6\xA1\xFF\
+    ohornacute\xFE\xE1\xBB\x9B\xFF\
+    ohorndotbelow\xFE\xE1\xBB\xA3\xFF\
+    ohorngrave\xFE\xE1\xBB\x9D\xFF\
+    ohornhookabove\xFE\xE1\xBB\x9F\xFF\
+    ohorntilde\xFE\xE1\xBB\xA1\xFF\
+    ohungarumlaut\xFE\xC5\x91\xFF\
+    oi\xFE\xC6\xA3\xFF\
+    oinvertedbreve\xFE\xC8\x8F\xFF\
+    okatakana\xFE\xE3\x82\xAA\xFF\
+    okatakanahalfwidth\xFE\xEF\xBD\xB5\xFF\
+    okorean\xFE\xE3\x85\x97\xFF\
+    olehebrew\xFE\xD6\xAB\xFF\
+    omacron\xFE\xC5\x8D\xFF\
+    omacronacute\xFE\xE1\xB9\x93\xFF\
+    omacrongrave\xFE\xE1\xB9\x91\xFF\
+    omdeva\xFE\xE0\xA5\x90\xFF\
+    omega\xFE\xCF\x89\xFF\
+    omega1\xFE\xCF\x96\xFF\
+    omegacyrillic\xFE\xD1\xA1\xFF\
+    omegalatinclosed\xFE\xC9\xB7\xFF\
+    omegaroundcyrillic\xFE\xD1\xBB\xFF\
+    omegatitlocyrillic\xFE\xD1\xBD\xFF\
+    omegatonos\xFE\xCF\x8E\xFF\
+    omgujarati\xFE\xE0\xAB\x90\xFF\
+    omicron\xFE\xCE\xBF\xFF\
+    omicrontonos\xFE\xCF\x8C\xFF\
+    omonospace\xFE\xEF\xBD\x8F\xFF\
+    one\xFE1\xFF\
+    onearabic\xFE\xD9\xA1\xFF\
+    onebengali\xFE\xE0\xA7\xA7\xFF\
+    onecircle\xFE\xE2\x91\xA0\xFF\
+    onecircleinversesansserif\xFE\xE2\x9E\x8A\xFF\
+    onedeva\xFE\xE0\xA5\xA7\xFF\
+    onedotenleader\xFE\xE2\x80\xA4\xFF\
+    oneeighth\xFE\xE2\x85\x9B\xFF\
+    onefitted\xFE\xEF\x9B\x9C\xFF\
+    onegujarati\xFE\xE0\xAB\xA7\xFF\
+    onegurmukhi\xFE\xE0\xA9\xA7\xFF\
+    onehackarabic\xFE\xD9\xA1\xFF\
+    onehalf\xFE\xC2\xBD\xFF\
+    onehangzhou\xFE\xE3\x80\xA1\xFF\
+    oneideographicparen\xFE\xE3\x88\xA0\xFF\
+    oneinferior\xFE\xE2\x82\x81\xFF\
+    onemonospace\xFE\xEF\xBC\x91\xFF\
+    onenumeratorbengali\xFE\xE0\xA7\xB4\xFF\
+    oneoldstyle\xFE\xEF\x9C\xB1\xFF\
+    oneparen\xFE\xE2\x91\xB4\xFF\
+    oneperiod\xFE\xE2\x92\x88\xFF\
+    onepersian\xFE\xDB\xB1\xFF\
+    onequarter\xFE\xC2\xBC\xFF\
+    oneroman\xFE\xE2\x85\xB0\xFF\
+    onesuperior\xFE\xC2\xB9\xFF\
+    onethai\xFE\xE0\xB9\x91\xFF\
+    onethird\xFE\xE2\x85\x93\xFF\
+    oogonek\xFE\xC7\xAB\xFF\
+    oogonekmacron\xFE\xC7\xAD\xFF\
+    oogurmukhi\xFE\xE0\xA8\x93\xFF\
+    oomatragurmukhi\xFE\xE0\xA9\x8B\xFF\
+    oopen\xFE\xC9\x94\xFF\
+    oparen\xFE\xE2\x92\xAA\xFF\
+    openbullet\xFE\xE2\x97\xA6\xFF\
+    option\xFE\xE2\x8C\xA5\xFF\
+    ordfeminine\xFE\xC2\xAA\xFF\
+    ordmasculine\xFE\xC2\xBA\xFF\
+    orthogonal\xFE\xE2\x88\x9F\xFF\
+    oshortdeva\xFE\xE0\xA4\x92\xFF\
+    oshortvowelsigndeva\xFE\xE0\xA5\x8A\xFF\
+    oslash\xFE\xC3\xB8\xFF\
+    oslashacute\xFE\xC7\xBF\xFF\
+    osmallhiragana\xFE\xE3\x81\x89\xFF\
+    osmallkatakana\xFE\xE3\x82\xA9\xFF\
+    osmallkatakanahalfwidth\xFE\xEF\xBD\xAB\xFF\
+    ostrokeacute\xFE\xC7\xBF\xFF\
+    osuperior\xFE\xEF\x9B\xB0\xFF\
+    otcyrillic\xFE\xD1\xBF\xFF\
+    otilde\xFE\xC3\xB5\xFF\
+    otildeacute\xFE\xE1\xB9\x8D\xFF\
+    otildedieresis\xFE\xE1\xB9\x8F\xFF\
+    oubopomofo\xFE\xE3\x84\xA1\xFF\
+    overline\xFE\xE2\x80\xBE\xFF\
+    overlinecenterline\xFE\xEF\xB9\x8A\xFF\
+    overlinecmb\xFE\xCC\x85\xFF\
+    overlinedashed\xFE\xEF\xB9\x89\xFF\
+    overlinedblwavy\xFE\xEF\xB9\x8C\xFF\
+    overlinewavy\xFE\xEF\xB9\x8B\xFF\
+    overscore\xFE\xC2\xAF\xFF\
+    ovowelsignbengali\xFE\xE0\xA7\x8B\xFF\
+    ovowelsigndeva\xFE\xE0\xA5\x8B\xFF\
+    ovowelsigngujarati\xFE\xE0\xAB\x8B\xFF\
+    p\xFEp\xFF\
+    paampssquare\xFE\xE3\x8E\x80\xFF\
+    paasentosquare\xFE\xE3\x8C\xAB\xFF\
+    pabengali\xFE\xE0\xA6\xAA\xFF\
+    pacute\xFE\xE1\xB9\x95\xFF\
+    padeva\xFE\xE0\xA4\xAA\xFF\
+    pagedown\xFE\xE2\x87\x9F\xFF\
+    pageup\xFE\xE2\x87\x9E\xFF\
+    pagujarati\xFE\xE0\xAA\xAA\xFF\
+    pagurmukhi\xFE\xE0\xA8\xAA\xFF\
+    pahiragana\xFE\xE3\x81\xB1\xFF\
+    paiyannoithai\xFE\xE0\xB8\xAF\xFF\
+    pakatakana\xFE\xE3\x83\x91\xFF\
+    palatalizationcyrilliccmb\xFE\xD2\x84\xFF\
+    palochkacyrillic\xFE\xD3\x80\xFF\
+    pansioskorean\xFE\xE3\x85\xBF\xFF\
+    paragraph\xFE\xC2\xB6\xFF\
+    parallel\xFE\xE2\x88\xA5\xFF\
+    parenleft\xFE(\xFF\
+    parenleftBig\xFE(\xFF\
+    parenleftBigg\xFE(\xFF\
+    parenleftaltonearabic\xFE\xEF\xB4\xBE\xFF\
+    parenleftbig\xFE(\xFF\
+    parenleftbigg\xFE(\xFF\
+    parenleftbt\xFE\xEF\xA3\xAD\xFF\
+    parenleftex\xFE\xEF\xA3\xAC\xFF\
+    parenleftinferior\xFE\xE2\x82\x8D\xFF\
+    parenleftmath\xFE(\xFF\
+    parenleftmonospace\xFE\xEF\xBC\x88\xFF\
+    parenleftsmall\xFE\xEF\xB9\x99\xFF\
+    parenleftsuperior\xFE\xE2\x81\xBD\xFF\
+    parenlefttp\xFE\xEF\xA3\xAB\xFF\
+    parenleftvertical\xFE\xEF\xB8\xB5\xFF\
+    parenright\xFE)\xFF\
+    parenrightBig\xFE)\xFF\
+    parenrightBigg\xFE)\xFF\
+    parenrightaltonearabic\xFE\xEF\xB4\xBF\xFF\
+    parenrightbig\xFE)\xFF\
+    parenrightbigg\xFE)\xFF\
+    parenrightbt\xFE\xEF\xA3\xB8\xFF\
+    parenrightex\xFE\xEF\xA3\xB7\xFF\
+    parenrightinferior\xFE\xE2\x82\x8E\xFF\
+    parenrightmath\xFE)\xFF\
+    parenrightmonospace\xFE\xEF\xBC\x89\xFF\
+    parenrightsmall\xFE\xEF\xB9\x9A\xFF\
+    parenrightsuperior\xFE\xE2\x81\xBE\xFF\
+    parenrighttp\xFE\xEF\xA3\xB6\xFF\
+    parenrightvertical\xFE\xEF\xB8\xB6\xFF\
+    partialdiff\xFE\xE2\x88\x82\xFF\
+    paseqhebrew\xFE\xD7\x80\xFF\
+    pashtahebrew\xFE\xD6\x99\xFF\
+    pasquare\xFE\xE3\x8E\xA9\xFF\
+    patah\xFE\xD6\xB7\xFF\
+    patah11\xFE\xD6\xB7\xFF\
+    patah1d\xFE\xD6\xB7\xFF\
+    patah2a\xFE\xD6\xB7\xFF\
+    patahhebrew\xFE\xD6\xB7\xFF\
+    patahnarrowhebrew\xFE\xD6\xB7\xFF\
+    patahquarterhebrew\xFE\xD6\xB7\xFF\
+    patahwidehebrew\xFE\xD6\xB7\xFF\
+    pazerhebrew\xFE\xD6\xA1\xFF\
+    pbopomofo\xFE\xE3\x84\x86\xFF\
+    pcircle\xFE\xE2\x93\x9F\xFF\
+    pdotaccent\xFE\xE1\xB9\x97\xFF\
+    pe\xFE\xD7\xA4\xFF\
+    pecyrillic\xFE\xD0\xBF\xFF\
+    pedagesh\xFE\xEF\xAD\x84\xFF\
+    pedageshhebrew\xFE\xEF\xAD\x84\xFF\
+    peezisquare\xFE\xE3\x8C\xBB\xFF\
+    pefinaldageshhebrew\xFE\xEF\xAD\x83\xFF\
+    peharabic\xFE\xD9\xBE\xFF\
+    peharmenian\xFE\xD5\xBA\xFF\
+    pehebrew\xFE\xD7\xA4\xFF\
+    pehfinalarabic\xFE\xEF\xAD\x97\xFF\
+    pehinitialarabic\xFE\xEF\xAD\x98\xFF\
+    pehiragana\xFE\xE3\x81\xBA\xFF\
+    pehmedialarabic\xFE\xEF\xAD\x99\xFF\
+    pekatakana\xFE\xE3\x83\x9A\xFF\
+    pemiddlehookcyrillic\xFE\xD2\xA7\xFF\
+    perafehebrew\xFE\xEF\xAD\x8E\xFF\
+    percent\xFE%\xFF\
+    percentarabic\xFE\xD9\xAA\xFF\
+    percentmonospace\xFE\xEF\xBC\x85\xFF\
+    percentsmall\xFE\xEF\xB9\xAA\xFF\
+    period\xFE.\xFF\
+    periodarmenian\xFE\xD6\x89\xFF\
+    periodcentered\xFE\xC2\xB7\xFF\
+    periodhalfwidth\xFE\xEF\xBD\xA1\xFF\
+    periodinferior\xFE\xEF\x9B\xA7\xFF\
+    periodmonospace\xFE\xEF\xBC\x8E\xFF\
+    periodsmall\xFE\xEF\xB9\x92\xFF\
+    periodsuperior\xFE\xEF\x9B\xA8\xFF\
+    perispomenigreekcmb\xFE\xCD\x82\xFF\
+    perpendicular\xFE\xE2\x8A\xA5\xFF\
+    perthousand\xFE\xE2\x80\xB0\xFF\
+    peseta\xFE\xE2\x82\xA7\xFF\
+    pfsquare\xFE\xE3\x8E\x8A\xFF\
+    phabengali\xFE\xE0\xA6\xAB\xFF\
+    phadeva\xFE\xE0\xA4\xAB\xFF\
+    phagujarati\xFE\xE0\xAA\xAB\xFF\
+    phagurmukhi\xFE\xE0\xA8\xAB\xFF\
+    phi\xFE\xCF\x86\xFF\
+    phi1\xFE\xCF\x95\xFF\
+    phieuphacirclekorean\xFE\xE3\x89\xBA\xFF\
+    phieuphaparenkorean\xFE\xE3\x88\x9A\xFF\
+    phieuphcirclekorean\xFE\xE3\x89\xAC\xFF\
+    phieuphkorean\xFE\xE3\x85\x8D\xFF\
+    phieuphparenkorean\xFE\xE3\x88\x8C\xFF\
+    philatin\xFE\xC9\xB8\xFF\
+    phinthuthai\xFE\xE0\xB8\xBA\xFF\
+    phisymbolgreek\xFE\xCF\x95\xFF\
+    phook\xFE\xC6\xA5\xFF\
+    phophanthai\xFE\xE0\xB8\x9E\xFF\
+    phophungthai\xFE\xE0\xB8\x9C\xFF\
+    phosamphaothai\xFE\xE0\xB8\xA0\xFF\
+    pi\xFE\xCF\x80\xFF\
+    pieupacirclekorean\xFE\xE3\x89\xB3\xFF\
+    pieupaparenkorean\xFE\xE3\x88\x93\xFF\
+    pieupcieuckorean\xFE\xE3\x85\xB6\xFF\
+    pieupcirclekorean\xFE\xE3\x89\xA5\xFF\
+    pieupkiyeokkorean\xFE\xE3\x85\xB2\xFF\
+    pieupkorean\xFE\xE3\x85\x82\xFF\
+    pieupparenkorean\xFE\xE3\x88\x85\xFF\
+    pieupsioskiyeokkorean\xFE\xE3\x85\xB4\xFF\
+    pieupsioskorean\xFE\xE3\x85\x84\xFF\
+    pieupsiostikeutkorean\xFE\xE3\x85\xB5\xFF\
+    pieupthieuthkorean\xFE\xE3\x85\xB7\xFF\
+    pieuptikeutkorean\xFE\xE3\x85\xB3\xFF\
+    pihiragana\xFE\xE3\x81\xB4\xFF\
+    pikatakana\xFE\xE3\x83\x94\xFF\
+    pisymbolgreek\xFE\xCF\x96\xFF\
+    piwrarmenian\xFE\xD6\x83\xFF\
+    plus\xFE+\xFF\
+    plusbelowcmb\xFE\xCC\x9F\xFF\
+    pluscircle\xFE\xE2\x8A\x95\xFF\
+    plusmath\xFE+\xFF\
+    plusminus\xFE\xC2\xB1\xFF\
+    plusmod\xFE\xCB\x96\xFF\
+    plusmonospace\xFE\xEF\xBC\x8B\xFF\
+    plussmall\xFE\xEF\xB9\xA2\xFF\
+    plussuperior\xFE\xE2\x81\xBA\xFF\
+    pmonospace\xFE\xEF\xBD\x90\xFF\
+    pmsquare\xFE\xE3\x8F\x98\xFF\
+    pohiragana\xFE\xE3\x81\xBD\xFF\
+    pointingindexdownwhite\xFE\xE2\x98\x9F\xFF\
+    pointingindexleftwhite\xFE\xE2\x98\x9C\xFF\
+    pointingindexrightwhite\xFE\xE2\x98\x9E\xFF\
+    pointingindexupwhite\xFE\xE2\x98\x9D\xFF\
+    pokatakana\xFE\xE3\x83\x9D\xFF\
+    poplathai\xFE\xE0\xB8\x9B\xFF\
+    postalmark\xFE\xE3\x80\x92\xFF\
+    postalmarkface\xFE\xE3\x80\xA0\xFF\
+    pparen\xFE\xE2\x92\xAB\xFF\
+    precedes\xFE\xE2\x89\xBA\xFF\
+    prescription\xFE\xE2\x84\x9E\xFF\
+    prime\xFE\xE2\x80\xB2\xFF\
+    primemod\xFE\xCA\xB9\xFF\
+    primereversed\xFE\xE2\x80\xB5\xFF\
+    product\xFE\xE2\x88\x8F\xFF\
+    productdisplay\xFE\xE2\x88\x8F\xFF\
+    producttext\xFE\xE2\x88\x8F\xFF\
+    projective\xFE\xE2\x8C\x85\xFF\
+    prolongedkana\xFE\xE3\x83\xBC\xFF\
+    propellor\xFE\xE2\x8C\x98\xFF\
+    propersubset\xFE\xE2\x8A\x82\xFF\
+    propersuperset\xFE\xE2\x8A\x83\xFF\
+    proportion\xFE\xE2\x88\xB7\xFF\
+    proportional\xFE\xE2\x88\x9D\xFF\
+    psi\xFE\xCF\x88\xFF\
+    psicyrillic\xFE\xD1\xB1\xFF\
+    psilipneumatacyrilliccmb\xFE\xD2\x86\xFF\
+    pssquare\xFE\xE3\x8E\xB0\xFF\
+    puhiragana\xFE\xE3\x81\xB7\xFF\
+    pukatakana\xFE\xE3\x83\x97\xFF\
+    pvsquare\xFE\xE3\x8E\xB4\xFF\
+    pwsquare\xFE\xE3\x8E\xBA\xFF\
+    q\xFEq\xFF\
+    qadeva\xFE\xE0\xA5\x98\xFF\
+    qadmahebrew\xFE\xD6\xA8\xFF\
+    qafarabic\xFE\xD9\x82\xFF\
+    qaffinalarabic\xFE\xEF\xBB\x96\xFF\
+    qafinitialarabic\xFE\xEF\xBB\x97\xFF\
+    qafmedialarabic\xFE\xEF\xBB\x98\xFF\
+    qamats\xFE\xD6\xB8\xFF\
+    qamats10\xFE\xD6\xB8\xFF\
+    qamats1a\xFE\xD6\xB8\xFF\
+    qamats1c\xFE\xD6\xB8\xFF\
+    qamats27\xFE\xD6\xB8\xFF\
+    qamats29\xFE\xD6\xB8\xFF\
+    qamats33\xFE\xD6\xB8\xFF\
+    qamatsde\xFE\xD6\xB8\xFF\
+    qamatshebrew\xFE\xD6\xB8\xFF\
+    qamatsnarrowhebrew\xFE\xD6\xB8\xFF\
+    qamatsqatanhebrew\xFE\xD6\xB8\xFF\
+    qamatsqatannarrowhebrew\xFE\xD6\xB8\xFF\
+    qamatsqatanquarterhebrew\xFE\xD6\xB8\xFF\
+    qamatsqatanwidehebrew\xFE\xD6\xB8\xFF\
+    qamatsquarterhebrew\xFE\xD6\xB8\xFF\
+    qamatswidehebrew\xFE\xD6\xB8\xFF\
+    qarneyparahebrew\xFE\xD6\x9F\xFF\
+    qbopomofo\xFE\xE3\x84\x91\xFF\
+    qcircle\xFE\xE2\x93\xA0\xFF\
+    qhook\xFE\xCA\xA0\xFF\
+    qmonospace\xFE\xEF\xBD\x91\xFF\
+    qof\xFE\xD7\xA7\xFF\
+    qofdagesh\xFE\xEF\xAD\x87\xFF\
+    qofdageshhebrew\xFE\xEF\xAD\x87\xFF\
+    qofhatafpatah\xFE\xD7\xA7\xD6\xB2\xFF\
+    qofhatafpatahhebrew\xFE\xD7\xA7\xD6\xB2\xFF\
+    qofhatafsegol\xFE\xD7\xA7\xD6\xB1\xFF\
+    qofhatafsegolhebrew\xFE\xD7\xA7\xD6\xB1\xFF\
+    qofhebrew\xFE\xD7\xA7\xFF\
+    qofhiriq\xFE\xD7\xA7\xD6\xB4\xFF\
+    qofhiriqhebrew\xFE\xD7\xA7\xD6\xB4\xFF\
+    qofholam\xFE\xD7\xA7\xD6\xB9\xFF\
+    qofholamhebrew\xFE\xD7\xA7\xD6\xB9\xFF\
+    qofpatah\xFE\xD7\xA7\xD6\xB7\xFF\
+    qofpatahhebrew\xFE\xD7\xA7\xD6\xB7\xFF\
+    qofqamats\xFE\xD7\xA7\xD6\xB8\xFF\
+    qofqamatshebrew\xFE\xD7\xA7\xD6\xB8\xFF\
+    qofqubuts\xFE\xD7\xA7\xD6\xBB\xFF\
+    qofqubutshebrew\xFE\xD7\xA7\xD6\xBB\xFF\
+    qofsegol\xFE\xD7\xA7\xD6\xB6\xFF\
+    qofsegolhebrew\xFE\xD7\xA7\xD6\xB6\xFF\
+    qofsheva\xFE\xD7\xA7\xD6\xB0\xFF\
+    qofshevahebrew\xFE\xD7\xA7\xD6\xB0\xFF\
+    qoftsere\xFE\xD7\xA7\xD6\xB5\xFF\
+    qoftserehebrew\xFE\xD7\xA7\xD6\xB5\xFF\
+    qparen\xFE\xE2\x92\xAC\xFF\
+    quarternote\xFE\xE2\x99\xA9\xFF\
+    qubuts\xFE\xD6\xBB\xFF\
+    qubuts18\xFE\xD6\xBB\xFF\
+    qubuts25\xFE\xD6\xBB\xFF\
+    qubuts31\xFE\xD6\xBB\xFF\
+    qubutshebrew\xFE\xD6\xBB\xFF\
+    qubutsnarrowhebrew\xFE\xD6\xBB\xFF\
+    qubutsquarterhebrew\xFE\xD6\xBB\xFF\
+    qubutswidehebrew\xFE\xD6\xBB\xFF\
+    question\xFE?\xFF\
+    questionarabic\xFE\xD8\x9F\xFF\
+    questionarmenian\xFE\xD5\x9E\xFF\
+    questiondown\xFE\xC2\xBF\xFF\
+    questiondownsmall\xFE\xEF\x9E\xBF\xFF\
+    questiongreek\xFE\xCD\xBE\xFF\
+    questionmonospace\xFE\xEF\xBC\x9F\xFF\
+    questionsmall\xFE\xEF\x9C\xBF\xFF\
+    quotedbl\xFE\x22\xFF\
+    quotedblbase\xFE\xE2\x80\x9E\xFF\
+    quotedblleft\xFE\xE2\x80\x9C\xFF\
+    quotedblmonospace\xFE\xEF\xBC\x82\xFF\
+    quotedblprime\xFE\xE3\x80\x9E\xFF\
+    quotedblprimereversed\xFE\xE3\x80\x9D\xFF\
+    quotedblright\xFE\xE2\x80\x9D\xFF\
+    quoteleft\xFE\xE2\x80\x98\xFF\
+    quoteleftreversed\xFE\xE2\x80\x9B\xFF\
+    quotereversed\xFE\xE2\x80\x9B\xFF\
+    quoteright\xFE\xE2\x80\x99\xFF\
+    quoterightn\xFE\xC5\x89\xFF\
+    quotesinglbase\xFE\xE2\x80\x9A\xFF\
+    quotesingle\xFE'\xFF\
+    quotesinglemonospace\xFE\xEF\xBC\x87\xFF\
+    r\xFEr\xFF\
+    raarmenian\xFE\xD5\xBC\xFF\
+    rabengali\xFE\xE0\xA6\xB0\xFF\
+    racute\xFE\xC5\x95\xFF\
+    radeva\xFE\xE0\xA4\xB0\xFF\
+    radical\xFE\xE2\x88\x9A\xFF\
+    radicalBig\xFE\xE2\x88\x9A\xFF\
+    radicalBigg\xFE\xE2\x88\x9A\xFF\
+    radicalbig\xFE\xE2\x88\x9A\xFF\
+    radicalbigg\xFE\xE2\x88\x9A\xFF\
+    radicalbt\xFE\xE2\x88\x9A\xFF\
+    radicalex\xFE\xEF\xA3\xA5\xFF\
+    radicaltp\xFE\xE2\x88\x9A\xFF\
+    radicalvertex\xFE\xE2\x88\x9A\xFF\
+    radoverssquare\xFE\xE3\x8E\xAE\xFF\
+    radoverssquaredsquare\xFE\xE3\x8E\xAF\xFF\
+    radsquare\xFE\xE3\x8E\xAD\xFF\
+    rafe\xFE\xD6\xBF\xFF\
+    rafehebrew\xFE\xD6\xBF\xFF\
+    ragujarati\xFE\xE0\xAA\xB0\xFF\
+    ragurmukhi\xFE\xE0\xA8\xB0\xFF\
+    rahiragana\xFE\xE3\x82\x89\xFF\
+    rakatakana\xFE\xE3\x83\xA9\xFF\
+    rakatakanahalfwidth\xFE\xEF\xBE\x97\xFF\
+    ralowerdiagonalbengali\xFE\xE0\xA7\xB1\xFF\
+    ramiddlediagonalbengali\xFE\xE0\xA7\xB0\xFF\
+    ramshorn\xFE\xC9\xA4\xFF\
+    ratio\xFE\xE2\x88\xB6\xFF\
+    rbopomofo\xFE\xE3\x84\x96\xFF\
+    rcaron\xFE\xC5\x99\xFF\
+    rcedilla\xFE\xC5\x97\xFF\
+    rcircle\xFE\xE2\x93\xA1\xFF\
+    rcommaaccent\xFE\xC5\x97\xFF\
+    rdblgrave\xFE\xC8\x91\xFF\
+    rdotaccent\xFE\xE1\xB9\x99\xFF\
+    rdotbelow\xFE\xE1\xB9\x9B\xFF\
+    rdotbelowmacron\xFE\xE1\xB9\x9D\xFF\
+    referencemark\xFE\xE2\x80\xBB\xFF\
+    reflexsubset\xFE\xE2\x8A\x86\xFF\
+    reflexsuperset\xFE\xE2\x8A\x87\xFF\
+    registered\xFE\xC2\xAE\xFF\
+    registersans\xFE\xEF\xA3\xA8\xFF\
+    registerserif\xFE\xEF\x9B\x9A\xFF\
+    reharabic\xFE\xD8\xB1\xFF\
+    reharmenian\xFE\xD6\x80\xFF\
+    rehfinalarabic\xFE\xEF\xBA\xAE\xFF\
+    rehiragana\xFE\xE3\x82\x8C\xFF\
+    rehyehaleflamarabic\xFE\xD8\xB1\xEF\xBB\xB3\xEF\xBA\x8E\xD9\x84\xFF\
+    rekatakana\xFE\xE3\x83\xAC\xFF\
+    rekatakanahalfwidth\xFE\xEF\xBE\x9A\xFF\
+    resh\xFE\xD7\xA8\xFF\
+    reshdageshhebrew\xFE\xEF\xAD\x88\xFF\
+    reshhatafpatah\xFE\xD7\xA8\xD6\xB2\xFF\
+    reshhatafpatahhebrew\xFE\xD7\xA8\xD6\xB2\xFF\
+    reshhatafsegol\xFE\xD7\xA8\xD6\xB1\xFF\
+    reshhatafsegolhebrew\xFE\xD7\xA8\xD6\xB1\xFF\
+    reshhebrew\xFE\xD7\xA8\xFF\
+    reshhiriq\xFE\xD7\xA8\xD6\xB4\xFF\
+    reshhiriqhebrew\xFE\xD7\xA8\xD6\xB4\xFF\
+    reshholam\xFE\xD7\xA8\xD6\xB9\xFF\
+    reshholamhebrew\xFE\xD7\xA8\xD6\xB9\xFF\
+    reshpatah\xFE\xD7\xA8\xD6\xB7\xFF\
+    reshpatahhebrew\xFE\xD7\xA8\xD6\xB7\xFF\
+    reshqamats\xFE\xD7\xA8\xD6\xB8\xFF\
+    reshqamatshebrew\xFE\xD7\xA8\xD6\xB8\xFF\
+    reshqubuts\xFE\xD7\xA8\xD6\xBB\xFF\
+    reshqubutshebrew\xFE\xD7\xA8\xD6\xBB\xFF\
+    reshsegol\xFE\xD7\xA8\xD6\xB6\xFF\
+    reshsegolhebrew\xFE\xD7\xA8\xD6\xB6\xFF\
+    reshsheva\xFE\xD7\xA8\xD6\xB0\xFF\
+    reshshevahebrew\xFE\xD7\xA8\xD6\xB0\xFF\
+    reshtsere\xFE\xD7\xA8\xD6\xB5\xFF\
+    reshtserehebrew\xFE\xD7\xA8\xD6\xB5\xFF\
+    reversedtilde\xFE\xE2\x88\xBD\xFF\
+    reviahebrew\xFE\xD6\x97\xFF\
+    reviamugrashhebrew\xFE\xD6\x97\xFF\
+    revlogicalnot\xFE\xE2\x8C\x90\xFF\
+    rfishhook\xFE\xC9\xBE\xFF\
+    rfishhookreversed\xFE\xC9\xBF\xFF\
+    rhabengali\xFE\xE0\xA7\x9D\xFF\
+    rhadeva\xFE\xE0\xA5\x9D\xFF\
+    rho\xFE\xCF\x81\xFF\
+    rhook\xFE\xC9\xBD\xFF\
+    rhookturned\xFE\xC9\xBB\xFF\
+    rhookturnedsuperior\xFE\xCA\xB5\xFF\
+    rhosymbolgreek\xFE\xCF\xB1\xFF\
+    rhotichookmod\xFE\xCB\x9E\xFF\
+    rieulacirclekorean\xFE\xE3\x89\xB1\xFF\
+    rieulaparenkorean\xFE\xE3\x88\x91\xFF\
+    rieulcirclekorean\xFE\xE3\x89\xA3\xFF\
+    rieulhieuhkorean\xFE\xE3\x85\x80\xFF\
+    rieulkiyeokkorean\xFE\xE3\x84\xBA\xFF\
+    rieulkiyeoksioskorean\xFE\xE3\x85\xA9\xFF\
+    rieulkorean\xFE\xE3\x84\xB9\xFF\
+    rieulmieumkorean\xFE\xE3\x84\xBB\xFF\
+    rieulpansioskorean\xFE\xE3\x85\xAC\xFF\
+    rieulparenkorean\xFE\xE3\x88\x83\xFF\
+    rieulphieuphkorean\xFE\xE3\x84\xBF\xFF\
+    rieulpieupkorean\xFE\xE3\x84\xBC\xFF\
+    rieulpieupsioskorean\xFE\xE3\x85\xAB\xFF\
+    rieulsioskorean\xFE\xE3\x84\xBD\xFF\
+    rieulthieuthkorean\xFE\xE3\x84\xBE\xFF\
+    rieultikeutkorean\xFE\xE3\x85\xAA\xFF\
+    rieulyeorinhieuhkorean\xFE\xE3\x85\xAD\xFF\
+    rightangle\xFE\xE2\x88\x9F\xFF\
+    righttackbelowcmb\xFE\xCC\x99\xFF\
+    righttriangle\xFE\xE2\x8A\xBF\xFF\
+    rihiragana\xFE\xE3\x82\x8A\xFF\
+    rikatakana\xFE\xE3\x83\xAA\xFF\
+    rikatakanahalfwidth\xFE\xEF\xBE\x98\xFF\
+    ring\xFE\xCB\x9A\xFF\
+    ringbelowcmb\xFE\xCC\xA5\xFF\
+    ringcmb\xFE\xCC\x8A\xFF\
+    ringhalfleft\xFE\xCA\xBF\xFF\
+    ringhalfleftarmenian\xFE\xD5\x99\xFF\
+    ringhalfleftbelowcmb\xFE\xCC\x9C\xFF\
+    ringhalfleftcentered\xFE\xCB\x93\xFF\
+    ringhalfright\xFE\xCA\xBE\xFF\
+    ringhalfrightbelowcmb\xFE\xCC\xB9\xFF\
+    ringhalfrightcentered\xFE\xCB\x92\xFF\
+    rinvertedbreve\xFE\xC8\x93\xFF\
+    rittorusquare\xFE\xE3\x8D\x91\xFF\
+    rlinebelow\xFE\xE1\xB9\x9F\xFF\
+    rlongleg\xFE\xC9\xBC\xFF\
+    rlonglegturned\xFE\xC9\xBA\xFF\
+    rmonospace\xFE\xEF\xBD\x92\xFF\
+    rohiragana\xFE\xE3\x82\x8D\xFF\
+    rokatakana\xFE\xE3\x83\xAD\xFF\
+    rokatakanahalfwidth\xFE\xEF\xBE\x9B\xFF\
+    roruathai\xFE\xE0\xB8\xA3\xFF\
+    rparen\xFE\xE2\x92\xAD\xFF\
+    rrabengali\xFE\xE0\xA7\x9C\xFF\
+    rradeva\xFE\xE0\xA4\xB1\xFF\
+    rragurmukhi\xFE\xE0\xA9\x9C\xFF\
+    rreharabic\xFE\xDA\x91\xFF\
+    rrehfinalarabic\xFE\xEF\xAE\x8D\xFF\
+    rrvocalicbengali\xFE\xE0\xA7\xA0\xFF\
+    rrvocalicdeva\xFE\xE0\xA5\xA0\xFF\
+    rrvocalicgujarati\xFE\xE0\xAB\xA0\xFF\
+    rrvocalicvowelsignbengali\xFE\xE0\xA7\x84\xFF\
+    rrvocalicvowelsigndeva\xFE\xE0\xA5\x84\xFF\
+    rrvocalicvowelsigngujarati\xFE\xE0\xAB\x84\xFF\
+    rsuperior\xFE\xEF\x9B\xB1\xFF\
+    rtblock\xFE\xE2\x96\x90\xFF\
+    rturned\xFE\xC9\xB9\xFF\
+    rturnedsuperior\xFE\xCA\xB4\xFF\
+    ruhiragana\xFE\xE3\x82\x8B\xFF\
+    rukatakana\xFE\xE3\x83\xAB\xFF\
+    rukatakanahalfwidth\xFE\xEF\xBE\x99\xFF\
+    rupeemarkbengali\xFE\xE0\xA7\xB2\xFF\
+    rupeesignbengali\xFE\xE0\xA7\xB3\xFF\
+    rupiah\xFE\xEF\x9B\x9D\xFF\
+    ruthai\xFE\xE0\xB8\xA4\xFF\
+    rvocalicbengali\xFE\xE0\xA6\x8B\xFF\
+    rvocalicdeva\xFE\xE0\xA4\x8B\xFF\
+    rvocalicgujarati\xFE\xE0\xAA\x8B\xFF\
+    rvocalicvowelsignbengali\xFE\xE0\xA7\x83\xFF\
+    rvocalicvowelsigndeva\xFE\xE0\xA5\x83\xFF\
+    rvocalicvowelsigngujarati\xFE\xE0\xAB\x83\xFF\
+    s\xFEs\xFF\
+    sabengali\xFE\xE0\xA6\xB8\xFF\
+    sacute\xFE\xC5\x9B\xFF\
+    sacutedotaccent\xFE\xE1\xB9\xA5\xFF\
+    sadarabic\xFE\xD8\xB5\xFF\
+    sadeva\xFE\xE0\xA4\xB8\xFF\
+    sadfinalarabic\xFE\xEF\xBA\xBA\xFF\
+    sadinitialarabic\xFE\xEF\xBA\xBB\xFF\
+    sadmedialarabic\xFE\xEF\xBA\xBC\xFF\
+    sagujarati\xFE\xE0\xAA\xB8\xFF\
+    sagurmukhi\xFE\xE0\xA8\xB8\xFF\
+    sahiragana\xFE\xE3\x81\x95\xFF\
+    sakatakana\xFE\xE3\x82\xB5\xFF\
+    sakatakanahalfwidth\xFE\xEF\xBD\xBB\xFF\
+    sallallahoualayhewasallamarabic\xFE\xEF\xB7\xBA\xFF\
+    samekh\xFE\xD7\xA1\xFF\
+    samekhdagesh\xFE\xEF\xAD\x81\xFF\
+    samekhdageshhebrew\xFE\xEF\xAD\x81\xFF\
+    samekhhebrew\xFE\xD7\xA1\xFF\
+    saraaathai\xFE\xE0\xB8\xB2\xFF\
+    saraaethai\xFE\xE0\xB9\x81\xFF\
+    saraaimaimalaithai\xFE\xE0\xB9\x84\xFF\
+    saraaimaimuanthai\xFE\xE0\xB9\x83\xFF\
+    saraamthai\xFE\xE0\xB8\xB3\xFF\
+    saraathai\xFE\xE0\xB8\xB0\xFF\
+    saraethai\xFE\xE0\xB9\x80\xFF\
+    saraiileftthai\xFE\xEF\xA2\x86\xFF\
+    saraiithai\xFE\xE0\xB8\xB5\xFF\
+    saraileftthai\xFE\xEF\xA2\x85\xFF\
+    saraithai\xFE\xE0\xB8\xB4\xFF\
+    saraothai\xFE\xE0\xB9\x82\xFF\
+    saraueeleftthai\xFE\xEF\xA2\x88\xFF\
+    saraueethai\xFE\xE0\xB8\xB7\xFF\
+    saraueleftthai\xFE\xEF\xA2\x87\xFF\
+    sarauethai\xFE\xE0\xB8\xB6\xFF\
+    sarauthai\xFE\xE0\xB8\xB8\xFF\
+    sarauuthai\xFE\xE0\xB8\xB9\xFF\
+    sbopomofo\xFE\xE3\x84\x99\xFF\
+    scaron\xFE\xC5\xA1\xFF\
+    scarondotaccent\xFE\xE1\xB9\xA7\xFF\
+    scedilla\xFE\xC5\x9F\xFF\
+    schwa\xFE\xC9\x99\xFF\
+    schwacyrillic\xFE\xD3\x99\xFF\
+    schwadieresiscyrillic\xFE\xD3\x9B\xFF\
+    schwahook\xFE\xC9\x9A\xFF\
+    scircle\xFE\xE2\x93\xA2\xFF\
+    scircumflex\xFE\xC5\x9D\xFF\
+    scommaaccent\xFE\xC8\x99\xFF\
+    sdotaccent\xFE\xE1\xB9\xA1\xFF\
+    sdotbelow\xFE\xE1\xB9\xA3\xFF\
+    sdotbelowdotaccent\xFE\xE1\xB9\xA9\xFF\
+    seagullbelowcmb\xFE\xCC\xBC\xFF\
+    second\xFE\xE2\x80\xB3\xFF\
+    secondtonechinese\xFE\xCB\x8A\xFF\
+    section\xFE\xC2\xA7\xFF\
+    seenarabic\xFE\xD8\xB3\xFF\
+    seenfinalarabic\xFE\xEF\xBA\xB2\xFF\
+    seeninitialarabic\xFE\xEF\xBA\xB3\xFF\
+    seenmedialarabic\xFE\xEF\xBA\xB4\xFF\
+    segol\xFE\xD6\xB6\xFF\
+    segol13\xFE\xD6\xB6\xFF\
+    segol1f\xFE\xD6\xB6\xFF\
+    segol2c\xFE\xD6\xB6\xFF\
+    segolhebrew\xFE\xD6\xB6\xFF\
+    segolnarrowhebrew\xFE\xD6\xB6\xFF\
+    segolquarterhebrew\xFE\xD6\xB6\xFF\
+    segoltahebrew\xFE\xD6\x92\xFF\
+    segolwidehebrew\xFE\xD6\xB6\xFF\
+    seharmenian\xFE\xD5\xBD\xFF\
+    sehiragana\xFE\xE3\x81\x9B\xFF\
+    sekatakana\xFE\xE3\x82\xBB\xFF\
+    sekatakanahalfwidth\xFE\xEF\xBD\xBE\xFF\
+    semicolon\xFE;\xFF\
+    semicolonarabic\xFE\xD8\x9B\xFF\
+    semicolonmonospace\xFE\xEF\xBC\x9B\xFF\
+    semicolonsmall\xFE\xEF\xB9\x94\xFF\
+    semivoicedmarkkana\xFE\xE3\x82\x9C\xFF\
+    semivoicedmarkkanahalfwidth\xFE\xEF\xBE\x9F\xFF\
+    sentisquare\xFE\xE3\x8C\xA2\xFF\
+    sentosquare\xFE\xE3\x8C\xA3\xFF\
+    seven\xFE7\xFF\
+    sevenarabic\xFE\xD9\xA7\xFF\
+    sevenbengali\xFE\xE0\xA7\xAD\xFF\
+    sevencircle\xFE\xE2\x91\xA6\xFF\
+    sevencircleinversesansserif\xFE\xE2\x9E\x90\xFF\
+    sevendeva\xFE\xE0\xA5\xAD\xFF\
+    seveneighths\xFE\xE2\x85\x9E\xFF\
+    sevengujarati\xFE\xE0\xAB\xAD\xFF\
+    sevengurmukhi\xFE\xE0\xA9\xAD\xFF\
+    sevenhackarabic\xFE\xD9\xA7\xFF\
+    sevenhangzhou\xFE\xE3\x80\xA7\xFF\
+    sevenideographicparen\xFE\xE3\x88\xA6\xFF\
+    seveninferior\xFE\xE2\x82\x87\xFF\
+    sevenmonospace\xFE\xEF\xBC\x97\xFF\
+    sevenoldstyle\xFE\xEF\x9C\xB7\xFF\
+    sevenparen\xFE\xE2\x91\xBA\xFF\
+    sevenperiod\xFE\xE2\x92\x8E\xFF\
+    sevenpersian\xFE\xDB\xB7\xFF\
+    sevenroman\xFE\xE2\x85\xB6\xFF\
+    sevensuperior\xFE\xE2\x81\xB7\xFF\
+    seventeencircle\xFE\xE2\x91\xB0\xFF\
+    seventeenparen\xFE\xE2\x92\x84\xFF\
+    seventeenperiod\xFE\xE2\x92\x98\xFF\
+    seventhai\xFE\xE0\xB9\x97\xFF\
+    sfthyphen\xFE\xC2\xAD\xFF\
+    shaarmenian\xFE\xD5\xB7\xFF\
+    shabengali\xFE\xE0\xA6\xB6\xFF\
+    shacyrillic\xFE\xD1\x88\xFF\
+    shaddaarabic\xFE\xD9\x91\xFF\
+    shaddadammaarabic\xFE\xEF\xB1\xA1\xFF\
+    shaddadammatanarabic\xFE\xEF\xB1\x9E\xFF\
+    shaddafathaarabic\xFE\xEF\xB1\xA0\xFF\
+    shaddafathatanarabic\xFE\xD9\x91\xD9\x8B\xFF\
+    shaddakasraarabic\xFE\xEF\xB1\xA2\xFF\
+    shaddakasratanarabic\xFE\xEF\xB1\x9F\xFF\
+    shade\xFE\xE2\x96\x92\xFF\
+    shadedark\xFE\xE2\x96\x93\xFF\
+    shadelight\xFE\xE2\x96\x91\xFF\
+    shademedium\xFE\xE2\x96\x92\xFF\
+    shadeva\xFE\xE0\xA4\xB6\xFF\
+    shagujarati\xFE\xE0\xAA\xB6\xFF\
+    shagurmukhi\xFE\xE0\xA8\xB6\xFF\
+    shalshelethebrew\xFE\xD6\x93\xFF\
+    shbopomofo\xFE\xE3\x84\x95\xFF\
+    shchacyrillic\xFE\xD1\x89\xFF\
+    sheenarabic\xFE\xD8\xB4\xFF\
+    sheenfinalarabic\xFE\xEF\xBA\xB6\xFF\
+    sheeninitialarabic\xFE\xEF\xBA\xB7\xFF\
+    sheenmedialarabic\xFE\xEF\xBA\xB8\xFF\
+    sheicoptic\xFE\xCF\xA3\xFF\
+    sheqel\xFE\xE2\x82\xAA\xFF\
+    sheqelhebrew\xFE\xE2\x82\xAA\xFF\
+    sheva\xFE\xD6\xB0\xFF\
+    sheva115\xFE\xD6\xB0\xFF\
+    sheva15\xFE\xD6\xB0\xFF\
+    sheva22\xFE\xD6\xB0\xFF\
+    sheva2e\xFE\xD6\xB0\xFF\
+    shevahebrew\xFE\xD6\xB0\xFF\
+    shevanarrowhebrew\xFE\xD6\xB0\xFF\
+    shevaquarterhebrew\xFE\xD6\xB0\xFF\
+    shevawidehebrew\xFE\xD6\xB0\xFF\
+    shhacyrillic\xFE\xD2\xBB\xFF\
+    shimacoptic\xFE\xCF\xAD\xFF\
+    shin\xFE\xD7\xA9\xFF\
+    shindagesh\xFE\xEF\xAD\x89\xFF\
+    shindageshhebrew\xFE\xEF\xAD\x89\xFF\
+    shindageshshindot\xFE\xEF\xAC\xAC\xFF\
+    shindageshshindothebrew\xFE\xEF\xAC\xAC\xFF\
+    shindageshsindot\xFE\xEF\xAC\xAD\xFF\
+    shindageshsindothebrew\xFE\xEF\xAC\xAD\xFF\
+    shindothebrew\xFE\xD7\x81\xFF\
+    shinhebrew\xFE\xD7\xA9\xFF\
+    shinshindot\xFE\xEF\xAC\xAA\xFF\
+    shinshindothebrew\xFE\xEF\xAC\xAA\xFF\
+    shinsindot\xFE\xEF\xAC\xAB\xFF\
+    shinsindothebrew\xFE\xEF\xAC\xAB\xFF\
+    shook\xFE\xCA\x82\xFF\
+    sigma\xFE\xCF\x83\xFF\
+    sigma1\xFE\xCF\x82\xFF\
+    sigmafinal\xFE\xCF\x82\xFF\
+    sigmalunatesymbolgreek\xFE\xCF\xB2\xFF\
+    sihiragana\xFE\xE3\x81\x97\xFF\
+    sikatakana\xFE\xE3\x82\xB7\xFF\
+    sikatakanahalfwidth\xFE\xEF\xBD\xBC\xFF\
+    siluqhebrew\xFE\xD6\xBD\xFF\
+    siluqlefthebrew\xFE\xD6\xBD\xFF\
+    similar\xFE\xE2\x88\xBC\xFF\
+    sindothebrew\xFE\xD7\x82\xFF\
+    siosacirclekorean\xFE\xE3\x89\xB4\xFF\
+    siosaparenkorean\xFE\xE3\x88\x94\xFF\
+    sioscieuckorean\xFE\xE3\x85\xBE\xFF\
+    sioscirclekorean\xFE\xE3\x89\xA6\xFF\
+    sioskiyeokkorean\xFE\xE3\x85\xBA\xFF\
+    sioskorean\xFE\xE3\x85\x85\xFF\
+    siosnieunkorean\xFE\xE3\x85\xBB\xFF\
+    siosparenkorean\xFE\xE3\x88\x86\xFF\
+    siospieupkorean\xFE\xE3\x85\xBD\xFF\
+    siostikeutkorean\xFE\xE3\x85\xBC\xFF\
+    six\xFE6\xFF\
+    sixarabic\xFE\xD9\xA6\xFF\
+    sixbengali\xFE\xE0\xA7\xAC\xFF\
+    sixcircle\xFE\xE2\x91\xA5\xFF\
+    sixcircleinversesansserif\xFE\xE2\x9E\x8F\xFF\
+    sixdeva\xFE\xE0\xA5\xAC\xFF\
+    sixgujarati\xFE\xE0\xAB\xAC\xFF\
+    sixgurmukhi\xFE\xE0\xA9\xAC\xFF\
+    sixhackarabic\xFE\xD9\xA6\xFF\
+    sixhangzhou\xFE\xE3\x80\xA6\xFF\
+    sixideographicparen\xFE\xE3\x88\xA5\xFF\
+    sixinferior\xFE\xE2\x82\x86\xFF\
+    sixmonospace\xFE\xEF\xBC\x96\xFF\
+    sixoldstyle\xFE\xEF\x9C\xB6\xFF\
+    sixparen\xFE\xE2\x91\xB9\xFF\
+    sixperiod\xFE\xE2\x92\x8D\xFF\
+    sixpersian\xFE\xDB\xB6\xFF\
+    sixroman\xFE\xE2\x85\xB5\xFF\
+    sixsuperior\xFE\xE2\x81\xB6\xFF\
+    sixteencircle\xFE\xE2\x91\xAF\xFF\
+    sixteencurrencydenominatorbengali\xFE\xE0\xA7\xB9\xFF\
+    sixteenparen\xFE\xE2\x92\x83\xFF\
+    sixteenperiod\xFE\xE2\x92\x97\xFF\
+    sixthai\xFE\xE0\xB9\x96\xFF\
+    slash\xFE/\xFF\
+    slashBig\xFE/\xFF\
+    slashBigg\xFE/\xFF\
+    slashbig\xFE/\xFF\
+    slashbigg\xFE/\xFF\
+    slashmonospace\xFE\xEF\xBC\x8F\xFF\
+    slong\xFE\xC5\xBF\xFF\
+    slongdotaccent\xFE\xE1\xBA\x9B\xFF\
+    smileface\xFE\xE2\x98\xBA\xFF\
+    smonospace\xFE\xEF\xBD\x93\xFF\
+    sofpasuqhebrew\xFE\xD7\x83\xFF\
+    softhyphen\xFE\xC2\xAD\xFF\
+    softsigncyrillic\xFE\xD1\x8C\xFF\
+    sohiragana\xFE\xE3\x81\x9D\xFF\
+    sokatakana\xFE\xE3\x82\xBD\xFF\
+    sokatakanahalfwidth\xFE\xEF\xBD\xBF\xFF\
+    soliduslongoverlaycmb\xFE\xCC\xB8\xFF\
+    solidusshortoverlaycmb\xFE\xCC\xB7\xFF\
+    sorusithai\xFE\xE0\xB8\xA9\xFF\
+    sosalathai\xFE\xE0\xB8\xA8\xFF\
+    sosothai\xFE\xE0\xB8\x8B\xFF\
+    sosuathai\xFE\xE0\xB8\xAA\xFF\
+    space\xFE \xFF\
+    spacehackarabic\xFE \xFF\
+    spade\xFE\xE2\x99\xA0\xFF\
+    spadesuitblack\xFE\xE2\x99\xA0\xFF\
+    spadesuitwhite\xFE\xE2\x99\xA4\xFF\
+    sparen\xFE\xE2\x92\xAE\xFF\
+    squarebelowcmb\xFE\xCC\xBB\xFF\
+    squarecc\xFE\xE3\x8F\x84\xFF\
+    squarecm\xFE\xE3\x8E\x9D\xFF\
+    squarediagonalcrosshatchfill\xFE\xE2\x96\xA9\xFF\
+    squarehorizontalfill\xFE\xE2\x96\xA4\xFF\
+    squarekg\xFE\xE3\x8E\x8F\xFF\
+    squarekm\xFE\xE3\x8E\x9E\xFF\
+    squarekmcapital\xFE\xE3\x8F\x8E\xFF\
+    squareln\xFE\xE3\x8F\x91\xFF\
+    squarelog\xFE\xE3\x8F\x92\xFF\
+    squaremg\xFE\xE3\x8E\x8E\xFF\
+    squaremil\xFE\xE3\x8F\x95\xFF\
+    squaremm\xFE\xE3\x8E\x9C\xFF\
+    squaremsquared\xFE\xE3\x8E\xA1\xFF\
+    squareorthogonalcrosshatchfill\xFE\xE2\x96\xA6\xFF\
+    squareupperlefttolowerrightfill\xFE\xE2\x96\xA7\xFF\
+    squareupperrighttolowerleftfill\xFE\xE2\x96\xA8\xFF\
+    squareverticalfill\xFE\xE2\x96\xA5\xFF\
+    squarewhitewithsmallblack\xFE\xE2\x96\xA3\xFF\
+    srsquare\xFE\xE3\x8F\x9B\xFF\
+    ssabengali\xFE\xE0\xA6\xB7\xFF\
+    ssadeva\xFE\xE0\xA4\xB7\xFF\
+    ssagujarati\xFE\xE0\xAA\xB7\xFF\
+    ssangcieuckorean\xFE\xE3\x85\x89\xFF\
+    ssanghieuhkorean\xFE\xE3\x86\x85\xFF\
+    ssangieungkorean\xFE\xE3\x86\x80\xFF\
+    ssangkiyeokkorean\xFE\xE3\x84\xB2\xFF\
+    ssangnieunkorean\xFE\xE3\x85\xA5\xFF\
+    ssangpieupkorean\xFE\xE3\x85\x83\xFF\
+    ssangsioskorean\xFE\xE3\x85\x86\xFF\
+    ssangtikeutkorean\xFE\xE3\x84\xB8\xFF\
+    ssuperior\xFE\xEF\x9B\xB2\xFF\
+    sterling\xFE\xC2\xA3\xFF\
+    sterlingmonospace\xFE\xEF\xBF\xA1\xFF\
+    strokelongoverlaycmb\xFE\xCC\xB6\xFF\
+    strokeshortoverlaycmb\xFE\xCC\xB5\xFF\
+    subset\xFE\xE2\x8A\x82\xFF\
+    subsetnotequal\xFE\xE2\x8A\x8A\xFF\
+    subsetorequal\xFE\xE2\x8A\x86\xFF\
+    succeeds\xFE\xE2\x89\xBB\xFF\
+    suchthat\xFE\xE2\x88\x8B\xFF\
+    suhiragana\xFE\xE3\x81\x99\xFF\
+    sukatakana\xFE\xE3\x82\xB9\xFF\
+    sukatakanahalfwidth\xFE\xEF\xBD\xBD\xFF\
+    sukunarabic\xFE\xD9\x92\xFF\
+    summation\xFE\xE2\x88\x91\xFF\
+    summationdisplay\xFE\xE2\x88\x91\xFF\
+    summationtext\xFE\xE2\x88\x91\xFF\
+    sun\xFE\xE2\x98\xBC\xFF\
+    superset\xFE\xE2\x8A\x83\xFF\
+    supersetnotequal\xFE\xE2\x8A\x8B\xFF\
+    supersetorequal\xFE\xE2\x8A\x87\xFF\
+    svsquare\xFE\xE3\x8F\x9C\xFF\
+    syouwaerasquare\xFE\xE3\x8D\xBC\xFF\
+    t\xFEt\xFF\
+    tabengali\xFE\xE0\xA6\xA4\xFF\
+    tackdown\xFE\xE2\x8A\xA4\xFF\
+    tackleft\xFE\xE2\x8A\xA3\xFF\
+    tadeva\xFE\xE0\xA4\xA4\xFF\
+    tagujarati\xFE\xE0\xAA\xA4\xFF\
+    tagurmukhi\xFE\xE0\xA8\xA4\xFF\
+    taharabic\xFE\xD8\xB7\xFF\
+    tahfinalarabic\xFE\xEF\xBB\x82\xFF\
+    tahinitialarabic\xFE\xEF\xBB\x83\xFF\
+    tahiragana\xFE\xE3\x81\x9F\xFF\
+    tahmedialarabic\xFE\xEF\xBB\x84\xFF\
+    taisyouerasquare\xFE\xE3\x8D\xBD\xFF\
+    takatakana\xFE\xE3\x82\xBF\xFF\
+    takatakanahalfwidth\xFE\xEF\xBE\x80\xFF\
+    tatweelarabic\xFE\xD9\x80\xFF\
+    tau\xFE\xCF\x84\xFF\
+    tav\xFE\xD7\xAA\xFF\
+    tavdages\xFE\xEF\xAD\x8A\xFF\
+    tavdagesh\xFE\xEF\xAD\x8A\xFF\
+    tavdageshhebrew\xFE\xEF\xAD\x8A\xFF\
+    tavhebrew\xFE\xD7\xAA\xFF\
+    tbar\xFE\xC5\xA7\xFF\
+    tbopomofo\xFE\xE3\x84\x8A\xFF\
+    tcaron\xFE\xC5\xA5\xFF\
+    tccurl\xFE\xCA\xA8\xFF\
+    tcedilla\xFE\xC5\xA3\xFF\
+    tcheharabic\xFE\xDA\x86\xFF\
+    tchehfinalarabic\xFE\xEF\xAD\xBB\xFF\
+    tchehinitialarabic\xFE\xEF\xAD\xBC\xFF\
+    tchehmedialarabic\xFE\xEF\xAD\xBD\xFF\
+    tchehmeeminitialarabic\xFE\xEF\xAD\xBC\xEF\xBB\xA4\xFF\
+    tcircle\xFE\xE2\x93\xA3\xFF\
+    tcircumflexbelow\xFE\xE1\xB9\xB1\xFF\
+    tcommaaccent\xFE\xC5\xA3\xFF\
+    tdieresis\xFE\xE1\xBA\x97\xFF\
+    tdotaccent\xFE\xE1\xB9\xAB\xFF\
+    tdotbelow\xFE\xE1\xB9\xAD\xFF\
+    tecyrillic\xFE\xD1\x82\xFF\
+    tedescendercyrillic\xFE\xD2\xAD\xFF\
+    teharabic\xFE\xD8\xAA\xFF\
+    tehfinalarabic\xFE\xEF\xBA\x96\xFF\
+    tehhahinitialarabic\xFE\xEF\xB2\xA2\xFF\
+    tehhahisolatedarabic\xFE\xEF\xB0\x8C\xFF\
+    tehinitialarabic\xFE\xEF\xBA\x97\xFF\
+    tehiragana\xFE\xE3\x81\xA6\xFF\
+    tehjeeminitialarabic\xFE\xEF\xB2\xA1\xFF\
+    tehjeemisolatedarabic\xFE\xEF\xB0\x8B\xFF\
+    tehmarbutaarabic\xFE\xD8\xA9\xFF\
+    tehmarbutafinalarabic\xFE\xEF\xBA\x94\xFF\
+    tehmedialarabic\xFE\xEF\xBA\x98\xFF\
+    tehmeeminitialarabic\xFE\xEF\xB2\xA4\xFF\
+    tehmeemisolatedarabic\xFE\xEF\xB0\x8E\xFF\
+    tehnoonfinalarabic\xFE\xEF\xB1\xB3\xFF\
+    tekatakana\xFE\xE3\x83\x86\xFF\
+    tekatakanahalfwidth\xFE\xEF\xBE\x83\xFF\
+    telephone\xFE\xE2\x84\xA1\xFF\
+    telephoneblack\xFE\xE2\x98\x8E\xFF\
+    telishagedolahebrew\xFE\xD6\xA0\xFF\
+    telishaqetanahebrew\xFE\xD6\xA9\xFF\
+    tencircle\xFE\xE2\x91\xA9\xFF\
+    tenideographicparen\xFE\xE3\x88\xA9\xFF\
+    tenparen\xFE\xE2\x91\xBD\xFF\
+    tenperiod\xFE\xE2\x92\x91\xFF\
+    tenroman\xFE\xE2\x85\xB9\xFF\
+    tesh\xFE\xCA\xA7\xFF\
+    tet\xFE\xD7\x98\xFF\
+    tetdagesh\xFE\xEF\xAC\xB8\xFF\
+    tetdageshhebrew\xFE\xEF\xAC\xB8\xFF\
+    tethebrew\xFE\xD7\x98\xFF\
+    tetsecyrillic\xFE\xD2\xB5\xFF\
+    tevirhebrew\xFE\xD6\x9B\xFF\
+    tevirlefthebrew\xFE\xD6\x9B\xFF\
+    thabengali\xFE\xE0\xA6\xA5\xFF\
+    thadeva\xFE\xE0\xA4\xA5\xFF\
+    thagujarati\xFE\xE0\xAA\xA5\xFF\
+    thagurmukhi\xFE\xE0\xA8\xA5\xFF\
+    thalarabic\xFE\xD8\xB0\xFF\
+    thalfinalarabic\xFE\xEF\xBA\xAC\xFF\
+    thanthakhatlowleftthai\xFE\xEF\xA2\x98\xFF\
+    thanthakhatlowrightthai\xFE\xEF\xA2\x97\xFF\
+    thanthakhatthai\xFE\xE0\xB9\x8C\xFF\
+    thanthakhatupperleftthai\xFE\xEF\xA2\x96\xFF\
+    theharabic\xFE\xD8\xAB\xFF\
+    thehfinalarabic\xFE\xEF\xBA\x9A\xFF\
+    thehinitialarabic\xFE\xEF\xBA\x9B\xFF\
+    thehmedialarabic\xFE\xEF\xBA\x9C\xFF\
+    thereexists\xFE\xE2\x88\x83\xFF\
+    therefore\xFE\xE2\x88\xB4\xFF\
+    theta\xFE\xCE\xB8\xFF\
+    theta1\xFE\xCF\x91\xFF\
+    thetasymbolgreek\xFE\xCF\x91\xFF\
+    thieuthacirclekorean\xFE\xE3\x89\xB9\xFF\
+    thieuthaparenkorean\xFE\xE3\x88\x99\xFF\
+    thieuthcirclekorean\xFE\xE3\x89\xAB\xFF\
+    thieuthkorean\xFE\xE3\x85\x8C\xFF\
+    thieuthparenkorean\xFE\xE3\x88\x8B\xFF\
+    thirteencircle\xFE\xE2\x91\xAC\xFF\
+    thirteenparen\xFE\xE2\x92\x80\xFF\
+    thirteenperiod\xFE\xE2\x92\x94\xFF\
+    thonangmonthothai\xFE\xE0\xB8\x91\xFF\
+    thook\xFE\xC6\xAD\xFF\
+    thophuthaothai\xFE\xE0\xB8\x92\xFF\
+    thorn\xFE\xC3\xBE\xFF\
+    thothahanthai\xFE\xE0\xB8\x97\xFF\
+    thothanthai\xFE\xE0\xB8\x90\xFF\
+    thothongthai\xFE\xE0\xB8\x98\xFF\
+    thothungthai\xFE\xE0\xB8\x96\xFF\
+    thousandcyrillic\xFE\xD2\x82\xFF\
+    thousandsseparatorarabic\xFE\xD9\xAC\xFF\
+    thousandsseparatorpersian\xFE\xD9\xAC\xFF\
+    three\xFE3\xFF\
+    threearabic\xFE\xD9\xA3\xFF\
+    threebengali\xFE\xE0\xA7\xA9\xFF\
+    threecircle\xFE\xE2\x91\xA2\xFF\
+    threecircleinversesansserif\xFE\xE2\x9E\x8C\xFF\
+    threedeva\xFE\xE0\xA5\xA9\xFF\
+    threeeighths\xFE\xE2\x85\x9C\xFF\
+    threegujarati\xFE\xE0\xAB\xA9\xFF\
+    threegurmukhi\xFE\xE0\xA9\xA9\xFF\
+    threehackarabic\xFE\xD9\xA3\xFF\
+    threehangzhou\xFE\xE3\x80\xA3\xFF\
+    threeideographicparen\xFE\xE3\x88\xA2\xFF\
+    threeinferior\xFE\xE2\x82\x83\xFF\
+    threemonospace\xFE\xEF\xBC\x93\xFF\
+    threenumeratorbengali\xFE\xE0\xA7\xB6\xFF\
+    threeoldstyle\xFE\xEF\x9C\xB3\xFF\
+    threeparen\xFE\xE2\x91\xB6\xFF\
+    threeperiod\xFE\xE2\x92\x8A\xFF\
+    threepersian\xFE\xDB\xB3\xFF\
+    threequarters\xFE\xC2\xBE\xFF\
+    threequartersemdash\xFE\xEF\x9B\x9E\xFF\
+    threeroman\xFE\xE2\x85\xB2\xFF\
+    threesuperior\xFE\xC2\xB3\xFF\
+    threethai\xFE\xE0\xB9\x93\xFF\
+    thzsquare\xFE\xE3\x8E\x94\xFF\
+    tihiragana\xFE\xE3\x81\xA1\xFF\
+    tikatakana\xFE\xE3\x83\x81\xFF\
+    tikatakanahalfwidth\xFE\xEF\xBE\x81\xFF\
+    tikeutacirclekorean\xFE\xE3\x89\xB0\xFF\
+    tikeutaparenkorean\xFE\xE3\x88\x90\xFF\
+    tikeutcirclekorean\xFE\xE3\x89\xA2\xFF\
+    tikeutkorean\xFE\xE3\x84\xB7\xFF\
+    tikeutparenkorean\xFE\xE3\x88\x82\xFF\
+    tilde\xFE\xCB\x9C\xFF\
+    tildebelowcmb\xFE\xCC\xB0\xFF\
+    tildecmb\xFE\xCC\x83\xFF\
+    tildecomb\xFE\xCC\x83\xFF\
+    tildedoublecmb\xFE\xCD\xA0\xFF\
+    tildeoperator\xFE\xE2\x88\xBC\xFF\
+    tildeoverlaycmb\xFE\xCC\xB4\xFF\
+    tildeverticalcmb\xFE\xCC\xBE\xFF\
+    tildewide\xFE\xCB\x9C\xFF\
+    tildewider\xFE\xCB\x9C\xFF\
+    tildewidest\xFE\xCB\x9C\xFF\
+    timescircle\xFE\xE2\x8A\x97\xFF\
+    tipehahebrew\xFE\xD6\x96\xFF\
+    tipehalefthebrew\xFE\xD6\x96\xFF\
+    tippigurmukhi\xFE\xE0\xA9\xB0\xFF\
+    titlocyrilliccmb\xFE\xD2\x83\xFF\
+    tiwnarmenian\xFE\xD5\xBF\xFF\
+    tlinebelow\xFE\xE1\xB9\xAF\xFF\
+    tmonospace\xFE\xEF\xBD\x94\xFF\
+    toarmenian\xFE\xD5\xA9\xFF\
+    tohiragana\xFE\xE3\x81\xA8\xFF\
+    tokatakana\xFE\xE3\x83\x88\xFF\
+    tokatakanahalfwidth\xFE\xEF\xBE\x84\xFF\
+    tonebarextrahighmod\xFE\xCB\xA5\xFF\
+    tonebarextralowmod\xFE\xCB\xA9\xFF\
+    tonebarhighmod\xFE\xCB\xA6\xFF\
+    tonebarlowmod\xFE\xCB\xA8\xFF\
+    tonebarmidmod\xFE\xCB\xA7\xFF\
+    tonefive\xFE\xC6\xBD\xFF\
+    tonesix\xFE\xC6\x85\xFF\
+    tonetwo\xFE\xC6\xA8\xFF\
+    tonos\xFE\xCE\x84\xFF\
+    tonsquare\xFE\xE3\x8C\xA7\xFF\
+    topatakthai\xFE\xE0\xB8\x8F\xFF\
+    tortoiseshellbracketleft\xFE\xE3\x80\x94\xFF\
+    tortoiseshellbracketleftsmall\xFE\xEF\xB9\x9D\xFF\
+    tortoiseshellbracketleftvertical\xFE\xEF\xB8\xB9\xFF\
+    tortoiseshellbracketright\xFE\xE3\x80\x95\xFF\
+    tortoiseshellbracketrightsmall\xFE\xEF\xB9\x9E\xFF\
+    tortoiseshellbracketrightvertical\xFE\xEF\xB8\xBA\xFF\
+    totaothai\xFE\xE0\xB8\x95\xFF\
+    tpalatalhook\xFE\xC6\xAB\xFF\
+    tparen\xFE\xE2\x92\xAF\xFF\
+    trademark\xFE\xE2\x84\xA2\xFF\
+    trademarksans\xFE\xEF\xA3\xAA\xFF\
+    trademarkserif\xFE\xEF\x9B\x9B\xFF\
+    tretroflexhook\xFE\xCA\x88\xFF\
+    triagdn\xFE\xE2\x96\xBC\xFF\
+    triaglf\xFE\xE2\x97\x84\xFF\
+    triagrt\xFE\xE2\x96\xBA\xFF\
+    triagup\xFE\xE2\x96\xB2\xFF\
+    ts\xFE\xCA\xA6\xFF\
+    tsadi\xFE\xD7\xA6\xFF\
+    tsadidagesh\xFE\xEF\xAD\x86\xFF\
+    tsadidageshhebrew\xFE\xEF\xAD\x86\xFF\
+    tsadihebrew\xFE\xD7\xA6\xFF\
+    tsecyrillic\xFE\xD1\x86\xFF\
+    tsere\xFE\xD6\xB5\xFF\
+    tsere12\xFE\xD6\xB5\xFF\
+    tsere1e\xFE\xD6\xB5\xFF\
+    tsere2b\xFE\xD6\xB5\xFF\
+    tserehebrew\xFE\xD6\xB5\xFF\
+    tserenarrowhebrew\xFE\xD6\xB5\xFF\
+    tserequarterhebrew\xFE\xD6\xB5\xFF\
+    tserewidehebrew\xFE\xD6\xB5\xFF\
+    tshecyrillic\xFE\xD1\x9B\xFF\
+    tsuperior\xFE\xEF\x9B\xB3\xFF\
+    ttabengali\xFE\xE0\xA6\x9F\xFF\
+    ttadeva\xFE\xE0\xA4\x9F\xFF\
+    ttagujarati\xFE\xE0\xAA\x9F\xFF\
+    ttagurmukhi\xFE\xE0\xA8\x9F\xFF\
+    tteharabic\xFE\xD9\xB9\xFF\
+    ttehfinalarabic\xFE\xEF\xAD\xA7\xFF\
+    ttehinitialarabic\xFE\xEF\xAD\xA8\xFF\
+    ttehmedialarabic\xFE\xEF\xAD\xA9\xFF\
+    tthabengali\xFE\xE0\xA6\xA0\xFF\
+    tthadeva\xFE\xE0\xA4\xA0\xFF\
+    tthagujarati\xFE\xE0\xAA\xA0\xFF\
+    tthagurmukhi\xFE\xE0\xA8\xA0\xFF\
+    tturned\xFE\xCA\x87\xFF\
+    tuhiragana\xFE\xE3\x81\xA4\xFF\
+    tukatakana\xFE\xE3\x83\x84\xFF\
+    tukatakanahalfwidth\xFE\xEF\xBE\x82\xFF\
+    tusmallhiragana\xFE\xE3\x81\xA3\xFF\
+    tusmallkatakana\xFE\xE3\x83\x83\xFF\
+    tusmallkatakanahalfwidth\xFE\xEF\xBD\xAF\xFF\
+    twelvecircle\xFE\xE2\x91\xAB\xFF\
+    twelveparen\xFE\xE2\x91\xBF\xFF\
+    twelveperiod\xFE\xE2\x92\x93\xFF\
+    twelveroman\xFE\xE2\x85\xBB\xFF\
+    twentycircle\xFE\xE2\x91\xB3\xFF\
+    twentyhangzhou\xFE\xE5\x8D\x84\xFF\
+    twentyparen\xFE\xE2\x92\x87\xFF\
+    twentyperiod\xFE\xE2\x92\x9B\xFF\
+    two\xFE2\xFF\
+    twoarabic\xFE\xD9\xA2\xFF\
+    twobengali\xFE\xE0\xA7\xA8\xFF\
+    twocircle\xFE\xE2\x91\xA1\xFF\
+    twocircleinversesansserif\xFE\xE2\x9E\x8B\xFF\
+    twodeva\xFE\xE0\xA5\xA8\xFF\
+    twodotenleader\xFE\xE2\x80\xA5\xFF\
+    twodotleader\xFE\xE2\x80\xA5\xFF\
+    twodotleadervertical\xFE\xEF\xB8\xB0\xFF\
+    twogujarati\xFE\xE0\xAB\xA8\xFF\
+    twogurmukhi\xFE\xE0\xA9\xA8\xFF\
+    twohackarabic\xFE\xD9\xA2\xFF\
+    twohangzhou\xFE\xE3\x80\xA2\xFF\
+    twoideographicparen\xFE\xE3\x88\xA1\xFF\
+    twoinferior\xFE\xE2\x82\x82\xFF\
+    twomonospace\xFE\xEF\xBC\x92\xFF\
+    twonumeratorbengali\xFE\xE0\xA7\xB5\xFF\
+    twooldstyle\xFE\xEF\x9C\xB2\xFF\
+    twoparen\xFE\xE2\x91\xB5\xFF\
+    twoperiod\xFE\xE2\x92\x89\xFF\
+    twopersian\xFE\xDB\xB2\xFF\
+    tworoman\xFE\xE2\x85\xB1\xFF\
+    twostroke\xFE\xC6\xBB\xFF\
+    twosuperior\xFE\xC2\xB2\xFF\
+    twothai\xFE\xE0\xB9\x92\xFF\
+    twothirds\xFE\xE2\x85\x94\xFF\
+    u\xFEu\xFF\
+    uacute\xFE\xC3\xBA\xFF\
+    ubar\xFE\xCA\x89\xFF\
+    ubengali\xFE\xE0\xA6\x89\xFF\
+    ubopomofo\xFE\xE3\x84\xA8\xFF\
+    ubreve\xFE\xC5\xAD\xFF\
+    ucaron\xFE\xC7\x94\xFF\
+    ucircle\xFE\xE2\x93\xA4\xFF\
+    ucircumflex\xFE\xC3\xBB\xFF\
+    ucircumflexbelow\xFE\xE1\xB9\xB7\xFF\
+    ucyrillic\xFE\xD1\x83\xFF\
+    udattadeva\xFE\xE0\xA5\x91\xFF\
+    udblacute\xFE\xC5\xB1\xFF\
+    udblgrave\xFE\xC8\x95\xFF\
+    udeva\xFE\xE0\xA4\x89\xFF\
+    udieresis\xFE\xC3\xBC\xFF\
+    udieresisacute\xFE\xC7\x98\xFF\
+    udieresisbelow\xFE\xE1\xB9\xB3\xFF\
+    udieresiscaron\xFE\xC7\x9A\xFF\
+    udieresiscyrillic\xFE\xD3\xB1\xFF\
+    udieresisgrave\xFE\xC7\x9C\xFF\
+    udieresismacron\xFE\xC7\x96\xFF\
+    udotbelow\xFE\xE1\xBB\xA5\xFF\
+    ugrave\xFE\xC3\xB9\xFF\
+    ugujarati\xFE\xE0\xAA\x89\xFF\
+    ugurmukhi\xFE\xE0\xA8\x89\xFF\
+    uhiragana\xFE\xE3\x81\x86\xFF\
+    uhookabove\xFE\xE1\xBB\xA7\xFF\
+    uhorn\xFE\xC6\xB0\xFF\
+    uhornacute\xFE\xE1\xBB\xA9\xFF\
+    uhorndotbelow\xFE\xE1\xBB\xB1\xFF\
+    uhorngrave\xFE\xE1\xBB\xAB\xFF\
+    uhornhookabove\xFE\xE1\xBB\xAD\xFF\
+    uhorntilde\xFE\xE1\xBB\xAF\xFF\
+    uhungarumlaut\xFE\xC5\xB1\xFF\
+    uhungarumlautcyrillic\xFE\xD3\xB3\xFF\
+    uinvertedbreve\xFE\xC8\x97\xFF\
+    ukatakana\xFE\xE3\x82\xA6\xFF\
+    ukatakanahalfwidth\xFE\xEF\xBD\xB3\xFF\
+    ukcyrillic\xFE\xD1\xB9\xFF\
+    ukorean\xFE\xE3\x85\x9C\xFF\
+    umacron\xFE\xC5\xAB\xFF\
+    umacroncyrillic\xFE\xD3\xAF\xFF\
+    umacrondieresis\xFE\xE1\xB9\xBB\xFF\
+    umatragurmukhi\xFE\xE0\xA9\x81\xFF\
+    umonospace\xFE\xEF\xBD\x95\xFF\
+    underscore\xFE_\xFF\
+    underscoredbl\xFE\xE2\x80\x97\xFF\
+    underscoremonospace\xFE\xEF\xBC\xBF\xFF\
+    underscorevertical\xFE\xEF\xB8\xB3\xFF\
+    underscorewavy\xFE\xEF\xB9\x8F\xFF\
+    union\xFE\xE2\x88\xAA\xFF\
+    uniondisplay\xFE\xE2\x8B\x83\xFF\
+    unionmultidisplay\xFE\xE2\x8A\x8E\xFF\
+    unionmultitext\xFE\xE2\x8A\x8E\xFF\
+    unionsqdisplay\xFE\xE2\x8A\x94\xFF\
+    unionsqtext\xFE\xE2\x8A\x94\xFF\
+    uniontext\xFE\xE2\x8B\x83\xFF\
+    universal\xFE\xE2\x88\x80\xFF\
+    uogonek\xFE\xC5\xB3\xFF\
+    uparen\xFE\xE2\x92\xB0\xFF\
+    upblock\xFE\xE2\x96\x80\xFF\
+    upperdothebrew\xFE\xD7\x84\xFF\
+    upsilon\xFE\xCF\x85\xFF\
+    upsilondieresis\xFE\xCF\x8B\xFF\
+    upsilondieresistonos\xFE\xCE\xB0\xFF\
+    upsilonlatin\xFE\xCA\x8A\xFF\
+    upsilontonos\xFE\xCF\x8D\xFF\
+    uptackbelowcmb\xFE\xCC\x9D\xFF\
+    uptackmod\xFE\xCB\x94\xFF\
+    uragurmukhi\xFE\xE0\xA9\xB3\xFF\
+    uring\xFE\xC5\xAF\xFF\
+    ushortcyrillic\xFE\xD1\x9E\xFF\
+    usmallhiragana\xFE\xE3\x81\x85\xFF\
+    usmallkatakana\xFE\xE3\x82\xA5\xFF\
+    usmallkatakanahalfwidth\xFE\xEF\xBD\xA9\xFF\
+    ustraightcyrillic\xFE\xD2\xAF\xFF\
+    ustraightstrokecyrillic\xFE\xD2\xB1\xFF\
+    utilde\xFE\xC5\xA9\xFF\
+    utildeacute\xFE\xE1\xB9\xB9\xFF\
+    utildebelow\xFE\xE1\xB9\xB5\xFF\
+    uubengali\xFE\xE0\xA6\x8A\xFF\
+    uudeva\xFE\xE0\xA4\x8A\xFF\
+    uugujarati\xFE\xE0\xAA\x8A\xFF\
+    uugurmukhi\xFE\xE0\xA8\x8A\xFF\
+    uumatragurmukhi\xFE\xE0\xA9\x82\xFF\
+    uuvowelsignbengali\xFE\xE0\xA7\x82\xFF\
+    uuvowelsigndeva\xFE\xE0\xA5\x82\xFF\
+    uuvowelsigngujarati\xFE\xE0\xAB\x82\xFF\
+    uvowelsignbengali\xFE\xE0\xA7\x81\xFF\
+    uvowelsigndeva\xFE\xE0\xA5\x81\xFF\
+    uvowelsigngujarati\xFE\xE0\xAB\x81\xFF\
+    v\xFEv\xFF\
+    vadeva\xFE\xE0\xA4\xB5\xFF\
+    vagujarati\xFE\xE0\xAA\xB5\xFF\
+    vagurmukhi\xFE\xE0\xA8\xB5\xFF\
+    vakatakana\xFE\xE3\x83\xB7\xFF\
+    vav\xFE\xD7\x95\xFF\
+    vavdagesh\xFE\xEF\xAC\xB5\xFF\
+    vavdagesh65\xFE\xEF\xAC\xB5\xFF\
+    vavdageshhebrew\xFE\xEF\xAC\xB5\xFF\
+    vavhebrew\xFE\xD7\x95\xFF\
+    vavholam\xFE\xEF\xAD\x8B\xFF\
+    vavholamhebrew\xFE\xEF\xAD\x8B\xFF\
+    vavvavhebrew\xFE\xD7\xB0\xFF\
+    vavyodhebrew\xFE\xD7\xB1\xFF\
+    vcircle\xFE\xE2\x93\xA5\xFF\
+    vdotbelow\xFE\xE1\xB9\xBF\xFF\
+    vecyrillic\xFE\xD0\xB2\xFF\
+    veharabic\xFE\xDA\xA4\xFF\
+    vehfinalarabic\xFE\xEF\xAD\xAB\xFF\
+    vehinitialarabic\xFE\xEF\xAD\xAC\xFF\
+    vehmedialarabic\xFE\xEF\xAD\xAD\xFF\
+    vekatakana\xFE\xE3\x83\xB9\xFF\
+    venus\xFE\xE2\x99\x80\xFF\
+    verticalbar\xFE|\xFF\
+    verticallineabovecmb\xFE\xCC\x8D\xFF\
+    verticallinebelowcmb\xFE\xCC\xA9\xFF\
+    verticallinelowmod\xFE\xCB\x8C\xFF\
+    verticallinemod\xFE\xCB\x88\xFF\
+    vewarmenian\xFE\xD5\xBE\xFF\
+    vextenddouble\xFE\xE2\x88\xA5\xFF\
+    vextendsingle\xFE\xE2\x88\xA3\xFF\
+    vhook\xFE\xCA\x8B\xFF\
+    vikatakana\xFE\xE3\x83\xB8\xFF\
+    viramabengali\xFE\xE0\xA7\x8D\xFF\
+    viramadeva\xFE\xE0\xA5\x8D\xFF\
+    viramagujarati\xFE\xE0\xAB\x8D\xFF\
+    visargabengali\xFE\xE0\xA6\x83\xFF\
+    visargadeva\xFE\xE0\xA4\x83\xFF\
+    visargagujarati\xFE\xE0\xAA\x83\xFF\
+    vmonospace\xFE\xEF\xBD\x96\xFF\
+    voarmenian\xFE\xD5\xB8\xFF\
+    voicediterationhiragana\xFE\xE3\x82\x9E\xFF\
+    voicediterationkatakana\xFE\xE3\x83\xBE\xFF\
+    voicedmarkkana\xFE\xE3\x82\x9B\xFF\
+    voicedmarkkanahalfwidth\xFE\xEF\xBE\x9E\xFF\
+    vokatakana\xFE\xE3\x83\xBA\xFF\
+    vparen\xFE\xE2\x92\xB1\xFF\
+    vtilde\xFE\xE1\xB9\xBD\xFF\
+    vturned\xFE\xCA\x8C\xFF\
+    vuhiragana\xFE\xE3\x82\x94\xFF\
+    vukatakana\xFE\xE3\x83\xB4\xFF\
+    w\xFEw\xFF\
+    wacute\xFE\xE1\xBA\x83\xFF\
+    waekorean\xFE\xE3\x85\x99\xFF\
+    wahiragana\xFE\xE3\x82\x8F\xFF\
+    wakatakana\xFE\xE3\x83\xAF\xFF\
+    wakatakanahalfwidth\xFE\xEF\xBE\x9C\xFF\
+    wakorean\xFE\xE3\x85\x98\xFF\
+    wasmallhiragana\xFE\xE3\x82\x8E\xFF\
+    wasmallkatakana\xFE\xE3\x83\xAE\xFF\
+    wattosquare\xFE\xE3\x8D\x97\xFF\
+    wavedash\xFE\xE3\x80\x9C\xFF\
+    wavyunderscorevertical\xFE\xEF\xB8\xB4\xFF\
+    wawarabic\xFE\xD9\x88\xFF\
+    wawfinalarabic\xFE\xEF\xBB\xAE\xFF\
+    wawhamzaabovearabic\xFE\xD8\xA4\xFF\
+    wawhamzaabovefinalarabic\xFE\xEF\xBA\x86\xFF\
+    wbsquare\xFE\xE3\x8F\x9D\xFF\
+    wcircle\xFE\xE2\x93\xA6\xFF\
+    wcircumflex\xFE\xC5\xB5\xFF\
+    wdieresis\xFE\xE1\xBA\x85\xFF\
+    wdotaccent\xFE\xE1\xBA\x87\xFF\
+    wdotbelow\xFE\xE1\xBA\x89\xFF\
+    wehiragana\xFE\xE3\x82\x91\xFF\
+    weierstrass\xFE\xE2\x84\x98\xFF\
+    wekatakana\xFE\xE3\x83\xB1\xFF\
+    wekorean\xFE\xE3\x85\x9E\xFF\
+    weokorean\xFE\xE3\x85\x9D\xFF\
+    wgrave\xFE\xE1\xBA\x81\xFF\
+    whitebullet\xFE\xE2\x97\xA6\xFF\
+    whitecircle\xFE\xE2\x97\x8B\xFF\
+    whitecircleinverse\xFE\xE2\x97\x99\xFF\
+    whitecornerbracketleft\xFE\xE3\x80\x8E\xFF\
+    whitecornerbracketleftvertical\xFE\xEF\xB9\x83\xFF\
+    whitecornerbracketright\xFE\xE3\x80\x8F\xFF\
+    whitecornerbracketrightvertical\xFE\xEF\xB9\x84\xFF\
+    whitediamond\xFE\xE2\x97\x87\xFF\
+    whitediamondcontainingblacksmalldiamond\xFE\xE2\x97\x88\xFF\
+    whitedownpointingsmalltriangle\xFE\xE2\x96\xBF\xFF\
+    whitedownpointingtriangle\xFE\xE2\x96\xBD\xFF\
+    whiteleftpointingsmalltriangle\xFE\xE2\x97\x83\xFF\
+    whiteleftpointingtriangle\xFE\xE2\x97\x81\xFF\
+    whitelenticularbracketleft\xFE\xE3\x80\x96\xFF\
+    whitelenticularbracketright\xFE\xE3\x80\x97\xFF\
+    whiterightpointingsmalltriangle\xFE\xE2\x96\xB9\xFF\
+    whiterightpointingtriangle\xFE\xE2\x96\xB7\xFF\
+    whitesmallsquare\xFE\xE2\x96\xAB\xFF\
+    whitesmilingface\xFE\xE2\x98\xBA\xFF\
+    whitesquare\xFE\xE2\x96\xA1\xFF\
+    whitestar\xFE\xE2\x98\x86\xFF\
+    whitetelephone\xFE\xE2\x98\x8F\xFF\
+    whitetortoiseshellbracketleft\xFE\xE3\x80\x98\xFF\
+    whitetortoiseshellbracketright\xFE\xE3\x80\x99\xFF\
+    whiteuppointingsmalltriangle\xFE\xE2\x96\xB5\xFF\
+    whiteuppointingtriangle\xFE\xE2\x96\xB3\xFF\
+    wihiragana\xFE\xE3\x82\x90\xFF\
+    wikatakana\xFE\xE3\x83\xB0\xFF\
+    wikorean\xFE\xE3\x85\x9F\xFF\
+    wmonospace\xFE\xEF\xBD\x97\xFF\
+    wohiragana\xFE\xE3\x82\x92\xFF\
+    wokatakana\xFE\xE3\x83\xB2\xFF\
+    wokatakanahalfwidth\xFE\xEF\xBD\xA6\xFF\
+    won\xFE\xE2\x82\xA9\xFF\
+    wonmonospace\xFE\xEF\xBF\xA6\xFF\
+    wowaenthai\xFE\xE0\xB8\xA7\xFF\
+    wparen\xFE\xE2\x92\xB2\xFF\
+    wring\xFE\xE1\xBA\x98\xFF\
+    wsuperior\xFE\xCA\xB7\xFF\
+    wturned\xFE\xCA\x8D\xFF\
+    wynn\xFE\xC6\xBF\xFF\
+    x\xFEx\xFF\
+    xabovecmb\xFE\xCC\xBD\xFF\
+    xbopomofo\xFE\xE3\x84\x92\xFF\
+    xcircle\xFE\xE2\x93\xA7\xFF\
+    xdieresis\xFE\xE1\xBA\x8D\xFF\
+    xdotaccent\xFE\xE1\xBA\x8B\xFF\
+    xeharmenian\xFE\xD5\xAD\xFF\
+    xi\xFE\xCE\xBE\xFF\
+    xmonospace\xFE\xEF\xBD\x98\xFF\
+    xparen\xFE\xE2\x92\xB3\xFF\
+    xsuperior\xFE\xCB\xA3\xFF\
+    y\xFEy\xFF\
+    yaadosquare\xFE\xE3\x8D\x8E\xFF\
+    yabengali\xFE\xE0\xA6\xAF\xFF\
+    yacute\xFE\xC3\xBD\xFF\
+    yadeva\xFE\xE0\xA4\xAF\xFF\
+    yaekorean\xFE\xE3\x85\x92\xFF\
+    yagujarati\xFE\xE0\xAA\xAF\xFF\
+    yagurmukhi\xFE\xE0\xA8\xAF\xFF\
+    yahiragana\xFE\xE3\x82\x84\xFF\
+    yakatakana\xFE\xE3\x83\xA4\xFF\
+    yakatakanahalfwidth\xFE\xEF\xBE\x94\xFF\
+    yakorean\xFE\xE3\x85\x91\xFF\
+    yamakkanthai\xFE\xE0\xB9\x8E\xFF\
+    yasmallhiragana\xFE\xE3\x82\x83\xFF\
+    yasmallkatakana\xFE\xE3\x83\xA3\xFF\
+    yasmallkatakanahalfwidth\xFE\xEF\xBD\xAC\xFF\
+    yatcyrillic\xFE\xD1\xA3\xFF\
+    ycircle\xFE\xE2\x93\xA8\xFF\
+    ycircumflex\xFE\xC5\xB7\xFF\
+    ydieresis\xFE\xC3\xBF\xFF\
+    ydotaccent\xFE\xE1\xBA\x8F\xFF\
+    ydotbelow\xFE\xE1\xBB\xB5\xFF\
+    yeharabic\xFE\xD9\x8A\xFF\
+    yehbarreearabic\xFE\xDB\x92\xFF\
+    yehbarreefinalarabic\xFE\xEF\xAE\xAF\xFF\
+    yehfinalarabic\xFE\xEF\xBB\xB2\xFF\
+    yehhamzaabovearabic\xFE\xD8\xA6\xFF\
+    yehhamzaabovefinalarabic\xFE\xEF\xBA\x8A\xFF\
+    yehhamzaaboveinitialarabic\xFE\xEF\xBA\x8B\xFF\
+    yehhamzaabovemedialarabic\xFE\xEF\xBA\x8C\xFF\
+    yehinitialarabic\xFE\xEF\xBB\xB3\xFF\
+    yehmedialarabic\xFE\xEF\xBB\xB4\xFF\
+    yehmeeminitialarabic\xFE\xEF\xB3\x9D\xFF\
+    yehmeemisolatedarabic\xFE\xEF\xB1\x98\xFF\
+    yehnoonfinalarabic\xFE\xEF\xB2\x94\xFF\
+    yehthreedotsbelowarabic\xFE\xDB\x91\xFF\
+    yekorean\xFE\xE3\x85\x96\xFF\
+    yen\xFE\xC2\xA5\xFF\
+    yenmonospace\xFE\xEF\xBF\xA5\xFF\
+    yeokorean\xFE\xE3\x85\x95\xFF\
+    yeorinhieuhkorean\xFE\xE3\x86\x86\xFF\
+    yerahbenyomohebrew\xFE\xD6\xAA\xFF\
+    yerahbenyomolefthebrew\xFE\xD6\xAA\xFF\
+    yericyrillic\xFE\xD1\x8B\xFF\
+    yerudieresiscyrillic\xFE\xD3\xB9\xFF\
+    yesieungkorean\xFE\xE3\x86\x81\xFF\
+    yesieungpansioskorean\xFE\xE3\x86\x83\xFF\
+    yesieungsioskorean\xFE\xE3\x86\x82\xFF\
+    yetivhebrew\xFE\xD6\x9A\xFF\
+    ygrave\xFE\xE1\xBB\xB3\xFF\
+    yhook\xFE\xC6\xB4\xFF\
+    yhookabove\xFE\xE1\xBB\xB7\xFF\
+    yiarmenian\xFE\xD5\xB5\xFF\
+    yicyrillic\xFE\xD1\x97\xFF\
+    yikorean\xFE\xE3\x85\xA2\xFF\
+    yinyang\xFE\xE2\x98\xAF\xFF\
+    yiwnarmenian\xFE\xD6\x82\xFF\
+    ymonospace\xFE\xEF\xBD\x99\xFF\
+    yod\xFE\xD7\x99\xFF\
+    yoddagesh\xFE\xEF\xAC\xB9\xFF\
+    yoddageshhebrew\xFE\xEF\xAC\xB9\xFF\
+    yodhebrew\xFE\xD7\x99\xFF\
+    yodyodhebrew\xFE\xD7\xB2\xFF\
+    yodyodpatahhebrew\xFE\xEF\xAC\x9F\xFF\
+    yohiragana\xFE\xE3\x82\x88\xFF\
+    yoikorean\xFE\xE3\x86\x89\xFF\
+    yokatakana\xFE\xE3\x83\xA8\xFF\
+    yokatakanahalfwidth\xFE\xEF\xBE\x96\xFF\
+    yokorean\xFE\xE3\x85\x9B\xFF\
+    yosmallhiragana\xFE\xE3\x82\x87\xFF\
+    yosmallkatakana\xFE\xE3\x83\xA7\xFF\
+    yosmallkatakanahalfwidth\xFE\xEF\xBD\xAE\xFF\
+    yotgreek\xFE\xCF\xB3\xFF\
+    yoyaekorean\xFE\xE3\x86\x88\xFF\
+    yoyakorean\xFE\xE3\x86\x87\xFF\
+    yoyakthai\xFE\xE0\xB8\xA2\xFF\
+    yoyingthai\xFE\xE0\xB8\x8D\xFF\
+    yparen\xFE\xE2\x92\xB4\xFF\
+    ypogegrammeni\xFE\xCD\xBA\xFF\
+    ypogegrammenigreekcmb\xFE\xCD\x85\xFF\
+    yr\xFE\xC6\xA6\xFF\
+    yring\xFE\xE1\xBA\x99\xFF\
+    ysuperior\xFE\xCA\xB8\xFF\
+    ytilde\xFE\xE1\xBB\xB9\xFF\
+    yturned\xFE\xCA\x8E\xFF\
+    yuhiragana\xFE\xE3\x82\x86\xFF\
+    yuikorean\xFE\xE3\x86\x8C\xFF\
+    yukatakana\xFE\xE3\x83\xA6\xFF\
+    yukatakanahalfwidth\xFE\xEF\xBE\x95\xFF\
+    yukorean\xFE\xE3\x85\xA0\xFF\
+    yusbigcyrillic\xFE\xD1\xAB\xFF\
+    yusbigiotifiedcyrillic\xFE\xD1\xAD\xFF\
+    yuslittlecyrillic\xFE\xD1\xA7\xFF\
+    yuslittleiotifiedcyrillic\xFE\xD1\xA9\xFF\
+    yusmallhiragana\xFE\xE3\x82\x85\xFF\
+    yusmallkatakana\xFE\xE3\x83\xA5\xFF\
+    yusmallkatakanahalfwidth\xFE\xEF\xBD\xAD\xFF\
+    yuyekorean\xFE\xE3\x86\x8B\xFF\
+    yuyeokorean\xFE\xE3\x86\x8A\xFF\
+    yyabengali\xFE\xE0\xA7\x9F\xFF\
+    yyadeva\xFE\xE0\xA5\x9F\xFF\
+    z\xFEz\xFF\
+    zaarmenian\xFE\xD5\xA6\xFF\
+    zacute\xFE\xC5\xBA\xFF\
+    zadeva\xFE\xE0\xA5\x9B\xFF\
+    zagurmukhi\xFE\xE0\xA9\x9B\xFF\
+    zaharabic\xFE\xD8\xB8\xFF\
+    zahfinalarabic\xFE\xEF\xBB\x86\xFF\
+    zahinitialarabic\xFE\xEF\xBB\x87\xFF\
+    zahiragana\xFE\xE3\x81\x96\xFF\
+    zahmedialarabic\xFE\xEF\xBB\x88\xFF\
+    zainarabic\xFE\xD8\xB2\xFF\
+    zainfinalarabic\xFE\xEF\xBA\xB0\xFF\
+    zakatakana\xFE\xE3\x82\xB6\xFF\
+    zaqefgadolhebrew\xFE\xD6\x95\xFF\
+    zaqefqatanhebrew\xFE\xD6\x94\xFF\
+    zarqahebrew\xFE\xD6\x98\xFF\
+    zayin\xFE\xD7\x96\xFF\
+    zayindagesh\xFE\xEF\xAC\xB6\xFF\
+    zayindageshhebrew\xFE\xEF\xAC\xB6\xFF\
+    zayinhebrew\xFE\xD7\x96\xFF\
+    zbopomofo\xFE\xE3\x84\x97\xFF\
+    zcaron\xFE\xC5\xBE\xFF\
+    zcircle\xFE\xE2\x93\xA9\xFF\
+    zcircumflex\xFE\xE1\xBA\x91\xFF\
+    zcurl\xFE\xCA\x91\xFF\
+    zdot\xFE\xC5\xBC\xFF\
+    zdotaccent\xFE\xC5\xBC\xFF\
+    zdotbelow\xFE\xE1\xBA\x93\xFF\
+    zecyrillic\xFE\xD0\xB7\xFF\
+    zedescendercyrillic\xFE\xD2\x99\xFF\
+    zedieresiscyrillic\xFE\xD3\x9F\xFF\
+    zehiragana\xFE\xE3\x81\x9C\xFF\
+    zekatakana\xFE\xE3\x82\xBC\xFF\
+    zero\xFE0\xFF\
+    zeroarabic\xFE\xD9\xA0\xFF\
+    zerobengali\xFE\xE0\xA7\xA6\xFF\
+    zerodeva\xFE\xE0\xA5\xA6\xFF\
+    zerogujarati\xFE\xE0\xAB\xA6\xFF\
+    zerogurmukhi\xFE\xE0\xA9\xA6\xFF\
+    zerohackarabic\xFE\xD9\xA0\xFF\
+    zeroinferior\xFE\xE2\x82\x80\xFF\
+    zeromonospace\xFE\xEF\xBC\x90\xFF\
+    zerooldstyle\xFE\xEF\x9C\xB0\xFF\
+    zeropersian\xFE\xDB\xB0\xFF\
+    zerosuperior\xFE\xE2\x81\xB0\xFF\
+    zerothai\xFE\xE0\xB9\x90\xFF\
+    zerowidthjoiner\xFE\xEF\xBB\xBF\xFF\
+    zerowidthnonjoiner\xFE\xE2\x80\x8C\xFF\
+    zerowidthspace\xFE\xE2\x80\x8B\xFF\
+    zeta\xFE\xCE\xB6\xFF\
+    zhbopomofo\xFE\xE3\x84\x93\xFF\
+    zhearmenian\xFE\xD5\xAA\xFF\
+    zhebrevecyrillic\xFE\xD3\x82\xFF\
+    zhecyrillic\xFE\xD0\xB6\xFF\
+    zhedescendercyrillic\xFE\xD2\x97\xFF\
+    zhedieresiscyrillic\xFE\xD3\x9D\xFF\
+    zihiragana\xFE\xE3\x81\x98\xFF\
+    zikatakana\xFE\xE3\x82\xB8\xFF\
+    zinorhebrew\xFE\xD6\xAE\xFF\
+    zlinebelow\xFE\xE1\xBA\x95\xFF\
+    zmonospace\xFE\xEF\xBD\x9A\xFF\
+    zohiragana\xFE\xE3\x81\x9E\xFF\
+    zokatakana\xFE\xE3\x82\xBE\xFF\
+    zparen\xFE\xE2\x92\xB5\xFF\
+    zretroflexhook\xFE\xCA\x90\xFF\
+    zstroke\xFE\xC6\xB6\xFF\
+    zuhiragana\xFE\xE3\x81\x9A\xFF\
+    zukatakana\xFE\xE3\x82\xBA\xFF";
 
-static REVERSE_GLYPH_NAMES: phf::Map<char, &'static str> = phf_map! {
-    '\u{0000}' => "controlNULL",
-    '\u{0001}' => "controlSTX",
-    '\u{0002}' => "controlSOT",
-    '\u{0003}' => "controlETX",
-    '\u{0004}' => "controlEOT",
-    '\u{0005}' => "controlENQ",
-    '\u{0006}' => "controlACK",
-    '\u{0007}' => "controlBEL",
-    '\u{0008}' => "controlBS",
-    '\u{0009}' => "controlHT",
-    '\u{000A}' => "controlLF",
-    '\u{000B}' => "controlVT",
-    '\u{000C}' => "controlFF",
-    '\u{000D}' => "controlCR",
-    '\u{000E}' => "controlSO",
-    '\u{000F}' => "controlSI",
-    '\u{0010}' => "controlDLE",
-    '\u{0011}' => "controlDC1",
-    '\u{0012}' => "controlDC2",
-    '\u{0013}' => "controlDC3",
-    '\u{0014}' => "controlDC4",
-    '\u{0015}' => "controlNAK",
-    '\u{0016}' => "controlSYN",
-    '\u{0017}' => "controlETB",
-    '\u{0018}' => "controlCAN",
-    '\u{0019}' => "controlEM",
-    '\u{001A}' => "controlSUB",
-    '\u{001B}' => "controlESC",
-    '\u{001C}' => "controlFS",
-    '\u{001D}' => "controlGS",
-    '\u{001E}' => "controlRS",
-    '\u{001F}' => "controlUS",
-    '\u{0020}' => "space",
-    '\u{0021}' => "exclam",
-    '\u{0022}' => "quotedbl",
-    '\u{0023}' => "numbersign",
-    '\u{0024}' => "dollar",
-    '\u{0025}' => "percent",
-    '\u{0026}' => "ampersand",
-    '\u{0027}' => "quotesingle",
-    '\u{0028}' => "parenleft",
-    '\u{0029}' => "parenright",
-    '\u{002A}' => "asterisk",
-    '\u{002B}' => "plus",
-    '\u{002C}' => "comma",
-    '\u{002D}' => "hyphen",
-    '\u{002E}' => "period",
-    '\u{002F}' => "slash",
-    '\u{0030}' => "zero",
-    '\u{0031}' => "one",
-    '\u{0032}' => "two",
-    '\u{0033}' => "three",
-    '\u{0034}' => "four",
-    '\u{0035}' => "five",
-    '\u{0036}' => "six",
-    '\u{0037}' => "seven",
-    '\u{0038}' => "eight",
-    '\u{0039}' => "nine",
-    '\u{003A}' => "colon",
-    '\u{003B}' => "semicolon",
-    '\u{003C}' => "less",
-    '\u{003D}' => "equal",
-    '\u{003E}' => "greater",
-    '\u{003F}' => "question",
-    '\u{0040}' => "at",
-    '\u{0041}' => "A",
-    '\u{0042}' => "B",
-    '\u{0043}' => "C",
-    '\u{0044}' => "D",
-    '\u{0045}' => "E",
-    '\u{0046}' => "F",
-    '\u{0047}' => "G",
-    '\u{0048}' => "H",
-    '\u{0049}' => "I",
-    '\u{004A}' => "J",
-    '\u{004B}' => "K",
-    '\u{004C}' => "L",
-    '\u{004D}' => "M",
-    '\u{004E}' => "N",
-    '\u{004F}' => "O",
-    '\u{0050}' => "P",
-    '\u{0051}' => "Q",
-    '\u{0052}' => "R",
-    '\u{0053}' => "S",
-    '\u{0054}' => "T",
-    '\u{0055}' => "U",
-    '\u{0056}' => "V",
-    '\u{0057}' => "W",
-    '\u{0058}' => "X",
-    '\u{0059}' => "Y",
-    '\u{005A}' => "Z",
-    '\u{005B}' => "bracketleft",
-    '\u{005C}' => "backslash",
-    '\u{005D}' => "bracketright",
-    '\u{005E}' => "asciicircum",
-    '\u{005F}' => "underscore",
-    '\u{0060}' => "grave",
-    '\u{0061}' => "a",
-    '\u{0062}' => "b",
-    '\u{0063}' => "c",
-    '\u{0064}' => "d",
-    '\u{0065}' => "e",
-    '\u{0066}' => "f",
-    '\u{0067}' => "g",
-    '\u{0068}' => "h",
-    '\u{0069}' => "i",
-    '\u{006A}' => "j",
-    '\u{006B}' => "k",
-    '\u{006C}' => "l",
-    '\u{006D}' => "m",
-    '\u{006E}' => "n",
-    '\u{006F}' => "o",
-    '\u{0070}' => "p",
-    '\u{0071}' => "q",
-    '\u{0072}' => "r",
-    '\u{0073}' => "s",
-    '\u{0074}' => "t",
-    '\u{0075}' => "u",
-    '\u{0076}' => "v",
-    '\u{0077}' => "w",
-    '\u{0078}' => "x",
-    '\u{0079}' => "y",
-    '\u{007A}' => "z",
-    '\u{007B}' => "braceleft",
-    '\u{007C}' => "bar",
-    '\u{007D}' => "braceright",
-    '\u{007E}' => "asciitilde",
-    '\u{007F}' => "controlDEL",
-    '\u{00A0}' => "nbspace",
-    '\u{00A1}' => "exclamdown",
-    '\u{00A2}' => "cent",
-    '\u{00A3}' => "sterling",
-    '\u{00A4}' => "currency",
-    '\u{00A5}' => "yen",
-    '\u{00A6}' => "brokenbar",
-    '\u{00A7}' => "section",
-    '\u{00A8}' => "dieresis",
-    '\u{00A9}' => "copyright",
-    '\u{00AA}' => "ordfeminine",
-    '\u{00AB}' => "guillemotleft",
-    '\u{00AC}' => "logicalnot",
-    '\u{00AD}' => "sfthyphen",
-    '\u{00AE}' => "registered",
-    '\u{00AF}' => "macron",
-    '\u{00B0}' => "degree",
-    '\u{00B1}' => "plusminus",
-    '\u{00B2}' => "twosuperior",
-    '\u{00B3}' => "threesuperior",
-    '\u{00B4}' => "acute",
-    '\u{00B5}' => "mu",
-    '\u{00B6}' => "paragraph",
-    '\u{00B7}' => "middot",
-    '\u{00B8}' => "cedilla",
-    '\u{00B9}' => "onesuperior",
-    '\u{00BA}' => "ordmasculine",
-    '\u{00BB}' => "guillemotright",
-    '\u{00BC}' => "onequarter",
-    '\u{00BD}' => "onehalf",
-    '\u{00BE}' => "threequarters",
-    '\u{00BF}' => "questiondown",
-    '\u{00C0}' => "Agrave",
-    '\u{00C1}' => "Aacute",
-    '\u{00C2}' => "Acircumflex",
-    '\u{00C3}' => "Atilde",
-    '\u{00C4}' => "Adieresis",
-    '\u{00C5}' => "Aring",
-    '\u{00C6}' => "AE",
-    '\u{00C7}' => "Ccedilla",
-    '\u{00C8}' => "Egrave",
-    '\u{00C9}' => "Eacute",
-    '\u{00CA}' => "Ecircumflex",
-    '\u{00CB}' => "Edieresis",
-    '\u{00CC}' => "Igrave",
-    '\u{00CD}' => "Iacute",
-    '\u{00CE}' => "Icircumflex",
-    '\u{00CF}' => "Idieresis",
-    '\u{00D0}' => "Eth",
-    '\u{00D1}' => "Ntilde",
-    '\u{00D2}' => "Ograve",
-    '\u{00D3}' => "Oacute",
-    '\u{00D4}' => "Ocircumflex",
-    '\u{00D5}' => "Otilde",
-    '\u{00D6}' => "Odieresis",
-    '\u{00D7}' => "multiply",
-    '\u{00D8}' => "Oslash",
-    '\u{00D9}' => "Ugrave",
-    '\u{00DA}' => "Uacute",
-    '\u{00DB}' => "Ucircumflex",
-    '\u{00DC}' => "Udieresis",
-    '\u{00DD}' => "Yacute",
-    '\u{00DE}' => "Thorn",
-    '\u{00DF}' => "germandbls",
-    '\u{00E0}' => "agrave",
-    '\u{00E1}' => "aacute",
-    '\u{00E2}' => "acircumflex",
-    '\u{00E3}' => "atilde",
-    '\u{00E4}' => "adieresis",
-    '\u{00E5}' => "aring",
-    '\u{00E6}' => "ae",
-    '\u{00E7}' => "ccedilla",
-    '\u{00E8}' => "egrave",
-    '\u{00E9}' => "eacute",
-    '\u{00EA}' => "ecircumflex",
-    '\u{00EB}' => "edieresis",
-    '\u{00EC}' => "igrave",
-    '\u{00ED}' => "iacute",
-    '\u{00EE}' => "icircumflex",
-    '\u{00EF}' => "idieresis",
-    '\u{00F0}' => "eth",
-    '\u{00F1}' => "ntilde",
-    '\u{00F2}' => "ograve",
-    '\u{00F3}' => "oacute",
-    '\u{00F4}' => "ocircumflex",
-    '\u{00F5}' => "otilde",
-    '\u{00F6}' => "odieresis",
-    '\u{00F7}' => "divide",
-    '\u{00F8}' => "oslash",
-    '\u{00F9}' => "ugrave",
-    '\u{00FA}' => "uacute",
-    '\u{00FB}' => "ucircumflex",
-    '\u{00FC}' => "udieresis",
-    '\u{00FD}' => "yacute",
-    '\u{00FE}' => "thorn",
-    '\u{00FF}' => "ydieresis",
-    '\u{0100}' => "Amacron",
-    '\u{0101}' => "amacron",
-    '\u{0102}' => "Abreve",
-    '\u{0103}' => "abreve",
-    '\u{0104}' => "Aogonek",
-    '\u{0105}' => "aogonek",
-    '\u{0106}' => "Cacute",
-    '\u{0107}' => "cacute",
-    '\u{0108}' => "Ccircumflex",
-    '\u{0109}' => "ccircumflex",
-    '\u{010A}' => "Cdot",
-    '\u{010B}' => "cdot",
-    '\u{010C}' => "Ccaron",
-    '\u{010D}' => "ccaron",
-    '\u{010E}' => "Dcaron",
-    '\u{010F}' => "dcaron",
-    '\u{0110}' => "Dcroat",
-    '\u{0111}' => "dcroat",
-    '\u{0112}' => "Emacron",
-    '\u{0113}' => "emacron",
-    '\u{0114}' => "Ebreve",
-    '\u{0115}' => "ebreve",
-    '\u{0116}' => "Edot",
-    '\u{0117}' => "edot",
-    '\u{0118}' => "Eogonek",
-    '\u{0119}' => "eogonek",
-    '\u{011A}' => "Ecaron",
-    '\u{011B}' => "ecaron",
-    '\u{011C}' => "Gcircumflex",
-    '\u{011D}' => "gcircumflex",
-    '\u{011E}' => "Gbreve",
-    '\u{011F}' => "gbreve",
-    '\u{0120}' => "Gdot",
-    '\u{0121}' => "gdot",
-    '\u{0122}' => "Gcedilla",
-    '\u{0123}' => "gcedilla",
-    '\u{0124}' => "Hcircumflex",
-    '\u{0125}' => "hcircumflex",
-    '\u{0126}' => "Hbar",
-    '\u{0127}' => "hbar",
-    '\u{0128}' => "Itilde",
-    '\u{0129}' => "itilde",
-    '\u{012A}' => "Imacron",
-    '\u{012B}' => "imacron",
-    '\u{012C}' => "Ibreve",
-    '\u{012D}' => "ibreve",
-    '\u{012E}' => "Iogonek",
-    '\u{012F}' => "iogonek",
-    '\u{0130}' => "Idot",
-    '\u{0131}' => "dotlessi",
-    '\u{0132}' => "IJ",
-    '\u{0133}' => "ij",
-    '\u{0134}' => "Jcircumflex",
-    '\u{0135}' => "jcircumflex",
-    '\u{0136}' => "Kcedilla",
-    '\u{0137}' => "kcedilla",
-    '\u{0138}' => "kgreenlandic",
-    '\u{0139}' => "Lacute",
-    '\u{013A}' => "lacute",
-    '\u{013B}' => "Lcedilla",
-    '\u{013C}' => "lcedilla",
-    '\u{013D}' => "Lcaron",
-    '\u{013E}' => "lcaron",
-    '\u{013F}' => "Ldot",
-    '\u{0140}' => "ldot",
-    '\u{0141}' => "Lslash",
-    '\u{0142}' => "lslash",
-    '\u{0143}' => "Nacute",
-    '\u{0144}' => "nacute",
-    '\u{0145}' => "Ncedilla",
-    '\u{0146}' => "ncedilla",
-    '\u{0147}' => "Ncaron",
-    '\u{0148}' => "ncaron",
-    '\u{0149}' => "napostrophe",
-    '\u{014A}' => "Eng",
-    '\u{014B}' => "eng",
-    '\u{014C}' => "Omacron",
-    '\u{014D}' => "omacron",
-    '\u{014E}' => "Obreve",
-    '\u{014F}' => "obreve",
-    '\u{0150}' => "Odblacute",
-    '\u{0151}' => "odblacute",
-    '\u{0152}' => "OE",
-    '\u{0153}' => "oe",
-    '\u{0154}' => "Racute",
-    '\u{0155}' => "racute",
-    '\u{0156}' => "Rcedilla",
-    '\u{0157}' => "rcedilla",
-    '\u{0158}' => "Rcaron",
-    '\u{0159}' => "rcaron",
-    '\u{015A}' => "Sacute",
-    '\u{015B}' => "sacute",
-    '\u{015C}' => "Scircumflex",
-    '\u{015D}' => "scircumflex",
-    '\u{015E}' => "Scedilla",
-    '\u{015F}' => "scedilla",
-    '\u{0160}' => "Scaron",
-    '\u{0161}' => "scaron",
-    '\u{0162}' => "Tcedilla",
-    '\u{0163}' => "tcedilla",
-    '\u{0164}' => "Tcaron",
-    '\u{0165}' => "tcaron",
-    '\u{0166}' => "Tbar",
-    '\u{0167}' => "tbar",
-    '\u{0168}' => "Utilde",
-    '\u{0169}' => "utilde",
-    '\u{016A}' => "Umacron",
-    '\u{016B}' => "umacron",
-    '\u{016C}' => "Ubreve",
-    '\u{016D}' => "ubreve",
-    '\u{016E}' => "Uring",
-    '\u{016F}' => "uring",
-    '\u{0170}' => "Udblacute",
-    '\u{0171}' => "udblacute",
-    '\u{0172}' => "Uogonek",
-    '\u{0173}' => "uogonek",
-    '\u{0174}' => "Wcircumflex",
-    '\u{0175}' => "wcircumflex",
-    '\u{0176}' => "Ycircumflex",
-    '\u{0177}' => "ycircumflex",
-    '\u{0178}' => "Ydieresis",
-    '\u{0179}' => "Zacute",
-    '\u{017A}' => "zacute",
-    '\u{017B}' => "Zdot",
-    '\u{017C}' => "zdot",
-    '\u{017D}' => "Zcaron",
-    '\u{017E}' => "zcaron",
-    '\u{017F}' => "longs",
-    '\u{0180}' => "bstroke",
-    '\u{0181}' => "Bhook",
-    '\u{0182}' => "Btopbar",
-    '\u{0183}' => "btopbar",
-    '\u{0184}' => "Tonesix",
-    '\u{0185}' => "tonesix",
-    '\u{0186}' => "Oopen",
-    '\u{0187}' => "Chook",
-    '\u{0188}' => "chook",
-    '\u{0189}' => "Dafrican",
-    '\u{018A}' => "Dhook",
-    '\u{018B}' => "Dtopbar",
-    '\u{018C}' => "dtopbar",
-    '\u{018D}' => "deltaturned",
-    '\u{018E}' => "Ereversed",
-    '\u{018F}' => "Schwa",
-    '\u{0190}' => "Eopen",
-    '\u{0191}' => "Fhook",
-    '\u{0192}' => "florin",
-    '\u{0193}' => "Ghook",
-    '\u{0194}' => "Gammaafrican",
-    '\u{0195}' => "hv",
-    '\u{0196}' => "Iotaafrican",
-    '\u{0197}' => "Istroke",
-    '\u{0198}' => "Khook",
-    '\u{0199}' => "khook",
-    '\u{019A}' => "lbar",
-    '\u{019B}' => "lambdastroke",
-    '\u{019C}' => "Mturned",
-    '\u{019D}' => "Nhookleft",
-    '\u{019E}' => "nlegrightlong",
-    '\u{019F}' => "Ocenteredtilde",
-    '\u{01A0}' => "Ohorn",
-    '\u{01A1}' => "ohorn",
-    '\u{01A2}' => "Oi",
-    '\u{01A3}' => "oi",
-    '\u{01A4}' => "Phook",
-    '\u{01A5}' => "phook",
-    '\u{01A6}' => "yr",
-    '\u{01A7}' => "Tonetwo",
-    '\u{01A8}' => "tonetwo",
-    '\u{01A9}' => "Esh",
-    '\u{01AA}' => "eshreversedloop",
-    '\u{01AB}' => "tpalatalhook",
-    '\u{01AC}' => "Thook",
-    '\u{01AD}' => "thook",
-    '\u{01AE}' => "Tretroflexhook",
-    '\u{01AF}' => "Uhorn",
-    '\u{01B0}' => "uhorn",
-    '\u{01B1}' => "Upsilonafrican",
-    '\u{01B2}' => "Vhook",
-    '\u{01B3}' => "Yhook",
-    '\u{01B4}' => "yhook",
-    '\u{01B5}' => "Zstroke",
-    '\u{01B6}' => "zstroke",
-    '\u{01B7}' => "Ezh",
-    '\u{01B8}' => "Ezhreversed",
-    '\u{01B9}' => "ezhreversed",
-    '\u{01BA}' => "ezhtail",
-    '\u{01BB}' => "twostroke",
-    '\u{01BC}' => "Tonefive",
-    '\u{01BD}' => "tonefive",
-    '\u{01BE}' => "glottalinvertedstroke",
-    '\u{01BF}' => "wynn",
-    '\u{01C0}' => "clickdental",
-    '\u{01C1}' => "clicklateral",
-    '\u{01C2}' => "clickalveolar",
-    '\u{01C3}' => "clickretroflex",
-    '\u{01C4}' => "DZcaron",
-    '\u{01C5}' => "Dzcaron",
-    '\u{01C6}' => "dzcaron",
-    '\u{01C7}' => "LJ",
-    '\u{01C8}' => "Lj",
-    '\u{01C9}' => "lj",
-    '\u{01CA}' => "NJ",
-    '\u{01CB}' => "Nj",
-    '\u{01CC}' => "nj",
-    '\u{01CD}' => "Acaron",
-    '\u{01CE}' => "acaron",
-    '\u{01CF}' => "Icaron",
-    '\u{01D0}' => "icaron",
-    '\u{01D1}' => "Ocaron",
-    '\u{01D2}' => "ocaron",
-    '\u{01D3}' => "Ucaron",
-    '\u{01D4}' => "ucaron",
-    '\u{01D5}' => "Udieresismacron",
-    '\u{01D6}' => "udieresismacron",
-    '\u{01D7}' => "Udieresisacute",
-    '\u{01D8}' => "udieresisacute",
-    '\u{01D9}' => "Udieresiscaron",
-    '\u{01DA}' => "udieresiscaron",
-    '\u{01DB}' => "Udieresisgrave",
-    '\u{01DC}' => "udieresisgrave",
-    '\u{01DD}' => "eturned",
-    '\u{01DE}' => "Adieresismacron",
-    '\u{01DF}' => "adieresismacron",
-    '\u{01E0}' => "Adotmacron",
-    '\u{01E1}' => "adotmacron",
-    '\u{01E2}' => "AEmacron",
-    '\u{01E3}' => "aemacron",
-    '\u{01E4}' => "Gstroke",
-    '\u{01E5}' => "gstroke",
-    '\u{01E6}' => "Gcaron",
-    '\u{01E7}' => "gcaron",
-    '\u{01E8}' => "Kcaron",
-    '\u{01E9}' => "kcaron",
-    '\u{01EA}' => "Oogonek",
-    '\u{01EB}' => "oogonek",
-    '\u{01EC}' => "Oogonekmacron",
-    '\u{01ED}' => "oogonekmacron",
-    '\u{01EE}' => "Ezhcaron",
-    '\u{01EF}' => "ezhcaron",
-    '\u{01F0}' => "jcaron",
-    '\u{01F1}' => "DZ",
-    '\u{01F2}' => "Dz",
-    '\u{01F3}' => "dz",
-    '\u{01F4}' => "Gacute",
-    '\u{01F5}' => "gacute",
-    '\u{01FA}' => "Aringacute",
-    '\u{01FB}' => "aringacute",
-    '\u{01FC}' => "AEacute",
-    '\u{01FD}' => "aeacute",
-    '\u{01FE}' => "Oslashacute",
-    '\u{01FF}' => "oslashacute",
-    '\u{0200}' => "Adblgrave",
-    '\u{0201}' => "adblgrave",
-    '\u{0202}' => "Ainvertedbreve",
-    '\u{0203}' => "ainvertedbreve",
-    '\u{0204}' => "Edblgrave",
-    '\u{0205}' => "edblgrave",
-    '\u{0206}' => "Einvertedbreve",
-    '\u{0207}' => "einvertedbreve",
-    '\u{0208}' => "Idblgrave",
-    '\u{0209}' => "idblgrave",
-    '\u{020A}' => "Iinvertedbreve",
-    '\u{020B}' => "iinvertedbreve",
-    '\u{020C}' => "Odblgrave",
-    '\u{020D}' => "odblgrave",
-    '\u{020E}' => "Oinvertedbreve",
-    '\u{020F}' => "oinvertedbreve",
-    '\u{0210}' => "Rdblgrave",
-    '\u{0211}' => "rdblgrave",
-    '\u{0212}' => "Rinvertedbreve",
-    '\u{0213}' => "rinvertedbreve",
-    '\u{0214}' => "Udblgrave",
-    '\u{0215}' => "udblgrave",
-    '\u{0216}' => "Uinvertedbreve",
-    '\u{0217}' => "uinvertedbreve",
-    '\u{0218}' => "Scommaaccent",
-    '\u{0219}' => "scommaaccent",
-    '\u{0250}' => "aturned",
-    '\u{0251}' => "ascript",
-    '\u{0252}' => "ascriptturned",
-    '\u{0253}' => "bhook",
-    '\u{0254}' => "oopen",
-    '\u{0255}' => "ccurl",
-    '\u{0256}' => "dtail",
-    '\u{0257}' => "dhook",
-    '\u{0258}' => "ereversed",
-    '\u{0259}' => "schwa",
-    '\u{025A}' => "schwahook",
-    '\u{025B}' => "eopen",
-    '\u{025C}' => "eopenreversed",
-    '\u{025D}' => "eopenreversedhook",
-    '\u{025E}' => "eopenreversedclosed",
-    '\u{025F}' => "jdotlessstroke",
-    '\u{0260}' => "ghook",
-    '\u{0261}' => "gscript",
-    '\u{0263}' => "gammalatinsmall",
-    '\u{0264}' => "ramshorn",
-    '\u{0265}' => "hturned",
-    '\u{0266}' => "hhook",
-    '\u{0267}' => "henghook",
-    '\u{0268}' => "istroke",
-    '\u{0269}' => "iotalatin",
-    '\u{026B}' => "lmiddletilde",
-    '\u{026C}' => "lbelt",
-    '\u{026D}' => "lhookretroflex",
-    '\u{026E}' => "lezh",
-    '\u{026F}' => "mturned",
-    '\u{0270}' => "mlonglegturned",
-    '\u{0271}' => "mhook",
-    '\u{0272}' => "nhookleft",
-    '\u{0273}' => "nhookretroflex",
-    '\u{0275}' => "obarred",
-    '\u{0277}' => "omegalatinclosed",
-    '\u{0278}' => "philatin",
-    '\u{0279}' => "rturned",
-    '\u{027A}' => "rlonglegturned",
-    '\u{027B}' => "rhookturned",
-    '\u{027C}' => "rlongleg",
-    '\u{027D}' => "rhook",
-    '\u{027E}' => "rfishhook",
-    '\u{027F}' => "rfishhookreversed",
-    '\u{0281}' => "Rsmallinverted",
-    '\u{0282}' => "shook",
-    '\u{0283}' => "esh",
-    '\u{0284}' => "dotlessjstrokehook",
-    '\u{0285}' => "eshsquatreversed",
-    '\u{0286}' => "eshcurl",
-    '\u{0287}' => "tturned",
-    '\u{0288}' => "tretroflexhook",
-    '\u{0289}' => "ubar",
-    '\u{028A}' => "upsilonlatin",
-    '\u{028B}' => "vhook",
-    '\u{028C}' => "vturned",
-    '\u{028D}' => "wturned",
-    '\u{028E}' => "yturned",
-    '\u{0290}' => "zretroflexhook",
-    '\u{0291}' => "zcurl",
-    '\u{0292}' => "ezh",
-    '\u{0293}' => "ezhcurl",
-    '\u{0294}' => "glottalstop",
-    '\u{0295}' => "glottalstopreversed",
-    '\u{0296}' => "glottalstopinverted",
-    '\u{0297}' => "cstretched",
-    '\u{0298}' => "bilabialclick",
-    '\u{029A}' => "eopenclosed",
-    '\u{029B}' => "Gsmallhook",
-    '\u{029D}' => "jcrossedtail",
-    '\u{029E}' => "kturned",
-    '\u{02A0}' => "qhook",
-    '\u{02A1}' => "glottalstopstroke",
-    '\u{02A2}' => "glottalstopstrokereversed",
-    '\u{02A3}' => "dzaltone",
-    '\u{02A4}' => "dezh",
-    '\u{02A5}' => "dzcurl",
-    '\u{02A6}' => "ts",
-    '\u{02A7}' => "tesh",
-    '\u{02A8}' => "tccurl",
-    '\u{02B0}' => "hsuperior",
-    '\u{02B1}' => "hhooksuperior",
-    '\u{02B2}' => "jsuperior",
-    '\u{02B4}' => "rturnedsuperior",
-    '\u{02B5}' => "rhookturnedsuperior",
-    '\u{02B6}' => "Rsmallinvertedsuperior",
-    '\u{02B7}' => "wsuperior",
-    '\u{02B8}' => "ysuperior",
-    '\u{02B9}' => "primemod",
-    '\u{02BA}' => "dblprimemod",
-    '\u{02BB}' => "commaturnedmod",
-    '\u{02BC}' => "afii57929",
-    '\u{02BD}' => "afii64937",
-    '\u{02BE}' => "ringhalfright",
-    '\u{02BF}' => "ringhalfleft",
-    '\u{02C0}' => "glottalstopmod",
-    '\u{02C1}' => "glottalstopreversedmod",
-    '\u{02C2}' => "arrowheadleftmod",
-    '\u{02C3}' => "arrowheadrightmod",
-    '\u{02C4}' => "arrowheadupmod",
-    '\u{02C5}' => "arrowheaddownmod",
-    '\u{02C6}' => "circumflex",
-    '\u{02C7}' => "caron",
-    '\u{02C8}' => "verticallinemod",
-    '\u{02C9}' => "firsttonechinese",
-    '\u{02CA}' => "secondtonechinese",
-    '\u{02CB}' => "fourthtonechinese",
-    '\u{02CC}' => "verticallinelowmod",
-    '\u{02CD}' => "macronlowmod",
-    '\u{02CE}' => "gravelowmod",
-    '\u{02CF}' => "acutelowmod",
-    '\u{02D0}' => "colontriangularmod",
-    '\u{02D1}' => "colontriangularhalfmod",
-    '\u{02D2}' => "ringhalfrightcentered",
-    '\u{02D3}' => "ringhalfleftcentered",
-    '\u{02D4}' => "uptackmod",
-    '\u{02D5}' => "downtackmod",
-    '\u{02D6}' => "plusmod",
-    '\u{02D7}' => "minusmod",
-    '\u{02D8}' => "breve",
-    '\u{02D9}' => "dotaccent",
-    '\u{02DA}' => "ring",
-    '\u{02DB}' => "ogonek",
-    '\u{02DC}' => "ilde",
-    '\u{02DD}' => "hungarumlaut",
-    '\u{02DE}' => "rhotichookmod",
-    '\u{02E0}' => "gammasuperior",
-    '\u{02E3}' => "xsuperior",
-    '\u{02E4}' => "glottalstopreversedsuperior",
-    '\u{02E5}' => "tonebarextrahighmod",
-    '\u{02E6}' => "tonebarhighmod",
-    '\u{02E7}' => "tonebarmidmod",
-    '\u{02E8}' => "tonebarlowmod",
-    '\u{02E9}' => "tonebarextralowmod",
-    '\u{0300}' => "gravecmb",
-    '\u{0301}' => "acutecmb",
-    '\u{0302}' => "circumflexcmb",
-    '\u{0303}' => "tildecmb",
-    '\u{0304}' => "macroncmb",
-    '\u{0305}' => "overlinecmb",
-    '\u{0306}' => "brevecmb",
-    '\u{0307}' => "dotaccentcmb",
-    '\u{0308}' => "dieresiscmb",
-    '\u{0309}' => "hookabovecomb",
-    '\u{030A}' => "ringcmb",
-    '\u{030B}' => "hungarumlautcmb",
-    '\u{030C}' => "caroncmb",
-    '\u{030D}' => "verticallineabovecmb",
-    '\u{030E}' => "dblverticallineabovecmb",
-    '\u{030F}' => "dblgravecmb",
-    '\u{0310}' => "candrabinducmb",
-    '\u{0311}' => "breveinvertedcmb",
-    '\u{0312}' => "commaturnedabovecmb",
-    '\u{0313}' => "commaabovecmb",
-    '\u{0314}' => "commareversedabovecmb",
-    '\u{0315}' => "commaaboverightcmb",
-    '\u{0316}' => "gravebelowcmb",
-    '\u{0317}' => "acutebelowcmb",
-    '\u{0318}' => "lefttackbelowcmb",
-    '\u{0319}' => "righttackbelowcmb",
-    '\u{031A}' => "leftangleabovecmb",
-    '\u{031B}' => "horncmb",
-    '\u{031C}' => "ringhalfleftbelowcmb",
-    '\u{031D}' => "uptackbelowcmb",
-    '\u{031E}' => "downtackbelowcmb",
-    '\u{031F}' => "plusbelowcmb",
-    '\u{0320}' => "minusbelowcmb",
-    '\u{0321}' => "hookpalatalizedbelowcmb",
-    '\u{0322}' => "hookretroflexbelowcmb",
-    '\u{0323}' => "dotbelowcmb",
-    '\u{0324}' => "dieresisbelowcmb",
-    '\u{0325}' => "ringbelowcmb",
-    '\u{0327}' => "cedillacmb",
-    '\u{0328}' => "ogonekcmb",
-    '\u{0329}' => "verticallinebelowcmb",
-    '\u{032A}' => "bridgebelowcmb",
-    '\u{032B}' => "dblarchinvertedbelowcmb",
-    '\u{032C}' => "caronbelowcmb",
-    '\u{032D}' => "circumflexbelowcmb",
-    '\u{032E}' => "brevebelowcmb",
-    '\u{032F}' => "breveinvertedbelowcmb",
-    '\u{0330}' => "tildebelowcmb",
-    '\u{0331}' => "macronbelowcmb",
-    '\u{0332}' => "lowlinecmb",
-    '\u{0333}' => "dbllowlinecmb",
-    '\u{0334}' => "tildeoverlaycmb",
-    '\u{0335}' => "strokeshortoverlaycmb",
-    '\u{0336}' => "strokelongoverlaycmb",
-    '\u{0337}' => "solidusshortoverlaycmb",
-    '\u{0338}' => "soliduslongoverlaycmb",
-    '\u{0339}' => "ringhalfrightbelowcmb",
-    '\u{033A}' => "bridgeinvertedbelowcmb",
-    '\u{033B}' => "squarebelowcmb",
-    '\u{033C}' => "seagullbelowcmb",
-    '\u{033D}' => "xabovecmb",
-    '\u{033E}' => "tildeverticalcmb",
-    '\u{033F}' => "dbloverlinecmb",
-    '\u{0340}' => "gravetonecmb",
-    '\u{0341}' => "acutetonecmb",
-    '\u{0342}' => "perispomenigreekcmb",
-    '\u{0343}' => "koroniscmb",
-    '\u{0344}' => "dialytikatonoscmb",
-    '\u{0345}' => "ypogegrammenigreekcmb",
-    '\u{0360}' => "tildedoublecmb",
-    '\u{0361}' => "breveinverteddoublecmb",
-    '\u{0374}' => "numeralsigngreek",
-    '\u{0375}' => "numeralsignlowergreek",
-    '\u{037A}' => "ypogegrammeni",
-    '\u{037E}' => "questiongreek",
-    '\u{0384}' => "tonos",
-    '\u{0385}' => "dialytikatonos",
-    '\u{0386}' => "Alphatonos",
-    '\u{0387}' => "anoteleia",
-    '\u{0388}' => "Epsilontonos",
-    '\u{0389}' => "Etatonos",
-    '\u{038A}' => "Iotatonos",
-    '\u{038C}' => "Omicrontonos",
-    '\u{038E}' => "Upsilontonos",
-    '\u{038F}' => "Omegatonos",
-    '\u{0390}' => "iotadieresistonos",
-    '\u{0391}' => "Alpha",
-    '\u{0392}' => "Beta",
-    '\u{0393}' => "Gamma",
-    '\u{0394}' => "Deltagreek",
-    '\u{0395}' => "Epsilon",
-    '\u{0396}' => "Zeta",
-    '\u{0397}' => "Eta",
-    '\u{0398}' => "Theta",
-    '\u{0399}' => "Iota",
-    '\u{039A}' => "Kappa",
-    '\u{039B}' => "Lambda",
-    '\u{039C}' => "Mu",
-    '\u{039D}' => "Nu",
-    '\u{039E}' => "Xi",
-    '\u{039F}' => "Omicron",
-    '\u{03A0}' => "Pi",
-    '\u{03A1}' => "Rho",
-    '\u{03A3}' => "Sigma",
-    '\u{03A4}' => "Tau",
-    '\u{03A5}' => "Upsilon",
-    '\u{03A6}' => "Phi",
-    '\u{03A7}' => "Chi",
-    '\u{03A8}' => "Psi",
-    '\u{03A9}' => "Omegagreek",
-    '\u{03AA}' => "Iotadieresis",
-    '\u{03AB}' => "Upsilondieresis",
-    '\u{03AC}' => "alphatonos",
-    '\u{03AD}' => "epsilontonos",
-    '\u{03AE}' => "etatonos",
-    '\u{03AF}' => "iotatonos",
-    '\u{03B0}' => "upsilondieresistonos",
-    '\u{03B1}' => "alpha",
-    '\u{03B2}' => "beta",
-    '\u{03B3}' => "gamma",
-    '\u{03B4}' => "delta",
-    '\u{03B5}' => "epsilon",
-    '\u{03B6}' => "zeta",
-    '\u{03B7}' => "eta",
-    '\u{03B8}' => "theta",
-    '\u{03B9}' => "iota",
-    '\u{03BA}' => "kappa",
-    '\u{03BB}' => "lambda",
-    '\u{03BC}' => "mugreek",
-    '\u{03BD}' => "nu",
-    '\u{03BE}' => "xi",
-    '\u{03BF}' => "omicron",
-    '\u{03C0}' => "pi",
-    '\u{03C1}' => "rho",
-    '\u{03C2}' => "sigma1",
-    '\u{03C3}' => "sigma",
-    '\u{03C4}' => "tau",
-    '\u{03C5}' => "upsilon",
-    '\u{03C6}' => "phi",
-    '\u{03C7}' => "chi",
-    '\u{03C8}' => "psi",
-    '\u{03C9}' => "omega",
-    '\u{03CA}' => "iotadieresis",
-    '\u{03CB}' => "upsilondieresis",
-    '\u{03CC}' => "omicrontonos",
-    '\u{03CD}' => "upsilontonos",
-    '\u{03CE}' => "omegatonos",
-    '\u{03D0}' => "betasymbolgreek",
-    '\u{03D1}' => "theta1",
-    '\u{03D2}' => "Upsilon1",
-    '\u{03D3}' => "Upsilonacutehooksymbolgreek",
-    '\u{03D4}' => "Upsilondieresishooksymbolgreek",
-    '\u{03D5}' => "phi1",
-    '\u{03D6}' => "omega1",
-    '\u{03DA}' => "Stigmagreek",
-    '\u{03DC}' => "Digammagreek",
-    '\u{03DE}' => "Koppagreek",
-    '\u{03E0}' => "Sampigreek",
-    '\u{03E2}' => "Sheicoptic",
-    '\u{03E3}' => "sheicoptic",
-    '\u{03E4}' => "Feicoptic",
-    '\u{03E5}' => "feicoptic",
-    '\u{03E6}' => "Kheicoptic",
-    '\u{03E7}' => "kheicoptic",
-    '\u{03E8}' => "Horicoptic",
-    '\u{03E9}' => "horicoptic",
-    '\u{03EA}' => "Gangiacoptic",
-    '\u{03EB}' => "gangiacoptic",
-    '\u{03EC}' => "Shimacoptic",
-    '\u{03ED}' => "shimacoptic",
-    '\u{03EE}' => "Deicoptic",
-    '\u{03EF}' => "deicoptic",
-    '\u{03F0}' => "kappasymbolgreek",
-    '\u{03F1}' => "rhosymbolgreek",
-    '\u{03F2}' => "sigmalunatesymbolgreek",
-    '\u{03F3}' => "yotgreek",
-    '\u{0401}' => "Iocyrillic",
-    '\u{0402}' => "Djecyrillic",
-    '\u{0403}' => "Gjecyrillic",
-    '\u{0404}' => "Ecyrillic",
-    '\u{0405}' => "Dzecyrillic",
-    '\u{0406}' => "Icyrillic",
-    '\u{0407}' => "Yicyrillic",
-    '\u{0408}' => "Jecyrillic",
-    '\u{0409}' => "Ljecyrillic",
-    '\u{040A}' => "Njecyrillic",
-    '\u{040B}' => "Tshecyrillic",
-    '\u{040C}' => "Kjecyrillic",
-    '\u{040E}' => "Ushortcyrillic",
-    '\u{040F}' => "Dzhecyrillic",
-    '\u{0410}' => "Acyrillic",
-    '\u{0411}' => "Becyrillic",
-    '\u{0412}' => "Vecyrillic",
-    '\u{0413}' => "Gecyrillic",
-    '\u{0414}' => "Decyrillic",
-    '\u{0415}' => "Iecyrillic",
-    '\u{0416}' => "Zhecyrillic",
-    '\u{0417}' => "Zecyrillic",
-    '\u{0418}' => "Iicyrillic",
-    '\u{0419}' => "Iishortcyrillic",
-    '\u{041A}' => "Kacyrillic",
-    '\u{041B}' => "Elcyrillic",
-    '\u{041C}' => "Emcyrillic",
-    '\u{041D}' => "Encyrillic",
-    '\u{041E}' => "Ocyrillic",
-    '\u{041F}' => "Pecyrillic",
-    '\u{0420}' => "Ercyrillic",
-    '\u{0421}' => "Escyrillic",
-    '\u{0422}' => "Tecyrillic",
-    '\u{0423}' => "Ucyrillic",
-    '\u{0424}' => "Efcyrillic",
-    '\u{0425}' => "Khacyrillic",
-    '\u{0426}' => "Tsecyrillic",
-    '\u{0427}' => "Checyrillic",
-    '\u{0428}' => "Shacyrillic",
-    '\u{0429}' => "Shchacyrillic",
-    '\u{042A}' => "Hardsigncyrillic",
-    '\u{042B}' => "Yericyrillic",
-    '\u{042C}' => "Softsigncyrillic",
-    '\u{042D}' => "Ereversedcyrillic",
-    '\u{042E}' => "IUcyrillic",
-    '\u{042F}' => "IAcyrillic",
-    '\u{0430}' => "acyrillic",
-    '\u{0431}' => "afii10066",
-    '\u{0432}' => "afii10067",
-    '\u{0433}' => "afii10068",
-    '\u{0434}' => "afii10069",
-    '\u{0435}' => "afii10070",
-    '\u{0436}' => "afii10072",
-    '\u{0437}' => "afii10073",
-    '\u{0438}' => "afii10074",
-    '\u{0439}' => "afii10075",
-    '\u{043A}' => "afii10076",
-    '\u{043B}' => "afii10077",
-    '\u{043C}' => "afii10078",
-    '\u{043D}' => "afii10079",
-    '\u{043E}' => "afii10080",
-    '\u{043F}' => "afii10081",
-    '\u{0440}' => "afii10082",
-    '\u{0441}' => "afii10083",
-    '\u{0442}' => "afii10084",
-    '\u{0443}' => "afii10085",
-    '\u{0444}' => "afii10086",
-    '\u{0445}' => "afii10087",
-    '\u{0446}' => "afii10088",
-    '\u{0447}' => "afii10089",
-    '\u{0448}' => "afii10090",
-    '\u{0449}' => "afii10091",
-    '\u{044A}' => "afii10092",
-    '\u{044B}' => "afii10093",
-    '\u{044C}' => "afii10094",
-    '\u{044D}' => "afii10095",
-    '\u{044E}' => "afii10096",
-    '\u{044F}' => "afii10097",
-    '\u{0451}' => "afii10071",
-    '\u{0452}' => "afii10099",
-    '\u{0453}' => "afii10100",
-    '\u{0454}' => "afii10101",
-    '\u{0455}' => "afii10102",
-    '\u{0456}' => "afii10103",
-    '\u{0457}' => "afii10104",
-    '\u{0458}' => "afii10105",
-    '\u{0459}' => "afii10106",
-    '\u{045A}' => "afii10107",
-    '\u{045B}' => "afii10108",
-    '\u{045C}' => "afii10109",
-    '\u{045E}' => "afii10110",
-    '\u{045F}' => "afii10193",
-    '\u{0460}' => "Omegacyrillic",
-    '\u{0461}' => "omegacyrillic",
-    '\u{0462}' => "Yatcyrillic",
-    '\u{0463}' => "afii10194",
-    '\u{0464}' => "Eiotifiedcyrillic",
-    '\u{0465}' => "eiotifiedcyrillic",
-    '\u{0466}' => "Yuslittlecyrillic",
-    '\u{0467}' => "yuslittlecyrillic",
-    '\u{0468}' => "Yuslittleiotifiedcyrillic",
-    '\u{0469}' => "yuslittleiotifiedcyrillic",
-    '\u{046A}' => "Yusbigcyrillic",
-    '\u{046B}' => "yusbigcyrillic",
-    '\u{046C}' => "Yusbigiotifiedcyrillic",
-    '\u{046D}' => "yusbigiotifiedcyrillic",
-    '\u{046E}' => "Ksicyrillic",
-    '\u{046F}' => "ksicyrillic",
-    '\u{0470}' => "Psicyrillic",
-    '\u{0471}' => "psicyrillic",
-    '\u{0472}' => "Fitacyrillic",
-    '\u{0473}' => "afii10195",
-    '\u{0474}' => "Izhitsacyrillic",
-    '\u{0475}' => "afii10196",
-    '\u{0476}' => "Izhitsadblgravecyrillic",
-    '\u{0477}' => "izhitsadblgravecyrillic",
-    '\u{0478}' => "Ukcyrillic",
-    '\u{0479}' => "ukcyrillic",
-    '\u{047A}' => "Omegaroundcyrillic",
-    '\u{047B}' => "omegaroundcyrillic",
-    '\u{047C}' => "Omegatitlocyrillic",
-    '\u{047D}' => "omegatitlocyrillic",
-    '\u{047E}' => "Otcyrillic",
-    '\u{047F}' => "otcyrillic",
-    '\u{0480}' => "Koppacyrillic",
-    '\u{0481}' => "koppacyrillic",
-    '\u{0482}' => "thousandcyrillic",
-    '\u{0483}' => "titlocyrilliccmb",
-    '\u{0484}' => "palatalizationcyrilliccmb",
-    '\u{0485}' => "dasiapneumatacyrilliccmb",
-    '\u{0486}' => "psilipneumatacyrilliccmb",
-    '\u{0490}' => "Gheupturncyrillic",
-    '\u{0491}' => "afii10098",
-    '\u{0492}' => "Ghestrokecyrillic",
-    '\u{0493}' => "ghestrokecyrillic",
-    '\u{0494}' => "Ghemiddlehookcyrillic",
-    '\u{0495}' => "ghemiddlehookcyrillic",
-    '\u{0496}' => "Zhedescendercyrillic",
-    '\u{0497}' => "zhedescendercyrillic",
-    '\u{0498}' => "Zedescendercyrillic",
-    '\u{0499}' => "zedescendercyrillic",
-    '\u{049A}' => "Kadescendercyrillic",
-    '\u{049B}' => "kadescendercyrillic",
-    '\u{049C}' => "Kaverticalstrokecyrillic",
-    '\u{049D}' => "kaverticalstrokecyrillic",
-    '\u{049E}' => "Kastrokecyrillic",
-    '\u{049F}' => "kastrokecyrillic",
-    '\u{04A0}' => "Kabashkircyrillic",
-    '\u{04A1}' => "kabashkircyrillic",
-    '\u{04A2}' => "Endescendercyrillic",
-    '\u{04A3}' => "endescendercyrillic",
-    '\u{04A4}' => "Enghecyrillic",
-    '\u{04A5}' => "enghecyrillic",
-    '\u{04A6}' => "Pemiddlehookcyrillic",
-    '\u{04A7}' => "pemiddlehookcyrillic",
-    '\u{04A8}' => "Haabkhasiancyrillic",
-    '\u{04A9}' => "haabkhasiancyrillic",
-    '\u{04AA}' => "Esdescendercyrillic",
-    '\u{04AB}' => "esdescendercyrillic",
-    '\u{04AC}' => "Tedescendercyrillic",
-    '\u{04AD}' => "tedescendercyrillic",
-    '\u{04AE}' => "Ustraightcyrillic",
-    '\u{04AF}' => "ustraightcyrillic",
-    '\u{04B0}' => "Ustraightstrokecyrillic",
-    '\u{04B1}' => "ustraightstrokecyrillic",
-    '\u{04B2}' => "Hadescendercyrillic",
-    '\u{04B3}' => "hadescendercyrillic",
-    '\u{04B4}' => "Tetsecyrillic",
-    '\u{04B5}' => "tetsecyrillic",
-    '\u{04B6}' => "Chedescendercyrillic",
-    '\u{04B7}' => "chedescendercyrillic",
-    '\u{04B8}' => "Cheverticalstrokecyrillic",
-    '\u{04B9}' => "cheverticalstrokecyrillic",
-    '\u{04BA}' => "Shhacyrillic",
-    '\u{04BB}' => "shhacyrillic",
-    '\u{04BC}' => "Cheabkhasiancyrillic",
-    '\u{04BD}' => "cheabkhasiancyrillic",
-    '\u{04BE}' => "Chedescenderabkhasiancyrillic",
-    '\u{04BF}' => "chedescenderabkhasiancyrillic",
-    '\u{04C0}' => "palochkacyrillic",
-    '\u{04C1}' => "Zhebrevecyrillic",
-    '\u{04C2}' => "zhebrevecyrillic",
-    '\u{04C3}' => "Kahookcyrillic",
-    '\u{04C4}' => "kahookcyrillic",
-    '\u{04C7}' => "Enhookcyrillic",
-    '\u{04C8}' => "enhookcyrillic",
-    '\u{04CB}' => "Chekhakassiancyrillic",
-    '\u{04CC}' => "chekhakassiancyrillic",
-    '\u{04D0}' => "Abrevecyrillic",
-    '\u{04D1}' => "abrevecyrillic",
-    '\u{04D2}' => "Adieresiscyrillic",
-    '\u{04D3}' => "adieresiscyrillic",
-    '\u{04D4}' => "Aiecyrillic",
-    '\u{04D5}' => "aiecyrillic",
-    '\u{04D6}' => "Iebrevecyrillic",
-    '\u{04D7}' => "iebrevecyrillic",
-    '\u{04D8}' => "Schwacyrillic",
-    '\u{04D9}' => "afii10846",
-    '\u{04DA}' => "Schwadieresiscyrillic",
-    '\u{04DB}' => "schwadieresiscyrillic",
-    '\u{04DC}' => "Zhedieresiscyrillic",
-    '\u{04DD}' => "zhedieresiscyrillic",
-    '\u{04DE}' => "Zedieresiscyrillic",
-    '\u{04DF}' => "zedieresiscyrillic",
-    '\u{04E0}' => "Dzeabkhasiancyrillic",
-    '\u{04E1}' => "dzeabkhasiancyrillic",
-    '\u{04E2}' => "Imacroncyrillic",
-    '\u{04E3}' => "imacroncyrillic",
-    '\u{04E4}' => "Idieresiscyrillic",
-    '\u{04E5}' => "idieresiscyrillic",
-    '\u{04E6}' => "Odieresiscyrillic",
-    '\u{04E7}' => "odieresiscyrillic",
-    '\u{04E8}' => "Obarredcyrillic",
-    '\u{04E9}' => "obarredcyrillic",
-    '\u{04EA}' => "Obarreddieresiscyrillic",
-    '\u{04EB}' => "obarreddieresiscyrillic",
-    '\u{04EE}' => "Umacroncyrillic",
-    '\u{04EF}' => "umacroncyrillic",
-    '\u{04F0}' => "Udieresiscyrillic",
-    '\u{04F1}' => "udieresiscyrillic",
-    '\u{04F2}' => "Uhungarumlautcyrillic",
-    '\u{04F3}' => "uhungarumlautcyrillic",
-    '\u{04F4}' => "Chedieresiscyrillic",
-    '\u{04F5}' => "chedieresiscyrillic",
-    '\u{04F8}' => "Yerudieresiscyrillic",
-    '\u{04F9}' => "yerudieresiscyrillic",
-    '\u{0531}' => "Aybarmenian",
-    '\u{0532}' => "Benarmenian",
-    '\u{0533}' => "Gimarmenian",
-    '\u{0534}' => "Daarmenian",
-    '\u{0535}' => "Echarmenian",
-    '\u{0536}' => "Zaarmenian",
-    '\u{0537}' => "Eharmenian",
-    '\u{0538}' => "Etarmenian",
-    '\u{0539}' => "Toarmenian",
-    '\u{053A}' => "Zhearmenian",
-    '\u{053B}' => "Iniarmenian",
-    '\u{053C}' => "Liwnarmenian",
-    '\u{053D}' => "Xeharmenian",
-    '\u{053E}' => "Caarmenian",
-    '\u{053F}' => "Kenarmenian",
-    '\u{0540}' => "Hoarmenian",
-    '\u{0541}' => "Jaarmenian",
-    '\u{0542}' => "Ghadarmenian",
-    '\u{0543}' => "Cheharmenian",
-    '\u{0544}' => "Menarmenian",
-    '\u{0545}' => "Yiarmenian",
-    '\u{0546}' => "Nowarmenian",
-    '\u{0547}' => "Shaarmenian",
-    '\u{0548}' => "Voarmenian",
-    '\u{0549}' => "Chaarmenian",
-    '\u{054A}' => "Peharmenian",
-    '\u{054B}' => "Jheharmenian",
-    '\u{054C}' => "Raarmenian",
-    '\u{054D}' => "Seharmenian",
-    '\u{054E}' => "Vewarmenian",
-    '\u{054F}' => "Tiwnarmenian",
-    '\u{0550}' => "Reharmenian",
-    '\u{0551}' => "Coarmenian",
-    '\u{0552}' => "Yiwnarmenian",
-    '\u{0553}' => "Piwrarmenian",
-    '\u{0554}' => "Keharmenian",
-    '\u{0555}' => "Oharmenian",
-    '\u{0556}' => "Feharmenian",
-    '\u{0559}' => "ringhalfleftarmenian",
-    '\u{055A}' => "apostrophearmenian",
-    '\u{055B}' => "emphasismarkarmenian",
-    '\u{055C}' => "exclamarmenian",
-    '\u{055D}' => "commaarmenian",
-    '\u{055E}' => "questionarmenian",
-    '\u{055F}' => "abbreviationmarkarmenian",
-    '\u{0561}' => "aybarmenian",
-    '\u{0562}' => "benarmenian",
-    '\u{0563}' => "gimarmenian",
-    '\u{0564}' => "daarmenian",
-    '\u{0565}' => "echarmenian",
-    '\u{0566}' => "zaarmenian",
-    '\u{0567}' => "eharmenian",
-    '\u{0568}' => "etarmenian",
-    '\u{0569}' => "toarmenian",
-    '\u{056A}' => "zhearmenian",
-    '\u{056B}' => "iniarmenian",
-    '\u{056C}' => "liwnarmenian",
-    '\u{056D}' => "xeharmenian",
-    '\u{056E}' => "caarmenian",
-    '\u{056F}' => "kenarmenian",
-    '\u{0570}' => "hoarmenian",
-    '\u{0571}' => "jaarmenian",
-    '\u{0572}' => "ghadarmenian",
-    '\u{0573}' => "cheharmenian",
-    '\u{0574}' => "menarmenian",
-    '\u{0575}' => "yiarmenian",
-    '\u{0576}' => "nowarmenian",
-    '\u{0577}' => "shaarmenian",
-    '\u{0578}' => "voarmenian",
-    '\u{0579}' => "chaarmenian",
-    '\u{057A}' => "peharmenian",
-    '\u{057B}' => "jheharmenian",
-    '\u{057C}' => "raarmenian",
-    '\u{057D}' => "seharmenian",
-    '\u{057E}' => "vewarmenian",
-    '\u{057F}' => "tiwnarmenian",
-    '\u{0580}' => "reharmenian",
-    '\u{0581}' => "coarmenian",
-    '\u{0582}' => "yiwnarmenian",
-    '\u{0583}' => "piwrarmenian",
-    '\u{0584}' => "keharmenian",
-    '\u{0585}' => "oharmenian",
-    '\u{0586}' => "feharmenian",
-    '\u{0587}' => "echyiwnarmenian",
-    '\u{0589}' => "periodarmenian",
-    '\u{0591}' => "etnahtafoukhhebrew",
-    '\u{0592}' => "segoltahebrew",
-    '\u{0593}' => "shalshelethebrew",
-    '\u{0594}' => "zaqefqatanhebrew",
-    '\u{0595}' => "zaqefgadolhebrew",
-    '\u{0596}' => "tipehahebrew",
-    '\u{0597}' => "reviahebrew",
-    '\u{0598}' => "zarqahebrew",
-    '\u{0599}' => "pashtahebrew",
-    '\u{059A}' => "yetivhebrew",
-    '\u{059B}' => "tevirhebrew",
-    '\u{059C}' => "gereshaccenthebrew",
-    '\u{059D}' => "gereshmuqdamhebrew",
-    '\u{059E}' => "gershayimaccenthebrew",
-    '\u{059F}' => "qarneyparahebrew",
-    '\u{05A0}' => "telishagedolahebrew",
-    '\u{05A1}' => "pazerhebrew",
-    '\u{05A3}' => "munahhebrew",
-    '\u{05A4}' => "mahapakhhebrew",
-    '\u{05A5}' => "merkhahebrew",
-    '\u{05A6}' => "merkhakefulahebrew",
-    '\u{05A7}' => "dargahebrew",
-    '\u{05A8}' => "qadmahebrew",
-    '\u{05A9}' => "telishaqetanahebrew",
-    '\u{05AA}' => "yerahbenyomohebrew",
-    '\u{05AB}' => "olehebrew",
-    '\u{05AC}' => "iluyhebrew",
-    '\u{05AD}' => "dehihebrew",
-    '\u{05AE}' => "zinorhebrew",
-    '\u{05AF}' => "masoracirclehebrew",
-    '\u{05B0}' => "afii57799",
-    '\u{05B1}' => "afii57801",
-    '\u{05B2}' => "afii57800",
-    '\u{05B3}' => "afii57802",
-    '\u{05B4}' => "afii57793",
-    '\u{05B5}' => "afii57794",
-    '\u{05B6}' => "afii57795",
-    '\u{05B7}' => "afii57798",
-    '\u{05B8}' => "afii57797",
-    '\u{05B9}' => "afii57806",
-    '\u{05BB}' => "afii57796",
-    '\u{05BC}' => "afii57807",
-    '\u{05BD}' => "afii57839",
-    '\u{05BE}' => "afii57645",
-    '\u{05BF}' => "afii57841",
-    '\u{05C0}' => "afii57842",
-    '\u{05C1}' => "afii57804",
-    '\u{05C2}' => "afii57803",
-    '\u{05C3}' => "afii57658",
-    '\u{05C4}' => "upperdothebrew",
-    '\u{05D0}' => "afii57664",
-    '\u{05D1}' => "afii57665",
-    '\u{05D2}' => "afii57666",
-    '\u{05D3}' => "afii57667",
-    '\u{05D4}' => "afii57668",
-    '\u{05D5}' => "afii57669",
-    '\u{05D6}' => "afii57670",
-    '\u{05D7}' => "afii57671",
-    '\u{05D8}' => "afii57672",
-    '\u{05D9}' => "afii57673",
-    '\u{05DA}' => "afii57674",
-    '\u{05DB}' => "afii57675",
-    '\u{05DC}' => "afii57676",
-    '\u{05DD}' => "afii57677",
-    '\u{05DE}' => "afii57678",
-    '\u{05DF}' => "afii57679",
-    '\u{05E0}' => "afii57680",
-    '\u{05E1}' => "afii57681",
-    '\u{05E2}' => "afii57682",
-    '\u{05E3}' => "afii57683",
-    '\u{05E4}' => "afii57684",
-    '\u{05E5}' => "afii57685",
-    '\u{05E6}' => "afii57686",
-    '\u{05E7}' => "afii57687",
-    '\u{05E8}' => "afii57688",
-    '\u{05E9}' => "afii57689",
-    '\u{05EA}' => "afii57690",
-    '\u{05F0}' => "afii57716",
-    '\u{05F1}' => "afii57717",
-    '\u{05F2}' => "afii57718",
-    '\u{05F3}' => "gereshhebrew",
-    '\u{05F4}' => "gershayimhebrew",
-    '\u{060C}' => "afii57388",
-    '\u{061B}' => "afii57403",
-    '\u{061F}' => "afii57407",
-    '\u{0621}' => "afii57409",
-    '\u{0622}' => "afii57410",
-    '\u{0623}' => "afii57411",
-    '\u{0624}' => "afii57412",
-    '\u{0625}' => "afii57413",
-    '\u{0626}' => "afii57414",
-    '\u{0627}' => "afii57415",
-    '\u{0628}' => "afii57416",
-    '\u{0629}' => "afii57417",
-    '\u{062A}' => "afii57418",
-    '\u{062B}' => "afii57419",
-    '\u{062C}' => "afii57420",
-    '\u{062D}' => "afii57421",
-    '\u{062E}' => "afii57422",
-    '\u{062F}' => "afii57423",
-    '\u{0630}' => "afii57424",
-    '\u{0631}' => "afii57425",
-    '\u{0632}' => "afii57426",
-    '\u{0633}' => "afii57427",
-    '\u{0634}' => "afii57428",
-    '\u{0635}' => "afii57429",
-    '\u{0636}' => "afii57430",
-    '\u{0637}' => "afii57431",
-    '\u{0638}' => "afii57432",
-    '\u{0639}' => "afii57433",
-    '\u{063A}' => "afii57434",
-    '\u{0640}' => "afii57440",
-    '\u{0641}' => "afii57441",
-    '\u{0642}' => "afii57442",
-    '\u{0643}' => "afii57443",
-    '\u{0644}' => "afii57444",
-    '\u{0645}' => "afii57445",
-    '\u{0646}' => "afii57446",
-    '\u{0647}' => "afii57470",
-    '\u{0648}' => "afii57448",
-    '\u{0649}' => "afii57449",
-    '\u{064A}' => "afii57450",
-    '\u{064B}' => "afii57451",
-    '\u{064C}' => "afii57452",
-    '\u{064D}' => "afii57453",
-    '\u{064E}' => "afii57454",
-    '\u{064F}' => "afii57455",
-    '\u{0650}' => "afii57456",
-    '\u{0651}' => "afii57457",
-    '\u{0652}' => "afii57458",
-    '\u{0660}' => "afii57392",
-    '\u{0661}' => "afii57393",
-    '\u{0662}' => "afii57394",
-    '\u{0663}' => "afii57395",
-    '\u{0664}' => "afii57396",
-    '\u{0665}' => "afii57397",
-    '\u{0666}' => "afii57398",
-    '\u{0667}' => "afii57399",
-    '\u{0668}' => "afii57400",
-    '\u{0669}' => "afii57401",
-    '\u{066A}' => "afii57381",
-    '\u{066B}' => "decimalseparatorarabic",
-    '\u{066C}' => "thousandsseparatorarabic",
-    '\u{066D}' => "afii63167",
-    '\u{0679}' => "afii57511",
-    '\u{067E}' => "afii57506",
-    '\u{0686}' => "afii57507",
-    '\u{0688}' => "afii57512",
-    '\u{0691}' => "afii57513",
-    '\u{0698}' => "afii57508",
-    '\u{06A4}' => "afii57505",
-    '\u{06AF}' => "afii57509",
-    '\u{06BA}' => "afii57514",
-    '\u{06C1}' => "haaltonearabic",
-    '\u{06D1}' => "yehthreedotsbelowarabic",
-    '\u{06D2}' => "afii57519",
-    '\u{06D5}' => "afii57534",
-    '\u{06F0}' => "zeropersian",
-    '\u{06F1}' => "onepersian",
-    '\u{06F2}' => "twopersian",
-    '\u{06F3}' => "threepersian",
-    '\u{06F4}' => "fourpersian",
-    '\u{06F5}' => "fivepersian",
-    '\u{06F6}' => "sixpersian",
-    '\u{06F7}' => "sevenpersian",
-    '\u{06F8}' => "eightpersian",
-    '\u{06F9}' => "ninepersian",
-    '\u{0901}' => "candrabindudeva",
-    '\u{0902}' => "anusvaradeva",
-    '\u{0903}' => "visargadeva",
-    '\u{0905}' => "adeva",
-    '\u{0906}' => "aadeva",
-    '\u{0907}' => "ideva",
-    '\u{0908}' => "iideva",
-    '\u{0909}' => "udeva",
-    '\u{090A}' => "uudeva",
-    '\u{090B}' => "rvocalicdeva",
-    '\u{090C}' => "lvocalicdeva",
-    '\u{090D}' => "ecandradeva",
-    '\u{090E}' => "eshortdeva",
-    '\u{090F}' => "edeva",
-    '\u{0910}' => "aideva",
-    '\u{0911}' => "ocandradeva",
-    '\u{0912}' => "oshortdeva",
-    '\u{0913}' => "odeva",
-    '\u{0914}' => "audeva",
-    '\u{0915}' => "kadeva",
-    '\u{0916}' => "khadeva",
-    '\u{0917}' => "gadeva",
-    '\u{0918}' => "ghadeva",
-    '\u{0919}' => "ngadeva",
-    '\u{091A}' => "cadeva",
-    '\u{091B}' => "chadeva",
-    '\u{091C}' => "jadeva",
-    '\u{091D}' => "jhadeva",
-    '\u{091E}' => "nyadeva",
-    '\u{091F}' => "ttadeva",
-    '\u{0920}' => "tthadeva",
-    '\u{0921}' => "ddadeva",
-    '\u{0922}' => "ddhadeva",
-    '\u{0923}' => "nnadeva",
-    '\u{0924}' => "tadeva",
-    '\u{0925}' => "thadeva",
-    '\u{0926}' => "dadeva",
-    '\u{0927}' => "dhadeva",
-    '\u{0928}' => "nadeva",
-    '\u{0929}' => "nnnadeva",
-    '\u{092A}' => "padeva",
-    '\u{092B}' => "phadeva",
-    '\u{092C}' => "badeva",
-    '\u{092D}' => "bhadeva",
-    '\u{092E}' => "madeva",
-    '\u{092F}' => "yadeva",
-    '\u{0930}' => "radeva",
-    '\u{0931}' => "rradeva",
-    '\u{0932}' => "ladeva",
-    '\u{0933}' => "lladeva",
-    '\u{0934}' => "llladeva",
-    '\u{0935}' => "vadeva",
-    '\u{0936}' => "shadeva",
-    '\u{0937}' => "ssadeva",
-    '\u{0938}' => "sadeva",
-    '\u{0939}' => "hadeva",
-    '\u{093C}' => "nuktadeva",
-    '\u{093D}' => "avagrahadeva",
-    '\u{093E}' => "aavowelsigndeva",
-    '\u{093F}' => "ivowelsigndeva",
-    '\u{0940}' => "iivowelsigndeva",
-    '\u{0941}' => "uvowelsigndeva",
-    '\u{0942}' => "uuvowelsigndeva",
-    '\u{0943}' => "rvocalicvowelsigndeva",
-    '\u{0944}' => "rrvocalicvowelsigndeva",
-    '\u{0945}' => "ecandravowelsigndeva",
-    '\u{0946}' => "eshortvowelsigndeva",
-    '\u{0947}' => "evowelsigndeva",
-    '\u{0948}' => "aivowelsigndeva",
-    '\u{0949}' => "ocandravowelsigndeva",
-    '\u{094A}' => "oshortvowelsigndeva",
-    '\u{094B}' => "ovowelsigndeva",
-    '\u{094C}' => "auvowelsigndeva",
-    '\u{094D}' => "viramadeva",
-    '\u{0950}' => "omdeva",
-    '\u{0951}' => "udattadeva",
-    '\u{0952}' => "anudattadeva",
-    '\u{0953}' => "gravedeva",
-    '\u{0954}' => "acutedeva",
-    '\u{0958}' => "qadeva",
-    '\u{0959}' => "khhadeva",
-    '\u{095A}' => "ghhadeva",
-    '\u{095B}' => "zadeva",
-    '\u{095C}' => "dddhadeva",
-    '\u{095D}' => "rhadeva",
-    '\u{095E}' => "fadeva",
-    '\u{095F}' => "yyadeva",
-    '\u{0960}' => "rrvocalicdeva",
-    '\u{0961}' => "llvocalicdeva",
-    '\u{0962}' => "lvocalicvowelsigndeva",
-    '\u{0963}' => "llvocalicvowelsigndeva",
-    '\u{0964}' => "danda",
-    '\u{0965}' => "dbldanda",
-    '\u{0966}' => "zerodeva",
-    '\u{0967}' => "onedeva",
-    '\u{0968}' => "twodeva",
-    '\u{0969}' => "threedeva",
-    '\u{096A}' => "fourdeva",
-    '\u{096B}' => "fivedeva",
-    '\u{096C}' => "sixdeva",
-    '\u{096D}' => "sevendeva",
-    '\u{096E}' => "eightdeva",
-    '\u{096F}' => "ninedeva",
-    '\u{0970}' => "abbreviationsigndeva",
-    '\u{0981}' => "candrabindubengali",
-    '\u{0982}' => "anusvarabengali",
-    '\u{0983}' => "visargabengali",
-    '\u{0985}' => "abengali",
-    '\u{0986}' => "aabengali",
-    '\u{0987}' => "ibengali",
-    '\u{0988}' => "iibengali",
-    '\u{0989}' => "ubengali",
-    '\u{098A}' => "uubengali",
-    '\u{098B}' => "rvocalicbengali",
-    '\u{098C}' => "lvocalicbengali",
-    '\u{098F}' => "ebengali",
-    '\u{0990}' => "aibengali",
-    '\u{0993}' => "obengali",
-    '\u{0994}' => "aubengali",
-    '\u{0995}' => "kabengali",
-    '\u{0996}' => "khabengali",
-    '\u{0997}' => "gabengali",
-    '\u{0998}' => "ghabengali",
-    '\u{0999}' => "ngabengali",
-    '\u{099A}' => "cabengali",
-    '\u{099B}' => "chabengali",
-    '\u{099C}' => "jabengali",
-    '\u{099D}' => "jhabengali",
-    '\u{099E}' => "nyabengali",
-    '\u{099F}' => "ttabengali",
-    '\u{09A0}' => "tthabengali",
-    '\u{09A1}' => "ddabengali",
-    '\u{09A2}' => "ddhabengali",
-    '\u{09A3}' => "nnabengali",
-    '\u{09A4}' => "tabengali",
-    '\u{09A5}' => "thabengali",
-    '\u{09A6}' => "dabengali",
-    '\u{09A7}' => "dhabengali",
-    '\u{09A8}' => "nabengali",
-    '\u{09AA}' => "pabengali",
-    '\u{09AB}' => "phabengali",
-    '\u{09AC}' => "babengali",
-    '\u{09AD}' => "bhabengali",
-    '\u{09AE}' => "mabengali",
-    '\u{09AF}' => "yabengali",
-    '\u{09B0}' => "rabengali",
-    '\u{09B2}' => "labengali",
-    '\u{09B6}' => "shabengali",
-    '\u{09B7}' => "ssabengali",
-    '\u{09B8}' => "sabengali",
-    '\u{09B9}' => "habengali",
-    '\u{09BC}' => "nuktabengali",
-    '\u{09BE}' => "aavowelsignbengali",
-    '\u{09BF}' => "ivowelsignbengali",
-    '\u{09C0}' => "iivowelsignbengali",
-    '\u{09C1}' => "uvowelsignbengali",
-    '\u{09C2}' => "uuvowelsignbengali",
-    '\u{09C3}' => "rvocalicvowelsignbengali",
-    '\u{09C4}' => "rrvocalicvowelsignbengali",
-    '\u{09C7}' => "evowelsignbengali",
-    '\u{09C8}' => "aivowelsignbengali",
-    '\u{09CB}' => "ovowelsignbengali",
-    '\u{09CC}' => "auvowelsignbengali",
-    '\u{09CD}' => "viramabengali",
-    '\u{09D7}' => "aulengthmarkbengali",
-    '\u{09DC}' => "rrabengali",
-    '\u{09DD}' => "rhabengali",
-    '\u{09DF}' => "yyabengali",
-    '\u{09E0}' => "rrvocalicbengali",
-    '\u{09E1}' => "llvocalicbengali",
-    '\u{09E2}' => "lvocalicvowelsignbengali",
-    '\u{09E3}' => "llvocalicvowelsignbengali",
-    '\u{09E6}' => "zerobengali",
-    '\u{09E7}' => "onebengali",
-    '\u{09E8}' => "twobengali",
-    '\u{09E9}' => "threebengali",
-    '\u{09EA}' => "fourbengali",
-    '\u{09EB}' => "fivebengali",
-    '\u{09EC}' => "sixbengali",
-    '\u{09ED}' => "sevenbengali",
-    '\u{09EE}' => "eightbengali",
-    '\u{09EF}' => "ninebengali",
-    '\u{09F0}' => "ramiddlediagonalbengali",
-    '\u{09F1}' => "ralowerdiagonalbengali",
-    '\u{09F2}' => "rupeemarkbengali",
-    '\u{09F3}' => "rupeesignbengali",
-    '\u{09F4}' => "onenumeratorbengali",
-    '\u{09F5}' => "twonumeratorbengali",
-    '\u{09F6}' => "threenumeratorbengali",
-    '\u{09F7}' => "fournumeratorbengali",
-    '\u{09F8}' => "denominatorminusonenumeratorbengali",
-    '\u{09F9}' => "sixteencurrencydenominatorbengali",
-    '\u{09FA}' => "issharbengali",
-    '\u{0A02}' => "bindigurmukhi",
-    '\u{0A05}' => "agurmukhi",
-    '\u{0A06}' => "aagurmukhi",
-    '\u{0A07}' => "igurmukhi",
-    '\u{0A08}' => "iigurmukhi",
-    '\u{0A09}' => "ugurmukhi",
-    '\u{0A0A}' => "uugurmukhi",
-    '\u{0A0F}' => "eegurmukhi",
-    '\u{0A10}' => "aigurmukhi",
-    '\u{0A13}' => "oogurmukhi",
-    '\u{0A14}' => "augurmukhi",
-    '\u{0A15}' => "kagurmukhi",
-    '\u{0A16}' => "khagurmukhi",
-    '\u{0A17}' => "gagurmukhi",
-    '\u{0A18}' => "ghagurmukhi",
-    '\u{0A19}' => "ngagurmukhi",
-    '\u{0A1A}' => "cagurmukhi",
-    '\u{0A1B}' => "chagurmukhi",
-    '\u{0A1C}' => "jagurmukhi",
-    '\u{0A1D}' => "jhagurmukhi",
-    '\u{0A1E}' => "nyagurmukhi",
-    '\u{0A1F}' => "ttagurmukhi",
-    '\u{0A20}' => "tthagurmukhi",
-    '\u{0A21}' => "ddagurmukhi",
-    '\u{0A22}' => "ddhagurmukhi",
-    '\u{0A23}' => "nnagurmukhi",
-    '\u{0A24}' => "tagurmukhi",
-    '\u{0A25}' => "thagurmukhi",
-    '\u{0A26}' => "dagurmukhi",
-    '\u{0A27}' => "dhagurmukhi",
-    '\u{0A28}' => "nagurmukhi",
-    '\u{0A2A}' => "pagurmukhi",
-    '\u{0A2B}' => "phagurmukhi",
-    '\u{0A2C}' => "bagurmukhi",
-    '\u{0A2D}' => "bhagurmukhi",
-    '\u{0A2E}' => "magurmukhi",
-    '\u{0A2F}' => "yagurmukhi",
-    '\u{0A30}' => "ragurmukhi",
-    '\u{0A32}' => "lagurmukhi",
-    '\u{0A35}' => "vagurmukhi",
-    '\u{0A36}' => "shagurmukhi",
-    '\u{0A38}' => "sagurmukhi",
-    '\u{0A39}' => "hagurmukhi",
-    '\u{0A3C}' => "nuktagurmukhi",
-    '\u{0A3E}' => "aamatragurmukhi",
-    '\u{0A3F}' => "imatragurmukhi",
-    '\u{0A40}' => "iimatragurmukhi",
-    '\u{0A41}' => "umatragurmukhi",
-    '\u{0A42}' => "uumatragurmukhi",
-    '\u{0A47}' => "eematragurmukhi",
-    '\u{0A48}' => "aimatragurmukhi",
-    '\u{0A4B}' => "oomatragurmukhi",
-    '\u{0A4C}' => "aumatragurmukhi",
-    '\u{0A4D}' => "halantgurmukhi",
-    '\u{0A59}' => "khhagurmukhi",
-    '\u{0A5A}' => "ghhagurmukhi",
-    '\u{0A5B}' => "zagurmukhi",
-    '\u{0A5C}' => "rragurmukhi",
-    '\u{0A5E}' => "fagurmukhi",
-    '\u{0A66}' => "zerogurmukhi",
-    '\u{0A67}' => "onegurmukhi",
-    '\u{0A68}' => "twogurmukhi",
-    '\u{0A69}' => "threegurmukhi",
-    '\u{0A6A}' => "fourgurmukhi",
-    '\u{0A6B}' => "fivegurmukhi",
-    '\u{0A6C}' => "sixgurmukhi",
-    '\u{0A6D}' => "sevengurmukhi",
-    '\u{0A6E}' => "eightgurmukhi",
-    '\u{0A6F}' => "ninegurmukhi",
-    '\u{0A70}' => "tippigurmukhi",
-    '\u{0A71}' => "addakgurmukhi",
-    '\u{0A72}' => "irigurmukhi",
-    '\u{0A73}' => "uragurmukhi",
-    '\u{0A74}' => "ekonkargurmukhi",
-    '\u{0A81}' => "candrabindugujarati",
-    '\u{0A82}' => "anusvaragujarati",
-    '\u{0A83}' => "visargagujarati",
-    '\u{0A85}' => "agujarati",
-    '\u{0A86}' => "aagujarati",
-    '\u{0A87}' => "igujarati",
-    '\u{0A88}' => "iigujarati",
-    '\u{0A89}' => "ugujarati",
-    '\u{0A8A}' => "uugujarati",
-    '\u{0A8B}' => "rvocalicgujarati",
-    '\u{0A8D}' => "ecandragujarati",
-    '\u{0A8F}' => "egujarati",
-    '\u{0A90}' => "aigujarati",
-    '\u{0A91}' => "ocandragujarati",
-    '\u{0A93}' => "ogujarati",
-    '\u{0A94}' => "augujarati",
-    '\u{0A95}' => "kagujarati",
-    '\u{0A96}' => "khagujarati",
-    '\u{0A97}' => "gagujarati",
-    '\u{0A98}' => "ghagujarati",
-    '\u{0A99}' => "ngagujarati",
-    '\u{0A9A}' => "cagujarati",
-    '\u{0A9B}' => "chagujarati",
-    '\u{0A9C}' => "jagujarati",
-    '\u{0A9D}' => "jhagujarati",
-    '\u{0A9E}' => "nyagujarati",
-    '\u{0A9F}' => "ttagujarati",
-    '\u{0AA0}' => "tthagujarati",
-    '\u{0AA1}' => "ddagujarati",
-    '\u{0AA2}' => "ddhagujarati",
-    '\u{0AA3}' => "nnagujarati",
-    '\u{0AA4}' => "tagujarati",
-    '\u{0AA5}' => "thagujarati",
-    '\u{0AA6}' => "dagujarati",
-    '\u{0AA7}' => "dhagujarati",
-    '\u{0AA8}' => "nagujarati",
-    '\u{0AAA}' => "pagujarati",
-    '\u{0AAB}' => "phagujarati",
-    '\u{0AAC}' => "bagujarati",
-    '\u{0AAD}' => "bhagujarati",
-    '\u{0AAE}' => "magujarati",
-    '\u{0AAF}' => "yagujarati",
-    '\u{0AB0}' => "ragujarati",
-    '\u{0AB2}' => "lagujarati",
-    '\u{0AB3}' => "llagujarati",
-    '\u{0AB5}' => "vagujarati",
-    '\u{0AB6}' => "shagujarati",
-    '\u{0AB7}' => "ssagujarati",
-    '\u{0AB8}' => "sagujarati",
-    '\u{0AB9}' => "hagujarati",
-    '\u{0ABC}' => "nuktagujarati",
-    '\u{0ABE}' => "aavowelsigngujarati",
-    '\u{0ABF}' => "ivowelsigngujarati",
-    '\u{0AC0}' => "iivowelsigngujarati",
-    '\u{0AC1}' => "uvowelsigngujarati",
-    '\u{0AC2}' => "uuvowelsigngujarati",
-    '\u{0AC3}' => "rvocalicvowelsigngujarati",
-    '\u{0AC4}' => "rrvocalicvowelsigngujarati",
-    '\u{0AC5}' => "ecandravowelsigngujarati",
-    '\u{0AC7}' => "evowelsigngujarati",
-    '\u{0AC8}' => "aivowelsigngujarati",
-    '\u{0AC9}' => "ocandravowelsigngujarati",
-    '\u{0ACB}' => "ovowelsigngujarati",
-    '\u{0ACC}' => "auvowelsigngujarati",
-    '\u{0ACD}' => "viramagujarati",
-    '\u{0AD0}' => "omgujarati",
-    '\u{0AE0}' => "rrvocalicgujarati",
-    '\u{0AE6}' => "zerogujarati",
-    '\u{0AE7}' => "onegujarati",
-    '\u{0AE8}' => "twogujarati",
-    '\u{0AE9}' => "threegujarati",
-    '\u{0AEA}' => "fourgujarati",
-    '\u{0AEB}' => "fivegujarati",
-    '\u{0AEC}' => "sixgujarati",
-    '\u{0AED}' => "sevengujarati",
-    '\u{0AEE}' => "eightgujarati",
-    '\u{0AEF}' => "ninegujarati",
-    '\u{0E01}' => "kokaithai",
-    '\u{0E02}' => "khokhaithai",
-    '\u{0E03}' => "khokhuatthai",
-    '\u{0E04}' => "khokhwaithai",
-    '\u{0E05}' => "khokhonthai",
-    '\u{0E06}' => "khorakhangthai",
-    '\u{0E07}' => "ngonguthai",
-    '\u{0E08}' => "chochanthai",
-    '\u{0E09}' => "chochingthai",
-    '\u{0E0A}' => "chochangthai",
-    '\u{0E0B}' => "sosothai",
-    '\u{0E0C}' => "chochoethai",
-    '\u{0E0D}' => "yoyingthai",
-    '\u{0E0E}' => "dochadathai",
-    '\u{0E0F}' => "topatakthai",
-    '\u{0E10}' => "thothanthai",
-    '\u{0E11}' => "thonangmonthothai",
-    '\u{0E12}' => "thophuthaothai",
-    '\u{0E13}' => "nonenthai",
-    '\u{0E14}' => "dodekthai",
-    '\u{0E15}' => "totaothai",
-    '\u{0E16}' => "thothungthai",
-    '\u{0E17}' => "thothahanthai",
-    '\u{0E18}' => "thothongthai",
-    '\u{0E19}' => "nonuthai",
-    '\u{0E1A}' => "bobaimaithai",
-    '\u{0E1B}' => "poplathai",
-    '\u{0E1C}' => "phophungthai",
-    '\u{0E1D}' => "fofathai",
-    '\u{0E1E}' => "phophanthai",
-    '\u{0E1F}' => "fofanthai",
-    '\u{0E20}' => "phosamphaothai",
-    '\u{0E21}' => "momathai",
-    '\u{0E22}' => "yoyakthai",
-    '\u{0E23}' => "roruathai",
-    '\u{0E24}' => "ruthai",
-    '\u{0E25}' => "lolingthai",
-    '\u{0E26}' => "luthai",
-    '\u{0E27}' => "wowaenthai",
-    '\u{0E28}' => "sosalathai",
-    '\u{0E29}' => "sorusithai",
-    '\u{0E2A}' => "sosuathai",
-    '\u{0E2B}' => "hohipthai",
-    '\u{0E2C}' => "lochulathai",
-    '\u{0E2D}' => "oangthai",
-    '\u{0E2E}' => "honokhukthai",
-    '\u{0E2F}' => "paiyannoithai",
-    '\u{0E30}' => "saraathai",
-    '\u{0E31}' => "maihanakatthai",
-    '\u{0E32}' => "saraaathai",
-    '\u{0E33}' => "saraamthai",
-    '\u{0E34}' => "saraithai",
-    '\u{0E35}' => "saraiithai",
-    '\u{0E36}' => "sarauethai",
-    '\u{0E37}' => "saraueethai",
-    '\u{0E38}' => "sarauthai",
-    '\u{0E39}' => "sarauuthai",
-    '\u{0E3A}' => "phinthuthai",
-    '\u{0E3F}' => "bahtthai",
-    '\u{0E40}' => "saraethai",
-    '\u{0E41}' => "saraaethai",
-    '\u{0E42}' => "saraothai",
-    '\u{0E43}' => "saraaimaimuanthai",
-    '\u{0E44}' => "saraaimaimalaithai",
-    '\u{0E45}' => "lakkhangyaothai",
-    '\u{0E46}' => "maiyamokthai",
-    '\u{0E47}' => "maitaikhuthai",
-    '\u{0E48}' => "maiekthai",
-    '\u{0E49}' => "maithothai",
-    '\u{0E4A}' => "maitrithai",
-    '\u{0E4B}' => "maichattawathai",
-    '\u{0E4C}' => "thanthakhatthai",
-    '\u{0E4D}' => "nikhahitthai",
-    '\u{0E4E}' => "yamakkanthai",
-    '\u{0E4F}' => "fongmanthai",
-    '\u{0E50}' => "zerothai",
-    '\u{0E51}' => "onethai",
-    '\u{0E52}' => "twothai",
-    '\u{0E53}' => "threethai",
-    '\u{0E54}' => "fourthai",
-    '\u{0E55}' => "fivethai",
-    '\u{0E56}' => "sixthai",
-    '\u{0E57}' => "seventhai",
-    '\u{0E58}' => "eightthai",
-    '\u{0E59}' => "ninethai",
-    '\u{0E5A}' => "angkhankhuthai",
-    '\u{0E5B}' => "khomutthai",
-    '\u{1D40}' => "intercal",
-    '\u{1E00}' => "Aringbelow",
-    '\u{1E01}' => "aringbelow",
-    '\u{1E02}' => "Bdotaccent",
-    '\u{1E03}' => "bdotaccent",
-    '\u{1E04}' => "Bdotbelow",
-    '\u{1E05}' => "bdotbelow",
-    '\u{1E06}' => "Blinebelow",
-    '\u{1E07}' => "blinebelow",
-    '\u{1E08}' => "Ccedillaacute",
-    '\u{1E09}' => "ccedillaacute",
-    '\u{1E0A}' => "Ddotaccent",
-    '\u{1E0B}' => "ddotaccent",
-    '\u{1E0C}' => "Ddotbelow",
-    '\u{1E0D}' => "ddotbelow",
-    '\u{1E0E}' => "Dlinebelow",
-    '\u{1E0F}' => "dlinebelow",
-    '\u{1E10}' => "Dcedilla",
-    '\u{1E11}' => "dcedilla",
-    '\u{1E12}' => "Dcircumflexbelow",
-    '\u{1E13}' => "dcircumflexbelow",
-    '\u{1E14}' => "Emacrongrave",
-    '\u{1E15}' => "emacrongrave",
-    '\u{1E16}' => "Emacronacute",
-    '\u{1E17}' => "emacronacute",
-    '\u{1E18}' => "Ecircumflexbelow",
-    '\u{1E19}' => "ecircumflexbelow",
-    '\u{1E1A}' => "Etildebelow",
-    '\u{1E1B}' => "etildebelow",
-    '\u{1E1C}' => "Ecedillabreve",
-    '\u{1E1D}' => "ecedillabreve",
-    '\u{1E1E}' => "Fdotaccent",
-    '\u{1E1F}' => "fdotaccent",
-    '\u{1E20}' => "Gmacron",
-    '\u{1E21}' => "gmacron",
-    '\u{1E22}' => "Hdotaccent",
-    '\u{1E23}' => "hdotaccent",
-    '\u{1E24}' => "Hdotbelow",
-    '\u{1E25}' => "hdotbelow",
-    '\u{1E26}' => "Hdieresis",
-    '\u{1E27}' => "hdieresis",
-    '\u{1E28}' => "Hcedilla",
-    '\u{1E29}' => "hcedilla",
-    '\u{1E2A}' => "Hbrevebelow",
-    '\u{1E2B}' => "hbrevebelow",
-    '\u{1E2C}' => "Itildebelow",
-    '\u{1E2D}' => "itildebelow",
-    '\u{1E2E}' => "Idieresisacute",
-    '\u{1E2F}' => "idieresisacute",
-    '\u{1E30}' => "Kacute",
-    '\u{1E31}' => "kacute",
-    '\u{1E32}' => "Kdotbelow",
-    '\u{1E33}' => "kdotbelow",
-    '\u{1E34}' => "Klinebelow",
-    '\u{1E35}' => "klinebelow",
-    '\u{1E36}' => "Ldotbelow",
-    '\u{1E37}' => "ldotbelow",
-    '\u{1E38}' => "Ldotbelowmacron",
-    '\u{1E39}' => "ldotbelowmacron",
-    '\u{1E3A}' => "Llinebelow",
-    '\u{1E3B}' => "llinebelow",
-    '\u{1E3C}' => "Lcircumflexbelow",
-    '\u{1E3D}' => "lcircumflexbelow",
-    '\u{1E3E}' => "Macute",
-    '\u{1E3F}' => "macute",
-    '\u{1E40}' => "Mdotaccent",
-    '\u{1E41}' => "mdotaccent",
-    '\u{1E42}' => "Mdotbelow",
-    '\u{1E43}' => "mdotbelow",
-    '\u{1E44}' => "Ndotaccent",
-    '\u{1E45}' => "ndotaccent",
-    '\u{1E46}' => "Ndotbelow",
-    '\u{1E47}' => "ndotbelow",
-    '\u{1E48}' => "Nlinebelow",
-    '\u{1E49}' => "nlinebelow",
-    '\u{1E4A}' => "Ncircumflexbelow",
-    '\u{1E4B}' => "ncircumflexbelow",
-    '\u{1E4C}' => "Otildeacute",
-    '\u{1E4D}' => "otildeacute",
-    '\u{1E4E}' => "Otildedieresis",
-    '\u{1E4F}' => "otildedieresis",
-    '\u{1E50}' => "Omacrongrave",
-    '\u{1E51}' => "omacrongrave",
-    '\u{1E52}' => "Omacronacute",
-    '\u{1E53}' => "omacronacute",
-    '\u{1E54}' => "Pacute",
-    '\u{1E55}' => "pacute",
-    '\u{1E56}' => "Pdotaccent",
-    '\u{1E57}' => "pdotaccent",
-    '\u{1E58}' => "Rdotaccent",
-    '\u{1E59}' => "rdotaccent",
-    '\u{1E5A}' => "Rdotbelow",
-    '\u{1E5B}' => "rdotbelow",
-    '\u{1E5C}' => "Rdotbelowmacron",
-    '\u{1E5D}' => "rdotbelowmacron",
-    '\u{1E5E}' => "Rlinebelow",
-    '\u{1E5F}' => "rlinebelow",
-    '\u{1E60}' => "Sdotaccent",
-    '\u{1E61}' => "sdotaccent",
-    '\u{1E62}' => "Sdotbelow",
-    '\u{1E63}' => "sdotbelow",
-    '\u{1E64}' => "Sacutedotaccent",
-    '\u{1E65}' => "sacutedotaccent",
-    '\u{1E66}' => "Scarondotaccent",
-    '\u{1E67}' => "scarondotaccent",
-    '\u{1E68}' => "Sdotbelowdotaccent",
-    '\u{1E69}' => "sdotbelowdotaccent",
-    '\u{1E6A}' => "Tdotaccent",
-    '\u{1E6B}' => "tdotaccent",
-    '\u{1E6C}' => "Tdotbelow",
-    '\u{1E6D}' => "tdotbelow",
-    '\u{1E6E}' => "Tlinebelow",
-    '\u{1E6F}' => "tlinebelow",
-    '\u{1E70}' => "Tcircumflexbelow",
-    '\u{1E71}' => "tcircumflexbelow",
-    '\u{1E72}' => "Udieresisbelow",
-    '\u{1E73}' => "udieresisbelow",
-    '\u{1E74}' => "Utildebelow",
-    '\u{1E75}' => "utildebelow",
-    '\u{1E76}' => "Ucircumflexbelow",
-    '\u{1E77}' => "ucircumflexbelow",
-    '\u{1E78}' => "Utildeacute",
-    '\u{1E79}' => "utildeacute",
-    '\u{1E7A}' => "Umacrondieresis",
-    '\u{1E7B}' => "umacrondieresis",
-    '\u{1E7C}' => "Vtilde",
-    '\u{1E7D}' => "vtilde",
-    '\u{1E7E}' => "Vdotbelow",
-    '\u{1E7F}' => "vdotbelow",
-    '\u{1E80}' => "Wgrave",
-    '\u{1E81}' => "wgrave",
-    '\u{1E82}' => "Wacute",
-    '\u{1E83}' => "wacute",
-    '\u{1E84}' => "Wdieresis",
-    '\u{1E85}' => "wdieresis",
-    '\u{1E86}' => "Wdotaccent",
-    '\u{1E87}' => "wdotaccent",
-    '\u{1E88}' => "Wdotbelow",
-    '\u{1E89}' => "wdotbelow",
-    '\u{1E8A}' => "Xdotaccent",
-    '\u{1E8B}' => "xdotaccent",
-    '\u{1E8C}' => "Xdieresis",
-    '\u{1E8D}' => "xdieresis",
-    '\u{1E8E}' => "Ydotaccent",
-    '\u{1E8F}' => "ydotaccent",
-    '\u{1E90}' => "Zcircumflex",
-    '\u{1E91}' => "zcircumflex",
-    '\u{1E92}' => "Zdotbelow",
-    '\u{1E93}' => "zdotbelow",
-    '\u{1E94}' => "Zlinebelow",
-    '\u{1E95}' => "zlinebelow",
-    '\u{1E96}' => "hlinebelow",
-    '\u{1E97}' => "tdieresis",
-    '\u{1E98}' => "wring",
-    '\u{1E99}' => "yring",
-    '\u{1E9A}' => "arighthalfring",
-    '\u{1E9B}' => "slongdotaccent",
-    '\u{1EA0}' => "Adotbelow",
-    '\u{1EA1}' => "adotbelow",
-    '\u{1EA2}' => "Ahookabove",
-    '\u{1EA3}' => "ahookabove",
-    '\u{1EA4}' => "Acircumflexacute",
-    '\u{1EA5}' => "acircumflexacute",
-    '\u{1EA6}' => "Acircumflexgrave",
-    '\u{1EA7}' => "acircumflexgrave",
-    '\u{1EA8}' => "Acircumflexhookabove",
-    '\u{1EA9}' => "acircumflexhookabove",
-    '\u{1EAA}' => "Acircumflextilde",
-    '\u{1EAB}' => "acircumflextilde",
-    '\u{1EAC}' => "Acircumflexdotbelow",
-    '\u{1EAD}' => "acircumflexdotbelow",
-    '\u{1EAE}' => "Abreveacute",
-    '\u{1EAF}' => "abreveacute",
-    '\u{1EB0}' => "Abrevegrave",
-    '\u{1EB1}' => "abrevegrave",
-    '\u{1EB2}' => "Abrevehookabove",
-    '\u{1EB3}' => "abrevehookabove",
-    '\u{1EB4}' => "Abrevetilde",
-    '\u{1EB5}' => "abrevetilde",
-    '\u{1EB6}' => "Abrevedotbelow",
-    '\u{1EB7}' => "abrevedotbelow",
-    '\u{1EB8}' => "Edotbelow",
-    '\u{1EB9}' => "edotbelow",
-    '\u{1EBA}' => "Ehookabove",
-    '\u{1EBB}' => "ehookabove",
-    '\u{1EBC}' => "Etilde",
-    '\u{1EBD}' => "etilde",
-    '\u{1EBE}' => "Ecircumflexacute",
-    '\u{1EBF}' => "ecircumflexacute",
-    '\u{1EC0}' => "Ecircumflexgrave",
-    '\u{1EC1}' => "ecircumflexgrave",
-    '\u{1EC2}' => "Ecircumflexhookabove",
-    '\u{1EC3}' => "ecircumflexhookabove",
-    '\u{1EC4}' => "Ecircumflextilde",
-    '\u{1EC5}' => "ecircumflextilde",
-    '\u{1EC6}' => "Ecircumflexdotbelow",
-    '\u{1EC7}' => "ecircumflexdotbelow",
-    '\u{1EC8}' => "Ihookabove",
-    '\u{1EC9}' => "ihookabove",
-    '\u{1ECA}' => "Idotbelow",
-    '\u{1ECB}' => "idotbelow",
-    '\u{1ECC}' => "Odotbelow",
-    '\u{1ECD}' => "odotbelow",
-    '\u{1ECE}' => "Ohookabove",
-    '\u{1ECF}' => "ohookabove",
-    '\u{1ED0}' => "Ocircumflexacute",
-    '\u{1ED1}' => "ocircumflexacute",
-    '\u{1ED2}' => "Ocircumflexgrave",
-    '\u{1ED3}' => "ocircumflexgrave",
-    '\u{1ED4}' => "Ocircumflexhookabove",
-    '\u{1ED5}' => "ocircumflexhookabove",
-    '\u{1ED6}' => "Ocircumflextilde",
-    '\u{1ED7}' => "ocircumflextilde",
-    '\u{1ED8}' => "Ocircumflexdotbelow",
-    '\u{1ED9}' => "ocircumflexdotbelow",
-    '\u{1EDA}' => "Ohornacute",
-    '\u{1EDB}' => "ohornacute",
-    '\u{1EDC}' => "Ohorngrave",
-    '\u{1EDD}' => "ohorngrave",
-    '\u{1EDE}' => "Ohornhookabove",
-    '\u{1EDF}' => "ohornhookabove",
-    '\u{1EE0}' => "Ohorntilde",
-    '\u{1EE1}' => "ohorntilde",
-    '\u{1EE2}' => "Ohorndotbelow",
-    '\u{1EE3}' => "ohorndotbelow",
-    '\u{1EE4}' => "Udotbelow",
-    '\u{1EE5}' => "udotbelow",
-    '\u{1EE6}' => "Uhookabove",
-    '\u{1EE7}' => "uhookabove",
-    '\u{1EE8}' => "Uhornacute",
-    '\u{1EE9}' => "uhornacute",
-    '\u{1EEA}' => "Uhorngrave",
-    '\u{1EEB}' => "uhorngrave",
-    '\u{1EEC}' => "Uhornhookabove",
-    '\u{1EED}' => "uhornhookabove",
-    '\u{1EEE}' => "Uhorntilde",
-    '\u{1EEF}' => "uhorntilde",
-    '\u{1EF0}' => "Uhorndotbelow",
-    '\u{1EF1}' => "uhorndotbelow",
-    '\u{1EF2}' => "Ygrave",
-    '\u{1EF3}' => "ygrave",
-    '\u{1EF4}' => "Ydotbelow",
-    '\u{1EF5}' => "ydotbelow",
-    '\u{1EF6}' => "Yhookabove",
-    '\u{1EF7}' => "yhookabove",
-    '\u{1EF8}' => "Ytilde",
-    '\u{1EF9}' => "ytilde",
-    '\u{2002}' => "enspace",
-    '\u{200B}' => "zerowidthspace",
-    '\u{200C}' => "afii61664",
-    '\u{200D}' => "afii301",
-    '\u{200E}' => "afii299",
-    '\u{200F}' => "afii300",
-    '\u{2010}' => "hyphentwo",
-    '\u{2012}' => "figuredash",
-    '\u{2013}' => "endash",
-    '\u{2014}' => "emdash",
-    '\u{2015}' => "afii00208",
-    '\u{2016}' => "dblverticalbar",
-    '\u{2017}' => "dbllowline",
-    '\u{2018}' => "quoteleft",
-    '\u{2019}' => "quoteright",
-    '\u{201A}' => "quotesinglbase",
-    '\u{201B}' => "quoteleftreversed",
-    '\u{201C}' => "quotedblleft",
-    '\u{201D}' => "quotedblright",
-    '\u{201E}' => "quotedblbase",
-    '\u{2020}' => "dagger",
-    '\u{2021}' => "daggerdbl",
-    '\u{2022}' => "bullet",
-    '\u{2024}' => "onedotenleader",
-    '\u{2025}' => "twodotenleader",
-    '\u{2026}' => "ellipsis",
-    '\u{202C}' => "afii61573",
-    '\u{202D}' => "afii61574",
-    '\u{202E}' => "afii61575",
-    '\u{2030}' => "perthousand",
-    '\u{2032}' => "minute",
-    '\u{2033}' => "second",
-    '\u{2035}' => "primereversed",
-    '\u{2039}' => "guilsinglleft",
-    '\u{203A}' => "guilsinglright",
-    '\u{203B}' => "referencemark",
-    '\u{203C}' => "exclamdbl",
-    '\u{203E}' => "overline",
-    '\u{2042}' => "asterism",
-    '\u{2044}' => "fraction",
-    '\u{2070}' => "zerosuperior",
-    '\u{2074}' => "foursuperior",
-    '\u{2075}' => "fivesuperior",
-    '\u{2076}' => "sixsuperior",
-    '\u{2077}' => "sevensuperior",
-    '\u{2078}' => "eightsuperior",
-    '\u{2079}' => "ninesuperior",
-    '\u{207A}' => "plussuperior",
-    '\u{207C}' => "equalsuperior",
-    '\u{207D}' => "parenleftsuperior",
-    '\u{207E}' => "parenrightsuperior",
-    '\u{207F}' => "nsuperior",
-    '\u{2080}' => "zeroinferior",
-    '\u{2081}' => "oneinferior",
-    '\u{2082}' => "twoinferior",
-    '\u{2083}' => "threeinferior",
-    '\u{2084}' => "fourinferior",
-    '\u{2085}' => "fiveinferior",
-    '\u{2086}' => "sixinferior",
-    '\u{2087}' => "seveninferior",
-    '\u{2088}' => "eightinferior",
-    '\u{2089}' => "nineinferior",
-    '\u{208D}' => "parenleftinferior",
-    '\u{208E}' => "parenrightinferior",
-    '\u{20A1}' => "colonmonetary",
-    '\u{20A2}' => "cruzeiro",
-    '\u{20A3}' => "franc",
-    '\u{20A4}' => "afii08941",
-    '\u{20A7}' => "peseta",
-    '\u{20A9}' => "won",
-    '\u{20AA}' => "afii57636",
-    '\u{20AB}' => "dong",
-    '\u{20AC}' => "Euro",
-    '\u{2103}' => "centigrade",
-    '\u{2105}' => "afii61248",
-    '\u{2109}' => "fahrenheit",
-    '\u{2111}' => "Ifraktur",
-    '\u{2113}' => "afii61289",
-    '\u{2116}' => "afii61352",
-    '\u{2118}' => "weierstrass",
-    '\u{211C}' => "Rfraktur",
-    '\u{211E}' => "prescription",
-    '\u{2121}' => "telephone",
-    '\u{2122}' => "trademark",
-    '\u{2126}' => "Ohm",
-    '\u{212B}' => "angstrom",
-    '\u{212E}' => "estimated",
-    '\u{2135}' => "aleph",
-    '\u{2153}' => "onethird",
-    '\u{2154}' => "twothirds",
-    '\u{215B}' => "oneeighth",
-    '\u{215C}' => "threeeighths",
-    '\u{215D}' => "fiveeighths",
-    '\u{215E}' => "seveneighths",
-    '\u{2160}' => "Oneroman",
-    '\u{2161}' => "Tworoman",
-    '\u{2162}' => "Threeroman",
-    '\u{2163}' => "Fourroman",
-    '\u{2164}' => "Fiveroman",
-    '\u{2165}' => "Sixroman",
-    '\u{2166}' => "Sevenroman",
-    '\u{2167}' => "Eightroman",
-    '\u{2168}' => "Nineroman",
-    '\u{2169}' => "Tenroman",
-    '\u{216A}' => "Elevenroman",
-    '\u{216B}' => "Twelveroman",
-    '\u{2170}' => "oneroman",
-    '\u{2171}' => "tworoman",
-    '\u{2172}' => "threeroman",
-    '\u{2173}' => "fourroman",
-    '\u{2174}' => "fiveroman",
-    '\u{2175}' => "sixroman",
-    '\u{2176}' => "sevenroman",
-    '\u{2177}' => "eightroman",
-    '\u{2178}' => "nineroman",
-    '\u{2179}' => "tenroman",
-    '\u{217A}' => "elevenroman",
-    '\u{217B}' => "twelveroman",
-    '\u{2190}' => "arrowleft",
-    '\u{2191}' => "arrowup",
-    '\u{2192}' => "arrowright",
-    '\u{2193}' => "arrowdown",
-    '\u{2194}' => "arrowboth",
-    '\u{2195}' => "arrowupdn",
-    '\u{2196}' => "arrowupleft",
-    '\u{2197}' => "arrowupright",
-    '\u{2198}' => "arrowdownright",
-    '\u{2199}' => "arrowdownleft",
-    '\u{21A8}' => "arrowupdnbse",
-    '\u{21A9}' => "arrowhookright",
-    '\u{21AA}' => "arrowhookleft",
-    '\u{21B5}' => "carriagereturn",
-    '\u{21BC}' => "harpoonleftbarbup",
-    '\u{21BD}' => "arrowleftbothalf",
-    '\u{21C0}' => "harpoonrightbarbup",
-    '\u{21C1}' => "arrowrightbothalf",
-    '\u{21C4}' => "arrowrightoverleft",
-    '\u{21C5}' => "arrowupleftofdown",
-    '\u{21C6}' => "arrowleftoverright",
-    '\u{21CD}' => "arrowleftdblstroke",
-    '\u{21CF}' => "arrowrightdblstroke",
-    '\u{21D0}' => "arrowdblleft",
-    '\u{21D1}' => "arrowdblup",
-    '\u{21D2}' => "arrowdblright",
-    '\u{21D3}' => "arrowdbldown",
-    '\u{21D4}' => "arrowdblboth",
-    '\u{21DE}' => "pageup",
-    '\u{21DF}' => "pagedown",
-    '\u{21E0}' => "arrowdashleft",
-    '\u{21E1}' => "arrowdashup",
-    '\u{21E2}' => "arrowdashright",
-    '\u{21E3}' => "arrowdashdown",
-    '\u{21E4}' => "arrowtableft",
-    '\u{21E5}' => "arrowtabright",
-    '\u{21E6}' => "arrowleftwhite",
-    '\u{21E7}' => "arrowupwhite",
-    '\u{21E8}' => "arrowrightwhite",
-    '\u{21E9}' => "arrowdownwhite",
-    '\u{21EA}' => "capslock",
-    '\u{2200}' => "forall",
-    '\u{2202}' => "partialdiff",
-    '\u{2203}' => "existential",
-    '\u{2205}' => "emptyset",
-    '\u{2206}' => "Delta",
-    '\u{2207}' => "gradient",
-    '\u{2208}' => "element",
-    '\u{2209}' => "notelement",
-    '\u{220B}' => "suchthat",
-    '\u{220C}' => "notcontains",
-    '\u{220F}' => "product",
-    '\u{2210}' => "coproductdisplay",
-    '\u{2211}' => "summation",
-    '\u{2212}' => "minus",
-    '\u{2213}' => "minusplus",
-    '\u{2215}' => "divisionslash",
-    '\u{2216}' => "backslashbig",
-    '\u{2217}' => "asteriskmath",
-    '\u{2219}' => "bulletoperator",
-    '\u{221A}' => "radical",
-    '\u{221D}' => "proportional",
-    '\u{221E}' => "infinity",
-    '\u{221F}' => "orthogonal",
-    '\u{2220}' => "angle",
-    '\u{2223}' => "divides",
-    '\u{2225}' => "parallel",
-    '\u{2226}' => "notparallel",
-    '\u{2227}' => "logicaland",
-    '\u{2228}' => "logicalor",
-    '\u{2229}' => "intersection",
-    '\u{222A}' => "union",
-    '\u{222B}' => "integral",
-    '\u{222C}' => "dblintegral",
-    '\u{222E}' => "contourintegral",
-    '\u{2234}' => "therefore",
-    '\u{2235}' => "because",
-    '\u{2236}' => "ratio",
-    '\u{2237}' => "proportion",
-    '\u{223C}' => "similar",
-    '\u{223D}' => "reversedtilde",
-    '\u{2243}' => "asymptoticallyequal",
-    '\u{2245}' => "approximatelyequal",
-    '\u{2248}' => "approxequal",
-    '\u{224C}' => "allequal",
-    '\u{2250}' => "approaches",
-    '\u{2251}' => "geometricallyequal",
-    '\u{2252}' => "approxequalorimage",
-    '\u{2253}' => "imageorapproximatelyequal",
-    '\u{2260}' => "notequal",
-    '\u{2261}' => "equivalence",
-    '\u{2262}' => "notidentical",
-    '\u{2264}' => "lessequal",
-    '\u{2265}' => "greaterequal",
-    '\u{2266}' => "lessoverequal",
-    '\u{2267}' => "greateroverequal",
-    '\u{226A}' => "muchless",
-    '\u{226B}' => "muchgreater",
-    '\u{226E}' => "notless",
-    '\u{226F}' => "notgreater",
-    '\u{2270}' => "notlessnorequal",
-    '\u{2271}' => "notgreaternorequal",
-    '\u{2272}' => "lessorequivalent",
-    '\u{2273}' => "greaterorequivalent",
-    '\u{2276}' => "lessorgreater",
-    '\u{2277}' => "greaterorless",
-    '\u{2279}' => "notgreaternorless",
-    '\u{227A}' => "precedes",
-    '\u{227B}' => "succeeds",
-    '\u{2280}' => "notprecedes",
-    '\u{2281}' => "notsucceeds",
-    '\u{2282}' => "propersubset",
-    '\u{2283}' => "propersuperset",
-    '\u{2284}' => "notsubset",
-    '\u{2285}' => "notsuperset",
-    '\u{2286}' => "reflexsubset",
-    '\u{2287}' => "reflexsuperset",
-    '\u{228A}' => "subsetnotequal",
-    '\u{228B}' => "supersetnotequal",
-    '\u{228E}' => "unionmultidisplay",
-    '\u{2294}' => "unionsqdisplay",
-    '\u{2295}' => "circleplus",
-    '\u{2296}' => "minuscircle",
-    '\u{2297}' => "circlemultiply",
-    '\u{2299}' => "circleot",
-    '\u{22A3}' => "tackleft",
-    '\u{22A4}' => "tackdown",
-    '\u{22A5}' => "perpendicular",
-    '\u{22BF}' => "righttriangle",
-    '\u{22C2}' => "intersectiondisplay",
-    '\u{22C3}' => "uniondisplay",
-    '\u{22C5}' => "dotmath",
-    '\u{22CE}' => "curlyor",
-    '\u{22CF}' => "curlyand",
-    '\u{22DA}' => "lessequalorgreater",
-    '\u{22DB}' => "greaterequalorless",
-    '\u{22EE}' => "ellipsisvertical",
-    '\u{2302}' => "house",
-    '\u{2303}' => "control",
-    '\u{2305}' => "projective",
-    '\u{2308}' => "ceilingleftbig",
-    '\u{2309}' => "ceilingrightbig",
-    '\u{230A}' => "floorleftBig",
-    '\u{230B}' => "floorrightbig",
-    '\u{2310}' => "logicalnotreversed",
-    '\u{2312}' => "arc",
-    '\u{2318}' => "propellor",
-    '\u{2320}' => "integraltop",
-    '\u{2321}' => "integralbottom",
-    '\u{2325}' => "option",
-    '\u{2326}' => "deleteright",
-    '\u{2327}' => "clear",
-    '\u{2329}' => "angleleft",
-    '\u{232A}' => "angleright",
-    '\u{232B}' => "deleteleft",
-    '\u{2423}' => "blank",
-    '\u{2460}' => "onecircle",
-    '\u{2461}' => "twocircle",
-    '\u{2462}' => "threecircle",
-    '\u{2463}' => "fourcircle",
-    '\u{2464}' => "fivecircle",
-    '\u{2465}' => "sixcircle",
-    '\u{2466}' => "sevencircle",
-    '\u{2467}' => "eightcircle",
-    '\u{2468}' => "ninecircle",
-    '\u{2469}' => "tencircle",
-    '\u{246A}' => "elevencircle",
-    '\u{246B}' => "twelvecircle",
-    '\u{246C}' => "thirteencircle",
-    '\u{246D}' => "fourteencircle",
-    '\u{246E}' => "fifteencircle",
-    '\u{246F}' => "sixteencircle",
-    '\u{2470}' => "seventeencircle",
-    '\u{2471}' => "eighteencircle",
-    '\u{2472}' => "nineteencircle",
-    '\u{2473}' => "twentycircle",
-    '\u{2474}' => "oneparen",
-    '\u{2475}' => "twoparen",
-    '\u{2476}' => "threeparen",
-    '\u{2477}' => "fourparen",
-    '\u{2478}' => "fiveparen",
-    '\u{2479}' => "sixparen",
-    '\u{247A}' => "sevenparen",
-    '\u{247B}' => "eightparen",
-    '\u{247C}' => "nineparen",
-    '\u{247D}' => "tenparen",
-    '\u{247E}' => "elevenparen",
-    '\u{247F}' => "twelveparen",
-    '\u{2480}' => "thirteenparen",
-    '\u{2481}' => "fourteenparen",
-    '\u{2482}' => "fifteenparen",
-    '\u{2483}' => "sixteenparen",
-    '\u{2484}' => "seventeenparen",
-    '\u{2485}' => "eighteenparen",
-    '\u{2486}' => "nineteenparen",
-    '\u{2487}' => "twentyparen",
-    '\u{2488}' => "oneperiod",
-    '\u{2489}' => "twoperiod",
-    '\u{248A}' => "threeperiod",
-    '\u{248B}' => "fourperiod",
-    '\u{248C}' => "fiveperiod",
-    '\u{248D}' => "sixperiod",
-    '\u{248E}' => "sevenperiod",
-    '\u{248F}' => "eightperiod",
-    '\u{2490}' => "nineperiod",
-    '\u{2491}' => "tenperiod",
-    '\u{2492}' => "elevenperiod",
-    '\u{2493}' => "twelveperiod",
-    '\u{2494}' => "thirteenperiod",
-    '\u{2495}' => "fourteenperiod",
-    '\u{2496}' => "fifteenperiod",
-    '\u{2497}' => "sixteenperiod",
-    '\u{2498}' => "seventeenperiod",
-    '\u{2499}' => "eighteenperiod",
-    '\u{249A}' => "nineteenperiod",
-    '\u{249B}' => "twentyperiod",
-    '\u{249C}' => "aparen",
-    '\u{249D}' => "bparen",
-    '\u{249E}' => "cparen",
-    '\u{249F}' => "dparen",
-    '\u{24A0}' => "eparen",
-    '\u{24A1}' => "fparen",
-    '\u{24A2}' => "gparen",
-    '\u{24A3}' => "hparen",
-    '\u{24A4}' => "iparen",
-    '\u{24A5}' => "jparen",
-    '\u{24A6}' => "kparen",
-    '\u{24A7}' => "lparen",
-    '\u{24A8}' => "mparen",
-    '\u{24A9}' => "nparen",
-    '\u{24AA}' => "oparen",
-    '\u{24AB}' => "pparen",
-    '\u{24AC}' => "qparen",
-    '\u{24AD}' => "rparen",
-    '\u{24AE}' => "sparen",
-    '\u{24AF}' => "tparen",
-    '\u{24B0}' => "uparen",
-    '\u{24B1}' => "vparen",
-    '\u{24B2}' => "wparen",
-    '\u{24B3}' => "xparen",
-    '\u{24B4}' => "yparen",
-    '\u{24B5}' => "zparen",
-    '\u{24B6}' => "Acircle",
-    '\u{24B7}' => "Bcircle",
-    '\u{24B8}' => "Ccircle",
-    '\u{24B9}' => "Dcircle",
-    '\u{24BA}' => "Ecircle",
-    '\u{24BB}' => "Fcircle",
-    '\u{24BC}' => "Gcircle",
-    '\u{24BD}' => "Hcircle",
-    '\u{24BE}' => "Icircle",
-    '\u{24BF}' => "Jcircle",
-    '\u{24C0}' => "Kcircle",
-    '\u{24C1}' => "Lcircle",
-    '\u{24C2}' => "Mcircle",
-    '\u{24C3}' => "Ncircle",
-    '\u{24C4}' => "Ocircle",
-    '\u{24C5}' => "Pcircle",
-    '\u{24C6}' => "Qcircle",
-    '\u{24C7}' => "Rcircle",
-    '\u{24C8}' => "Scircle",
-    '\u{24C9}' => "Tcircle",
-    '\u{24CA}' => "Ucircle",
-    '\u{24CB}' => "Vcircle",
-    '\u{24CC}' => "Wcircle",
-    '\u{24CD}' => "Xcircle",
-    '\u{24CE}' => "Ycircle",
-    '\u{24CF}' => "Zcircle",
-    '\u{24D0}' => "acircle",
-    '\u{24D1}' => "bcircle",
-    '\u{24D2}' => "ccircle",
-    '\u{24D3}' => "dcircle",
-    '\u{24D4}' => "ecircle",
-    '\u{24D5}' => "fcircle",
-    '\u{24D6}' => "gcircle",
-    '\u{24D7}' => "hcircle",
-    '\u{24D8}' => "icircle",
-    '\u{24D9}' => "jcircle",
-    '\u{24DA}' => "kcircle",
-    '\u{24DB}' => "lcircle",
-    '\u{24DC}' => "mcircle",
-    '\u{24DD}' => "ncircle",
-    '\u{24DE}' => "ocircle",
-    '\u{24DF}' => "pcircle",
-    '\u{24E0}' => "qcircle",
-    '\u{24E1}' => "rcircle",
-    '\u{24E2}' => "scircle",
-    '\u{24E3}' => "tcircle",
-    '\u{24E4}' => "ucircle",
-    '\u{24E5}' => "vcircle",
-    '\u{24E6}' => "wcircle",
-    '\u{24E7}' => "xcircle",
-    '\u{24E8}' => "ycircle",
-    '\u{24E9}' => "zcircle",
-    '\u{2500}' => "SF100000",
-    '\u{2502}' => "SF110000",
-    '\u{250C}' => "SF010000",
-    '\u{2510}' => "SF030000",
-    '\u{2514}' => "SF020000",
-    '\u{2518}' => "SF040000",
-    '\u{251C}' => "SF080000",
-    '\u{2524}' => "SF090000",
-    '\u{252C}' => "SF060000",
-    '\u{2534}' => "SF070000",
-    '\u{253C}' => "SF050000",
-    '\u{2550}' => "SF430000",
-    '\u{2551}' => "SF240000",
-    '\u{2552}' => "SF510000",
-    '\u{2553}' => "SF520000",
-    '\u{2554}' => "SF390000",
-    '\u{2555}' => "SF220000",
-    '\u{2556}' => "SF210000",
-    '\u{2557}' => "SF250000",
-    '\u{2558}' => "SF500000",
-    '\u{2559}' => "SF490000",
-    '\u{255A}' => "SF380000",
-    '\u{255B}' => "SF280000",
-    '\u{255C}' => "SF270000",
-    '\u{255D}' => "SF260000",
-    '\u{255E}' => "SF360000",
-    '\u{255F}' => "SF370000",
-    '\u{2560}' => "SF420000",
-    '\u{2561}' => "SF190000",
-    '\u{2562}' => "SF200000",
-    '\u{2563}' => "SF230000",
-    '\u{2564}' => "SF470000",
-    '\u{2565}' => "SF480000",
-    '\u{2566}' => "SF410000",
-    '\u{2567}' => "SF450000",
-    '\u{2568}' => "SF460000",
-    '\u{2569}' => "SF400000",
-    '\u{256A}' => "SF540000",
-    '\u{256B}' => "SF530000",
-    '\u{256C}' => "SF440000",
-    '\u{2580}' => "upblock",
-    '\u{2584}' => "dnblock",
-    '\u{2588}' => "block",
-    '\u{258C}' => "lfblock",
-    '\u{2590}' => "rtblock",
-    '\u{2591}' => "ltshade",
-    '\u{2592}' => "shade",
-    '\u{2593}' => "dkshade",
-    '\u{25A0}' => "blacksquare",
-    '\u{25A1}' => "H22073",
-    '\u{25A3}' => "squarewhitewithsmallblack",
-    '\u{25A4}' => "squarehorizontalfill",
-    '\u{25A5}' => "squareverticalfill",
-    '\u{25A6}' => "squareorthogonalcrosshatchfill",
-    '\u{25A7}' => "squareupperlefttolowerrightfill",
-    '\u{25A8}' => "squareupperrighttolowerleftfill",
-    '\u{25A9}' => "squarediagonalcrosshatchfill",
-    '\u{25AA}' => "H18543",
-    '\u{25AB}' => "H18551",
-    '\u{25AC}' => "blackrectangle",
-    '\u{25B2}' => "blackuppointingtriangle",
-    '\u{25B3}' => "whiteuppointingtriangle",
-    '\u{25B4}' => "blackuppointingsmalltriangle",
-    '\u{25B5}' => "whiteuppointingsmalltriangle",
-    '\u{25B6}' => "blackrightpointingtriangle",
-    '\u{25B7}' => "whiterightpointingtriangle",
-    '\u{25B9}' => "whiterightpointingsmalltriangle",
-    '\u{25BA}' => "blackrightpointingpointer",
-    '\u{25BC}' => "blackdownpointingtriangle",
-    '\u{25BD}' => "whitedownpointingtriangle",
-    '\u{25BF}' => "whitedownpointingsmalltriangle",
-    '\u{25C0}' => "blackleftpointingtriangle",
-    '\u{25C1}' => "whiteleftpointingtriangle",
-    '\u{25C3}' => "whiteleftpointingsmalltriangle",
-    '\u{25C4}' => "blackleftpointingpointer",
-    '\u{25C6}' => "blackdiamond",
-    '\u{25C7}' => "whitediamond",
-    '\u{25C8}' => "whitediamondcontainingblacksmalldiamond",
-    '\u{25C9}' => "fisheye",
-    '\u{25CA}' => "lozenge",
-    '\u{25CB}' => "circle",
-    '\u{25CC}' => "dottedcircle",
-    '\u{25CE}' => "bullseye",
-    '\u{25CF}' => "H18533",
-    '\u{25D0}' => "circlewithlefthalfblack",
-    '\u{25D1}' => "circlewithrighthalfblack",
-    '\u{25D8}' => "bulletinverse",
-    '\u{25D9}' => "invcircle",
-    '\u{25E2}' => "blacklowerrighttriangle",
-    '\u{25E3}' => "blacklowerlefttriangle",
-    '\u{25E4}' => "blackupperlefttriangle",
-    '\u{25E5}' => "blackupperrighttriangle",
-    '\u{25E6}' => "openbullet",
-    '\u{25EF}' => "largecircle",
-    '\u{2605}' => "blackstar",
-    '\u{2606}' => "whitestar",
-    '\u{260E}' => "telephoneblack",
-    '\u{260F}' => "whitetelephone",
-    '\u{261C}' => "pointingindexleftwhite",
-    '\u{261D}' => "pointingindexupwhite",
-    '\u{261E}' => "pointingindexrightwhite",
-    '\u{261F}' => "pointingindexdownwhite",
-    '\u{262F}' => "yinyang",
-    '\u{263A}' => "smileface",
-    '\u{263B}' => "blacksmilingface",
-    '\u{263C}' => "compass",
-    '\u{2640}' => "female",
-    '\u{2641}' => "earth",
-    '\u{2642}' => "male",
-    '\u{2660}' => "spade",
-    '\u{2661}' => "heartsuitwhite",
-    '\u{2662}' => "diamondsuitwhite",
-    '\u{2663}' => "club",
-    '\u{2664}' => "spadesuitwhite",
-    '\u{2665}' => "heart",
-    '\u{2666}' => "diamond",
-    '\u{2667}' => "clubsuitwhite",
-    '\u{2668}' => "hotsprings",
-    '\u{2669}' => "quarternote",
-    '\u{266A}' => "musicalnote",
-    '\u{266B}' => "eighthnotebeamed",
-    '\u{266C}' => "beamedsixteenthnotes",
-    '\u{266D}' => "musicflatsign",
-    '\u{266F}' => "musicsharpsign",
-    '\u{2713}' => "checkmark",
-    '\u{278A}' => "onecircleinversesansserif",
-    '\u{278B}' => "twocircleinversesansserif",
-    '\u{278C}' => "threecircleinversesansserif",
-    '\u{278D}' => "fourcircleinversesansserif",
-    '\u{278E}' => "fivecircleinversesansserif",
-    '\u{278F}' => "sixcircleinversesansserif",
-    '\u{2790}' => "sevencircleinversesansserif",
-    '\u{2791}' => "eightcircleinversesansserif",
-    '\u{2792}' => "ninecircleinversesansserif",
-    '\u{279E}' => "arrowrightheavy",
-    '\u{3000}' => "ideographicspace",
-    '\u{3001}' => "ideographiccomma",
-    '\u{3002}' => "ideographicperiod",
-    '\u{3003}' => "dittomark",
-    '\u{3004}' => "jis",
-    '\u{3005}' => "ideographiciterationmark",
-    '\u{3006}' => "ideographicclose",
-    '\u{3007}' => "ideographiczero",
-    '\u{3008}' => "anglebracketleft",
-    '\u{3009}' => "anglebracketright",
-    '\u{300A}' => "dblanglebracketleft",
-    '\u{300B}' => "dblanglebracketright",
-    '\u{300C}' => "cornerbracketleft",
-    '\u{300D}' => "cornerbracketright",
-    '\u{300E}' => "whitecornerbracketleft",
-    '\u{300F}' => "whitecornerbracketright",
-    '\u{3010}' => "blacklenticularbracketleft",
-    '\u{3011}' => "blacklenticularbracketright",
-    '\u{3012}' => "postalmark",
-    '\u{3013}' => "getamark",
-    '\u{3014}' => "tortoiseshellbracketleft",
-    '\u{3015}' => "tortoiseshellbracketright",
-    '\u{3016}' => "whitelenticularbracketleft",
-    '\u{3017}' => "whitelenticularbracketright",
-    '\u{3018}' => "whitetortoiseshellbracketleft",
-    '\u{3019}' => "whitetortoiseshellbracketright",
-    '\u{301C}' => "wavedash",
-    '\u{301D}' => "quotedblprimereversed",
-    '\u{301E}' => "quotedblprime",
-    '\u{3020}' => "postalmarkface",
-    '\u{3021}' => "onehangzhou",
-    '\u{3022}' => "twohangzhou",
-    '\u{3023}' => "threehangzhou",
-    '\u{3024}' => "fourhangzhou",
-    '\u{3025}' => "fivehangzhou",
-    '\u{3026}' => "sixhangzhou",
-    '\u{3027}' => "sevenhangzhou",
-    '\u{3028}' => "eighthangzhou",
-    '\u{3029}' => "ninehangzhou",
-    '\u{3036}' => "circlepostalmark",
-    '\u{3041}' => "asmallhiragana",
-    '\u{3042}' => "ahiragana",
-    '\u{3043}' => "ismallhiragana",
-    '\u{3044}' => "ihiragana",
-    '\u{3045}' => "usmallhiragana",
-    '\u{3046}' => "uhiragana",
-    '\u{3047}' => "esmallhiragana",
-    '\u{3048}' => "ehiragana",
-    '\u{3049}' => "osmallhiragana",
-    '\u{304A}' => "ohiragana",
-    '\u{304B}' => "kahiragana",
-    '\u{304C}' => "gahiragana",
-    '\u{304D}' => "kihiragana",
-    '\u{304E}' => "gihiragana",
-    '\u{304F}' => "kuhiragana",
-    '\u{3050}' => "guhiragana",
-    '\u{3051}' => "kehiragana",
-    '\u{3052}' => "gehiragana",
-    '\u{3053}' => "kohiragana",
-    '\u{3054}' => "gohiragana",
-    '\u{3055}' => "sahiragana",
-    '\u{3056}' => "zahiragana",
-    '\u{3057}' => "sihiragana",
-    '\u{3058}' => "zihiragana",
-    '\u{3059}' => "suhiragana",
-    '\u{305A}' => "zuhiragana",
-    '\u{305B}' => "sehiragana",
-    '\u{305C}' => "zehiragana",
-    '\u{305D}' => "sohiragana",
-    '\u{305E}' => "zohiragana",
-    '\u{305F}' => "tahiragana",
-    '\u{3060}' => "dahiragana",
-    '\u{3061}' => "tihiragana",
-    '\u{3062}' => "dihiragana",
-    '\u{3063}' => "tusmallhiragana",
-    '\u{3064}' => "tuhiragana",
-    '\u{3065}' => "duhiragana",
-    '\u{3066}' => "tehiragana",
-    '\u{3067}' => "dehiragana",
-    '\u{3068}' => "tohiragana",
-    '\u{3069}' => "dohiragana",
-    '\u{306A}' => "nahiragana",
-    '\u{306B}' => "nihiragana",
-    '\u{306C}' => "nuhiragana",
-    '\u{306D}' => "nehiragana",
-    '\u{306E}' => "nohiragana",
-    '\u{306F}' => "hahiragana",
-    '\u{3070}' => "bahiragana",
-    '\u{3071}' => "pahiragana",
-    '\u{3072}' => "hihiragana",
-    '\u{3073}' => "bihiragana",
-    '\u{3074}' => "pihiragana",
-    '\u{3075}' => "huhiragana",
-    '\u{3076}' => "buhiragana",
-    '\u{3077}' => "puhiragana",
-    '\u{3078}' => "hehiragana",
-    '\u{3079}' => "behiragana",
-    '\u{307A}' => "pehiragana",
-    '\u{307B}' => "hohiragana",
-    '\u{307C}' => "bohiragana",
-    '\u{307D}' => "pohiragana",
-    '\u{307E}' => "mahiragana",
-    '\u{307F}' => "mihiragana",
-    '\u{3080}' => "muhiragana",
-    '\u{3081}' => "mehiragana",
-    '\u{3082}' => "mohiragana",
-    '\u{3083}' => "yasmallhiragana",
-    '\u{3084}' => "yahiragana",
-    '\u{3085}' => "yusmallhiragana",
-    '\u{3086}' => "yuhiragana",
-    '\u{3087}' => "yosmallhiragana",
-    '\u{3088}' => "yohiragana",
-    '\u{3089}' => "rahiragana",
-    '\u{308A}' => "rihiragana",
-    '\u{308B}' => "ruhiragana",
-    '\u{308C}' => "rehiragana",
-    '\u{308D}' => "rohiragana",
-    '\u{308E}' => "wasmallhiragana",
-    '\u{308F}' => "wahiragana",
-    '\u{3090}' => "wihiragana",
-    '\u{3091}' => "wehiragana",
-    '\u{3092}' => "wohiragana",
-    '\u{3093}' => "nhiragana",
-    '\u{3094}' => "vuhiragana",
-    '\u{309B}' => "voicedmarkkana",
-    '\u{309C}' => "semivoicedmarkkana",
-    '\u{309D}' => "iterationhiragana",
-    '\u{309E}' => "voicediterationhiragana",
-    '\u{30A1}' => "asmallkatakana",
-    '\u{30A2}' => "akatakana",
-    '\u{30A3}' => "ismallkatakana",
-    '\u{30A4}' => "ikatakana",
-    '\u{30A5}' => "usmallkatakana",
-    '\u{30A6}' => "ukatakana",
-    '\u{30A7}' => "esmallkatakana",
-    '\u{30A8}' => "ekatakana",
-    '\u{30A9}' => "osmallkatakana",
-    '\u{30AA}' => "okatakana",
-    '\u{30AB}' => "kakatakana",
-    '\u{30AC}' => "gakatakana",
-    '\u{30AD}' => "kikatakana",
-    '\u{30AE}' => "gikatakana",
-    '\u{30AF}' => "kukatakana",
-    '\u{30B0}' => "gukatakana",
-    '\u{30B1}' => "kekatakana",
-    '\u{30B2}' => "gekatakana",
-    '\u{30B3}' => "kokatakana",
-    '\u{30B4}' => "gokatakana",
-    '\u{30B5}' => "sakatakana",
-    '\u{30B6}' => "zakatakana",
-    '\u{30B7}' => "sikatakana",
-    '\u{30B8}' => "zikatakana",
-    '\u{30B9}' => "sukatakana",
-    '\u{30BA}' => "zukatakana",
-    '\u{30BB}' => "sekatakana",
-    '\u{30BC}' => "zekatakana",
-    '\u{30BD}' => "sokatakana",
-    '\u{30BE}' => "zokatakana",
-    '\u{30BF}' => "takatakana",
-    '\u{30C0}' => "dakatakana",
-    '\u{30C1}' => "tikatakana",
-    '\u{30C2}' => "dikatakana",
-    '\u{30C3}' => "tusmallkatakana",
-    '\u{30C4}' => "tukatakana",
-    '\u{30C5}' => "dukatakana",
-    '\u{30C6}' => "tekatakana",
-    '\u{30C7}' => "dekatakana",
-    '\u{30C8}' => "tokatakana",
-    '\u{30C9}' => "dokatakana",
-    '\u{30CA}' => "nakatakana",
-    '\u{30CB}' => "nikatakana",
-    '\u{30CC}' => "nukatakana",
-    '\u{30CD}' => "nekatakana",
-    '\u{30CE}' => "nokatakana",
-    '\u{30CF}' => "hakatakana",
-    '\u{30D0}' => "bakatakana",
-    '\u{30D1}' => "pakatakana",
-    '\u{30D2}' => "hikatakana",
-    '\u{30D3}' => "bikatakana",
-    '\u{30D4}' => "pikatakana",
-    '\u{30D5}' => "hukatakana",
-    '\u{30D6}' => "bukatakana",
-    '\u{30D7}' => "pukatakana",
-    '\u{30D8}' => "hekatakana",
-    '\u{30D9}' => "bekatakana",
-    '\u{30DA}' => "pekatakana",
-    '\u{30DB}' => "hokatakana",
-    '\u{30DC}' => "bokatakana",
-    '\u{30DD}' => "pokatakana",
-    '\u{30DE}' => "makatakana",
-    '\u{30DF}' => "mikatakana",
-    '\u{30E0}' => "mukatakana",
-    '\u{30E1}' => "mekatakana",
-    '\u{30E2}' => "mokatakana",
-    '\u{30E3}' => "yasmallkatakana",
-    '\u{30E4}' => "yakatakana",
-    '\u{30E5}' => "yusmallkatakana",
-    '\u{30E6}' => "yukatakana",
-    '\u{30E7}' => "yosmallkatakana",
-    '\u{30E8}' => "yokatakana",
-    '\u{30E9}' => "rakatakana",
-    '\u{30EA}' => "rikatakana",
-    '\u{30EB}' => "rukatakana",
-    '\u{30EC}' => "rekatakana",
-    '\u{30ED}' => "rokatakana",
-    '\u{30EE}' => "wasmallkatakana",
-    '\u{30EF}' => "wakatakana",
-    '\u{30F0}' => "wikatakana",
-    '\u{30F1}' => "wekatakana",
-    '\u{30F2}' => "wokatakana",
-    '\u{30F3}' => "nkatakana",
-    '\u{30F4}' => "vukatakana",
-    '\u{30F5}' => "kasmallkatakana",
-    '\u{30F6}' => "kesmallkatakana",
-    '\u{30F7}' => "vakatakana",
-    '\u{30F8}' => "vikatakana",
-    '\u{30F9}' => "vekatakana",
-    '\u{30FA}' => "vokatakana",
-    '\u{30FB}' => "dotkatakana",
-    '\u{30FC}' => "prolongedkana",
-    '\u{30FD}' => "iterationkatakana",
-    '\u{30FE}' => "voicediterationkatakana",
-    '\u{3105}' => "bbopomofo",
-    '\u{3106}' => "pbopomofo",
-    '\u{3107}' => "mbopomofo",
-    '\u{3108}' => "fbopomofo",
-    '\u{3109}' => "dbopomofo",
-    '\u{310A}' => "tbopomofo",
-    '\u{310B}' => "nbopomofo",
-    '\u{310C}' => "lbopomofo",
-    '\u{310D}' => "gbopomofo",
-    '\u{310E}' => "kbopomofo",
-    '\u{310F}' => "hbopomofo",
-    '\u{3110}' => "jbopomofo",
-    '\u{3111}' => "qbopomofo",
-    '\u{3112}' => "xbopomofo",
-    '\u{3113}' => "zhbopomofo",
-    '\u{3114}' => "chbopomofo",
-    '\u{3115}' => "shbopomofo",
-    '\u{3116}' => "rbopomofo",
-    '\u{3117}' => "zbopomofo",
-    '\u{3118}' => "cbopomofo",
-    '\u{3119}' => "sbopomofo",
-    '\u{311A}' => "abopomofo",
-    '\u{311B}' => "obopomofo",
-    '\u{311C}' => "ebopomofo",
-    '\u{311D}' => "ehbopomofo",
-    '\u{311E}' => "aibopomofo",
-    '\u{311F}' => "eibopomofo",
-    '\u{3120}' => "aubopomofo",
-    '\u{3121}' => "oubopomofo",
-    '\u{3122}' => "anbopomofo",
-    '\u{3123}' => "enbopomofo",
-    '\u{3124}' => "angbopomofo",
-    '\u{3125}' => "engbopomofo",
-    '\u{3126}' => "erbopomofo",
-    '\u{3127}' => "ibopomofo",
-    '\u{3128}' => "ubopomofo",
-    '\u{3129}' => "iubopomofo",
-    '\u{3131}' => "kiyeokkorean",
-    '\u{3132}' => "ssangkiyeokkorean",
-    '\u{3133}' => "kiyeoksioskorean",
-    '\u{3134}' => "nieunkorean",
-    '\u{3135}' => "nieuncieuckorean",
-    '\u{3136}' => "nieunhieuhkorean",
-    '\u{3137}' => "tikeutkorean",
-    '\u{3138}' => "ssangtikeutkorean",
-    '\u{3139}' => "rieulkorean",
-    '\u{313A}' => "rieulkiyeokkorean",
-    '\u{313B}' => "rieulmieumkorean",
-    '\u{313C}' => "rieulpieupkorean",
-    '\u{313D}' => "rieulsioskorean",
-    '\u{313E}' => "rieulthieuthkorean",
-    '\u{313F}' => "rieulphieuphkorean",
-    '\u{3140}' => "rieulhieuhkorean",
-    '\u{3141}' => "mieumkorean",
-    '\u{3142}' => "pieupkorean",
-    '\u{3143}' => "ssangpieupkorean",
-    '\u{3144}' => "pieupsioskorean",
-    '\u{3145}' => "sioskorean",
-    '\u{3146}' => "ssangsioskorean",
-    '\u{3147}' => "ieungkorean",
-    '\u{3148}' => "cieuckorean",
-    '\u{3149}' => "ssangcieuckorean",
-    '\u{314A}' => "chieuchkorean",
-    '\u{314B}' => "khieukhkorean",
-    '\u{314C}' => "thieuthkorean",
-    '\u{314D}' => "phieuphkorean",
-    '\u{314E}' => "hieuhkorean",
-    '\u{314F}' => "akorean",
-    '\u{3150}' => "aekorean",
-    '\u{3151}' => "yakorean",
-    '\u{3152}' => "yaekorean",
-    '\u{3153}' => "eokorean",
-    '\u{3154}' => "ekorean",
-    '\u{3155}' => "yeokorean",
-    '\u{3156}' => "yekorean",
-    '\u{3157}' => "okorean",
-    '\u{3158}' => "wakorean",
-    '\u{3159}' => "waekorean",
-    '\u{315A}' => "oekorean",
-    '\u{315B}' => "yokorean",
-    '\u{315C}' => "ukorean",
-    '\u{315D}' => "weokorean",
-    '\u{315E}' => "wekorean",
-    '\u{315F}' => "wikorean",
-    '\u{3160}' => "yukorean",
-    '\u{3161}' => "eukorean",
-    '\u{3162}' => "yikorean",
-    '\u{3163}' => "ikorean",
-    '\u{3164}' => "hangulfiller",
-    '\u{3165}' => "ssangnieunkorean",
-    '\u{3166}' => "nieuntikeutkorean",
-    '\u{3167}' => "nieunsioskorean",
-    '\u{3168}' => "nieunpansioskorean",
-    '\u{3169}' => "rieulkiyeoksioskorean",
-    '\u{316A}' => "rieultikeutkorean",
-    '\u{316B}' => "rieulpieupsioskorean",
-    '\u{316C}' => "rieulpansioskorean",
-    '\u{316D}' => "rieulyeorinhieuhkorean",
-    '\u{316E}' => "mieumpieupkorean",
-    '\u{316F}' => "mieumsioskorean",
-    '\u{3170}' => "mieumpansioskorean",
-    '\u{3171}' => "kapyeounmieumkorean",
-    '\u{3172}' => "pieupkiyeokkorean",
-    '\u{3173}' => "pieuptikeutkorean",
-    '\u{3174}' => "pieupsioskiyeokkorean",
-    '\u{3175}' => "pieupsiostikeutkorean",
-    '\u{3176}' => "pieupcieuckorean",
-    '\u{3177}' => "pieupthieuthkorean",
-    '\u{3178}' => "kapyeounpieupkorean",
-    '\u{3179}' => "kapyeounssangpieupkorean",
-    '\u{317A}' => "sioskiyeokkorean",
-    '\u{317B}' => "siosnieunkorean",
-    '\u{317C}' => "siostikeutkorean",
-    '\u{317D}' => "siospieupkorean",
-    '\u{317E}' => "sioscieuckorean",
-    '\u{317F}' => "pansioskorean",
-    '\u{3180}' => "ssangieungkorean",
-    '\u{3181}' => "yesieungkorean",
-    '\u{3182}' => "yesieungsioskorean",
-    '\u{3183}' => "yesieungpansioskorean",
-    '\u{3184}' => "kapyeounphieuphkorean",
-    '\u{3185}' => "ssanghieuhkorean",
-    '\u{3186}' => "yeorinhieuhkorean",
-    '\u{3187}' => "yoyakorean",
-    '\u{3188}' => "yoyaekorean",
-    '\u{3189}' => "yoikorean",
-    '\u{318A}' => "yuyeokorean",
-    '\u{318B}' => "yuyekorean",
-    '\u{318C}' => "yuikorean",
-    '\u{318D}' => "araeakorean",
-    '\u{318E}' => "araeaekorean",
-    '\u{3200}' => "kiyeokparenkorean",
-    '\u{3201}' => "nieunparenkorean",
-    '\u{3202}' => "tikeutparenkorean",
-    '\u{3203}' => "rieulparenkorean",
-    '\u{3204}' => "mieumparenkorean",
-    '\u{3205}' => "pieupparenkorean",
-    '\u{3206}' => "siosparenkorean",
-    '\u{3207}' => "ieungparenkorean",
-    '\u{3208}' => "cieucparenkorean",
-    '\u{3209}' => "chieuchparenkorean",
-    '\u{320A}' => "khieukhparenkorean",
-    '\u{320B}' => "thieuthparenkorean",
-    '\u{320C}' => "phieuphparenkorean",
-    '\u{320D}' => "hieuhparenkorean",
-    '\u{320E}' => "kiyeokaparenkorean",
-    '\u{320F}' => "nieunaparenkorean",
-    '\u{3210}' => "tikeutaparenkorean",
-    '\u{3211}' => "rieulaparenkorean",
-    '\u{3212}' => "mieumaparenkorean",
-    '\u{3213}' => "pieupaparenkorean",
-    '\u{3214}' => "siosaparenkorean",
-    '\u{3215}' => "ieungaparenkorean",
-    '\u{3216}' => "cieucaparenkorean",
-    '\u{3217}' => "chieuchaparenkorean",
-    '\u{3218}' => "khieukhaparenkorean",
-    '\u{3219}' => "thieuthaparenkorean",
-    '\u{321A}' => "phieuphaparenkorean",
-    '\u{321B}' => "hieuhaparenkorean",
-    '\u{321C}' => "cieucuparenkorean",
-    '\u{3220}' => "oneideographicparen",
-    '\u{3221}' => "twoideographicparen",
-    '\u{3222}' => "threeideographicparen",
-    '\u{3223}' => "fourideographicparen",
-    '\u{3224}' => "fiveideographicparen",
-    '\u{3225}' => "sixideographicparen",
-    '\u{3226}' => "sevenideographicparen",
-    '\u{3227}' => "eightideographicparen",
-    '\u{3228}' => "nineideographicparen",
-    '\u{3229}' => "tenideographicparen",
-    '\u{322A}' => "ideographicmoonparen",
-    '\u{322B}' => "ideographicfireparen",
-    '\u{322C}' => "ideographicwaterparen",
-    '\u{322D}' => "ideographicwoodparen",
-    '\u{322E}' => "ideographicmetalparen",
-    '\u{322F}' => "ideographicearthparen",
-    '\u{3230}' => "ideographicsunparen",
-    '\u{3231}' => "ideographicstockparen",
-    '\u{3232}' => "ideographichaveparen",
-    '\u{3233}' => "ideographicsocietyparen",
-    '\u{3234}' => "ideographicnameparen",
-    '\u{3235}' => "ideographicspecialparen",
-    '\u{3236}' => "ideographicfinancialparen",
-    '\u{3237}' => "ideographiccongratulationparen",
-    '\u{3238}' => "ideographiclaborparen",
-    '\u{3239}' => "ideographicrepresentparen",
-    '\u{323A}' => "ideographiccallparen",
-    '\u{323B}' => "ideographicstudyparen",
-    '\u{323C}' => "ideographicsuperviseparen",
-    '\u{323D}' => "ideographicenterpriseparen",
-    '\u{323E}' => "ideographicresourceparen",
-    '\u{323F}' => "ideographicallianceparen",
-    '\u{3240}' => "ideographicfestivalparen",
-    '\u{3242}' => "ideographicselfparen",
-    '\u{3243}' => "ideographicreachparen",
-    '\u{3260}' => "kiyeokcirclekorean",
-    '\u{3261}' => "nieuncirclekorean",
-    '\u{3262}' => "tikeutcirclekorean",
-    '\u{3263}' => "rieulcirclekorean",
-    '\u{3264}' => "mieumcirclekorean",
-    '\u{3265}' => "pieupcirclekorean",
-    '\u{3266}' => "sioscirclekorean",
-    '\u{3267}' => "ieungcirclekorean",
-    '\u{3268}' => "cieuccirclekorean",
-    '\u{3269}' => "chieuchcirclekorean",
-    '\u{326A}' => "khieukhcirclekorean",
-    '\u{326B}' => "thieuthcirclekorean",
-    '\u{326C}' => "phieuphcirclekorean",
-    '\u{326D}' => "hieuhcirclekorean",
-    '\u{326E}' => "kiyeokacirclekorean",
-    '\u{326F}' => "nieunacirclekorean",
-    '\u{3270}' => "tikeutacirclekorean",
-    '\u{3271}' => "rieulacirclekorean",
-    '\u{3272}' => "mieumacirclekorean",
-    '\u{3273}' => "pieupacirclekorean",
-    '\u{3274}' => "siosacirclekorean",
-    '\u{3275}' => "ieungacirclekorean",
-    '\u{3276}' => "cieucacirclekorean",
-    '\u{3277}' => "chieuchacirclekorean",
-    '\u{3278}' => "khieukhacirclekorean",
-    '\u{3279}' => "thieuthacirclekorean",
-    '\u{327A}' => "phieuphacirclekorean",
-    '\u{327B}' => "hieuhacirclekorean",
-    '\u{327F}' => "koreanstandardsymbol",
-    '\u{328A}' => "ideographmooncircle",
-    '\u{328B}' => "ideographfirecircle",
-    '\u{328C}' => "ideographwatercircle",
-    '\u{328D}' => "ideographwoodcircle",
-    '\u{328E}' => "ideographmetalcircle",
-    '\u{328F}' => "ideographearthcircle",
-    '\u{3290}' => "ideographsuncircle",
-    '\u{3294}' => "ideographnamecircle",
-    '\u{3296}' => "ideographicfinancialcircle",
-    '\u{3298}' => "ideographiclaborcircle",
-    '\u{3299}' => "ideographicsecretcircle",
-    '\u{329D}' => "ideographicexcellentcircle",
-    '\u{329E}' => "ideographicprintcircle",
-    '\u{32A3}' => "ideographiccorrectcircle",
-    '\u{32A4}' => "ideographichighcircle",
-    '\u{32A5}' => "ideographiccentrecircle",
-    '\u{32A6}' => "ideographiclowcircle",
-    '\u{32A7}' => "ideographicleftcircle",
-    '\u{32A8}' => "ideographicrightcircle",
-    '\u{32A9}' => "ideographicmedicinecircle",
-    '\u{3300}' => "apaatosquare",
-    '\u{3303}' => "aarusquare",
-    '\u{3305}' => "intisquare",
-    '\u{330D}' => "karoriisquare",
-    '\u{3314}' => "kirosquare",
-    '\u{3315}' => "kiroguramusquare",
-    '\u{3316}' => "kiromeetorusquare",
-    '\u{3318}' => "guramusquare",
-    '\u{331E}' => "kooposquare",
-    '\u{3322}' => "sentisquare",
-    '\u{3323}' => "sentosquare",
-    '\u{3326}' => "dorusquare",
-    '\u{3327}' => "tonsquare",
-    '\u{332A}' => "haitusquare",
-    '\u{332B}' => "paasentosquare",
-    '\u{3331}' => "birusquare",
-    '\u{3333}' => "huiitosquare",
-    '\u{3336}' => "hekutaarusquare",
-    '\u{3339}' => "herutusquare",
-    '\u{333B}' => "peezisquare",
-    '\u{3342}' => "hoonsquare",
-    '\u{3347}' => "mansyonsquare",
-    '\u{3349}' => "mirisquare",
-    '\u{334A}' => "miribaarusquare",
-    '\u{334D}' => "meetorusquare",
-    '\u{334E}' => "yaadosquare",
-    '\u{3351}' => "rittorusquare",
-    '\u{3357}' => "wattosquare",
-    '\u{337B}' => "heiseierasquare",
-    '\u{337C}' => "syouwaerasquare",
-    '\u{337D}' => "taisyouerasquare",
-    '\u{337E}' => "meizierasquare",
-    '\u{337F}' => "corporationsquare",
-    '\u{3380}' => "paampssquare",
-    '\u{3381}' => "nasquare",
-    '\u{3382}' => "muasquare",
-    '\u{3383}' => "masquare",
-    '\u{3384}' => "kasquare",
-    '\u{3385}' => "KBsquare",
-    '\u{3386}' => "MBsquare",
-    '\u{3387}' => "GBsquare",
-    '\u{3388}' => "calsquare",
-    '\u{3389}' => "kcalsquare",
-    '\u{338A}' => "pfsquare",
-    '\u{338B}' => "nfsquare",
-    '\u{338C}' => "mufsquare",
-    '\u{338D}' => "mugsquare",
-    '\u{338E}' => "squaremg",
-    '\u{338F}' => "squarekg",
-    '\u{3390}' => "Hzsquare",
-    '\u{3391}' => "khzsquare",
-    '\u{3392}' => "mhzsquare",
-    '\u{3393}' => "ghzsquare",
-    '\u{3394}' => "thzsquare",
-    '\u{3395}' => "mulsquare",
-    '\u{3396}' => "mlsquare",
-    '\u{3397}' => "dlsquare",
-    '\u{3398}' => "klsquare",
-    '\u{3399}' => "fmsquare",
-    '\u{339A}' => "nmsquare",
-    '\u{339B}' => "mumsquare",
-    '\u{339C}' => "squaremm",
-    '\u{339D}' => "squarecm",
-    '\u{339E}' => "squarekm",
-    '\u{339F}' => "mmsquaredsquare",
-    '\u{33A0}' => "cmsquaredsquare",
-    '\u{33A1}' => "squaremsquared",
-    '\u{33A2}' => "kmsquaredsquare",
-    '\u{33A3}' => "mmcubedsquare",
-    '\u{33A4}' => "cmcubedsquare",
-    '\u{33A5}' => "mcubedsquare",
-    '\u{33A6}' => "kmcubedsquare",
-    '\u{33A7}' => "moverssquare",
-    '\u{33A8}' => "moverssquaredsquare",
-    '\u{33A9}' => "pasquare",
-    '\u{33AA}' => "kpasquare",
-    '\u{33AB}' => "mpasquare",
-    '\u{33AC}' => "gpasquare",
-    '\u{33AD}' => "radsquare",
-    '\u{33AE}' => "radoverssquare",
-    '\u{33AF}' => "radoverssquaredsquare",
-    '\u{33B0}' => "pssquare",
-    '\u{33B1}' => "nssquare",
-    '\u{33B2}' => "mussquare",
-    '\u{33B3}' => "mssquare",
-    '\u{33B4}' => "pvsquare",
-    '\u{33B5}' => "nvsquare",
-    '\u{33B6}' => "muvsquare",
-    '\u{33B7}' => "mvsquare",
-    '\u{33B8}' => "kvsquare",
-    '\u{33B9}' => "mvmegasquare",
-    '\u{33BA}' => "pwsquare",
-    '\u{33BB}' => "nwsquare",
-    '\u{33BC}' => "muwsquare",
-    '\u{33BD}' => "mwsquare",
-    '\u{33BE}' => "kwsquare",
-    '\u{33BF}' => "mwmegasquare",
-    '\u{33C0}' => "kohmsquare",
-    '\u{33C1}' => "mohmsquare",
-    '\u{33C2}' => "amsquare",
-    '\u{33C3}' => "bqsquare",
-    '\u{33C4}' => "squarecc",
-    '\u{33C5}' => "cdsquare",
-    '\u{33C6}' => "coverkgsquare",
-    '\u{33C7}' => "cosquare",
-    '\u{33C8}' => "dbsquare",
-    '\u{33C9}' => "gysquare",
-    '\u{33CA}' => "hasquare",
-    '\u{33CB}' => "HPsquare",
-    '\u{33CD}' => "KKsquare",
-    '\u{33CE}' => "squarekmcapital",
-    '\u{33CF}' => "ktsquare",
-    '\u{33D0}' => "lmsquare",
-    '\u{33D1}' => "squareln",
-    '\u{33D2}' => "squarelog",
-    '\u{33D3}' => "lxsquare",
-    '\u{33D4}' => "mbsquare",
-    '\u{33D5}' => "squaremil",
-    '\u{33D6}' => "molsquare",
-    '\u{33D8}' => "pmsquare",
-    '\u{33DB}' => "srsquare",
-    '\u{33DC}' => "svsquare",
-    '\u{33DD}' => "wbsquare",
-    '\u{5344}' => "twentyhangzhou",
-    '\u{F6BE}' => "dotlessj",
-    '\u{F6BF}' => "LL",
-    '\u{F6C0}' => "ll",
-    '\u{F6C3}' => "commaaccent",
-    '\u{F6C4}' => "afii10063",
-    '\u{F6C5}' => "afii10064",
-    '\u{F6C6}' => "afii10192",
-    '\u{F6C7}' => "afii10831",
-    '\u{F6C8}' => "afii10832",
-    '\u{F6C9}' => "Acute",
-    '\u{F6CA}' => "Caron",
-    '\u{F6CB}' => "Dieresis",
-    '\u{F6CC}' => "DieresisAcute",
-    '\u{F6CD}' => "DieresisGrave",
-    '\u{F6CE}' => "Grave",
-    '\u{F6CF}' => "Hungarumlaut",
-    '\u{F6D0}' => "Macron",
-    '\u{F6D1}' => "cyrBreve",
-    '\u{F6D2}' => "cyrFlex",
-    '\u{F6D3}' => "dblGrave",
-    '\u{F6D4}' => "cyrbreve",
-    '\u{F6D5}' => "cyrflex",
-    '\u{F6D6}' => "dblgrave",
-    '\u{F6D7}' => "dieresisacute",
-    '\u{F6D8}' => "dieresisgrave",
-    '\u{F6D9}' => "copyrightserif",
-    '\u{F6DA}' => "registerserif",
-    '\u{F6DB}' => "trademarkserif",
-    '\u{F6DC}' => "onefitted",
-    '\u{F6DD}' => "rupiah",
-    '\u{F6DE}' => "threequartersemdash",
-    '\u{F6DF}' => "centinferior",
-    '\u{F6E0}' => "centsuperior",
-    '\u{F6E1}' => "commainferior",
-    '\u{F6E2}' => "commasuperior",
-    '\u{F6E3}' => "dollarinferior",
-    '\u{F6E4}' => "dollarsuperior",
-    '\u{F6E5}' => "hypheninferior",
-    '\u{F6E6}' => "hyphensuperior",
-    '\u{F6E7}' => "periodinferior",
-    '\u{F6E8}' => "periodsuperior",
-    '\u{F6E9}' => "asuperior",
-    '\u{F6EA}' => "bsuperior",
-    '\u{F6EB}' => "dsuperior",
-    '\u{F6EC}' => "esuperior",
-    '\u{F6ED}' => "isuperior",
-    '\u{F6EE}' => "lsuperior",
-    '\u{F6EF}' => "msuperior",
-    '\u{F6F0}' => "osuperior",
-    '\u{F6F1}' => "rsuperior",
-    '\u{F6F2}' => "ssuperior",
-    '\u{F6F3}' => "tsuperior",
-    '\u{F6F4}' => "Brevesmall",
-    '\u{F6F5}' => "Caronsmall",
-    '\u{F6F6}' => "Circumflexsmall",
-    '\u{F6F7}' => "Dotaccentsmall",
-    '\u{F6F8}' => "Hungarumlautsmall",
-    '\u{F6F9}' => "Lslashsmall",
-    '\u{F6FA}' => "OEsmall",
-    '\u{F6FB}' => "Ogoneksmall",
-    '\u{F6FC}' => "Ringsmall",
-    '\u{F6FD}' => "Scaronsmall",
-    '\u{F6FE}' => "Tildesmall",
-    '\u{F6FF}' => "Zcaronsmall",
-    '\u{F721}' => "exclamsmall",
-    '\u{F724}' => "dollaroldstyle",
-    '\u{F726}' => "ampersandsmall",
-    '\u{F730}' => "zerooldstyle",
-    '\u{F731}' => "oneoldstyle",
-    '\u{F732}' => "twooldstyle",
-    '\u{F733}' => "threeoldstyle",
-    '\u{F734}' => "fouroldstyle",
-    '\u{F735}' => "fiveoldstyle",
-    '\u{F736}' => "sixoldstyle",
-    '\u{F737}' => "sevenoldstyle",
-    '\u{F738}' => "eightoldstyle",
-    '\u{F739}' => "nineoldstyle",
-    '\u{F73F}' => "questionsmall",
-    '\u{F760}' => "Gravesmall",
-    '\u{F761}' => "Asmall",
-    '\u{F762}' => "Bsmall",
-    '\u{F763}' => "Csmall",
-    '\u{F764}' => "Dsmall",
-    '\u{F765}' => "Esmall",
-    '\u{F766}' => "Fsmall",
-    '\u{F767}' => "Gsmall",
-    '\u{F768}' => "Hsmall",
-    '\u{F769}' => "Ismall",
-    '\u{F76A}' => "Jsmall",
-    '\u{F76B}' => "Ksmall",
-    '\u{F76C}' => "Lsmall",
-    '\u{F76D}' => "Msmall",
-    '\u{F76E}' => "Nsmall",
-    '\u{F76F}' => "Osmall",
-    '\u{F770}' => "Psmall",
-    '\u{F771}' => "Qsmall",
-    '\u{F772}' => "Rsmall",
-    '\u{F773}' => "Ssmall",
-    '\u{F774}' => "Tsmall",
-    '\u{F775}' => "Usmall",
-    '\u{F776}' => "Vsmall",
-    '\u{F777}' => "Wsmall",
-    '\u{F778}' => "Xsmall",
-    '\u{F779}' => "Ysmall",
-    '\u{F77A}' => "Zsmall",
-    '\u{F7A1}' => "exclamdownsmall",
-    '\u{F7A2}' => "centoldstyle",
-    '\u{F7A8}' => "Dieresissmall",
-    '\u{F7AF}' => "Macronsmall",
-    '\u{F7B4}' => "Acutesmall",
-    '\u{F7B8}' => "Cedillasmall",
-    '\u{F7BF}' => "questiondownsmall",
-    '\u{F7E0}' => "Agravesmall",
-    '\u{F7E1}' => "Aacutesmall",
-    '\u{F7E2}' => "Acircumflexsmall",
-    '\u{F7E3}' => "Atildesmall",
-    '\u{F7E4}' => "Adieresissmall",
-    '\u{F7E5}' => "Aringsmall",
-    '\u{F7E6}' => "AEsmall",
-    '\u{F7E7}' => "Ccedillasmall",
-    '\u{F7E8}' => "Egravesmall",
-    '\u{F7E9}' => "Eacutesmall",
-    '\u{F7EA}' => "Ecircumflexsmall",
-    '\u{F7EB}' => "Edieresissmall",
-    '\u{F7EC}' => "Igravesmall",
-    '\u{F7ED}' => "Iacutesmall",
-    '\u{F7EE}' => "Icircumflexsmall",
-    '\u{F7EF}' => "Idieresissmall",
-    '\u{F7F0}' => "Ethsmall",
-    '\u{F7F1}' => "Ntildesmall",
-    '\u{F7F2}' => "Ogravesmall",
-    '\u{F7F3}' => "Oacutesmall",
-    '\u{F7F4}' => "Ocircumflexsmall",
-    '\u{F7F5}' => "Otildesmall",
-    '\u{F7F6}' => "Odieresissmall",
-    '\u{F7F8}' => "Oslashsmall",
-    '\u{F7F9}' => "Ugravesmall",
-    '\u{F7FA}' => "Uacutesmall",
-    '\u{F7FB}' => "Ucircumflexsmall",
-    '\u{F7FC}' => "Udieresissmall",
-    '\u{F7FD}' => "Yacutesmall",
-    '\u{F7FE}' => "Thornsmall",
-    '\u{F7FF}' => "Ydieresissmall",
-    '\u{F884}' => "maihanakatleftthai",
-    '\u{F885}' => "saraileftthai",
-    '\u{F886}' => "saraiileftthai",
-    '\u{F887}' => "saraueleftthai",
-    '\u{F888}' => "saraueeleftthai",
-    '\u{F889}' => "maitaikhuleftthai",
-    '\u{F88A}' => "maiekupperleftthai",
-    '\u{F88B}' => "maieklowrightthai",
-    '\u{F88C}' => "maieklowleftthai",
-    '\u{F88D}' => "maithoupperleftthai",
-    '\u{F88E}' => "maitholowrightthai",
-    '\u{F88F}' => "maitholowleftthai",
-    '\u{F890}' => "maitriupperleftthai",
-    '\u{F891}' => "maitrilowrightthai",
-    '\u{F892}' => "maitrilowleftthai",
-    '\u{F893}' => "maichattawaupperleftthai",
-    '\u{F894}' => "maichattawalowrightthai",
-    '\u{F895}' => "maichattawalowleftthai",
-    '\u{F896}' => "thanthakhatupperleftthai",
-    '\u{F897}' => "thanthakhatlowrightthai",
-    '\u{F898}' => "thanthakhatlowleftthai",
-    '\u{F899}' => "nikhahitleftthai",
-    '\u{F8E5}' => "radicalex",
-    '\u{F8E6}' => "arrowvertex",
-    '\u{F8E7}' => "arrowhorizex",
-    '\u{F8E8}' => "registersans",
-    '\u{F8E9}' => "copyrightsans",
-    '\u{F8EA}' => "trademarksans",
-    '\u{F8EB}' => "parenlefttp",
-    '\u{F8EC}' => "parenleftex",
-    '\u{F8ED}' => "parenleftbt",
-    '\u{F8EE}' => "bracketlefttp",
-    '\u{F8EF}' => "bracketleftex",
-    '\u{F8F0}' => "bracketleftbt",
-    '\u{F8F1}' => "bracelefttp",
-    '\u{F8F2}' => "braceleftmid",
-    '\u{F8F3}' => "braceleftbt",
-    '\u{F8F4}' => "braceex",
-    '\u{F8F5}' => "integralex",
-    '\u{F8F6}' => "parenrighttp",
-    '\u{F8F7}' => "parenrightex",
-    '\u{F8F8}' => "parenrightbt",
-    '\u{F8F9}' => "bracketrighttp",
-    '\u{F8FA}' => "bracketrightex",
-    '\u{F8FB}' => "bracketrightbt",
-    '\u{F8FC}' => "bracerighttp",
-    '\u{F8FD}' => "bracerightmid",
-    '\u{F8FE}' => "bracerightbt",
-    '\u{F8FF}' => "apple",
-    '\u{FB00}' => "ff",
-    '\u{FB01}' => "fi",
-    '\u{FB02}' => "fl",
-    '\u{FB03}' => "ffi",
-    '\u{FB04}' => "ffl",
-    '\u{FB1F}' => "afii57705",
-    '\u{FB20}' => "ayinaltonehebrew",
-    '\u{FB2A}' => "afii57694",
-    '\u{FB2B}' => "afii57695",
-    '\u{FB2C}' => "shindageshshindot",
-    '\u{FB2D}' => "shindageshsindot",
-    '\u{FB2E}' => "alefpatahhebrew",
-    '\u{FB2F}' => "alefqamatshebrew",
-    '\u{FB30}' => "alefdageshhebrew",
-    '\u{FB31}' => "betdagesh",
-    '\u{FB32}' => "gimeldagesh",
-    '\u{FB33}' => "daletdagesh",
-    '\u{FB34}' => "hedagesh",
-    '\u{FB35}' => "afii57723",
-    '\u{FB36}' => "zayindagesh",
-    '\u{FB38}' => "tetdagesh",
-    '\u{FB39}' => "yoddagesh",
-    '\u{FB3A}' => "finalkafdagesh",
-    '\u{FB3B}' => "kafdagesh",
-    '\u{FB3C}' => "lameddagesh",
-    '\u{FB3E}' => "memdagesh",
-    '\u{FB40}' => "nundagesh",
-    '\u{FB41}' => "samekhdagesh",
-    '\u{FB43}' => "pefinaldageshhebrew",
-    '\u{FB44}' => "pedagesh",
-    '\u{FB46}' => "tsadidagesh",
-    '\u{FB47}' => "qofdagesh",
-    '\u{FB48}' => "reshdageshhebrew",
-    '\u{FB49}' => "shindagesh",
-    '\u{FB4A}' => "tavdages",
-    '\u{FB4B}' => "afii57700",
-    '\u{FB4C}' => "betrafehebrew",
-    '\u{FB4D}' => "kafrafehebrew",
-    '\u{FB4E}' => "perafehebrew",
-    '\u{FB4F}' => "aleflamedhebrew",
-    '\u{FB57}' => "pehfinalarabic",
-    '\u{FB58}' => "pehinitialarabic",
-    '\u{FB59}' => "pehmedialarabic",
-    '\u{FB67}' => "ttehfinalarabic",
-    '\u{FB68}' => "ttehinitialarabic",
-    '\u{FB69}' => "ttehmedialarabic",
-    '\u{FB6B}' => "vehfinalarabic",
-    '\u{FB6C}' => "vehinitialarabic",
-    '\u{FB6D}' => "vehmedialarabic",
-    '\u{FB7B}' => "tchehfinalarabic",
-    '\u{FB7C}' => "tchehinitialarabic",
-    '\u{FB7D}' => "tchehmedialarabic",
-    '\u{FB89}' => "ddalfinalarabic",
-    '\u{FB8B}' => "jehfinalarabic",
-    '\u{FB8D}' => "rrehfinalarabic",
-    '\u{FB93}' => "gaffinalarabic",
-    '\u{FB94}' => "gafinitialarabic",
-    '\u{FB95}' => "gafmedialarabic",
-    '\u{FB9F}' => "noonghunnafinalarabic",
-    '\u{FBA4}' => "hehhamzaaboveisolatedarabic",
-    '\u{FBA5}' => "hehhamzaabovefinalarabic",
-    '\u{FBA7}' => "hehfinalaltonearabic",
-    '\u{FBA8}' => "hehinitialaltonearabic",
-    '\u{FBA9}' => "hehmedialaltonearabic",
-    '\u{FBAF}' => "yehbarreefinalarabic",
-    '\u{FC08}' => "behmeemisolatedarabic",
-    '\u{FC0B}' => "tehjeemisolatedarabic",
-    '\u{FC0C}' => "tehhahisolatedarabic",
-    '\u{FC0E}' => "tehmeemisolatedarabic",
-    '\u{FC48}' => "meemmeemisolatedarabic",
-    '\u{FC4B}' => "noonjeemisolatedarabic",
-    '\u{FC4E}' => "noonmeemisolatedarabic",
-    '\u{FC58}' => "yehmeemisolatedarabic",
-    '\u{FC5E}' => "shaddadammatanarabic",
-    '\u{FC5F}' => "shaddakasratanarabic",
-    '\u{FC60}' => "shaddafathaarabic",
-    '\u{FC61}' => "shaddadammaarabic",
-    '\u{FC62}' => "shaddakasraarabic",
-    '\u{FC6D}' => "behnoonfinalarabic",
-    '\u{FC73}' => "tehnoonfinalarabic",
-    '\u{FC8D}' => "noonnoonfinalarabic",
-    '\u{FC94}' => "yehnoonfinalarabic",
-    '\u{FC9F}' => "behmeeminitialarabic",
-    '\u{FCA1}' => "tehjeeminitialarabic",
-    '\u{FCA2}' => "tehhahinitialarabic",
-    '\u{FCA4}' => "tehmeeminitialarabic",
-    '\u{FCC9}' => "lamjeeminitialarabic",
-    '\u{FCCA}' => "lamhahinitialarabic",
-    '\u{FCCB}' => "lamkhahinitialarabic",
-    '\u{FCCC}' => "lammeeminitialarabic",
-    '\u{FCD1}' => "meemmeeminitialarabic",
-    '\u{FCD2}' => "noonjeeminitialarabic",
-    '\u{FCD5}' => "noonmeeminitialarabic",
-    '\u{FCDD}' => "yehmeeminitialarabic",
-    '\u{FD3E}' => "parenleftaltonearabic",
-    '\u{FD3F}' => "parenrightaltonearabic",
-    '\u{FD88}' => "lammeemhahinitialarabic",
-    '\u{FDF2}' => "lamlamhehisolatedarabic",
-    '\u{FDFA}' => "sallallahoualayhewasallamarabic",
-    '\u{FE30}' => "twodotleadervertical",
-    '\u{FE31}' => "emdashvertical",
-    '\u{FE32}' => "endashvertical",
-    '\u{FE33}' => "underscorevertical",
-    '\u{FE34}' => "wavyunderscorevertical",
-    '\u{FE35}' => "parenleftvertical",
-    '\u{FE36}' => "parenrightvertical",
-    '\u{FE37}' => "braceleftvertical",
-    '\u{FE38}' => "bracerightvertical",
-    '\u{FE39}' => "tortoiseshellbracketleftvertical",
-    '\u{FE3A}' => "tortoiseshellbracketrightvertical",
-    '\u{FE3B}' => "blacklenticularbracketleftvertical",
-    '\u{FE3C}' => "blacklenticularbracketrightvertical",
-    '\u{FE3D}' => "dblanglebracketleftvertical",
-    '\u{FE3E}' => "dblanglebracketrightvertical",
-    '\u{FE3F}' => "anglebracketleftvertical",
-    '\u{FE40}' => "anglebracketrightvertical",
-    '\u{FE41}' => "cornerbracketleftvertical",
-    '\u{FE42}' => "cornerbracketrightvertical",
-    '\u{FE43}' => "whitecornerbracketleftvertical",
-    '\u{FE44}' => "whitecornerbracketrightvertical",
-    '\u{FE49}' => "overlinedashed",
-    '\u{FE4A}' => "overlinecenterline",
-    '\u{FE4B}' => "overlinewavy",
-    '\u{FE4C}' => "overlinedblwavy",
-    '\u{FE4D}' => "lowlinedashed",
-    '\u{FE4E}' => "lowlinecenterline",
-    '\u{FE4F}' => "underscorewavy",
-    '\u{FE50}' => "commasmall",
-    '\u{FE52}' => "periodsmall",
-    '\u{FE54}' => "semicolonsmall",
-    '\u{FE55}' => "colonsmall",
-    '\u{FE59}' => "parenleftsmall",
-    '\u{FE5A}' => "parenrightsmall",
-    '\u{FE5B}' => "braceleftsmall",
-    '\u{FE5C}' => "bracerightsmall",
-    '\u{FE5D}' => "tortoiseshellbracketleftsmall",
-    '\u{FE5E}' => "tortoiseshellbracketrightsmall",
-    '\u{FE5F}' => "numbersignsmall",
-    '\u{FE61}' => "asterisksmall",
-    '\u{FE62}' => "plussmall",
-    '\u{FE63}' => "hyphensmall",
-    '\u{FE64}' => "lesssmall",
-    '\u{FE65}' => "greatersmall",
-    '\u{FE66}' => "equalsmall",
-    '\u{FE69}' => "dollarsmall",
-    '\u{FE6A}' => "percentsmall",
-    '\u{FE6B}' => "atsmall",
-    '\u{FE82}' => "alefmaddaabovefinalarabic",
-    '\u{FE84}' => "alefhamzaabovefinalarabic",
-    '\u{FE86}' => "wawhamzaabovefinalarabic",
-    '\u{FE88}' => "alefhamzabelowfinalarabic",
-    '\u{FE8A}' => "yehhamzaabovefinalarabic",
-    '\u{FE8B}' => "yehhamzaaboveinitialarabic",
-    '\u{FE8C}' => "yehhamzaabovemedialarabic",
-    '\u{FE8E}' => "aleffinalarabic",
-    '\u{FE90}' => "behfinalarabic",
-    '\u{FE91}' => "behinitialarabic",
-    '\u{FE92}' => "behmedialarabic",
-    '\u{FE94}' => "tehmarbutafinalarabic",
-    '\u{FE96}' => "tehfinalarabic",
-    '\u{FE97}' => "tehinitialarabic",
-    '\u{FE98}' => "tehmedialarabic",
-    '\u{FE9A}' => "thehfinalarabic",
-    '\u{FE9B}' => "thehinitialarabic",
-    '\u{FE9C}' => "thehmedialarabic",
-    '\u{FE9E}' => "jeemfinalarabic",
-    '\u{FE9F}' => "jeeminitialarabic",
-    '\u{FEA0}' => "jeemmedialarabic",
-    '\u{FEA2}' => "hahfinalarabic",
-    '\u{FEA3}' => "hahinitialarabic",
-    '\u{FEA4}' => "hahmedialarabic",
-    '\u{FEA6}' => "khahfinalarabic",
-    '\u{FEA7}' => "khahinitialarabic",
-    '\u{FEA8}' => "khahmedialarabic",
-    '\u{FEAA}' => "dalfinalarabic",
-    '\u{FEAC}' => "thalfinalarabic",
-    '\u{FEAE}' => "rehfinalarabic",
-    '\u{FEB0}' => "zainfinalarabic",
-    '\u{FEB2}' => "seenfinalarabic",
-    '\u{FEB3}' => "seeninitialarabic",
-    '\u{FEB4}' => "seenmedialarabic",
-    '\u{FEB6}' => "sheenfinalarabic",
-    '\u{FEB7}' => "sheeninitialarabic",
-    '\u{FEB8}' => "sheenmedialarabic",
-    '\u{FEBA}' => "sadfinalarabic",
-    '\u{FEBB}' => "sadinitialarabic",
-    '\u{FEBC}' => "sadmedialarabic",
-    '\u{FEBE}' => "dadfinalarabic",
-    '\u{FEBF}' => "dadinitialarabic",
-    '\u{FEC0}' => "dadmedialarabic",
-    '\u{FEC2}' => "tahfinalarabic",
-    '\u{FEC3}' => "tahinitialarabic",
-    '\u{FEC4}' => "tahmedialarabic",
-    '\u{FEC6}' => "zahfinalarabic",
-    '\u{FEC7}' => "zahinitialarabic",
-    '\u{FEC8}' => "zahmedialarabic",
-    '\u{FECA}' => "ainfinalarabic",
-    '\u{FECB}' => "aininitialarabic",
-    '\u{FECC}' => "ainmedialarabic",
-    '\u{FECE}' => "ghainfinalarabic",
-    '\u{FECF}' => "ghaininitialarabic",
-    '\u{FED0}' => "ghainmedialarabic",
-    '\u{FED2}' => "fehfinalarabic",
-    '\u{FED3}' => "fehinitialarabic",
-    '\u{FED4}' => "fehmedialarabic",
-    '\u{FED6}' => "qaffinalarabic",
-    '\u{FED7}' => "qafinitialarabic",
-    '\u{FED8}' => "qafmedialarabic",
-    '\u{FEDA}' => "kaffinalarabic",
-    '\u{FEDB}' => "kafinitialarabic",
-    '\u{FEDC}' => "kafmedialarabic",
-    '\u{FEDE}' => "lamfinalarabic",
-    '\u{FEDF}' => "laminitialarabic",
-    '\u{FEE0}' => "lammedialarabic",
-    '\u{FEE2}' => "meemfinalarabic",
-    '\u{FEE3}' => "meeminitialarabic",
-    '\u{FEE4}' => "meemmedialarabic",
-    '\u{FEE6}' => "noonfinalarabic",
-    '\u{FEE7}' => "nooninitialarabic",
-    '\u{FEE8}' => "noonmedialarabic",
-    '\u{FEEA}' => "hehfinalalttwoarabic",
-    '\u{FEEB}' => "hehinitialarabic",
-    '\u{FEEC}' => "hehmedialarabic",
-    '\u{FEEE}' => "wawfinalarabic",
-    '\u{FEF0}' => "alefmaksurafinalarabic",
-    '\u{FEF2}' => "yehfinalarabic",
-    '\u{FEF3}' => "alefmaksurainitialarabic",
-    '\u{FEF4}' => "alefmaksuramedialarabic",
-    '\u{FEF5}' => "lamalefmaddaaboveisolatedarabic",
-    '\u{FEF6}' => "lamalefmaddaabovefinalarabic",
-    '\u{FEF7}' => "lamalefhamzaaboveisolatedarabic",
-    '\u{FEF8}' => "lamalefhamzaabovefinalarabic",
-    '\u{FEF9}' => "lamalefhamzabelowisolatedarabic",
-    '\u{FEFA}' => "lamalefhamzabelowfinalarabic",
-    '\u{FEFB}' => "lamalefisolatedarabic",
-    '\u{FEFC}' => "lamaleffinalarabic",
-    '\u{FEFF}' => "zerowidthjoiner",
-    '\u{FF01}' => "exclammonospace",
-    '\u{FF02}' => "quotedblmonospace",
-    '\u{FF03}' => "numbersignmonospace",
-    '\u{FF04}' => "dollarmonospace",
-    '\u{FF05}' => "percentmonospace",
-    '\u{FF06}' => "ampersandmonospace",
-    '\u{FF07}' => "quotesinglemonospace",
-    '\u{FF08}' => "parenleftmonospace",
-    '\u{FF09}' => "parenrightmonospace",
-    '\u{FF0A}' => "asteriskmonospace",
-    '\u{FF0B}' => "plusmonospace",
-    '\u{FF0C}' => "commamonospace",
-    '\u{FF0D}' => "hyphenmonospace",
-    '\u{FF0E}' => "periodmonospace",
-    '\u{FF0F}' => "slashmonospace",
-    '\u{FF10}' => "zeromonospace",
-    '\u{FF11}' => "onemonospace",
-    '\u{FF12}' => "twomonospace",
-    '\u{FF13}' => "threemonospace",
-    '\u{FF14}' => "fourmonospace",
-    '\u{FF15}' => "fivemonospace",
-    '\u{FF16}' => "sixmonospace",
-    '\u{FF17}' => "sevenmonospace",
-    '\u{FF18}' => "eightmonospace",
-    '\u{FF19}' => "ninemonospace",
-    '\u{FF1A}' => "colonmonospace",
-    '\u{FF1B}' => "semicolonmonospace",
-    '\u{FF1C}' => "lessmonospace",
-    '\u{FF1D}' => "equalmonospace",
-    '\u{FF1E}' => "greatermonospace",
-    '\u{FF1F}' => "questionmonospace",
-    '\u{FF20}' => "atmonospace",
-    '\u{FF21}' => "Amonospace",
-    '\u{FF22}' => "Bmonospace",
-    '\u{FF23}' => "Cmonospace",
-    '\u{FF24}' => "Dmonospace",
-    '\u{FF25}' => "Emonospace",
-    '\u{FF26}' => "Fmonospace",
-    '\u{FF27}' => "Gmonospace",
-    '\u{FF28}' => "Hmonospace",
-    '\u{FF29}' => "Imonospace",
-    '\u{FF2A}' => "Jmonospace",
-    '\u{FF2B}' => "Kmonospace",
-    '\u{FF2C}' => "Lmonospace",
-    '\u{FF2D}' => "Mmonospace",
-    '\u{FF2E}' => "Nmonospace",
-    '\u{FF2F}' => "Omonospace",
-    '\u{FF30}' => "Pmonospace",
-    '\u{FF31}' => "Qmonospace",
-    '\u{FF32}' => "Rmonospace",
-    '\u{FF33}' => "Smonospace",
-    '\u{FF34}' => "Tmonospace",
-    '\u{FF35}' => "Umonospace",
-    '\u{FF36}' => "Vmonospace",
-    '\u{FF37}' => "Wmonospace",
-    '\u{FF38}' => "Xmonospace",
-    '\u{FF39}' => "Ymonospace",
-    '\u{FF3A}' => "Zmonospace",
-    '\u{FF3B}' => "bracketleftmonospace",
-    '\u{FF3C}' => "backslashmonospace",
-    '\u{FF3D}' => "bracketrightmonospace",
-    '\u{FF3E}' => "asciicircummonospace",
-    '\u{FF3F}' => "underscoremonospace",
-    '\u{FF40}' => "gravemonospace",
-    '\u{FF41}' => "amonospace",
-    '\u{FF42}' => "bmonospace",
-    '\u{FF43}' => "cmonospace",
-    '\u{FF44}' => "dmonospace",
-    '\u{FF45}' => "emonospace",
-    '\u{FF46}' => "fmonospace",
-    '\u{FF47}' => "gmonospace",
-    '\u{FF48}' => "hmonospace",
-    '\u{FF49}' => "imonospace",
-    '\u{FF4A}' => "jmonospace",
-    '\u{FF4B}' => "kmonospace",
-    '\u{FF4C}' => "lmonospace",
-    '\u{FF4D}' => "mmonospace",
-    '\u{FF4E}' => "nmonospace",
-    '\u{FF4F}' => "omonospace",
-    '\u{FF50}' => "pmonospace",
-    '\u{FF51}' => "qmonospace",
-    '\u{FF52}' => "rmonospace",
-    '\u{FF53}' => "smonospace",
-    '\u{FF54}' => "tmonospace",
-    '\u{FF55}' => "umonospace",
-    '\u{FF56}' => "vmonospace",
-    '\u{FF57}' => "wmonospace",
-    '\u{FF58}' => "xmonospace",
-    '\u{FF59}' => "ymonospace",
-    '\u{FF5A}' => "zmonospace",
-    '\u{FF5B}' => "braceleftmonospace",
-    '\u{FF5C}' => "barmonospace",
-    '\u{FF5D}' => "bracerightmonospace",
-    '\u{FF5E}' => "asciitildemonospace",
-    '\u{FF61}' => "periodhalfwidth",
-    '\u{FF62}' => "cornerbracketlefthalfwidth",
-    '\u{FF63}' => "cornerbracketrighthalfwidth",
-    '\u{FF64}' => "ideographiccommaleft",
-    '\u{FF65}' => "middledotkatakanahalfwidth",
-    '\u{FF66}' => "wokatakanahalfwidth",
-    '\u{FF67}' => "asmallkatakanahalfwidth",
-    '\u{FF68}' => "ismallkatakanahalfwidth",
-    '\u{FF69}' => "usmallkatakanahalfwidth",
-    '\u{FF6A}' => "esmallkatakanahalfwidth",
-    '\u{FF6B}' => "osmallkatakanahalfwidth",
-    '\u{FF6C}' => "yasmallkatakanahalfwidth",
-    '\u{FF6D}' => "yusmallkatakanahalfwidth",
-    '\u{FF6E}' => "yosmallkatakanahalfwidth",
-    '\u{FF6F}' => "tusmallkatakanahalfwidth",
-    '\u{FF70}' => "katahiraprolongmarkhalfwidth",
-    '\u{FF71}' => "akatakanahalfwidth",
-    '\u{FF72}' => "ikatakanahalfwidth",
-    '\u{FF73}' => "ukatakanahalfwidth",
-    '\u{FF74}' => "ekatakanahalfwidth",
-    '\u{FF75}' => "okatakanahalfwidth",
-    '\u{FF76}' => "kakatakanahalfwidth",
-    '\u{FF77}' => "kikatakanahalfwidth",
-    '\u{FF78}' => "kukatakanahalfwidth",
-    '\u{FF79}' => "kekatakanahalfwidth",
-    '\u{FF7A}' => "kokatakanahalfwidth",
-    '\u{FF7B}' => "sakatakanahalfwidth",
-    '\u{FF7C}' => "sikatakanahalfwidth",
-    '\u{FF7D}' => "sukatakanahalfwidth",
-    '\u{FF7E}' => "sekatakanahalfwidth",
-    '\u{FF7F}' => "sokatakanahalfwidth",
-    '\u{FF80}' => "takatakanahalfwidth",
-    '\u{FF81}' => "tikatakanahalfwidth",
-    '\u{FF82}' => "tukatakanahalfwidth",
-    '\u{FF83}' => "tekatakanahalfwidth",
-    '\u{FF84}' => "tokatakanahalfwidth",
-    '\u{FF85}' => "nakatakanahalfwidth",
-    '\u{FF86}' => "nikatakanahalfwidth",
-    '\u{FF87}' => "nukatakanahalfwidth",
-    '\u{FF88}' => "nekatakanahalfwidth",
-    '\u{FF89}' => "nokatakanahalfwidth",
-    '\u{FF8A}' => "hakatakanahalfwidth",
-    '\u{FF8B}' => "hikatakanahalfwidth",
-    '\u{FF8C}' => "hukatakanahalfwidth",
-    '\u{FF8D}' => "hekatakanahalfwidth",
-    '\u{FF8E}' => "hokatakanahalfwidth",
-    '\u{FF8F}' => "makatakanahalfwidth",
-    '\u{FF90}' => "mikatakanahalfwidth",
-    '\u{FF91}' => "mukatakanahalfwidth",
-    '\u{FF92}' => "mekatakanahalfwidth",
-    '\u{FF93}' => "mokatakanahalfwidth",
-    '\u{FF94}' => "yakatakanahalfwidth",
-    '\u{FF95}' => "yukatakanahalfwidth",
-    '\u{FF96}' => "yokatakanahalfwidth",
-    '\u{FF97}' => "rakatakanahalfwidth",
-    '\u{FF98}' => "rikatakanahalfwidth",
-    '\u{FF99}' => "rukatakanahalfwidth",
-    '\u{FF9A}' => "rekatakanahalfwidth",
-    '\u{FF9B}' => "rokatakanahalfwidth",
-    '\u{FF9C}' => "wakatakanahalfwidth",
-    '\u{FF9D}' => "nkatakanahalfwidth",
-    '\u{FF9E}' => "voicedmarkkanahalfwidth",
-    '\u{FF9F}' => "semivoicedmarkkanahalfwidth",
-    '\u{FFE0}' => "centmonospace",
-    '\u{FFE1}' => "sterlingmonospace",
-    '\u{FFE3}' => "macronmonospace",
-    '\u{FFE5}' => "yenmonospace",
-    '\u{FFE6}' => "wonmonospace",
-};
+pub(super) static REVERSE_GLYPH_NAMES: &[u8] = b"\
+    000000\xFEcontrolNULL\xFF\
+    000001\xFEcontrolSTX\xFF\
+    000002\xFEcontrolSOT\xFF\
+    000003\xFEcontrolETX\xFF\
+    000004\xFEcontrolEOT\xFF\
+    000005\xFEcontrolENQ\xFF\
+    000006\xFEcontrolACK\xFF\
+    000007\xFEcontrolBEL\xFF\
+    000008\xFEcontrolBS\xFF\
+    000009\xFEcontrolHT\xFF\
+    00000A\xFEcontrolLF\xFF\
+    00000B\xFEcontrolVT\xFF\
+    00000C\xFEcontrolFF\xFF\
+    00000D\xFEcontrolCR\xFF\
+    00000E\xFEcontrolSO\xFF\
+    00000F\xFEcontrolSI\xFF\
+    000010\xFEcontrolDLE\xFF\
+    000011\xFEcontrolDC1\xFF\
+    000012\xFEcontrolDC2\xFF\
+    000013\xFEcontrolDC3\xFF\
+    000014\xFEcontrolDC4\xFF\
+    000015\xFEcontrolNAK\xFF\
+    000016\xFEcontrolSYN\xFF\
+    000017\xFEcontrolETB\xFF\
+    000018\xFEcontrolCAN\xFF\
+    000019\xFEcontrolEM\xFF\
+    00001A\xFEcontrolSUB\xFF\
+    00001B\xFEcontrolESC\xFF\
+    00001C\xFEcontrolFS\xFF\
+    00001D\xFEcontrolGS\xFF\
+    00001E\xFEcontrolRS\xFF\
+    00001F\xFEcontrolUS\xFF\
+    000020\xFEspace\xFF\
+    000021\xFEexclam\xFF\
+    000022\xFEquotedbl\xFF\
+    000023\xFEnumbersign\xFF\
+    000024\xFEdollar\xFF\
+    000025\xFEpercent\xFF\
+    000026\xFEampersand\xFF\
+    000027\xFEquotesingle\xFF\
+    000028\xFEparenleft\xFF\
+    000029\xFEparenright\xFF\
+    00002A\xFEasterisk\xFF\
+    00002B\xFEplus\xFF\
+    00002C\xFEcomma\xFF\
+    00002D\xFEhyphen\xFF\
+    00002E\xFEperiod\xFF\
+    00002F\xFEslash\xFF\
+    000030\xFEzero\xFF\
+    000031\xFEone\xFF\
+    000032\xFEtwo\xFF\
+    000033\xFEthree\xFF\
+    000034\xFEfour\xFF\
+    000035\xFEfive\xFF\
+    000036\xFEsix\xFF\
+    000037\xFEseven\xFF\
+    000038\xFEeight\xFF\
+    000039\xFEnine\xFF\
+    00003A\xFEcolon\xFF\
+    00003B\xFEsemicolon\xFF\
+    00003C\xFEless\xFF\
+    00003D\xFEequal\xFF\
+    00003E\xFEgreater\xFF\
+    00003F\xFEquestion\xFF\
+    000040\xFEat\xFF\
+    000041\xFEA\xFF\
+    000042\xFEB\xFF\
+    000043\xFEC\xFF\
+    000044\xFED\xFF\
+    000045\xFEE\xFF\
+    000046\xFEF\xFF\
+    000047\xFEG\xFF\
+    000048\xFEH\xFF\
+    000049\xFEI\xFF\
+    00004A\xFEJ\xFF\
+    00004B\xFEK\xFF\
+    00004C\xFEL\xFF\
+    00004D\xFEM\xFF\
+    00004E\xFEN\xFF\
+    00004F\xFEO\xFF\
+    000050\xFEP\xFF\
+    000051\xFEQ\xFF\
+    000052\xFER\xFF\
+    000053\xFES\xFF\
+    000054\xFET\xFF\
+    000055\xFEU\xFF\
+    000056\xFEV\xFF\
+    000057\xFEW\xFF\
+    000058\xFEX\xFF\
+    000059\xFEY\xFF\
+    00005A\xFEZ\xFF\
+    00005B\xFEbracketleft\xFF\
+    00005C\xFEbackslash\xFF\
+    00005D\xFEbracketright\xFF\
+    00005E\xFEasciicircum\xFF\
+    00005F\xFEunderscore\xFF\
+    000060\xFEgrave\xFF\
+    000061\xFEa\xFF\
+    000062\xFEb\xFF\
+    000063\xFEc\xFF\
+    000064\xFEd\xFF\
+    000065\xFEe\xFF\
+    000066\xFEf\xFF\
+    000067\xFEg\xFF\
+    000068\xFEh\xFF\
+    000069\xFEi\xFF\
+    00006A\xFEj\xFF\
+    00006B\xFEk\xFF\
+    00006C\xFEl\xFF\
+    00006D\xFEm\xFF\
+    00006E\xFEn\xFF\
+    00006F\xFEo\xFF\
+    000070\xFEp\xFF\
+    000071\xFEq\xFF\
+    000072\xFEr\xFF\
+    000073\xFEs\xFF\
+    000074\xFEt\xFF\
+    000075\xFEu\xFF\
+    000076\xFEv\xFF\
+    000077\xFEw\xFF\
+    000078\xFEx\xFF\
+    000079\xFEy\xFF\
+    00007A\xFEz\xFF\
+    00007B\xFEbraceleft\xFF\
+    00007C\xFEbar\xFF\
+    00007D\xFEbraceright\xFF\
+    00007E\xFEasciitilde\xFF\
+    00007F\xFEcontrolDEL\xFF\
+    0000A0\xFEnbspace\xFF\
+    0000A1\xFEexclamdown\xFF\
+    0000A2\xFEcent\xFF\
+    0000A3\xFEsterling\xFF\
+    0000A4\xFEcurrency\xFF\
+    0000A5\xFEyen\xFF\
+    0000A6\xFEbrokenbar\xFF\
+    0000A7\xFEsection\xFF\
+    0000A8\xFEdieresis\xFF\
+    0000A9\xFEcopyright\xFF\
+    0000AA\xFEordfeminine\xFF\
+    0000AB\xFEguillemotleft\xFF\
+    0000AC\xFElogicalnot\xFF\
+    0000AD\xFEsfthyphen\xFF\
+    0000AE\xFEregistered\xFF\
+    0000AF\xFEmacron\xFF\
+    0000B0\xFEdegree\xFF\
+    0000B1\xFEplusminus\xFF\
+    0000B2\xFEtwosuperior\xFF\
+    0000B3\xFEthreesuperior\xFF\
+    0000B4\xFEacute\xFF\
+    0000B5\xFEmu\xFF\
+    0000B6\xFEparagraph\xFF\
+    0000B7\xFEmiddot\xFF\
+    0000B8\xFEcedilla\xFF\
+    0000B9\xFEonesuperior\xFF\
+    0000BA\xFEordmasculine\xFF\
+    0000BB\xFEguillemotright\xFF\
+    0000BC\xFEonequarter\xFF\
+    0000BD\xFEonehalf\xFF\
+    0000BE\xFEthreequarters\xFF\
+    0000BF\xFEquestiondown\xFF\
+    0000C0\xFEAgrave\xFF\
+    0000C1\xFEAacute\xFF\
+    0000C2\xFEAcircumflex\xFF\
+    0000C3\xFEAtilde\xFF\
+    0000C4\xFEAdieresis\xFF\
+    0000C5\xFEAring\xFF\
+    0000C6\xFEAE\xFF\
+    0000C7\xFECcedilla\xFF\
+    0000C8\xFEEgrave\xFF\
+    0000C9\xFEEacute\xFF\
+    0000CA\xFEEcircumflex\xFF\
+    0000CB\xFEEdieresis\xFF\
+    0000CC\xFEIgrave\xFF\
+    0000CD\xFEIacute\xFF\
+    0000CE\xFEIcircumflex\xFF\
+    0000CF\xFEIdieresis\xFF\
+    0000D0\xFEEth\xFF\
+    0000D1\xFENtilde\xFF\
+    0000D2\xFEOgrave\xFF\
+    0000D3\xFEOacute\xFF\
+    0000D4\xFEOcircumflex\xFF\
+    0000D5\xFEOtilde\xFF\
+    0000D6\xFEOdieresis\xFF\
+    0000D7\xFEmultiply\xFF\
+    0000D8\xFEOslash\xFF\
+    0000D9\xFEUgrave\xFF\
+    0000DA\xFEUacute\xFF\
+    0000DB\xFEUcircumflex\xFF\
+    0000DC\xFEUdieresis\xFF\
+    0000DD\xFEYacute\xFF\
+    0000DE\xFEThorn\xFF\
+    0000DF\xFEgermandbls\xFF\
+    0000E0\xFEagrave\xFF\
+    0000E1\xFEaacute\xFF\
+    0000E2\xFEacircumflex\xFF\
+    0000E3\xFEatilde\xFF\
+    0000E4\xFEadieresis\xFF\
+    0000E5\xFEaring\xFF\
+    0000E6\xFEae\xFF\
+    0000E7\xFEccedilla\xFF\
+    0000E8\xFEegrave\xFF\
+    0000E9\xFEeacute\xFF\
+    0000EA\xFEecircumflex\xFF\
+    0000EB\xFEedieresis\xFF\
+    0000EC\xFEigrave\xFF\
+    0000ED\xFEiacute\xFF\
+    0000EE\xFEicircumflex\xFF\
+    0000EF\xFEidieresis\xFF\
+    0000F0\xFEeth\xFF\
+    0000F1\xFEntilde\xFF\
+    0000F2\xFEograve\xFF\
+    0000F3\xFEoacute\xFF\
+    0000F4\xFEocircumflex\xFF\
+    0000F5\xFEotilde\xFF\
+    0000F6\xFEodieresis\xFF\
+    0000F7\xFEdivide\xFF\
+    0000F8\xFEoslash\xFF\
+    0000F9\xFEugrave\xFF\
+    0000FA\xFEuacute\xFF\
+    0000FB\xFEucircumflex\xFF\
+    0000FC\xFEudieresis\xFF\
+    0000FD\xFEyacute\xFF\
+    0000FE\xFEthorn\xFF\
+    0000FF\xFEydieresis\xFF\
+    000100\xFEAmacron\xFF\
+    000101\xFEamacron\xFF\
+    000102\xFEAbreve\xFF\
+    000103\xFEabreve\xFF\
+    000104\xFEAogonek\xFF\
+    000105\xFEaogonek\xFF\
+    000106\xFECacute\xFF\
+    000107\xFEcacute\xFF\
+    000108\xFECcircumflex\xFF\
+    000109\xFEccircumflex\xFF\
+    00010A\xFECdot\xFF\
+    00010B\xFEcdot\xFF\
+    00010C\xFECcaron\xFF\
+    00010D\xFEccaron\xFF\
+    00010E\xFEDcaron\xFF\
+    00010F\xFEdcaron\xFF\
+    000110\xFEDcroat\xFF\
+    000111\xFEdcroat\xFF\
+    000112\xFEEmacron\xFF\
+    000113\xFEemacron\xFF\
+    000114\xFEEbreve\xFF\
+    000115\xFEebreve\xFF\
+    000116\xFEEdot\xFF\
+    000117\xFEedot\xFF\
+    000118\xFEEogonek\xFF\
+    000119\xFEeogonek\xFF\
+    00011A\xFEEcaron\xFF\
+    00011B\xFEecaron\xFF\
+    00011C\xFEGcircumflex\xFF\
+    00011D\xFEgcircumflex\xFF\
+    00011E\xFEGbreve\xFF\
+    00011F\xFEgbreve\xFF\
+    000120\xFEGdot\xFF\
+    000121\xFEgdot\xFF\
+    000122\xFEGcedilla\xFF\
+    000123\xFEgcedilla\xFF\
+    000124\xFEHcircumflex\xFF\
+    000125\xFEhcircumflex\xFF\
+    000126\xFEHbar\xFF\
+    000127\xFEhbar\xFF\
+    000128\xFEItilde\xFF\
+    000129\xFEitilde\xFF\
+    00012A\xFEImacron\xFF\
+    00012B\xFEimacron\xFF\
+    00012C\xFEIbreve\xFF\
+    00012D\xFEibreve\xFF\
+    00012E\xFEIogonek\xFF\
+    00012F\xFEiogonek\xFF\
+    000130\xFEIdot\xFF\
+    000131\xFEdotlessi\xFF\
+    000132\xFEIJ\xFF\
+    000133\xFEij\xFF\
+    000134\xFEJcircumflex\xFF\
+    000135\xFEjcircumflex\xFF\
+    000136\xFEKcedilla\xFF\
+    000137\xFEkcedilla\xFF\
+    000138\xFEkgreenlandic\xFF\
+    000139\xFELacute\xFF\
+    00013A\xFElacute\xFF\
+    00013B\xFELcedilla\xFF\
+    00013C\xFElcedilla\xFF\
+    00013D\xFELcaron\xFF\
+    00013E\xFElcaron\xFF\
+    00013F\xFELdot\xFF\
+    000140\xFEldot\xFF\
+    000141\xFELslash\xFF\
+    000142\xFElslash\xFF\
+    000143\xFENacute\xFF\
+    000144\xFEnacute\xFF\
+    000145\xFENcedilla\xFF\
+    000146\xFEncedilla\xFF\
+    000147\xFENcaron\xFF\
+    000148\xFEncaron\xFF\
+    000149\xFEnapostrophe\xFF\
+    00014A\xFEEng\xFF\
+    00014B\xFEeng\xFF\
+    00014C\xFEOmacron\xFF\
+    00014D\xFEomacron\xFF\
+    00014E\xFEObreve\xFF\
+    00014F\xFEobreve\xFF\
+    000150\xFEOdblacute\xFF\
+    000151\xFEodblacute\xFF\
+    000152\xFEOE\xFF\
+    000153\xFEoe\xFF\
+    000154\xFERacute\xFF\
+    000155\xFEracute\xFF\
+    000156\xFERcedilla\xFF\
+    000157\xFErcedilla\xFF\
+    000158\xFERcaron\xFF\
+    000159\xFErcaron\xFF\
+    00015A\xFESacute\xFF\
+    00015B\xFEsacute\xFF\
+    00015C\xFEScircumflex\xFF\
+    00015D\xFEscircumflex\xFF\
+    00015E\xFEScedilla\xFF\
+    00015F\xFEscedilla\xFF\
+    000160\xFEScaron\xFF\
+    000161\xFEscaron\xFF\
+    000162\xFETcedilla\xFF\
+    000163\xFEtcedilla\xFF\
+    000164\xFETcaron\xFF\
+    000165\xFEtcaron\xFF\
+    000166\xFETbar\xFF\
+    000167\xFEtbar\xFF\
+    000168\xFEUtilde\xFF\
+    000169\xFEutilde\xFF\
+    00016A\xFEUmacron\xFF\
+    00016B\xFEumacron\xFF\
+    00016C\xFEUbreve\xFF\
+    00016D\xFEubreve\xFF\
+    00016E\xFEUring\xFF\
+    00016F\xFEuring\xFF\
+    000170\xFEUdblacute\xFF\
+    000171\xFEudblacute\xFF\
+    000172\xFEUogonek\xFF\
+    000173\xFEuogonek\xFF\
+    000174\xFEWcircumflex\xFF\
+    000175\xFEwcircumflex\xFF\
+    000176\xFEYcircumflex\xFF\
+    000177\xFEycircumflex\xFF\
+    000178\xFEYdieresis\xFF\
+    000179\xFEZacute\xFF\
+    00017A\xFEzacute\xFF\
+    00017B\xFEZdot\xFF\
+    00017C\xFEzdot\xFF\
+    00017D\xFEZcaron\xFF\
+    00017E\xFEzcaron\xFF\
+    00017F\xFElongs\xFF\
+    000180\xFEbstroke\xFF\
+    000181\xFEBhook\xFF\
+    000182\xFEBtopbar\xFF\
+    000183\xFEbtopbar\xFF\
+    000184\xFETonesix\xFF\
+    000185\xFEtonesix\xFF\
+    000186\xFEOopen\xFF\
+    000187\xFEChook\xFF\
+    000188\xFEchook\xFF\
+    000189\xFEDafrican\xFF\
+    00018A\xFEDhook\xFF\
+    00018B\xFEDtopbar\xFF\
+    00018C\xFEdtopbar\xFF\
+    00018D\xFEdeltaturned\xFF\
+    00018E\xFEEreversed\xFF\
+    00018F\xFESchwa\xFF\
+    000190\xFEEopen\xFF\
+    000191\xFEFhook\xFF\
+    000192\xFEflorin\xFF\
+    000193\xFEGhook\xFF\
+    000194\xFEGammaafrican\xFF\
+    000195\xFEhv\xFF\
+    000196\xFEIotaafrican\xFF\
+    000197\xFEIstroke\xFF\
+    000198\xFEKhook\xFF\
+    000199\xFEkhook\xFF\
+    00019A\xFElbar\xFF\
+    00019B\xFElambdastroke\xFF\
+    00019C\xFEMturned\xFF\
+    00019D\xFENhookleft\xFF\
+    00019E\xFEnlegrightlong\xFF\
+    00019F\xFEOcenteredtilde\xFF\
+    0001A0\xFEOhorn\xFF\
+    0001A1\xFEohorn\xFF\
+    0001A2\xFEOi\xFF\
+    0001A3\xFEoi\xFF\
+    0001A4\xFEPhook\xFF\
+    0001A5\xFEphook\xFF\
+    0001A6\xFEyr\xFF\
+    0001A7\xFETonetwo\xFF\
+    0001A8\xFEtonetwo\xFF\
+    0001A9\xFEEsh\xFF\
+    0001AA\xFEeshreversedloop\xFF\
+    0001AB\xFEtpalatalhook\xFF\
+    0001AC\xFEThook\xFF\
+    0001AD\xFEthook\xFF\
+    0001AE\xFETretroflexhook\xFF\
+    0001AF\xFEUhorn\xFF\
+    0001B0\xFEuhorn\xFF\
+    0001B1\xFEUpsilonafrican\xFF\
+    0001B2\xFEVhook\xFF\
+    0001B3\xFEYhook\xFF\
+    0001B4\xFEyhook\xFF\
+    0001B5\xFEZstroke\xFF\
+    0001B6\xFEzstroke\xFF\
+    0001B7\xFEEzh\xFF\
+    0001B8\xFEEzhreversed\xFF\
+    0001B9\xFEezhreversed\xFF\
+    0001BA\xFEezhtail\xFF\
+    0001BB\xFEtwostroke\xFF\
+    0001BC\xFETonefive\xFF\
+    0001BD\xFEtonefive\xFF\
+    0001BE\xFEglottalinvertedstroke\xFF\
+    0001BF\xFEwynn\xFF\
+    0001C0\xFEclickdental\xFF\
+    0001C1\xFEclicklateral\xFF\
+    0001C2\xFEclickalveolar\xFF\
+    0001C3\xFEclickretroflex\xFF\
+    0001C4\xFEDZcaron\xFF\
+    0001C5\xFEDzcaron\xFF\
+    0001C6\xFEdzcaron\xFF\
+    0001C7\xFELJ\xFF\
+    0001C8\xFELj\xFF\
+    0001C9\xFElj\xFF\
+    0001CA\xFENJ\xFF\
+    0001CB\xFENj\xFF\
+    0001CC\xFEnj\xFF\
+    0001CD\xFEAcaron\xFF\
+    0001CE\xFEacaron\xFF\
+    0001CF\xFEIcaron\xFF\
+    0001D0\xFEicaron\xFF\
+    0001D1\xFEOcaron\xFF\
+    0001D2\xFEocaron\xFF\
+    0001D3\xFEUcaron\xFF\
+    0001D4\xFEucaron\xFF\
+    0001D5\xFEUdieresismacron\xFF\
+    0001D6\xFEudieresismacron\xFF\
+    0001D7\xFEUdieresisacute\xFF\
+    0001D8\xFEudieresisacute\xFF\
+    0001D9\xFEUdieresiscaron\xFF\
+    0001DA\xFEudieresiscaron\xFF\
+    0001DB\xFEUdieresisgrave\xFF\
+    0001DC\xFEudieresisgrave\xFF\
+    0001DD\xFEeturned\xFF\
+    0001DE\xFEAdieresismacron\xFF\
+    0001DF\xFEadieresismacron\xFF\
+    0001E0\xFEAdotmacron\xFF\
+    0001E1\xFEadotmacron\xFF\
+    0001E2\xFEAEmacron\xFF\
+    0001E3\xFEaemacron\xFF\
+    0001E4\xFEGstroke\xFF\
+    0001E5\xFEgstroke\xFF\
+    0001E6\xFEGcaron\xFF\
+    0001E7\xFEgcaron\xFF\
+    0001E8\xFEKcaron\xFF\
+    0001E9\xFEkcaron\xFF\
+    0001EA\xFEOogonek\xFF\
+    0001EB\xFEoogonek\xFF\
+    0001EC\xFEOogonekmacron\xFF\
+    0001ED\xFEoogonekmacron\xFF\
+    0001EE\xFEEzhcaron\xFF\
+    0001EF\xFEezhcaron\xFF\
+    0001F0\xFEjcaron\xFF\
+    0001F1\xFEDZ\xFF\
+    0001F2\xFEDz\xFF\
+    0001F3\xFEdz\xFF\
+    0001F4\xFEGacute\xFF\
+    0001F5\xFEgacute\xFF\
+    0001FA\xFEAringacute\xFF\
+    0001FB\xFEaringacute\xFF\
+    0001FC\xFEAEacute\xFF\
+    0001FD\xFEaeacute\xFF\
+    0001FE\xFEOslashacute\xFF\
+    0001FF\xFEoslashacute\xFF\
+    000200\xFEAdblgrave\xFF\
+    000201\xFEadblgrave\xFF\
+    000202\xFEAinvertedbreve\xFF\
+    000203\xFEainvertedbreve\xFF\
+    000204\xFEEdblgrave\xFF\
+    000205\xFEedblgrave\xFF\
+    000206\xFEEinvertedbreve\xFF\
+    000207\xFEeinvertedbreve\xFF\
+    000208\xFEIdblgrave\xFF\
+    000209\xFEidblgrave\xFF\
+    00020A\xFEIinvertedbreve\xFF\
+    00020B\xFEiinvertedbreve\xFF\
+    00020C\xFEOdblgrave\xFF\
+    00020D\xFEodblgrave\xFF\
+    00020E\xFEOinvertedbreve\xFF\
+    00020F\xFEoinvertedbreve\xFF\
+    000210\xFERdblgrave\xFF\
+    000211\xFErdblgrave\xFF\
+    000212\xFERinvertedbreve\xFF\
+    000213\xFErinvertedbreve\xFF\
+    000214\xFEUdblgrave\xFF\
+    000215\xFEudblgrave\xFF\
+    000216\xFEUinvertedbreve\xFF\
+    000217\xFEuinvertedbreve\xFF\
+    000218\xFEScommaaccent\xFF\
+    000219\xFEscommaaccent\xFF\
+    000250\xFEaturned\xFF\
+    000251\xFEascript\xFF\
+    000252\xFEascriptturned\xFF\
+    000253\xFEbhook\xFF\
+    000254\xFEoopen\xFF\
+    000255\xFEccurl\xFF\
+    000256\xFEdtail\xFF\
+    000257\xFEdhook\xFF\
+    000258\xFEereversed\xFF\
+    000259\xFEschwa\xFF\
+    00025A\xFEschwahook\xFF\
+    00025B\xFEeopen\xFF\
+    00025C\xFEeopenreversed\xFF\
+    00025D\xFEeopenreversedhook\xFF\
+    00025E\xFEeopenreversedclosed\xFF\
+    00025F\xFEjdotlessstroke\xFF\
+    000260\xFEghook\xFF\
+    000261\xFEgscript\xFF\
+    000263\xFEgammalatinsmall\xFF\
+    000264\xFEramshorn\xFF\
+    000265\xFEhturned\xFF\
+    000266\xFEhhook\xFF\
+    000267\xFEhenghook\xFF\
+    000268\xFEistroke\xFF\
+    000269\xFEiotalatin\xFF\
+    00026B\xFElmiddletilde\xFF\
+    00026C\xFElbelt\xFF\
+    00026D\xFElhookretroflex\xFF\
+    00026E\xFElezh\xFF\
+    00026F\xFEmturned\xFF\
+    000270\xFEmlonglegturned\xFF\
+    000271\xFEmhook\xFF\
+    000272\xFEnhookleft\xFF\
+    000273\xFEnhookretroflex\xFF\
+    000275\xFEobarred\xFF\
+    000277\xFEomegalatinclosed\xFF\
+    000278\xFEphilatin\xFF\
+    000279\xFErturned\xFF\
+    00027A\xFErlonglegturned\xFF\
+    00027B\xFErhookturned\xFF\
+    00027C\xFErlongleg\xFF\
+    00027D\xFErhook\xFF\
+    00027E\xFErfishhook\xFF\
+    00027F\xFErfishhookreversed\xFF\
+    000281\xFERsmallinverted\xFF\
+    000282\xFEshook\xFF\
+    000283\xFEesh\xFF\
+    000284\xFEdotlessjstrokehook\xFF\
+    000285\xFEeshsquatreversed\xFF\
+    000286\xFEeshcurl\xFF\
+    000287\xFEtturned\xFF\
+    000288\xFEtretroflexhook\xFF\
+    000289\xFEubar\xFF\
+    00028A\xFEupsilonlatin\xFF\
+    00028B\xFEvhook\xFF\
+    00028C\xFEvturned\xFF\
+    00028D\xFEwturned\xFF\
+    00028E\xFEyturned\xFF\
+    000290\xFEzretroflexhook\xFF\
+    000291\xFEzcurl\xFF\
+    000292\xFEezh\xFF\
+    000293\xFEezhcurl\xFF\
+    000294\xFEglottalstop\xFF\
+    000295\xFEglottalstopreversed\xFF\
+    000296\xFEglottalstopinverted\xFF\
+    000297\xFEcstretched\xFF\
+    000298\xFEbilabialclick\xFF\
+    00029A\xFEeopenclosed\xFF\
+    00029B\xFEGsmallhook\xFF\
+    00029D\xFEjcrossedtail\xFF\
+    00029E\xFEkturned\xFF\
+    0002A0\xFEqhook\xFF\
+    0002A1\xFEglottalstopstroke\xFF\
+    0002A2\xFEglottalstopstrokereversed\xFF\
+    0002A3\xFEdzaltone\xFF\
+    0002A4\xFEdezh\xFF\
+    0002A5\xFEdzcurl\xFF\
+    0002A6\xFEts\xFF\
+    0002A7\xFEtesh\xFF\
+    0002A8\xFEtccurl\xFF\
+    0002B0\xFEhsuperior\xFF\
+    0002B1\xFEhhooksuperior\xFF\
+    0002B2\xFEjsuperior\xFF\
+    0002B4\xFErturnedsuperior\xFF\
+    0002B5\xFErhookturnedsuperior\xFF\
+    0002B6\xFERsmallinvertedsuperior\xFF\
+    0002B7\xFEwsuperior\xFF\
+    0002B8\xFEysuperior\xFF\
+    0002B9\xFEprimemod\xFF\
+    0002BA\xFEdblprimemod\xFF\
+    0002BB\xFEcommaturnedmod\xFF\
+    0002BC\xFEafii57929\xFF\
+    0002BD\xFEafii64937\xFF\
+    0002BE\xFEringhalfright\xFF\
+    0002BF\xFEringhalfleft\xFF\
+    0002C0\xFEglottalstopmod\xFF\
+    0002C1\xFEglottalstopreversedmod\xFF\
+    0002C2\xFEarrowheadleftmod\xFF\
+    0002C3\xFEarrowheadrightmod\xFF\
+    0002C4\xFEarrowheadupmod\xFF\
+    0002C5\xFEarrowheaddownmod\xFF\
+    0002C6\xFEcircumflex\xFF\
+    0002C7\xFEcaron\xFF\
+    0002C8\xFEverticallinemod\xFF\
+    0002C9\xFEfirsttonechinese\xFF\
+    0002CA\xFEsecondtonechinese\xFF\
+    0002CB\xFEfourthtonechinese\xFF\
+    0002CC\xFEverticallinelowmod\xFF\
+    0002CD\xFEmacronlowmod\xFF\
+    0002CE\xFEgravelowmod\xFF\
+    0002CF\xFEacutelowmod\xFF\
+    0002D0\xFEcolontriangularmod\xFF\
+    0002D1\xFEcolontriangularhalfmod\xFF\
+    0002D2\xFEringhalfrightcentered\xFF\
+    0002D3\xFEringhalfleftcentered\xFF\
+    0002D4\xFEuptackmod\xFF\
+    0002D5\xFEdowntackmod\xFF\
+    0002D6\xFEplusmod\xFF\
+    0002D7\xFEminusmod\xFF\
+    0002D8\xFEbreve\xFF\
+    0002D9\xFEdotaccent\xFF\
+    0002DA\xFEring\xFF\
+    0002DB\xFEogonek\xFF\
+    0002DC\xFEilde\xFF\
+    0002DD\xFEhungarumlaut\xFF\
+    0002DE\xFErhotichookmod\xFF\
+    0002E0\xFEgammasuperior\xFF\
+    0002E3\xFExsuperior\xFF\
+    0002E4\xFEglottalstopreversedsuperior\xFF\
+    0002E5\xFEtonebarextrahighmod\xFF\
+    0002E6\xFEtonebarhighmod\xFF\
+    0002E7\xFEtonebarmidmod\xFF\
+    0002E8\xFEtonebarlowmod\xFF\
+    0002E9\xFEtonebarextralowmod\xFF\
+    000300\xFEgravecmb\xFF\
+    000301\xFEacutecmb\xFF\
+    000302\xFEcircumflexcmb\xFF\
+    000303\xFEtildecmb\xFF\
+    000304\xFEmacroncmb\xFF\
+    000305\xFEoverlinecmb\xFF\
+    000306\xFEbrevecmb\xFF\
+    000307\xFEdotaccentcmb\xFF\
+    000308\xFEdieresiscmb\xFF\
+    000309\xFEhookabovecomb\xFF\
+    00030A\xFEringcmb\xFF\
+    00030B\xFEhungarumlautcmb\xFF\
+    00030C\xFEcaroncmb\xFF\
+    00030D\xFEverticallineabovecmb\xFF\
+    00030E\xFEdblverticallineabovecmb\xFF\
+    00030F\xFEdblgravecmb\xFF\
+    000310\xFEcandrabinducmb\xFF\
+    000311\xFEbreveinvertedcmb\xFF\
+    000312\xFEcommaturnedabovecmb\xFF\
+    000313\xFEcommaabovecmb\xFF\
+    000314\xFEcommareversedabovecmb\xFF\
+    000315\xFEcommaaboverightcmb\xFF\
+    000316\xFEgravebelowcmb\xFF\
+    000317\xFEacutebelowcmb\xFF\
+    000318\xFElefttackbelowcmb\xFF\
+    000319\xFErighttackbelowcmb\xFF\
+    00031A\xFEleftangleabovecmb\xFF\
+    00031B\xFEhorncmb\xFF\
+    00031C\xFEringhalfleftbelowcmb\xFF\
+    00031D\xFEuptackbelowcmb\xFF\
+    00031E\xFEdowntackbelowcmb\xFF\
+    00031F\xFEplusbelowcmb\xFF\
+    000320\xFEminusbelowcmb\xFF\
+    000321\xFEhookpalatalizedbelowcmb\xFF\
+    000322\xFEhookretroflexbelowcmb\xFF\
+    000323\xFEdotbelowcmb\xFF\
+    000324\xFEdieresisbelowcmb\xFF\
+    000325\xFEringbelowcmb\xFF\
+    000327\xFEcedillacmb\xFF\
+    000328\xFEogonekcmb\xFF\
+    000329\xFEverticallinebelowcmb\xFF\
+    00032A\xFEbridgebelowcmb\xFF\
+    00032B\xFEdblarchinvertedbelowcmb\xFF\
+    00032C\xFEcaronbelowcmb\xFF\
+    00032D\xFEcircumflexbelowcmb\xFF\
+    00032E\xFEbrevebelowcmb\xFF\
+    00032F\xFEbreveinvertedbelowcmb\xFF\
+    000330\xFEtildebelowcmb\xFF\
+    000331\xFEmacronbelowcmb\xFF\
+    000332\xFElowlinecmb\xFF\
+    000333\xFEdbllowlinecmb\xFF\
+    000334\xFEtildeoverlaycmb\xFF\
+    000335\xFEstrokeshortoverlaycmb\xFF\
+    000336\xFEstrokelongoverlaycmb\xFF\
+    000337\xFEsolidusshortoverlaycmb\xFF\
+    000338\xFEsoliduslongoverlaycmb\xFF\
+    000339\xFEringhalfrightbelowcmb\xFF\
+    00033A\xFEbridgeinvertedbelowcmb\xFF\
+    00033B\xFEsquarebelowcmb\xFF\
+    00033C\xFEseagullbelowcmb\xFF\
+    00033D\xFExabovecmb\xFF\
+    00033E\xFEtildeverticalcmb\xFF\
+    00033F\xFEdbloverlinecmb\xFF\
+    000340\xFEgravetonecmb\xFF\
+    000341\xFEacutetonecmb\xFF\
+    000342\xFEperispomenigreekcmb\xFF\
+    000343\xFEkoroniscmb\xFF\
+    000344\xFEdialytikatonoscmb\xFF\
+    000345\xFEypogegrammenigreekcmb\xFF\
+    000360\xFEtildedoublecmb\xFF\
+    000361\xFEbreveinverteddoublecmb\xFF\
+    000374\xFEnumeralsigngreek\xFF\
+    000375\xFEnumeralsignlowergreek\xFF\
+    00037A\xFEypogegrammeni\xFF\
+    00037E\xFEquestiongreek\xFF\
+    000384\xFEtonos\xFF\
+    000385\xFEdialytikatonos\xFF\
+    000386\xFEAlphatonos\xFF\
+    000387\xFEanoteleia\xFF\
+    000388\xFEEpsilontonos\xFF\
+    000389\xFEEtatonos\xFF\
+    00038A\xFEIotatonos\xFF\
+    00038C\xFEOmicrontonos\xFF\
+    00038E\xFEUpsilontonos\xFF\
+    00038F\xFEOmegatonos\xFF\
+    000390\xFEiotadieresistonos\xFF\
+    000391\xFEAlpha\xFF\
+    000392\xFEBeta\xFF\
+    000393\xFEGamma\xFF\
+    000394\xFEDeltagreek\xFF\
+    000395\xFEEpsilon\xFF\
+    000396\xFEZeta\xFF\
+    000397\xFEEta\xFF\
+    000398\xFETheta\xFF\
+    000399\xFEIota\xFF\
+    00039A\xFEKappa\xFF\
+    00039B\xFELambda\xFF\
+    00039C\xFEMu\xFF\
+    00039D\xFENu\xFF\
+    00039E\xFEXi\xFF\
+    00039F\xFEOmicron\xFF\
+    0003A0\xFEPi\xFF\
+    0003A1\xFERho\xFF\
+    0003A3\xFESigma\xFF\
+    0003A4\xFETau\xFF\
+    0003A5\xFEUpsilon\xFF\
+    0003A6\xFEPhi\xFF\
+    0003A7\xFEChi\xFF\
+    0003A8\xFEPsi\xFF\
+    0003A9\xFEOmegagreek\xFF\
+    0003AA\xFEIotadieresis\xFF\
+    0003AB\xFEUpsilondieresis\xFF\
+    0003AC\xFEalphatonos\xFF\
+    0003AD\xFEepsilontonos\xFF\
+    0003AE\xFEetatonos\xFF\
+    0003AF\xFEiotatonos\xFF\
+    0003B0\xFEupsilondieresistonos\xFF\
+    0003B1\xFEalpha\xFF\
+    0003B2\xFEbeta\xFF\
+    0003B3\xFEgamma\xFF\
+    0003B4\xFEdelta\xFF\
+    0003B5\xFEepsilon\xFF\
+    0003B6\xFEzeta\xFF\
+    0003B7\xFEeta\xFF\
+    0003B8\xFEtheta\xFF\
+    0003B9\xFEiota\xFF\
+    0003BA\xFEkappa\xFF\
+    0003BB\xFElambda\xFF\
+    0003BC\xFEmugreek\xFF\
+    0003BD\xFEnu\xFF\
+    0003BE\xFExi\xFF\
+    0003BF\xFEomicron\xFF\
+    0003C0\xFEpi\xFF\
+    0003C1\xFErho\xFF\
+    0003C2\xFEsigma1\xFF\
+    0003C3\xFEsigma\xFF\
+    0003C4\xFEtau\xFF\
+    0003C5\xFEupsilon\xFF\
+    0003C6\xFEphi\xFF\
+    0003C7\xFEchi\xFF\
+    0003C8\xFEpsi\xFF\
+    0003C9\xFEomega\xFF\
+    0003CA\xFEiotadieresis\xFF\
+    0003CB\xFEupsilondieresis\xFF\
+    0003CC\xFEomicrontonos\xFF\
+    0003CD\xFEupsilontonos\xFF\
+    0003CE\xFEomegatonos\xFF\
+    0003D0\xFEbetasymbolgreek\xFF\
+    0003D1\xFEtheta1\xFF\
+    0003D2\xFEUpsilon1\xFF\
+    0003D3\xFEUpsilonacutehooksymbolgreek\xFF\
+    0003D4\xFEUpsilondieresishooksymbolgreek\xFF\
+    0003D5\xFEphi1\xFF\
+    0003D6\xFEomega1\xFF\
+    0003DA\xFEStigmagreek\xFF\
+    0003DC\xFEDigammagreek\xFF\
+    0003DE\xFEKoppagreek\xFF\
+    0003E0\xFESampigreek\xFF\
+    0003E2\xFESheicoptic\xFF\
+    0003E3\xFEsheicoptic\xFF\
+    0003E4\xFEFeicoptic\xFF\
+    0003E5\xFEfeicoptic\xFF\
+    0003E6\xFEKheicoptic\xFF\
+    0003E7\xFEkheicoptic\xFF\
+    0003E8\xFEHoricoptic\xFF\
+    0003E9\xFEhoricoptic\xFF\
+    0003EA\xFEGangiacoptic\xFF\
+    0003EB\xFEgangiacoptic\xFF\
+    0003EC\xFEShimacoptic\xFF\
+    0003ED\xFEshimacoptic\xFF\
+    0003EE\xFEDeicoptic\xFF\
+    0003EF\xFEdeicoptic\xFF\
+    0003F0\xFEkappasymbolgreek\xFF\
+    0003F1\xFErhosymbolgreek\xFF\
+    0003F2\xFEsigmalunatesymbolgreek\xFF\
+    0003F3\xFEyotgreek\xFF\
+    000401\xFEIocyrillic\xFF\
+    000402\xFEDjecyrillic\xFF\
+    000403\xFEGjecyrillic\xFF\
+    000404\xFEEcyrillic\xFF\
+    000405\xFEDzecyrillic\xFF\
+    000406\xFEIcyrillic\xFF\
+    000407\xFEYicyrillic\xFF\
+    000408\xFEJecyrillic\xFF\
+    000409\xFELjecyrillic\xFF\
+    00040A\xFENjecyrillic\xFF\
+    00040B\xFETshecyrillic\xFF\
+    00040C\xFEKjecyrillic\xFF\
+    00040E\xFEUshortcyrillic\xFF\
+    00040F\xFEDzhecyrillic\xFF\
+    000410\xFEAcyrillic\xFF\
+    000411\xFEBecyrillic\xFF\
+    000412\xFEVecyrillic\xFF\
+    000413\xFEGecyrillic\xFF\
+    000414\xFEDecyrillic\xFF\
+    000415\xFEIecyrillic\xFF\
+    000416\xFEZhecyrillic\xFF\
+    000417\xFEZecyrillic\xFF\
+    000418\xFEIicyrillic\xFF\
+    000419\xFEIishortcyrillic\xFF\
+    00041A\xFEKacyrillic\xFF\
+    00041B\xFEElcyrillic\xFF\
+    00041C\xFEEmcyrillic\xFF\
+    00041D\xFEEncyrillic\xFF\
+    00041E\xFEOcyrillic\xFF\
+    00041F\xFEPecyrillic\xFF\
+    000420\xFEErcyrillic\xFF\
+    000421\xFEEscyrillic\xFF\
+    000422\xFETecyrillic\xFF\
+    000423\xFEUcyrillic\xFF\
+    000424\xFEEfcyrillic\xFF\
+    000425\xFEKhacyrillic\xFF\
+    000426\xFETsecyrillic\xFF\
+    000427\xFEChecyrillic\xFF\
+    000428\xFEShacyrillic\xFF\
+    000429\xFEShchacyrillic\xFF\
+    00042A\xFEHardsigncyrillic\xFF\
+    00042B\xFEYericyrillic\xFF\
+    00042C\xFESoftsigncyrillic\xFF\
+    00042D\xFEEreversedcyrillic\xFF\
+    00042E\xFEIUcyrillic\xFF\
+    00042F\xFEIAcyrillic\xFF\
+    000430\xFEacyrillic\xFF\
+    000431\xFEafii10066\xFF\
+    000432\xFEafii10067\xFF\
+    000433\xFEafii10068\xFF\
+    000434\xFEafii10069\xFF\
+    000435\xFEafii10070\xFF\
+    000436\xFEafii10072\xFF\
+    000437\xFEafii10073\xFF\
+    000438\xFEafii10074\xFF\
+    000439\xFEafii10075\xFF\
+    00043A\xFEafii10076\xFF\
+    00043B\xFEafii10077\xFF\
+    00043C\xFEafii10078\xFF\
+    00043D\xFEafii10079\xFF\
+    00043E\xFEafii10080\xFF\
+    00043F\xFEafii10081\xFF\
+    000440\xFEafii10082\xFF\
+    000441\xFEafii10083\xFF\
+    000442\xFEafii10084\xFF\
+    000443\xFEafii10085\xFF\
+    000444\xFEafii10086\xFF\
+    000445\xFEafii10087\xFF\
+    000446\xFEafii10088\xFF\
+    000447\xFEafii10089\xFF\
+    000448\xFEafii10090\xFF\
+    000449\xFEafii10091\xFF\
+    00044A\xFEafii10092\xFF\
+    00044B\xFEafii10093\xFF\
+    00044C\xFEafii10094\xFF\
+    00044D\xFEafii10095\xFF\
+    00044E\xFEafii10096\xFF\
+    00044F\xFEafii10097\xFF\
+    000451\xFEafii10071\xFF\
+    000452\xFEafii10099\xFF\
+    000453\xFEafii10100\xFF\
+    000454\xFEafii10101\xFF\
+    000455\xFEafii10102\xFF\
+    000456\xFEafii10103\xFF\
+    000457\xFEafii10104\xFF\
+    000458\xFEafii10105\xFF\
+    000459\xFEafii10106\xFF\
+    00045A\xFEafii10107\xFF\
+    00045B\xFEafii10108\xFF\
+    00045C\xFEafii10109\xFF\
+    00045E\xFEafii10110\xFF\
+    00045F\xFEafii10193\xFF\
+    000460\xFEOmegacyrillic\xFF\
+    000461\xFEomegacyrillic\xFF\
+    000462\xFEYatcyrillic\xFF\
+    000463\xFEafii10194\xFF\
+    000464\xFEEiotifiedcyrillic\xFF\
+    000465\xFEeiotifiedcyrillic\xFF\
+    000466\xFEYuslittlecyrillic\xFF\
+    000467\xFEyuslittlecyrillic\xFF\
+    000468\xFEYuslittleiotifiedcyrillic\xFF\
+    000469\xFEyuslittleiotifiedcyrillic\xFF\
+    00046A\xFEYusbigcyrillic\xFF\
+    00046B\xFEyusbigcyrillic\xFF\
+    00046C\xFEYusbigiotifiedcyrillic\xFF\
+    00046D\xFEyusbigiotifiedcyrillic\xFF\
+    00046E\xFEKsicyrillic\xFF\
+    00046F\xFEksicyrillic\xFF\
+    000470\xFEPsicyrillic\xFF\
+    000471\xFEpsicyrillic\xFF\
+    000472\xFEFitacyrillic\xFF\
+    000473\xFEafii10195\xFF\
+    000474\xFEIzhitsacyrillic\xFF\
+    000475\xFEafii10196\xFF\
+    000476\xFEIzhitsadblgravecyrillic\xFF\
+    000477\xFEizhitsadblgravecyrillic\xFF\
+    000478\xFEUkcyrillic\xFF\
+    000479\xFEukcyrillic\xFF\
+    00047A\xFEOmegaroundcyrillic\xFF\
+    00047B\xFEomegaroundcyrillic\xFF\
+    00047C\xFEOmegatitlocyrillic\xFF\
+    00047D\xFEomegatitlocyrillic\xFF\
+    00047E\xFEOtcyrillic\xFF\
+    00047F\xFEotcyrillic\xFF\
+    000480\xFEKoppacyrillic\xFF\
+    000481\xFEkoppacyrillic\xFF\
+    000482\xFEthousandcyrillic\xFF\
+    000483\xFEtitlocyrilliccmb\xFF\
+    000484\xFEpalatalizationcyrilliccmb\xFF\
+    000485\xFEdasiapneumatacyrilliccmb\xFF\
+    000486\xFEpsilipneumatacyrilliccmb\xFF\
+    000490\xFEGheupturncyrillic\xFF\
+    000491\xFEafii10098\xFF\
+    000492\xFEGhestrokecyrillic\xFF\
+    000493\xFEghestrokecyrillic\xFF\
+    000494\xFEGhemiddlehookcyrillic\xFF\
+    000495\xFEghemiddlehookcyrillic\xFF\
+    000496\xFEZhedescendercyrillic\xFF\
+    000497\xFEzhedescendercyrillic\xFF\
+    000498\xFEZedescendercyrillic\xFF\
+    000499\xFEzedescendercyrillic\xFF\
+    00049A\xFEKadescendercyrillic\xFF\
+    00049B\xFEkadescendercyrillic\xFF\
+    00049C\xFEKaverticalstrokecyrillic\xFF\
+    00049D\xFEkaverticalstrokecyrillic\xFF\
+    00049E\xFEKastrokecyrillic\xFF\
+    00049F\xFEkastrokecyrillic\xFF\
+    0004A0\xFEKabashkircyrillic\xFF\
+    0004A1\xFEkabashkircyrillic\xFF\
+    0004A2\xFEEndescendercyrillic\xFF\
+    0004A3\xFEendescendercyrillic\xFF\
+    0004A4\xFEEnghecyrillic\xFF\
+    0004A5\xFEenghecyrillic\xFF\
+    0004A6\xFEPemiddlehookcyrillic\xFF\
+    0004A7\xFEpemiddlehookcyrillic\xFF\
+    0004A8\xFEHaabkhasiancyrillic\xFF\
+    0004A9\xFEhaabkhasiancyrillic\xFF\
+    0004AA\xFEEsdescendercyrillic\xFF\
+    0004AB\xFEesdescendercyrillic\xFF\
+    0004AC\xFETedescendercyrillic\xFF\
+    0004AD\xFEtedescendercyrillic\xFF\
+    0004AE\xFEUstraightcyrillic\xFF\
+    0004AF\xFEustraightcyrillic\xFF\
+    0004B0\xFEUstraightstrokecyrillic\xFF\
+    0004B1\xFEustraightstrokecyrillic\xFF\
+    0004B2\xFEHadescendercyrillic\xFF\
+    0004B3\xFEhadescendercyrillic\xFF\
+    0004B4\xFETetsecyrillic\xFF\
+    0004B5\xFEtetsecyrillic\xFF\
+    0004B6\xFEChedescendercyrillic\xFF\
+    0004B7\xFEchedescendercyrillic\xFF\
+    0004B8\xFECheverticalstrokecyrillic\xFF\
+    0004B9\xFEcheverticalstrokecyrillic\xFF\
+    0004BA\xFEShhacyrillic\xFF\
+    0004BB\xFEshhacyrillic\xFF\
+    0004BC\xFECheabkhasiancyrillic\xFF\
+    0004BD\xFEcheabkhasiancyrillic\xFF\
+    0004BE\xFEChedescenderabkhasiancyrillic\xFF\
+    0004BF\xFEchedescenderabkhasiancyrillic\xFF\
+    0004C0\xFEpalochkacyrillic\xFF\
+    0004C1\xFEZhebrevecyrillic\xFF\
+    0004C2\xFEzhebrevecyrillic\xFF\
+    0004C3\xFEKahookcyrillic\xFF\
+    0004C4\xFEkahookcyrillic\xFF\
+    0004C7\xFEEnhookcyrillic\xFF\
+    0004C8\xFEenhookcyrillic\xFF\
+    0004CB\xFEChekhakassiancyrillic\xFF\
+    0004CC\xFEchekhakassiancyrillic\xFF\
+    0004D0\xFEAbrevecyrillic\xFF\
+    0004D1\xFEabrevecyrillic\xFF\
+    0004D2\xFEAdieresiscyrillic\xFF\
+    0004D3\xFEadieresiscyrillic\xFF\
+    0004D4\xFEAiecyrillic\xFF\
+    0004D5\xFEaiecyrillic\xFF\
+    0004D6\xFEIebrevecyrillic\xFF\
+    0004D7\xFEiebrevecyrillic\xFF\
+    0004D8\xFESchwacyrillic\xFF\
+    0004D9\xFEafii10846\xFF\
+    0004DA\xFESchwadieresiscyrillic\xFF\
+    0004DB\xFEschwadieresiscyrillic\xFF\
+    0004DC\xFEZhedieresiscyrillic\xFF\
+    0004DD\xFEzhedieresiscyrillic\xFF\
+    0004DE\xFEZedieresiscyrillic\xFF\
+    0004DF\xFEzedieresiscyrillic\xFF\
+    0004E0\xFEDzeabkhasiancyrillic\xFF\
+    0004E1\xFEdzeabkhasiancyrillic\xFF\
+    0004E2\xFEImacroncyrillic\xFF\
+    0004E3\xFEimacroncyrillic\xFF\
+    0004E4\xFEIdieresiscyrillic\xFF\
+    0004E5\xFEidieresiscyrillic\xFF\
+    0004E6\xFEOdieresiscyrillic\xFF\
+    0004E7\xFEodieresiscyrillic\xFF\
+    0004E8\xFEObarredcyrillic\xFF\
+    0004E9\xFEobarredcyrillic\xFF\
+    0004EA\xFEObarreddieresiscyrillic\xFF\
+    0004EB\xFEobarreddieresiscyrillic\xFF\
+    0004EE\xFEUmacroncyrillic\xFF\
+    0004EF\xFEumacroncyrillic\xFF\
+    0004F0\xFEUdieresiscyrillic\xFF\
+    0004F1\xFEudieresiscyrillic\xFF\
+    0004F2\xFEUhungarumlautcyrillic\xFF\
+    0004F3\xFEuhungarumlautcyrillic\xFF\
+    0004F4\xFEChedieresiscyrillic\xFF\
+    0004F5\xFEchedieresiscyrillic\xFF\
+    0004F8\xFEYerudieresiscyrillic\xFF\
+    0004F9\xFEyerudieresiscyrillic\xFF\
+    000531\xFEAybarmenian\xFF\
+    000532\xFEBenarmenian\xFF\
+    000533\xFEGimarmenian\xFF\
+    000534\xFEDaarmenian\xFF\
+    000535\xFEEcharmenian\xFF\
+    000536\xFEZaarmenian\xFF\
+    000537\xFEEharmenian\xFF\
+    000538\xFEEtarmenian\xFF\
+    000539\xFEToarmenian\xFF\
+    00053A\xFEZhearmenian\xFF\
+    00053B\xFEIniarmenian\xFF\
+    00053C\xFELiwnarmenian\xFF\
+    00053D\xFEXeharmenian\xFF\
+    00053E\xFECaarmenian\xFF\
+    00053F\xFEKenarmenian\xFF\
+    000540\xFEHoarmenian\xFF\
+    000541\xFEJaarmenian\xFF\
+    000542\xFEGhadarmenian\xFF\
+    000543\xFECheharmenian\xFF\
+    000544\xFEMenarmenian\xFF\
+    000545\xFEYiarmenian\xFF\
+    000546\xFENowarmenian\xFF\
+    000547\xFEShaarmenian\xFF\
+    000548\xFEVoarmenian\xFF\
+    000549\xFEChaarmenian\xFF\
+    00054A\xFEPeharmenian\xFF\
+    00054B\xFEJheharmenian\xFF\
+    00054C\xFERaarmenian\xFF\
+    00054D\xFESeharmenian\xFF\
+    00054E\xFEVewarmenian\xFF\
+    00054F\xFETiwnarmenian\xFF\
+    000550\xFEReharmenian\xFF\
+    000551\xFECoarmenian\xFF\
+    000552\xFEYiwnarmenian\xFF\
+    000553\xFEPiwrarmenian\xFF\
+    000554\xFEKeharmenian\xFF\
+    000555\xFEOharmenian\xFF\
+    000556\xFEFeharmenian\xFF\
+    000559\xFEringhalfleftarmenian\xFF\
+    00055A\xFEapostrophearmenian\xFF\
+    00055B\xFEemphasismarkarmenian\xFF\
+    00055C\xFEexclamarmenian\xFF\
+    00055D\xFEcommaarmenian\xFF\
+    00055E\xFEquestionarmenian\xFF\
+    00055F\xFEabbreviationmarkarmenian\xFF\
+    000561\xFEaybarmenian\xFF\
+    000562\xFEbenarmenian\xFF\
+    000563\xFEgimarmenian\xFF\
+    000564\xFEdaarmenian\xFF\
+    000565\xFEecharmenian\xFF\
+    000566\xFEzaarmenian\xFF\
+    000567\xFEeharmenian\xFF\
+    000568\xFEetarmenian\xFF\
+    000569\xFEtoarmenian\xFF\
+    00056A\xFEzhearmenian\xFF\
+    00056B\xFEiniarmenian\xFF\
+    00056C\xFEliwnarmenian\xFF\
+    00056D\xFExeharmenian\xFF\
+    00056E\xFEcaarmenian\xFF\
+    00056F\xFEkenarmenian\xFF\
+    000570\xFEhoarmenian\xFF\
+    000571\xFEjaarmenian\xFF\
+    000572\xFEghadarmenian\xFF\
+    000573\xFEcheharmenian\xFF\
+    000574\xFEmenarmenian\xFF\
+    000575\xFEyiarmenian\xFF\
+    000576\xFEnowarmenian\xFF\
+    000577\xFEshaarmenian\xFF\
+    000578\xFEvoarmenian\xFF\
+    000579\xFEchaarmenian\xFF\
+    00057A\xFEpeharmenian\xFF\
+    00057B\xFEjheharmenian\xFF\
+    00057C\xFEraarmenian\xFF\
+    00057D\xFEseharmenian\xFF\
+    00057E\xFEvewarmenian\xFF\
+    00057F\xFEtiwnarmenian\xFF\
+    000580\xFEreharmenian\xFF\
+    000581\xFEcoarmenian\xFF\
+    000582\xFEyiwnarmenian\xFF\
+    000583\xFEpiwrarmenian\xFF\
+    000584\xFEkeharmenian\xFF\
+    000585\xFEoharmenian\xFF\
+    000586\xFEfeharmenian\xFF\
+    000587\xFEechyiwnarmenian\xFF\
+    000589\xFEperiodarmenian\xFF\
+    000591\xFEetnahtafoukhhebrew\xFF\
+    000592\xFEsegoltahebrew\xFF\
+    000593\xFEshalshelethebrew\xFF\
+    000594\xFEzaqefqatanhebrew\xFF\
+    000595\xFEzaqefgadolhebrew\xFF\
+    000596\xFEtipehahebrew\xFF\
+    000597\xFEreviahebrew\xFF\
+    000598\xFEzarqahebrew\xFF\
+    000599\xFEpashtahebrew\xFF\
+    00059A\xFEyetivhebrew\xFF\
+    00059B\xFEtevirhebrew\xFF\
+    00059C\xFEgereshaccenthebrew\xFF\
+    00059D\xFEgereshmuqdamhebrew\xFF\
+    00059E\xFEgershayimaccenthebrew\xFF\
+    00059F\xFEqarneyparahebrew\xFF\
+    0005A0\xFEtelishagedolahebrew\xFF\
+    0005A1\xFEpazerhebrew\xFF\
+    0005A3\xFEmunahhebrew\xFF\
+    0005A4\xFEmahapakhhebrew\xFF\
+    0005A5\xFEmerkhahebrew\xFF\
+    0005A6\xFEmerkhakefulahebrew\xFF\
+    0005A7\xFEdargahebrew\xFF\
+    0005A8\xFEqadmahebrew\xFF\
+    0005A9\xFEtelishaqetanahebrew\xFF\
+    0005AA\xFEyerahbenyomohebrew\xFF\
+    0005AB\xFEolehebrew\xFF\
+    0005AC\xFEiluyhebrew\xFF\
+    0005AD\xFEdehihebrew\xFF\
+    0005AE\xFEzinorhebrew\xFF\
+    0005AF\xFEmasoracirclehebrew\xFF\
+    0005B0\xFEafii57799\xFF\
+    0005B1\xFEafii57801\xFF\
+    0005B2\xFEafii57800\xFF\
+    0005B3\xFEafii57802\xFF\
+    0005B4\xFEafii57793\xFF\
+    0005B5\xFEafii57794\xFF\
+    0005B6\xFEafii57795\xFF\
+    0005B7\xFEafii57798\xFF\
+    0005B8\xFEafii57797\xFF\
+    0005B9\xFEafii57806\xFF\
+    0005BB\xFEafii57796\xFF\
+    0005BC\xFEafii57807\xFF\
+    0005BD\xFEafii57839\xFF\
+    0005BE\xFEafii57645\xFF\
+    0005BF\xFEafii57841\xFF\
+    0005C0\xFEafii57842\xFF\
+    0005C1\xFEafii57804\xFF\
+    0005C2\xFEafii57803\xFF\
+    0005C3\xFEafii57658\xFF\
+    0005C4\xFEupperdothebrew\xFF\
+    0005D0\xFEafii57664\xFF\
+    0005D1\xFEafii57665\xFF\
+    0005D2\xFEafii57666\xFF\
+    0005D3\xFEafii57667\xFF\
+    0005D4\xFEafii57668\xFF\
+    0005D5\xFEafii57669\xFF\
+    0005D6\xFEafii57670\xFF\
+    0005D7\xFEafii57671\xFF\
+    0005D8\xFEafii57672\xFF\
+    0005D9\xFEafii57673\xFF\
+    0005DA\xFEafii57674\xFF\
+    0005DB\xFEafii57675\xFF\
+    0005DC\xFEafii57676\xFF\
+    0005DD\xFEafii57677\xFF\
+    0005DE\xFEafii57678\xFF\
+    0005DF\xFEafii57679\xFF\
+    0005E0\xFEafii57680\xFF\
+    0005E1\xFEafii57681\xFF\
+    0005E2\xFEafii57682\xFF\
+    0005E3\xFEafii57683\xFF\
+    0005E4\xFEafii57684\xFF\
+    0005E5\xFEafii57685\xFF\
+    0005E6\xFEafii57686\xFF\
+    0005E7\xFEafii57687\xFF\
+    0005E8\xFEafii57688\xFF\
+    0005E9\xFEafii57689\xFF\
+    0005EA\xFEafii57690\xFF\
+    0005F0\xFEafii57716\xFF\
+    0005F1\xFEafii57717\xFF\
+    0005F2\xFEafii57718\xFF\
+    0005F3\xFEgereshhebrew\xFF\
+    0005F4\xFEgershayimhebrew\xFF\
+    00060C\xFEafii57388\xFF\
+    00061B\xFEafii57403\xFF\
+    00061F\xFEafii57407\xFF\
+    000621\xFEafii57409\xFF\
+    000622\xFEafii57410\xFF\
+    000623\xFEafii57411\xFF\
+    000624\xFEafii57412\xFF\
+    000625\xFEafii57413\xFF\
+    000626\xFEafii57414\xFF\
+    000627\xFEafii57415\xFF\
+    000628\xFEafii57416\xFF\
+    000629\xFEafii57417\xFF\
+    00062A\xFEafii57418\xFF\
+    00062B\xFEafii57419\xFF\
+    00062C\xFEafii57420\xFF\
+    00062D\xFEafii57421\xFF\
+    00062E\xFEafii57422\xFF\
+    00062F\xFEafii57423\xFF\
+    000630\xFEafii57424\xFF\
+    000631\xFEafii57425\xFF\
+    000632\xFEafii57426\xFF\
+    000633\xFEafii57427\xFF\
+    000634\xFEafii57428\xFF\
+    000635\xFEafii57429\xFF\
+    000636\xFEafii57430\xFF\
+    000637\xFEafii57431\xFF\
+    000638\xFEafii57432\xFF\
+    000639\xFEafii57433\xFF\
+    00063A\xFEafii57434\xFF\
+    000640\xFEafii57440\xFF\
+    000641\xFEafii57441\xFF\
+    000642\xFEafii57442\xFF\
+    000643\xFEafii57443\xFF\
+    000644\xFEafii57444\xFF\
+    000645\xFEafii57445\xFF\
+    000646\xFEafii57446\xFF\
+    000647\xFEafii57470\xFF\
+    000648\xFEafii57448\xFF\
+    000649\xFEafii57449\xFF\
+    00064A\xFEafii57450\xFF\
+    00064B\xFEafii57451\xFF\
+    00064C\xFEafii57452\xFF\
+    00064D\xFEafii57453\xFF\
+    00064E\xFEafii57454\xFF\
+    00064F\xFEafii57455\xFF\
+    000650\xFEafii57456\xFF\
+    000651\xFEafii57457\xFF\
+    000652\xFEafii57458\xFF\
+    000660\xFEafii57392\xFF\
+    000661\xFEafii57393\xFF\
+    000662\xFEafii57394\xFF\
+    000663\xFEafii57395\xFF\
+    000664\xFEafii57396\xFF\
+    000665\xFEafii57397\xFF\
+    000666\xFEafii57398\xFF\
+    000667\xFEafii57399\xFF\
+    000668\xFEafii57400\xFF\
+    000669\xFEafii57401\xFF\
+    00066A\xFEafii57381\xFF\
+    00066B\xFEdecimalseparatorarabic\xFF\
+    00066C\xFEthousandsseparatorarabic\xFF\
+    00066D\xFEafii63167\xFF\
+    000679\xFEafii57511\xFF\
+    00067E\xFEafii57506\xFF\
+    000686\xFEafii57507\xFF\
+    000688\xFEafii57512\xFF\
+    000691\xFEafii57513\xFF\
+    000698\xFEafii57508\xFF\
+    0006A4\xFEafii57505\xFF\
+    0006AF\xFEafii57509\xFF\
+    0006BA\xFEafii57514\xFF\
+    0006C1\xFEhaaltonearabic\xFF\
+    0006D1\xFEyehthreedotsbelowarabic\xFF\
+    0006D2\xFEafii57519\xFF\
+    0006D5\xFEafii57534\xFF\
+    0006F0\xFEzeropersian\xFF\
+    0006F1\xFEonepersian\xFF\
+    0006F2\xFEtwopersian\xFF\
+    0006F3\xFEthreepersian\xFF\
+    0006F4\xFEfourpersian\xFF\
+    0006F5\xFEfivepersian\xFF\
+    0006F6\xFEsixpersian\xFF\
+    0006F7\xFEsevenpersian\xFF\
+    0006F8\xFEeightpersian\xFF\
+    0006F9\xFEninepersian\xFF\
+    000901\xFEcandrabindudeva\xFF\
+    000902\xFEanusvaradeva\xFF\
+    000903\xFEvisargadeva\xFF\
+    000905\xFEadeva\xFF\
+    000906\xFEaadeva\xFF\
+    000907\xFEideva\xFF\
+    000908\xFEiideva\xFF\
+    000909\xFEudeva\xFF\
+    00090A\xFEuudeva\xFF\
+    00090B\xFErvocalicdeva\xFF\
+    00090C\xFElvocalicdeva\xFF\
+    00090D\xFEecandradeva\xFF\
+    00090E\xFEeshortdeva\xFF\
+    00090F\xFEedeva\xFF\
+    000910\xFEaideva\xFF\
+    000911\xFEocandradeva\xFF\
+    000912\xFEoshortdeva\xFF\
+    000913\xFEodeva\xFF\
+    000914\xFEaudeva\xFF\
+    000915\xFEkadeva\xFF\
+    000916\xFEkhadeva\xFF\
+    000917\xFEgadeva\xFF\
+    000918\xFEghadeva\xFF\
+    000919\xFEngadeva\xFF\
+    00091A\xFEcadeva\xFF\
+    00091B\xFEchadeva\xFF\
+    00091C\xFEjadeva\xFF\
+    00091D\xFEjhadeva\xFF\
+    00091E\xFEnyadeva\xFF\
+    00091F\xFEttadeva\xFF\
+    000920\xFEtthadeva\xFF\
+    000921\xFEddadeva\xFF\
+    000922\xFEddhadeva\xFF\
+    000923\xFEnnadeva\xFF\
+    000924\xFEtadeva\xFF\
+    000925\xFEthadeva\xFF\
+    000926\xFEdadeva\xFF\
+    000927\xFEdhadeva\xFF\
+    000928\xFEnadeva\xFF\
+    000929\xFEnnnadeva\xFF\
+    00092A\xFEpadeva\xFF\
+    00092B\xFEphadeva\xFF\
+    00092C\xFEbadeva\xFF\
+    00092D\xFEbhadeva\xFF\
+    00092E\xFEmadeva\xFF\
+    00092F\xFEyadeva\xFF\
+    000930\xFEradeva\xFF\
+    000931\xFErradeva\xFF\
+    000932\xFEladeva\xFF\
+    000933\xFElladeva\xFF\
+    000934\xFEllladeva\xFF\
+    000935\xFEvadeva\xFF\
+    000936\xFEshadeva\xFF\
+    000937\xFEssadeva\xFF\
+    000938\xFEsadeva\xFF\
+    000939\xFEhadeva\xFF\
+    00093C\xFEnuktadeva\xFF\
+    00093D\xFEavagrahadeva\xFF\
+    00093E\xFEaavowelsigndeva\xFF\
+    00093F\xFEivowelsigndeva\xFF\
+    000940\xFEiivowelsigndeva\xFF\
+    000941\xFEuvowelsigndeva\xFF\
+    000942\xFEuuvowelsigndeva\xFF\
+    000943\xFErvocalicvowelsigndeva\xFF\
+    000944\xFErrvocalicvowelsigndeva\xFF\
+    000945\xFEecandravowelsigndeva\xFF\
+    000946\xFEeshortvowelsigndeva\xFF\
+    000947\xFEevowelsigndeva\xFF\
+    000948\xFEaivowelsigndeva\xFF\
+    000949\xFEocandravowelsigndeva\xFF\
+    00094A\xFEoshortvowelsigndeva\xFF\
+    00094B\xFEovowelsigndeva\xFF\
+    00094C\xFEauvowelsigndeva\xFF\
+    00094D\xFEviramadeva\xFF\
+    000950\xFEomdeva\xFF\
+    000951\xFEudattadeva\xFF\
+    000952\xFEanudattadeva\xFF\
+    000953\xFEgravedeva\xFF\
+    000954\xFEacutedeva\xFF\
+    000958\xFEqadeva\xFF\
+    000959\xFEkhhadeva\xFF\
+    00095A\xFEghhadeva\xFF\
+    00095B\xFEzadeva\xFF\
+    00095C\xFEdddhadeva\xFF\
+    00095D\xFErhadeva\xFF\
+    00095E\xFEfadeva\xFF\
+    00095F\xFEyyadeva\xFF\
+    000960\xFErrvocalicdeva\xFF\
+    000961\xFEllvocalicdeva\xFF\
+    000962\xFElvocalicvowelsigndeva\xFF\
+    000963\xFEllvocalicvowelsigndeva\xFF\
+    000964\xFEdanda\xFF\
+    000965\xFEdbldanda\xFF\
+    000966\xFEzerodeva\xFF\
+    000967\xFEonedeva\xFF\
+    000968\xFEtwodeva\xFF\
+    000969\xFEthreedeva\xFF\
+    00096A\xFEfourdeva\xFF\
+    00096B\xFEfivedeva\xFF\
+    00096C\xFEsixdeva\xFF\
+    00096D\xFEsevendeva\xFF\
+    00096E\xFEeightdeva\xFF\
+    00096F\xFEninedeva\xFF\
+    000970\xFEabbreviationsigndeva\xFF\
+    000981\xFEcandrabindubengali\xFF\
+    000982\xFEanusvarabengali\xFF\
+    000983\xFEvisargabengali\xFF\
+    000985\xFEabengali\xFF\
+    000986\xFEaabengali\xFF\
+    000987\xFEibengali\xFF\
+    000988\xFEiibengali\xFF\
+    000989\xFEubengali\xFF\
+    00098A\xFEuubengali\xFF\
+    00098B\xFErvocalicbengali\xFF\
+    00098C\xFElvocalicbengali\xFF\
+    00098F\xFEebengali\xFF\
+    000990\xFEaibengali\xFF\
+    000993\xFEobengali\xFF\
+    000994\xFEaubengali\xFF\
+    000995\xFEkabengali\xFF\
+    000996\xFEkhabengali\xFF\
+    000997\xFEgabengali\xFF\
+    000998\xFEghabengali\xFF\
+    000999\xFEngabengali\xFF\
+    00099A\xFEcabengali\xFF\
+    00099B\xFEchabengali\xFF\
+    00099C\xFEjabengali\xFF\
+    00099D\xFEjhabengali\xFF\
+    00099E\xFEnyabengali\xFF\
+    00099F\xFEttabengali\xFF\
+    0009A0\xFEtthabengali\xFF\
+    0009A1\xFEddabengali\xFF\
+    0009A2\xFEddhabengali\xFF\
+    0009A3\xFEnnabengali\xFF\
+    0009A4\xFEtabengali\xFF\
+    0009A5\xFEthabengali\xFF\
+    0009A6\xFEdabengali\xFF\
+    0009A7\xFEdhabengali\xFF\
+    0009A8\xFEnabengali\xFF\
+    0009AA\xFEpabengali\xFF\
+    0009AB\xFEphabengali\xFF\
+    0009AC\xFEbabengali\xFF\
+    0009AD\xFEbhabengali\xFF\
+    0009AE\xFEmabengali\xFF\
+    0009AF\xFEyabengali\xFF\
+    0009B0\xFErabengali\xFF\
+    0009B2\xFElabengali\xFF\
+    0009B6\xFEshabengali\xFF\
+    0009B7\xFEssabengali\xFF\
+    0009B8\xFEsabengali\xFF\
+    0009B9\xFEhabengali\xFF\
+    0009BC\xFEnuktabengali\xFF\
+    0009BE\xFEaavowelsignbengali\xFF\
+    0009BF\xFEivowelsignbengali\xFF\
+    0009C0\xFEiivowelsignbengali\xFF\
+    0009C1\xFEuvowelsignbengali\xFF\
+    0009C2\xFEuuvowelsignbengali\xFF\
+    0009C3\xFErvocalicvowelsignbengali\xFF\
+    0009C4\xFErrvocalicvowelsignbengali\xFF\
+    0009C7\xFEevowelsignbengali\xFF\
+    0009C8\xFEaivowelsignbengali\xFF\
+    0009CB\xFEovowelsignbengali\xFF\
+    0009CC\xFEauvowelsignbengali\xFF\
+    0009CD\xFEviramabengali\xFF\
+    0009D7\xFEaulengthmarkbengali\xFF\
+    0009DC\xFErrabengali\xFF\
+    0009DD\xFErhabengali\xFF\
+    0009DF\xFEyyabengali\xFF\
+    0009E0\xFErrvocalicbengali\xFF\
+    0009E1\xFEllvocalicbengali\xFF\
+    0009E2\xFElvocalicvowelsignbengali\xFF\
+    0009E3\xFEllvocalicvowelsignbengali\xFF\
+    0009E6\xFEzerobengali\xFF\
+    0009E7\xFEonebengali\xFF\
+    0009E8\xFEtwobengali\xFF\
+    0009E9\xFEthreebengali\xFF\
+    0009EA\xFEfourbengali\xFF\
+    0009EB\xFEfivebengali\xFF\
+    0009EC\xFEsixbengali\xFF\
+    0009ED\xFEsevenbengali\xFF\
+    0009EE\xFEeightbengali\xFF\
+    0009EF\xFEninebengali\xFF\
+    0009F0\xFEramiddlediagonalbengali\xFF\
+    0009F1\xFEralowerdiagonalbengali\xFF\
+    0009F2\xFErupeemarkbengali\xFF\
+    0009F3\xFErupeesignbengali\xFF\
+    0009F4\xFEonenumeratorbengali\xFF\
+    0009F5\xFEtwonumeratorbengali\xFF\
+    0009F6\xFEthreenumeratorbengali\xFF\
+    0009F7\xFEfournumeratorbengali\xFF\
+    0009F8\xFEdenominatorminusonenumeratorbengali\xFF\
+    0009F9\xFEsixteencurrencydenominatorbengali\xFF\
+    0009FA\xFEissharbengali\xFF\
+    000A02\xFEbindigurmukhi\xFF\
+    000A05\xFEagurmukhi\xFF\
+    000A06\xFEaagurmukhi\xFF\
+    000A07\xFEigurmukhi\xFF\
+    000A08\xFEiigurmukhi\xFF\
+    000A09\xFEugurmukhi\xFF\
+    000A0A\xFEuugurmukhi\xFF\
+    000A0F\xFEeegurmukhi\xFF\
+    000A10\xFEaigurmukhi\xFF\
+    000A13\xFEoogurmukhi\xFF\
+    000A14\xFEaugurmukhi\xFF\
+    000A15\xFEkagurmukhi\xFF\
+    000A16\xFEkhagurmukhi\xFF\
+    000A17\xFEgagurmukhi\xFF\
+    000A18\xFEghagurmukhi\xFF\
+    000A19\xFEngagurmukhi\xFF\
+    000A1A\xFEcagurmukhi\xFF\
+    000A1B\xFEchagurmukhi\xFF\
+    000A1C\xFEjagurmukhi\xFF\
+    000A1D\xFEjhagurmukhi\xFF\
+    000A1E\xFEnyagurmukhi\xFF\
+    000A1F\xFEttagurmukhi\xFF\
+    000A20\xFEtthagurmukhi\xFF\
+    000A21\xFEddagurmukhi\xFF\
+    000A22\xFEddhagurmukhi\xFF\
+    000A23\xFEnnagurmukhi\xFF\
+    000A24\xFEtagurmukhi\xFF\
+    000A25\xFEthagurmukhi\xFF\
+    000A26\xFEdagurmukhi\xFF\
+    000A27\xFEdhagurmukhi\xFF\
+    000A28\xFEnagurmukhi\xFF\
+    000A2A\xFEpagurmukhi\xFF\
+    000A2B\xFEphagurmukhi\xFF\
+    000A2C\xFEbagurmukhi\xFF\
+    000A2D\xFEbhagurmukhi\xFF\
+    000A2E\xFEmagurmukhi\xFF\
+    000A2F\xFEyagurmukhi\xFF\
+    000A30\xFEragurmukhi\xFF\
+    000A32\xFElagurmukhi\xFF\
+    000A35\xFEvagurmukhi\xFF\
+    000A36\xFEshagurmukhi\xFF\
+    000A38\xFEsagurmukhi\xFF\
+    000A39\xFEhagurmukhi\xFF\
+    000A3C\xFEnuktagurmukhi\xFF\
+    000A3E\xFEaamatragurmukhi\xFF\
+    000A3F\xFEimatragurmukhi\xFF\
+    000A40\xFEiimatragurmukhi\xFF\
+    000A41\xFEumatragurmukhi\xFF\
+    000A42\xFEuumatragurmukhi\xFF\
+    000A47\xFEeematragurmukhi\xFF\
+    000A48\xFEaimatragurmukhi\xFF\
+    000A4B\xFEoomatragurmukhi\xFF\
+    000A4C\xFEaumatragurmukhi\xFF\
+    000A4D\xFEhalantgurmukhi\xFF\
+    000A59\xFEkhhagurmukhi\xFF\
+    000A5A\xFEghhagurmukhi\xFF\
+    000A5B\xFEzagurmukhi\xFF\
+    000A5C\xFErragurmukhi\xFF\
+    000A5E\xFEfagurmukhi\xFF\
+    000A66\xFEzerogurmukhi\xFF\
+    000A67\xFEonegurmukhi\xFF\
+    000A68\xFEtwogurmukhi\xFF\
+    000A69\xFEthreegurmukhi\xFF\
+    000A6A\xFEfourgurmukhi\xFF\
+    000A6B\xFEfivegurmukhi\xFF\
+    000A6C\xFEsixgurmukhi\xFF\
+    000A6D\xFEsevengurmukhi\xFF\
+    000A6E\xFEeightgurmukhi\xFF\
+    000A6F\xFEninegurmukhi\xFF\
+    000A70\xFEtippigurmukhi\xFF\
+    000A71\xFEaddakgurmukhi\xFF\
+    000A72\xFEirigurmukhi\xFF\
+    000A73\xFEuragurmukhi\xFF\
+    000A74\xFEekonkargurmukhi\xFF\
+    000A81\xFEcandrabindugujarati\xFF\
+    000A82\xFEanusvaragujarati\xFF\
+    000A83\xFEvisargagujarati\xFF\
+    000A85\xFEagujarati\xFF\
+    000A86\xFEaagujarati\xFF\
+    000A87\xFEigujarati\xFF\
+    000A88\xFEiigujarati\xFF\
+    000A89\xFEugujarati\xFF\
+    000A8A\xFEuugujarati\xFF\
+    000A8B\xFErvocalicgujarati\xFF\
+    000A8D\xFEecandragujarati\xFF\
+    000A8F\xFEegujarati\xFF\
+    000A90\xFEaigujarati\xFF\
+    000A91\xFEocandragujarati\xFF\
+    000A93\xFEogujarati\xFF\
+    000A94\xFEaugujarati\xFF\
+    000A95\xFEkagujarati\xFF\
+    000A96\xFEkhagujarati\xFF\
+    000A97\xFEgagujarati\xFF\
+    000A98\xFEghagujarati\xFF\
+    000A99\xFEngagujarati\xFF\
+    000A9A\xFEcagujarati\xFF\
+    000A9B\xFEchagujarati\xFF\
+    000A9C\xFEjagujarati\xFF\
+    000A9D\xFEjhagujarati\xFF\
+    000A9E\xFEnyagujarati\xFF\
+    000A9F\xFEttagujarati\xFF\
+    000AA0\xFEtthagujarati\xFF\
+    000AA1\xFEddagujarati\xFF\
+    000AA2\xFEddhagujarati\xFF\
+    000AA3\xFEnnagujarati\xFF\
+    000AA4\xFEtagujarati\xFF\
+    000AA5\xFEthagujarati\xFF\
+    000AA6\xFEdagujarati\xFF\
+    000AA7\xFEdhagujarati\xFF\
+    000AA8\xFEnagujarati\xFF\
+    000AAA\xFEpagujarati\xFF\
+    000AAB\xFEphagujarati\xFF\
+    000AAC\xFEbagujarati\xFF\
+    000AAD\xFEbhagujarati\xFF\
+    000AAE\xFEmagujarati\xFF\
+    000AAF\xFEyagujarati\xFF\
+    000AB0\xFEragujarati\xFF\
+    000AB2\xFElagujarati\xFF\
+    000AB3\xFEllagujarati\xFF\
+    000AB5\xFEvagujarati\xFF\
+    000AB6\xFEshagujarati\xFF\
+    000AB7\xFEssagujarati\xFF\
+    000AB8\xFEsagujarati\xFF\
+    000AB9\xFEhagujarati\xFF\
+    000ABC\xFEnuktagujarati\xFF\
+    000ABE\xFEaavowelsigngujarati\xFF\
+    000ABF\xFEivowelsigngujarati\xFF\
+    000AC0\xFEiivowelsigngujarati\xFF\
+    000AC1\xFEuvowelsigngujarati\xFF\
+    000AC2\xFEuuvowelsigngujarati\xFF\
+    000AC3\xFErvocalicvowelsigngujarati\xFF\
+    000AC4\xFErrvocalicvowelsigngujarati\xFF\
+    000AC5\xFEecandravowelsigngujarati\xFF\
+    000AC7\xFEevowelsigngujarati\xFF\
+    000AC8\xFEaivowelsigngujarati\xFF\
+    000AC9\xFEocandravowelsigngujarati\xFF\
+    000ACB\xFEovowelsigngujarati\xFF\
+    000ACC\xFEauvowelsigngujarati\xFF\
+    000ACD\xFEviramagujarati\xFF\
+    000AD0\xFEomgujarati\xFF\
+    000AE0\xFErrvocalicgujarati\xFF\
+    000AE6\xFEzerogujarati\xFF\
+    000AE7\xFEonegujarati\xFF\
+    000AE8\xFEtwogujarati\xFF\
+    000AE9\xFEthreegujarati\xFF\
+    000AEA\xFEfourgujarati\xFF\
+    000AEB\xFEfivegujarati\xFF\
+    000AEC\xFEsixgujarati\xFF\
+    000AED\xFEsevengujarati\xFF\
+    000AEE\xFEeightgujarati\xFF\
+    000AEF\xFEninegujarati\xFF\
+    000E01\xFEkokaithai\xFF\
+    000E02\xFEkhokhaithai\xFF\
+    000E03\xFEkhokhuatthai\xFF\
+    000E04\xFEkhokhwaithai\xFF\
+    000E05\xFEkhokhonthai\xFF\
+    000E06\xFEkhorakhangthai\xFF\
+    000E07\xFEngonguthai\xFF\
+    000E08\xFEchochanthai\xFF\
+    000E09\xFEchochingthai\xFF\
+    000E0A\xFEchochangthai\xFF\
+    000E0B\xFEsosothai\xFF\
+    000E0C\xFEchochoethai\xFF\
+    000E0D\xFEyoyingthai\xFF\
+    000E0E\xFEdochadathai\xFF\
+    000E0F\xFEtopatakthai\xFF\
+    000E10\xFEthothanthai\xFF\
+    000E11\xFEthonangmonthothai\xFF\
+    000E12\xFEthophuthaothai\xFF\
+    000E13\xFEnonenthai\xFF\
+    000E14\xFEdodekthai\xFF\
+    000E15\xFEtotaothai\xFF\
+    000E16\xFEthothungthai\xFF\
+    000E17\xFEthothahanthai\xFF\
+    000E18\xFEthothongthai\xFF\
+    000E19\xFEnonuthai\xFF\
+    000E1A\xFEbobaimaithai\xFF\
+    000E1B\xFEpoplathai\xFF\
+    000E1C\xFEphophungthai\xFF\
+    000E1D\xFEfofathai\xFF\
+    000E1E\xFEphophanthai\xFF\
+    000E1F\xFEfofanthai\xFF\
+    000E20\xFEphosamphaothai\xFF\
+    000E21\xFEmomathai\xFF\
+    000E22\xFEyoyakthai\xFF\
+    000E23\xFEroruathai\xFF\
+    000E24\xFEruthai\xFF\
+    000E25\xFElolingthai\xFF\
+    000E26\xFEluthai\xFF\
+    000E27\xFEwowaenthai\xFF\
+    000E28\xFEsosalathai\xFF\
+    000E29\xFEsorusithai\xFF\
+    000E2A\xFEsosuathai\xFF\
+    000E2B\xFEhohipthai\xFF\
+    000E2C\xFElochulathai\xFF\
+    000E2D\xFEoangthai\xFF\
+    000E2E\xFEhonokhukthai\xFF\
+    000E2F\xFEpaiyannoithai\xFF\
+    000E30\xFEsaraathai\xFF\
+    000E31\xFEmaihanakatthai\xFF\
+    000E32\xFEsaraaathai\xFF\
+    000E33\xFEsaraamthai\xFF\
+    000E34\xFEsaraithai\xFF\
+    000E35\xFEsaraiithai\xFF\
+    000E36\xFEsarauethai\xFF\
+    000E37\xFEsaraueethai\xFF\
+    000E38\xFEsarauthai\xFF\
+    000E39\xFEsarauuthai\xFF\
+    000E3A\xFEphinthuthai\xFF\
+    000E3F\xFEbahtthai\xFF\
+    000E40\xFEsaraethai\xFF\
+    000E41\xFEsaraaethai\xFF\
+    000E42\xFEsaraothai\xFF\
+    000E43\xFEsaraaimaimuanthai\xFF\
+    000E44\xFEsaraaimaimalaithai\xFF\
+    000E45\xFElakkhangyaothai\xFF\
+    000E46\xFEmaiyamokthai\xFF\
+    000E47\xFEmaitaikhuthai\xFF\
+    000E48\xFEmaiekthai\xFF\
+    000E49\xFEmaithothai\xFF\
+    000E4A\xFEmaitrithai\xFF\
+    000E4B\xFEmaichattawathai\xFF\
+    000E4C\xFEthanthakhatthai\xFF\
+    000E4D\xFEnikhahitthai\xFF\
+    000E4E\xFEyamakkanthai\xFF\
+    000E4F\xFEfongmanthai\xFF\
+    000E50\xFEzerothai\xFF\
+    000E51\xFEonethai\xFF\
+    000E52\xFEtwothai\xFF\
+    000E53\xFEthreethai\xFF\
+    000E54\xFEfourthai\xFF\
+    000E55\xFEfivethai\xFF\
+    000E56\xFEsixthai\xFF\
+    000E57\xFEseventhai\xFF\
+    000E58\xFEeightthai\xFF\
+    000E59\xFEninethai\xFF\
+    000E5A\xFEangkhankhuthai\xFF\
+    000E5B\xFEkhomutthai\xFF\
+    001D40\xFEintercal\xFF\
+    001E00\xFEAringbelow\xFF\
+    001E01\xFEaringbelow\xFF\
+    001E02\xFEBdotaccent\xFF\
+    001E03\xFEbdotaccent\xFF\
+    001E04\xFEBdotbelow\xFF\
+    001E05\xFEbdotbelow\xFF\
+    001E06\xFEBlinebelow\xFF\
+    001E07\xFEblinebelow\xFF\
+    001E08\xFECcedillaacute\xFF\
+    001E09\xFEccedillaacute\xFF\
+    001E0A\xFEDdotaccent\xFF\
+    001E0B\xFEddotaccent\xFF\
+    001E0C\xFEDdotbelow\xFF\
+    001E0D\xFEddotbelow\xFF\
+    001E0E\xFEDlinebelow\xFF\
+    001E0F\xFEdlinebelow\xFF\
+    001E10\xFEDcedilla\xFF\
+    001E11\xFEdcedilla\xFF\
+    001E12\xFEDcircumflexbelow\xFF\
+    001E13\xFEdcircumflexbelow\xFF\
+    001E14\xFEEmacrongrave\xFF\
+    001E15\xFEemacrongrave\xFF\
+    001E16\xFEEmacronacute\xFF\
+    001E17\xFEemacronacute\xFF\
+    001E18\xFEEcircumflexbelow\xFF\
+    001E19\xFEecircumflexbelow\xFF\
+    001E1A\xFEEtildebelow\xFF\
+    001E1B\xFEetildebelow\xFF\
+    001E1C\xFEEcedillabreve\xFF\
+    001E1D\xFEecedillabreve\xFF\
+    001E1E\xFEFdotaccent\xFF\
+    001E1F\xFEfdotaccent\xFF\
+    001E20\xFEGmacron\xFF\
+    001E21\xFEgmacron\xFF\
+    001E22\xFEHdotaccent\xFF\
+    001E23\xFEhdotaccent\xFF\
+    001E24\xFEHdotbelow\xFF\
+    001E25\xFEhdotbelow\xFF\
+    001E26\xFEHdieresis\xFF\
+    001E27\xFEhdieresis\xFF\
+    001E28\xFEHcedilla\xFF\
+    001E29\xFEhcedilla\xFF\
+    001E2A\xFEHbrevebelow\xFF\
+    001E2B\xFEhbrevebelow\xFF\
+    001E2C\xFEItildebelow\xFF\
+    001E2D\xFEitildebelow\xFF\
+    001E2E\xFEIdieresisacute\xFF\
+    001E2F\xFEidieresisacute\xFF\
+    001E30\xFEKacute\xFF\
+    001E31\xFEkacute\xFF\
+    001E32\xFEKdotbelow\xFF\
+    001E33\xFEkdotbelow\xFF\
+    001E34\xFEKlinebelow\xFF\
+    001E35\xFEklinebelow\xFF\
+    001E36\xFELdotbelow\xFF\
+    001E37\xFEldotbelow\xFF\
+    001E38\xFELdotbelowmacron\xFF\
+    001E39\xFEldotbelowmacron\xFF\
+    001E3A\xFELlinebelow\xFF\
+    001E3B\xFEllinebelow\xFF\
+    001E3C\xFELcircumflexbelow\xFF\
+    001E3D\xFElcircumflexbelow\xFF\
+    001E3E\xFEMacute\xFF\
+    001E3F\xFEmacute\xFF\
+    001E40\xFEMdotaccent\xFF\
+    001E41\xFEmdotaccent\xFF\
+    001E42\xFEMdotbelow\xFF\
+    001E43\xFEmdotbelow\xFF\
+    001E44\xFENdotaccent\xFF\
+    001E45\xFEndotaccent\xFF\
+    001E46\xFENdotbelow\xFF\
+    001E47\xFEndotbelow\xFF\
+    001E48\xFENlinebelow\xFF\
+    001E49\xFEnlinebelow\xFF\
+    001E4A\xFENcircumflexbelow\xFF\
+    001E4B\xFEncircumflexbelow\xFF\
+    001E4C\xFEOtildeacute\xFF\
+    001E4D\xFEotildeacute\xFF\
+    001E4E\xFEOtildedieresis\xFF\
+    001E4F\xFEotildedieresis\xFF\
+    001E50\xFEOmacrongrave\xFF\
+    001E51\xFEomacrongrave\xFF\
+    001E52\xFEOmacronacute\xFF\
+    001E53\xFEomacronacute\xFF\
+    001E54\xFEPacute\xFF\
+    001E55\xFEpacute\xFF\
+    001E56\xFEPdotaccent\xFF\
+    001E57\xFEpdotaccent\xFF\
+    001E58\xFERdotaccent\xFF\
+    001E59\xFErdotaccent\xFF\
+    001E5A\xFERdotbelow\xFF\
+    001E5B\xFErdotbelow\xFF\
+    001E5C\xFERdotbelowmacron\xFF\
+    001E5D\xFErdotbelowmacron\xFF\
+    001E5E\xFERlinebelow\xFF\
+    001E5F\xFErlinebelow\xFF\
+    001E60\xFESdotaccent\xFF\
+    001E61\xFEsdotaccent\xFF\
+    001E62\xFESdotbelow\xFF\
+    001E63\xFEsdotbelow\xFF\
+    001E64\xFESacutedotaccent\xFF\
+    001E65\xFEsacutedotaccent\xFF\
+    001E66\xFEScarondotaccent\xFF\
+    001E67\xFEscarondotaccent\xFF\
+    001E68\xFESdotbelowdotaccent\xFF\
+    001E69\xFEsdotbelowdotaccent\xFF\
+    001E6A\xFETdotaccent\xFF\
+    001E6B\xFEtdotaccent\xFF\
+    001E6C\xFETdotbelow\xFF\
+    001E6D\xFEtdotbelow\xFF\
+    001E6E\xFETlinebelow\xFF\
+    001E6F\xFEtlinebelow\xFF\
+    001E70\xFETcircumflexbelow\xFF\
+    001E71\xFEtcircumflexbelow\xFF\
+    001E72\xFEUdieresisbelow\xFF\
+    001E73\xFEudieresisbelow\xFF\
+    001E74\xFEUtildebelow\xFF\
+    001E75\xFEutildebelow\xFF\
+    001E76\xFEUcircumflexbelow\xFF\
+    001E77\xFEucircumflexbelow\xFF\
+    001E78\xFEUtildeacute\xFF\
+    001E79\xFEutildeacute\xFF\
+    001E7A\xFEUmacrondieresis\xFF\
+    001E7B\xFEumacrondieresis\xFF\
+    001E7C\xFEVtilde\xFF\
+    001E7D\xFEvtilde\xFF\
+    001E7E\xFEVdotbelow\xFF\
+    001E7F\xFEvdotbelow\xFF\
+    001E80\xFEWgrave\xFF\
+    001E81\xFEwgrave\xFF\
+    001E82\xFEWacute\xFF\
+    001E83\xFEwacute\xFF\
+    001E84\xFEWdieresis\xFF\
+    001E85\xFEwdieresis\xFF\
+    001E86\xFEWdotaccent\xFF\
+    001E87\xFEwdotaccent\xFF\
+    001E88\xFEWdotbelow\xFF\
+    001E89\xFEwdotbelow\xFF\
+    001E8A\xFEXdotaccent\xFF\
+    001E8B\xFExdotaccent\xFF\
+    001E8C\xFEXdieresis\xFF\
+    001E8D\xFExdieresis\xFF\
+    001E8E\xFEYdotaccent\xFF\
+    001E8F\xFEydotaccent\xFF\
+    001E90\xFEZcircumflex\xFF\
+    001E91\xFEzcircumflex\xFF\
+    001E92\xFEZdotbelow\xFF\
+    001E93\xFEzdotbelow\xFF\
+    001E94\xFEZlinebelow\xFF\
+    001E95\xFEzlinebelow\xFF\
+    001E96\xFEhlinebelow\xFF\
+    001E97\xFEtdieresis\xFF\
+    001E98\xFEwring\xFF\
+    001E99\xFEyring\xFF\
+    001E9A\xFEarighthalfring\xFF\
+    001E9B\xFEslongdotaccent\xFF\
+    001EA0\xFEAdotbelow\xFF\
+    001EA1\xFEadotbelow\xFF\
+    001EA2\xFEAhookabove\xFF\
+    001EA3\xFEahookabove\xFF\
+    001EA4\xFEAcircumflexacute\xFF\
+    001EA5\xFEacircumflexacute\xFF\
+    001EA6\xFEAcircumflexgrave\xFF\
+    001EA7\xFEacircumflexgrave\xFF\
+    001EA8\xFEAcircumflexhookabove\xFF\
+    001EA9\xFEacircumflexhookabove\xFF\
+    001EAA\xFEAcircumflextilde\xFF\
+    001EAB\xFEacircumflextilde\xFF\
+    001EAC\xFEAcircumflexdotbelow\xFF\
+    001EAD\xFEacircumflexdotbelow\xFF\
+    001EAE\xFEAbreveacute\xFF\
+    001EAF\xFEabreveacute\xFF\
+    001EB0\xFEAbrevegrave\xFF\
+    001EB1\xFEabrevegrave\xFF\
+    001EB2\xFEAbrevehookabove\xFF\
+    001EB3\xFEabrevehookabove\xFF\
+    001EB4\xFEAbrevetilde\xFF\
+    001EB5\xFEabrevetilde\xFF\
+    001EB6\xFEAbrevedotbelow\xFF\
+    001EB7\xFEabrevedotbelow\xFF\
+    001EB8\xFEEdotbelow\xFF\
+    001EB9\xFEedotbelow\xFF\
+    001EBA\xFEEhookabove\xFF\
+    001EBB\xFEehookabove\xFF\
+    001EBC\xFEEtilde\xFF\
+    001EBD\xFEetilde\xFF\
+    001EBE\xFEEcircumflexacute\xFF\
+    001EBF\xFEecircumflexacute\xFF\
+    001EC0\xFEEcircumflexgrave\xFF\
+    001EC1\xFEecircumflexgrave\xFF\
+    001EC2\xFEEcircumflexhookabove\xFF\
+    001EC3\xFEecircumflexhookabove\xFF\
+    001EC4\xFEEcircumflextilde\xFF\
+    001EC5\xFEecircumflextilde\xFF\
+    001EC6\xFEEcircumflexdotbelow\xFF\
+    001EC7\xFEecircumflexdotbelow\xFF\
+    001EC8\xFEIhookabove\xFF\
+    001EC9\xFEihookabove\xFF\
+    001ECA\xFEIdotbelow\xFF\
+    001ECB\xFEidotbelow\xFF\
+    001ECC\xFEOdotbelow\xFF\
+    001ECD\xFEodotbelow\xFF\
+    001ECE\xFEOhookabove\xFF\
+    001ECF\xFEohookabove\xFF\
+    001ED0\xFEOcircumflexacute\xFF\
+    001ED1\xFEocircumflexacute\xFF\
+    001ED2\xFEOcircumflexgrave\xFF\
+    001ED3\xFEocircumflexgrave\xFF\
+    001ED4\xFEOcircumflexhookabove\xFF\
+    001ED5\xFEocircumflexhookabove\xFF\
+    001ED6\xFEOcircumflextilde\xFF\
+    001ED7\xFEocircumflextilde\xFF\
+    001ED8\xFEOcircumflexdotbelow\xFF\
+    001ED9\xFEocircumflexdotbelow\xFF\
+    001EDA\xFEOhornacute\xFF\
+    001EDB\xFEohornacute\xFF\
+    001EDC\xFEOhorngrave\xFF\
+    001EDD\xFEohorngrave\xFF\
+    001EDE\xFEOhornhookabove\xFF\
+    001EDF\xFEohornhookabove\xFF\
+    001EE0\xFEOhorntilde\xFF\
+    001EE1\xFEohorntilde\xFF\
+    001EE2\xFEOhorndotbelow\xFF\
+    001EE3\xFEohorndotbelow\xFF\
+    001EE4\xFEUdotbelow\xFF\
+    001EE5\xFEudotbelow\xFF\
+    001EE6\xFEUhookabove\xFF\
+    001EE7\xFEuhookabove\xFF\
+    001EE8\xFEUhornacute\xFF\
+    001EE9\xFEuhornacute\xFF\
+    001EEA\xFEUhorngrave\xFF\
+    001EEB\xFEuhorngrave\xFF\
+    001EEC\xFEUhornhookabove\xFF\
+    001EED\xFEuhornhookabove\xFF\
+    001EEE\xFEUhorntilde\xFF\
+    001EEF\xFEuhorntilde\xFF\
+    001EF0\xFEUhorndotbelow\xFF\
+    001EF1\xFEuhorndotbelow\xFF\
+    001EF2\xFEYgrave\xFF\
+    001EF3\xFEygrave\xFF\
+    001EF4\xFEYdotbelow\xFF\
+    001EF5\xFEydotbelow\xFF\
+    001EF6\xFEYhookabove\xFF\
+    001EF7\xFEyhookabove\xFF\
+    001EF8\xFEYtilde\xFF\
+    001EF9\xFEytilde\xFF\
+    002002\xFEenspace\xFF\
+    00200B\xFEzerowidthspace\xFF\
+    00200C\xFEafii61664\xFF\
+    00200D\xFEafii301\xFF\
+    00200E\xFEafii299\xFF\
+    00200F\xFEafii300\xFF\
+    002010\xFEhyphentwo\xFF\
+    002012\xFEfiguredash\xFF\
+    002013\xFEendash\xFF\
+    002014\xFEemdash\xFF\
+    002015\xFEafii00208\xFF\
+    002016\xFEdblverticalbar\xFF\
+    002017\xFEdbllowline\xFF\
+    002018\xFEquoteleft\xFF\
+    002019\xFEquoteright\xFF\
+    00201A\xFEquotesinglbase\xFF\
+    00201B\xFEquoteleftreversed\xFF\
+    00201C\xFEquotedblleft\xFF\
+    00201D\xFEquotedblright\xFF\
+    00201E\xFEquotedblbase\xFF\
+    002020\xFEdagger\xFF\
+    002021\xFEdaggerdbl\xFF\
+    002022\xFEbullet\xFF\
+    002024\xFEonedotenleader\xFF\
+    002025\xFEtwodotenleader\xFF\
+    002026\xFEellipsis\xFF\
+    00202C\xFEafii61573\xFF\
+    00202D\xFEafii61574\xFF\
+    00202E\xFEafii61575\xFF\
+    002030\xFEperthousand\xFF\
+    002032\xFEminute\xFF\
+    002033\xFEsecond\xFF\
+    002035\xFEprimereversed\xFF\
+    002039\xFEguilsinglleft\xFF\
+    00203A\xFEguilsinglright\xFF\
+    00203B\xFEreferencemark\xFF\
+    00203C\xFEexclamdbl\xFF\
+    00203E\xFEoverline\xFF\
+    002042\xFEasterism\xFF\
+    002044\xFEfraction\xFF\
+    002070\xFEzerosuperior\xFF\
+    002074\xFEfoursuperior\xFF\
+    002075\xFEfivesuperior\xFF\
+    002076\xFEsixsuperior\xFF\
+    002077\xFEsevensuperior\xFF\
+    002078\xFEeightsuperior\xFF\
+    002079\xFEninesuperior\xFF\
+    00207A\xFEplussuperior\xFF\
+    00207C\xFEequalsuperior\xFF\
+    00207D\xFEparenleftsuperior\xFF\
+    00207E\xFEparenrightsuperior\xFF\
+    00207F\xFEnsuperior\xFF\
+    002080\xFEzeroinferior\xFF\
+    002081\xFEoneinferior\xFF\
+    002082\xFEtwoinferior\xFF\
+    002083\xFEthreeinferior\xFF\
+    002084\xFEfourinferior\xFF\
+    002085\xFEfiveinferior\xFF\
+    002086\xFEsixinferior\xFF\
+    002087\xFEseveninferior\xFF\
+    002088\xFEeightinferior\xFF\
+    002089\xFEnineinferior\xFF\
+    00208D\xFEparenleftinferior\xFF\
+    00208E\xFEparenrightinferior\xFF\
+    0020A1\xFEcolonmonetary\xFF\
+    0020A2\xFEcruzeiro\xFF\
+    0020A3\xFEfranc\xFF\
+    0020A4\xFEafii08941\xFF\
+    0020A7\xFEpeseta\xFF\
+    0020A9\xFEwon\xFF\
+    0020AA\xFEafii57636\xFF\
+    0020AB\xFEdong\xFF\
+    0020AC\xFEEuro\xFF\
+    002103\xFEcentigrade\xFF\
+    002105\xFEafii61248\xFF\
+    002109\xFEfahrenheit\xFF\
+    002111\xFEIfraktur\xFF\
+    002113\xFEafii61289\xFF\
+    002116\xFEafii61352\xFF\
+    002118\xFEweierstrass\xFF\
+    00211C\xFERfraktur\xFF\
+    00211E\xFEprescription\xFF\
+    002121\xFEtelephone\xFF\
+    002122\xFEtrademark\xFF\
+    002126\xFEOhm\xFF\
+    00212B\xFEangstrom\xFF\
+    00212E\xFEestimated\xFF\
+    002135\xFEaleph\xFF\
+    002153\xFEonethird\xFF\
+    002154\xFEtwothirds\xFF\
+    00215B\xFEoneeighth\xFF\
+    00215C\xFEthreeeighths\xFF\
+    00215D\xFEfiveeighths\xFF\
+    00215E\xFEseveneighths\xFF\
+    002160\xFEOneroman\xFF\
+    002161\xFETworoman\xFF\
+    002162\xFEThreeroman\xFF\
+    002163\xFEFourroman\xFF\
+    002164\xFEFiveroman\xFF\
+    002165\xFESixroman\xFF\
+    002166\xFESevenroman\xFF\
+    002167\xFEEightroman\xFF\
+    002168\xFENineroman\xFF\
+    002169\xFETenroman\xFF\
+    00216A\xFEElevenroman\xFF\
+    00216B\xFETwelveroman\xFF\
+    002170\xFEoneroman\xFF\
+    002171\xFEtworoman\xFF\
+    002172\xFEthreeroman\xFF\
+    002173\xFEfourroman\xFF\
+    002174\xFEfiveroman\xFF\
+    002175\xFEsixroman\xFF\
+    002176\xFEsevenroman\xFF\
+    002177\xFEeightroman\xFF\
+    002178\xFEnineroman\xFF\
+    002179\xFEtenroman\xFF\
+    00217A\xFEelevenroman\xFF\
+    00217B\xFEtwelveroman\xFF\
+    002190\xFEarrowleft\xFF\
+    002191\xFEarrowup\xFF\
+    002192\xFEarrowright\xFF\
+    002193\xFEarrowdown\xFF\
+    002194\xFEarrowboth\xFF\
+    002195\xFEarrowupdn\xFF\
+    002196\xFEarrowupleft\xFF\
+    002197\xFEarrowupright\xFF\
+    002198\xFEarrowdownright\xFF\
+    002199\xFEarrowdownleft\xFF\
+    0021A8\xFEarrowupdnbse\xFF\
+    0021A9\xFEarrowhookright\xFF\
+    0021AA\xFEarrowhookleft\xFF\
+    0021B5\xFEcarriagereturn\xFF\
+    0021BC\xFEharpoonleftbarbup\xFF\
+    0021BD\xFEarrowleftbothalf\xFF\
+    0021C0\xFEharpoonrightbarbup\xFF\
+    0021C1\xFEarrowrightbothalf\xFF\
+    0021C4\xFEarrowrightoverleft\xFF\
+    0021C5\xFEarrowupleftofdown\xFF\
+    0021C6\xFEarrowleftoverright\xFF\
+    0021CD\xFEarrowleftdblstroke\xFF\
+    0021CF\xFEarrowrightdblstroke\xFF\
+    0021D0\xFEarrowdblleft\xFF\
+    0021D1\xFEarrowdblup\xFF\
+    0021D2\xFEarrowdblright\xFF\
+    0021D3\xFEarrowdbldown\xFF\
+    0021D4\xFEarrowdblboth\xFF\
+    0021DE\xFEpageup\xFF\
+    0021DF\xFEpagedown\xFF\
+    0021E0\xFEarrowdashleft\xFF\
+    0021E1\xFEarrowdashup\xFF\
+    0021E2\xFEarrowdashright\xFF\
+    0021E3\xFEarrowdashdown\xFF\
+    0021E4\xFEarrowtableft\xFF\
+    0021E5\xFEarrowtabright\xFF\
+    0021E6\xFEarrowleftwhite\xFF\
+    0021E7\xFEarrowupwhite\xFF\
+    0021E8\xFEarrowrightwhite\xFF\
+    0021E9\xFEarrowdownwhite\xFF\
+    0021EA\xFEcapslock\xFF\
+    002200\xFEforall\xFF\
+    002202\xFEpartialdiff\xFF\
+    002203\xFEexistential\xFF\
+    002205\xFEemptyset\xFF\
+    002206\xFEDelta\xFF\
+    002207\xFEgradient\xFF\
+    002208\xFEelement\xFF\
+    002209\xFEnotelement\xFF\
+    00220B\xFEsuchthat\xFF\
+    00220C\xFEnotcontains\xFF\
+    00220F\xFEproduct\xFF\
+    002210\xFEcoproductdisplay\xFF\
+    002211\xFEsummation\xFF\
+    002212\xFEminus\xFF\
+    002213\xFEminusplus\xFF\
+    002215\xFEdivisionslash\xFF\
+    002216\xFEbackslashbig\xFF\
+    002217\xFEasteriskmath\xFF\
+    002219\xFEbulletoperator\xFF\
+    00221A\xFEradical\xFF\
+    00221D\xFEproportional\xFF\
+    00221E\xFEinfinity\xFF\
+    00221F\xFEorthogonal\xFF\
+    002220\xFEangle\xFF\
+    002223\xFEdivides\xFF\
+    002225\xFEparallel\xFF\
+    002226\xFEnotparallel\xFF\
+    002227\xFElogicaland\xFF\
+    002228\xFElogicalor\xFF\
+    002229\xFEintersection\xFF\
+    00222A\xFEunion\xFF\
+    00222B\xFEintegral\xFF\
+    00222C\xFEdblintegral\xFF\
+    00222E\xFEcontourintegral\xFF\
+    002234\xFEtherefore\xFF\
+    002235\xFEbecause\xFF\
+    002236\xFEratio\xFF\
+    002237\xFEproportion\xFF\
+    00223C\xFEsimilar\xFF\
+    00223D\xFEreversedtilde\xFF\
+    002243\xFEasymptoticallyequal\xFF\
+    002245\xFEapproximatelyequal\xFF\
+    002248\xFEapproxequal\xFF\
+    00224C\xFEallequal\xFF\
+    002250\xFEapproaches\xFF\
+    002251\xFEgeometricallyequal\xFF\
+    002252\xFEapproxequalorimage\xFF\
+    002253\xFEimageorapproximatelyequal\xFF\
+    002260\xFEnotequal\xFF\
+    002261\xFEequivalence\xFF\
+    002262\xFEnotidentical\xFF\
+    002264\xFElessequal\xFF\
+    002265\xFEgreaterequal\xFF\
+    002266\xFElessoverequal\xFF\
+    002267\xFEgreateroverequal\xFF\
+    00226A\xFEmuchless\xFF\
+    00226B\xFEmuchgreater\xFF\
+    00226E\xFEnotless\xFF\
+    00226F\xFEnotgreater\xFF\
+    002270\xFEnotlessnorequal\xFF\
+    002271\xFEnotgreaternorequal\xFF\
+    002272\xFElessorequivalent\xFF\
+    002273\xFEgreaterorequivalent\xFF\
+    002276\xFElessorgreater\xFF\
+    002277\xFEgreaterorless\xFF\
+    002279\xFEnotgreaternorless\xFF\
+    00227A\xFEprecedes\xFF\
+    00227B\xFEsucceeds\xFF\
+    002280\xFEnotprecedes\xFF\
+    002281\xFEnotsucceeds\xFF\
+    002282\xFEpropersubset\xFF\
+    002283\xFEpropersuperset\xFF\
+    002284\xFEnotsubset\xFF\
+    002285\xFEnotsuperset\xFF\
+    002286\xFEreflexsubset\xFF\
+    002287\xFEreflexsuperset\xFF\
+    00228A\xFEsubsetnotequal\xFF\
+    00228B\xFEsupersetnotequal\xFF\
+    00228E\xFEunionmultidisplay\xFF\
+    002294\xFEunionsqdisplay\xFF\
+    002295\xFEcircleplus\xFF\
+    002296\xFEminuscircle\xFF\
+    002297\xFEcirclemultiply\xFF\
+    002299\xFEcircleot\xFF\
+    0022A3\xFEtackleft\xFF\
+    0022A4\xFEtackdown\xFF\
+    0022A5\xFEperpendicular\xFF\
+    0022BF\xFErighttriangle\xFF\
+    0022C2\xFEintersectiondisplay\xFF\
+    0022C3\xFEuniondisplay\xFF\
+    0022C5\xFEdotmath\xFF\
+    0022CE\xFEcurlyor\xFF\
+    0022CF\xFEcurlyand\xFF\
+    0022DA\xFElessequalorgreater\xFF\
+    0022DB\xFEgreaterequalorless\xFF\
+    0022EE\xFEellipsisvertical\xFF\
+    002302\xFEhouse\xFF\
+    002303\xFEcontrol\xFF\
+    002305\xFEprojective\xFF\
+    002308\xFEceilingleftbig\xFF\
+    002309\xFEceilingrightbig\xFF\
+    00230A\xFEfloorleftBig\xFF\
+    00230B\xFEfloorrightbig\xFF\
+    002310\xFElogicalnotreversed\xFF\
+    002312\xFEarc\xFF\
+    002318\xFEpropellor\xFF\
+    002320\xFEintegraltop\xFF\
+    002321\xFEintegralbottom\xFF\
+    002325\xFEoption\xFF\
+    002326\xFEdeleteright\xFF\
+    002327\xFEclear\xFF\
+    002329\xFEangleleft\xFF\
+    00232A\xFEangleright\xFF\
+    00232B\xFEdeleteleft\xFF\
+    002423\xFEblank\xFF\
+    002460\xFEonecircle\xFF\
+    002461\xFEtwocircle\xFF\
+    002462\xFEthreecircle\xFF\
+    002463\xFEfourcircle\xFF\
+    002464\xFEfivecircle\xFF\
+    002465\xFEsixcircle\xFF\
+    002466\xFEsevencircle\xFF\
+    002467\xFEeightcircle\xFF\
+    002468\xFEninecircle\xFF\
+    002469\xFEtencircle\xFF\
+    00246A\xFEelevencircle\xFF\
+    00246B\xFEtwelvecircle\xFF\
+    00246C\xFEthirteencircle\xFF\
+    00246D\xFEfourteencircle\xFF\
+    00246E\xFEfifteencircle\xFF\
+    00246F\xFEsixteencircle\xFF\
+    002470\xFEseventeencircle\xFF\
+    002471\xFEeighteencircle\xFF\
+    002472\xFEnineteencircle\xFF\
+    002473\xFEtwentycircle\xFF\
+    002474\xFEoneparen\xFF\
+    002475\xFEtwoparen\xFF\
+    002476\xFEthreeparen\xFF\
+    002477\xFEfourparen\xFF\
+    002478\xFEfiveparen\xFF\
+    002479\xFEsixparen\xFF\
+    00247A\xFEsevenparen\xFF\
+    00247B\xFEeightparen\xFF\
+    00247C\xFEnineparen\xFF\
+    00247D\xFEtenparen\xFF\
+    00247E\xFEelevenparen\xFF\
+    00247F\xFEtwelveparen\xFF\
+    002480\xFEthirteenparen\xFF\
+    002481\xFEfourteenparen\xFF\
+    002482\xFEfifteenparen\xFF\
+    002483\xFEsixteenparen\xFF\
+    002484\xFEseventeenparen\xFF\
+    002485\xFEeighteenparen\xFF\
+    002486\xFEnineteenparen\xFF\
+    002487\xFEtwentyparen\xFF\
+    002488\xFEoneperiod\xFF\
+    002489\xFEtwoperiod\xFF\
+    00248A\xFEthreeperiod\xFF\
+    00248B\xFEfourperiod\xFF\
+    00248C\xFEfiveperiod\xFF\
+    00248D\xFEsixperiod\xFF\
+    00248E\xFEsevenperiod\xFF\
+    00248F\xFEeightperiod\xFF\
+    002490\xFEnineperiod\xFF\
+    002491\xFEtenperiod\xFF\
+    002492\xFEelevenperiod\xFF\
+    002493\xFEtwelveperiod\xFF\
+    002494\xFEthirteenperiod\xFF\
+    002495\xFEfourteenperiod\xFF\
+    002496\xFEfifteenperiod\xFF\
+    002497\xFEsixteenperiod\xFF\
+    002498\xFEseventeenperiod\xFF\
+    002499\xFEeighteenperiod\xFF\
+    00249A\xFEnineteenperiod\xFF\
+    00249B\xFEtwentyperiod\xFF\
+    00249C\xFEaparen\xFF\
+    00249D\xFEbparen\xFF\
+    00249E\xFEcparen\xFF\
+    00249F\xFEdparen\xFF\
+    0024A0\xFEeparen\xFF\
+    0024A1\xFEfparen\xFF\
+    0024A2\xFEgparen\xFF\
+    0024A3\xFEhparen\xFF\
+    0024A4\xFEiparen\xFF\
+    0024A5\xFEjparen\xFF\
+    0024A6\xFEkparen\xFF\
+    0024A7\xFElparen\xFF\
+    0024A8\xFEmparen\xFF\
+    0024A9\xFEnparen\xFF\
+    0024AA\xFEoparen\xFF\
+    0024AB\xFEpparen\xFF\
+    0024AC\xFEqparen\xFF\
+    0024AD\xFErparen\xFF\
+    0024AE\xFEsparen\xFF\
+    0024AF\xFEtparen\xFF\
+    0024B0\xFEuparen\xFF\
+    0024B1\xFEvparen\xFF\
+    0024B2\xFEwparen\xFF\
+    0024B3\xFExparen\xFF\
+    0024B4\xFEyparen\xFF\
+    0024B5\xFEzparen\xFF\
+    0024B6\xFEAcircle\xFF\
+    0024B7\xFEBcircle\xFF\
+    0024B8\xFECcircle\xFF\
+    0024B9\xFEDcircle\xFF\
+    0024BA\xFEEcircle\xFF\
+    0024BB\xFEFcircle\xFF\
+    0024BC\xFEGcircle\xFF\
+    0024BD\xFEHcircle\xFF\
+    0024BE\xFEIcircle\xFF\
+    0024BF\xFEJcircle\xFF\
+    0024C0\xFEKcircle\xFF\
+    0024C1\xFELcircle\xFF\
+    0024C2\xFEMcircle\xFF\
+    0024C3\xFENcircle\xFF\
+    0024C4\xFEOcircle\xFF\
+    0024C5\xFEPcircle\xFF\
+    0024C6\xFEQcircle\xFF\
+    0024C7\xFERcircle\xFF\
+    0024C8\xFEScircle\xFF\
+    0024C9\xFETcircle\xFF\
+    0024CA\xFEUcircle\xFF\
+    0024CB\xFEVcircle\xFF\
+    0024CC\xFEWcircle\xFF\
+    0024CD\xFEXcircle\xFF\
+    0024CE\xFEYcircle\xFF\
+    0024CF\xFEZcircle\xFF\
+    0024D0\xFEacircle\xFF\
+    0024D1\xFEbcircle\xFF\
+    0024D2\xFEccircle\xFF\
+    0024D3\xFEdcircle\xFF\
+    0024D4\xFEecircle\xFF\
+    0024D5\xFEfcircle\xFF\
+    0024D6\xFEgcircle\xFF\
+    0024D7\xFEhcircle\xFF\
+    0024D8\xFEicircle\xFF\
+    0024D9\xFEjcircle\xFF\
+    0024DA\xFEkcircle\xFF\
+    0024DB\xFElcircle\xFF\
+    0024DC\xFEmcircle\xFF\
+    0024DD\xFEncircle\xFF\
+    0024DE\xFEocircle\xFF\
+    0024DF\xFEpcircle\xFF\
+    0024E0\xFEqcircle\xFF\
+    0024E1\xFErcircle\xFF\
+    0024E2\xFEscircle\xFF\
+    0024E3\xFEtcircle\xFF\
+    0024E4\xFEucircle\xFF\
+    0024E5\xFEvcircle\xFF\
+    0024E6\xFEwcircle\xFF\
+    0024E7\xFExcircle\xFF\
+    0024E8\xFEycircle\xFF\
+    0024E9\xFEzcircle\xFF\
+    002500\xFESF100000\xFF\
+    002502\xFESF110000\xFF\
+    00250C\xFESF010000\xFF\
+    002510\xFESF030000\xFF\
+    002514\xFESF020000\xFF\
+    002518\xFESF040000\xFF\
+    00251C\xFESF080000\xFF\
+    002524\xFESF090000\xFF\
+    00252C\xFESF060000\xFF\
+    002534\xFESF070000\xFF\
+    00253C\xFESF050000\xFF\
+    002550\xFESF430000\xFF\
+    002551\xFESF240000\xFF\
+    002552\xFESF510000\xFF\
+    002553\xFESF520000\xFF\
+    002554\xFESF390000\xFF\
+    002555\xFESF220000\xFF\
+    002556\xFESF210000\xFF\
+    002557\xFESF250000\xFF\
+    002558\xFESF500000\xFF\
+    002559\xFESF490000\xFF\
+    00255A\xFESF380000\xFF\
+    00255B\xFESF280000\xFF\
+    00255C\xFESF270000\xFF\
+    00255D\xFESF260000\xFF\
+    00255E\xFESF360000\xFF\
+    00255F\xFESF370000\xFF\
+    002560\xFESF420000\xFF\
+    002561\xFESF190000\xFF\
+    002562\xFESF200000\xFF\
+    002563\xFESF230000\xFF\
+    002564\xFESF470000\xFF\
+    002565\xFESF480000\xFF\
+    002566\xFESF410000\xFF\
+    002567\xFESF450000\xFF\
+    002568\xFESF460000\xFF\
+    002569\xFESF400000\xFF\
+    00256A\xFESF540000\xFF\
+    00256B\xFESF530000\xFF\
+    00256C\xFESF440000\xFF\
+    002580\xFEupblock\xFF\
+    002584\xFEdnblock\xFF\
+    002588\xFEblock\xFF\
+    00258C\xFElfblock\xFF\
+    002590\xFErtblock\xFF\
+    002591\xFEltshade\xFF\
+    002592\xFEshade\xFF\
+    002593\xFEdkshade\xFF\
+    0025A0\xFEblacksquare\xFF\
+    0025A1\xFEH22073\xFF\
+    0025A3\xFEsquarewhitewithsmallblack\xFF\
+    0025A4\xFEsquarehorizontalfill\xFF\
+    0025A5\xFEsquareverticalfill\xFF\
+    0025A6\xFEsquareorthogonalcrosshatchfill\xFF\
+    0025A7\xFEsquareupperlefttolowerrightfill\xFF\
+    0025A8\xFEsquareupperrighttolowerleftfill\xFF\
+    0025A9\xFEsquarediagonalcrosshatchfill\xFF\
+    0025AA\xFEH18543\xFF\
+    0025AB\xFEH18551\xFF\
+    0025AC\xFEblackrectangle\xFF\
+    0025B2\xFEblackuppointingtriangle\xFF\
+    0025B3\xFEwhiteuppointingtriangle\xFF\
+    0025B4\xFEblackuppointingsmalltriangle\xFF\
+    0025B5\xFEwhiteuppointingsmalltriangle\xFF\
+    0025B6\xFEblackrightpointingtriangle\xFF\
+    0025B7\xFEwhiterightpointingtriangle\xFF\
+    0025B9\xFEwhiterightpointingsmalltriangle\xFF\
+    0025BA\xFEblackrightpointingpointer\xFF\
+    0025BC\xFEblackdownpointingtriangle\xFF\
+    0025BD\xFEwhitedownpointingtriangle\xFF\
+    0025BF\xFEwhitedownpointingsmalltriangle\xFF\
+    0025C0\xFEblackleftpointingtriangle\xFF\
+    0025C1\xFEwhiteleftpointingtriangle\xFF\
+    0025C3\xFEwhiteleftpointingsmalltriangle\xFF\
+    0025C4\xFEblackleftpointingpointer\xFF\
+    0025C6\xFEblackdiamond\xFF\
+    0025C7\xFEwhitediamond\xFF\
+    0025C8\xFEwhitediamondcontainingblacksmalldiamond\xFF\
+    0025C9\xFEfisheye\xFF\
+    0025CA\xFElozenge\xFF\
+    0025CB\xFEcircle\xFF\
+    0025CC\xFEdottedcircle\xFF\
+    0025CE\xFEbullseye\xFF\
+    0025CF\xFEH18533\xFF\
+    0025D0\xFEcirclewithlefthalfblack\xFF\
+    0025D1\xFEcirclewithrighthalfblack\xFF\
+    0025D8\xFEbulletinverse\xFF\
+    0025D9\xFEinvcircle\xFF\
+    0025E2\xFEblacklowerrighttriangle\xFF\
+    0025E3\xFEblacklowerlefttriangle\xFF\
+    0025E4\xFEblackupperlefttriangle\xFF\
+    0025E5\xFEblackupperrighttriangle\xFF\
+    0025E6\xFEopenbullet\xFF\
+    0025EF\xFElargecircle\xFF\
+    002605\xFEblackstar\xFF\
+    002606\xFEwhitestar\xFF\
+    00260E\xFEtelephoneblack\xFF\
+    00260F\xFEwhitetelephone\xFF\
+    00261C\xFEpointingindexleftwhite\xFF\
+    00261D\xFEpointingindexupwhite\xFF\
+    00261E\xFEpointingindexrightwhite\xFF\
+    00261F\xFEpointingindexdownwhite\xFF\
+    00262F\xFEyinyang\xFF\
+    00263A\xFEsmileface\xFF\
+    00263B\xFEblacksmilingface\xFF\
+    00263C\xFEcompass\xFF\
+    002640\xFEfemale\xFF\
+    002641\xFEearth\xFF\
+    002642\xFEmale\xFF\
+    002660\xFEspade\xFF\
+    002661\xFEheartsuitwhite\xFF\
+    002662\xFEdiamondsuitwhite\xFF\
+    002663\xFEclub\xFF\
+    002664\xFEspadesuitwhite\xFF\
+    002665\xFEheart\xFF\
+    002666\xFEdiamond\xFF\
+    002667\xFEclubsuitwhite\xFF\
+    002668\xFEhotsprings\xFF\
+    002669\xFEquarternote\xFF\
+    00266A\xFEmusicalnote\xFF\
+    00266B\xFEeighthnotebeamed\xFF\
+    00266C\xFEbeamedsixteenthnotes\xFF\
+    00266D\xFEmusicflatsign\xFF\
+    00266F\xFEmusicsharpsign\xFF\
+    002713\xFEcheckmark\xFF\
+    00278A\xFEonecircleinversesansserif\xFF\
+    00278B\xFEtwocircleinversesansserif\xFF\
+    00278C\xFEthreecircleinversesansserif\xFF\
+    00278D\xFEfourcircleinversesansserif\xFF\
+    00278E\xFEfivecircleinversesansserif\xFF\
+    00278F\xFEsixcircleinversesansserif\xFF\
+    002790\xFEsevencircleinversesansserif\xFF\
+    002791\xFEeightcircleinversesansserif\xFF\
+    002792\xFEninecircleinversesansserif\xFF\
+    00279E\xFEarrowrightheavy\xFF\
+    003000\xFEideographicspace\xFF\
+    003001\xFEideographiccomma\xFF\
+    003002\xFEideographicperiod\xFF\
+    003003\xFEdittomark\xFF\
+    003004\xFEjis\xFF\
+    003005\xFEideographiciterationmark\xFF\
+    003006\xFEideographicclose\xFF\
+    003007\xFEideographiczero\xFF\
+    003008\xFEanglebracketleft\xFF\
+    003009\xFEanglebracketright\xFF\
+    00300A\xFEdblanglebracketleft\xFF\
+    00300B\xFEdblanglebracketright\xFF\
+    00300C\xFEcornerbracketleft\xFF\
+    00300D\xFEcornerbracketright\xFF\
+    00300E\xFEwhitecornerbracketleft\xFF\
+    00300F\xFEwhitecornerbracketright\xFF\
+    003010\xFEblacklenticularbracketleft\xFF\
+    003011\xFEblacklenticularbracketright\xFF\
+    003012\xFEpostalmark\xFF\
+    003013\xFEgetamark\xFF\
+    003014\xFEtortoiseshellbracketleft\xFF\
+    003015\xFEtortoiseshellbracketright\xFF\
+    003016\xFEwhitelenticularbracketleft\xFF\
+    003017\xFEwhitelenticularbracketright\xFF\
+    003018\xFEwhitetortoiseshellbracketleft\xFF\
+    003019\xFEwhitetortoiseshellbracketright\xFF\
+    00301C\xFEwavedash\xFF\
+    00301D\xFEquotedblprimereversed\xFF\
+    00301E\xFEquotedblprime\xFF\
+    003020\xFEpostalmarkface\xFF\
+    003021\xFEonehangzhou\xFF\
+    003022\xFEtwohangzhou\xFF\
+    003023\xFEthreehangzhou\xFF\
+    003024\xFEfourhangzhou\xFF\
+    003025\xFEfivehangzhou\xFF\
+    003026\xFEsixhangzhou\xFF\
+    003027\xFEsevenhangzhou\xFF\
+    003028\xFEeighthangzhou\xFF\
+    003029\xFEninehangzhou\xFF\
+    003036\xFEcirclepostalmark\xFF\
+    003041\xFEasmallhiragana\xFF\
+    003042\xFEahiragana\xFF\
+    003043\xFEismallhiragana\xFF\
+    003044\xFEihiragana\xFF\
+    003045\xFEusmallhiragana\xFF\
+    003046\xFEuhiragana\xFF\
+    003047\xFEesmallhiragana\xFF\
+    003048\xFEehiragana\xFF\
+    003049\xFEosmallhiragana\xFF\
+    00304A\xFEohiragana\xFF\
+    00304B\xFEkahiragana\xFF\
+    00304C\xFEgahiragana\xFF\
+    00304D\xFEkihiragana\xFF\
+    00304E\xFEgihiragana\xFF\
+    00304F\xFEkuhiragana\xFF\
+    003050\xFEguhiragana\xFF\
+    003051\xFEkehiragana\xFF\
+    003052\xFEgehiragana\xFF\
+    003053\xFEkohiragana\xFF\
+    003054\xFEgohiragana\xFF\
+    003055\xFEsahiragana\xFF\
+    003056\xFEzahiragana\xFF\
+    003057\xFEsihiragana\xFF\
+    003058\xFEzihiragana\xFF\
+    003059\xFEsuhiragana\xFF\
+    00305A\xFEzuhiragana\xFF\
+    00305B\xFEsehiragana\xFF\
+    00305C\xFEzehiragana\xFF\
+    00305D\xFEsohiragana\xFF\
+    00305E\xFEzohiragana\xFF\
+    00305F\xFEtahiragana\xFF\
+    003060\xFEdahiragana\xFF\
+    003061\xFEtihiragana\xFF\
+    003062\xFEdihiragana\xFF\
+    003063\xFEtusmallhiragana\xFF\
+    003064\xFEtuhiragana\xFF\
+    003065\xFEduhiragana\xFF\
+    003066\xFEtehiragana\xFF\
+    003067\xFEdehiragana\xFF\
+    003068\xFEtohiragana\xFF\
+    003069\xFEdohiragana\xFF\
+    00306A\xFEnahiragana\xFF\
+    00306B\xFEnihiragana\xFF\
+    00306C\xFEnuhiragana\xFF\
+    00306D\xFEnehiragana\xFF\
+    00306E\xFEnohiragana\xFF\
+    00306F\xFEhahiragana\xFF\
+    003070\xFEbahiragana\xFF\
+    003071\xFEpahiragana\xFF\
+    003072\xFEhihiragana\xFF\
+    003073\xFEbihiragana\xFF\
+    003074\xFEpihiragana\xFF\
+    003075\xFEhuhiragana\xFF\
+    003076\xFEbuhiragana\xFF\
+    003077\xFEpuhiragana\xFF\
+    003078\xFEhehiragana\xFF\
+    003079\xFEbehiragana\xFF\
+    00307A\xFEpehiragana\xFF\
+    00307B\xFEhohiragana\xFF\
+    00307C\xFEbohiragana\xFF\
+    00307D\xFEpohiragana\xFF\
+    00307E\xFEmahiragana\xFF\
+    00307F\xFEmihiragana\xFF\
+    003080\xFEmuhiragana\xFF\
+    003081\xFEmehiragana\xFF\
+    003082\xFEmohiragana\xFF\
+    003083\xFEyasmallhiragana\xFF\
+    003084\xFEyahiragana\xFF\
+    003085\xFEyusmallhiragana\xFF\
+    003086\xFEyuhiragana\xFF\
+    003087\xFEyosmallhiragana\xFF\
+    003088\xFEyohiragana\xFF\
+    003089\xFErahiragana\xFF\
+    00308A\xFErihiragana\xFF\
+    00308B\xFEruhiragana\xFF\
+    00308C\xFErehiragana\xFF\
+    00308D\xFErohiragana\xFF\
+    00308E\xFEwasmallhiragana\xFF\
+    00308F\xFEwahiragana\xFF\
+    003090\xFEwihiragana\xFF\
+    003091\xFEwehiragana\xFF\
+    003092\xFEwohiragana\xFF\
+    003093\xFEnhiragana\xFF\
+    003094\xFEvuhiragana\xFF\
+    00309B\xFEvoicedmarkkana\xFF\
+    00309C\xFEsemivoicedmarkkana\xFF\
+    00309D\xFEiterationhiragana\xFF\
+    00309E\xFEvoicediterationhiragana\xFF\
+    0030A1\xFEasmallkatakana\xFF\
+    0030A2\xFEakatakana\xFF\
+    0030A3\xFEismallkatakana\xFF\
+    0030A4\xFEikatakana\xFF\
+    0030A5\xFEusmallkatakana\xFF\
+    0030A6\xFEukatakana\xFF\
+    0030A7\xFEesmallkatakana\xFF\
+    0030A8\xFEekatakana\xFF\
+    0030A9\xFEosmallkatakana\xFF\
+    0030AA\xFEokatakana\xFF\
+    0030AB\xFEkakatakana\xFF\
+    0030AC\xFEgakatakana\xFF\
+    0030AD\xFEkikatakana\xFF\
+    0030AE\xFEgikatakana\xFF\
+    0030AF\xFEkukatakana\xFF\
+    0030B0\xFEgukatakana\xFF\
+    0030B1\xFEkekatakana\xFF\
+    0030B2\xFEgekatakana\xFF\
+    0030B3\xFEkokatakana\xFF\
+    0030B4\xFEgokatakana\xFF\
+    0030B5\xFEsakatakana\xFF\
+    0030B6\xFEzakatakana\xFF\
+    0030B7\xFEsikatakana\xFF\
+    0030B8\xFEzikatakana\xFF\
+    0030B9\xFEsukatakana\xFF\
+    0030BA\xFEzukatakana\xFF\
+    0030BB\xFEsekatakana\xFF\
+    0030BC\xFEzekatakana\xFF\
+    0030BD\xFEsokatakana\xFF\
+    0030BE\xFEzokatakana\xFF\
+    0030BF\xFEtakatakana\xFF\
+    0030C0\xFEdakatakana\xFF\
+    0030C1\xFEtikatakana\xFF\
+    0030C2\xFEdikatakana\xFF\
+    0030C3\xFEtusmallkatakana\xFF\
+    0030C4\xFEtukatakana\xFF\
+    0030C5\xFEdukatakana\xFF\
+    0030C6\xFEtekatakana\xFF\
+    0030C7\xFEdekatakana\xFF\
+    0030C8\xFEtokatakana\xFF\
+    0030C9\xFEdokatakana\xFF\
+    0030CA\xFEnakatakana\xFF\
+    0030CB\xFEnikatakana\xFF\
+    0030CC\xFEnukatakana\xFF\
+    0030CD\xFEnekatakana\xFF\
+    0030CE\xFEnokatakana\xFF\
+    0030CF\xFEhakatakana\xFF\
+    0030D0\xFEbakatakana\xFF\
+    0030D1\xFEpakatakana\xFF\
+    0030D2\xFEhikatakana\xFF\
+    0030D3\xFEbikatakana\xFF\
+    0030D4\xFEpikatakana\xFF\
+    0030D5\xFEhukatakana\xFF\
+    0030D6\xFEbukatakana\xFF\
+    0030D7\xFEpukatakana\xFF\
+    0030D8\xFEhekatakana\xFF\
+    0030D9\xFEbekatakana\xFF\
+    0030DA\xFEpekatakana\xFF\
+    0030DB\xFEhokatakana\xFF\
+    0030DC\xFEbokatakana\xFF\
+    0030DD\xFEpokatakana\xFF\
+    0030DE\xFEmakatakana\xFF\
+    0030DF\xFEmikatakana\xFF\
+    0030E0\xFEmukatakana\xFF\
+    0030E1\xFEmekatakana\xFF\
+    0030E2\xFEmokatakana\xFF\
+    0030E3\xFEyasmallkatakana\xFF\
+    0030E4\xFEyakatakana\xFF\
+    0030E5\xFEyusmallkatakana\xFF\
+    0030E6\xFEyukatakana\xFF\
+    0030E7\xFEyosmallkatakana\xFF\
+    0030E8\xFEyokatakana\xFF\
+    0030E9\xFErakatakana\xFF\
+    0030EA\xFErikatakana\xFF\
+    0030EB\xFErukatakana\xFF\
+    0030EC\xFErekatakana\xFF\
+    0030ED\xFErokatakana\xFF\
+    0030EE\xFEwasmallkatakana\xFF\
+    0030EF\xFEwakatakana\xFF\
+    0030F0\xFEwikatakana\xFF\
+    0030F1\xFEwekatakana\xFF\
+    0030F2\xFEwokatakana\xFF\
+    0030F3\xFEnkatakana\xFF\
+    0030F4\xFEvukatakana\xFF\
+    0030F5\xFEkasmallkatakana\xFF\
+    0030F6\xFEkesmallkatakana\xFF\
+    0030F7\xFEvakatakana\xFF\
+    0030F8\xFEvikatakana\xFF\
+    0030F9\xFEvekatakana\xFF\
+    0030FA\xFEvokatakana\xFF\
+    0030FB\xFEdotkatakana\xFF\
+    0030FC\xFEprolongedkana\xFF\
+    0030FD\xFEiterationkatakana\xFF\
+    0030FE\xFEvoicediterationkatakana\xFF\
+    003105\xFEbbopomofo\xFF\
+    003106\xFEpbopomofo\xFF\
+    003107\xFEmbopomofo\xFF\
+    003108\xFEfbopomofo\xFF\
+    003109\xFEdbopomofo\xFF\
+    00310A\xFEtbopomofo\xFF\
+    00310B\xFEnbopomofo\xFF\
+    00310C\xFElbopomofo\xFF\
+    00310D\xFEgbopomofo\xFF\
+    00310E\xFEkbopomofo\xFF\
+    00310F\xFEhbopomofo\xFF\
+    003110\xFEjbopomofo\xFF\
+    003111\xFEqbopomofo\xFF\
+    003112\xFExbopomofo\xFF\
+    003113\xFEzhbopomofo\xFF\
+    003114\xFEchbopomofo\xFF\
+    003115\xFEshbopomofo\xFF\
+    003116\xFErbopomofo\xFF\
+    003117\xFEzbopomofo\xFF\
+    003118\xFEcbopomofo\xFF\
+    003119\xFEsbopomofo\xFF\
+    00311A\xFEabopomofo\xFF\
+    00311B\xFEobopomofo\xFF\
+    00311C\xFEebopomofo\xFF\
+    00311D\xFEehbopomofo\xFF\
+    00311E\xFEaibopomofo\xFF\
+    00311F\xFEeibopomofo\xFF\
+    003120\xFEaubopomofo\xFF\
+    003121\xFEoubopomofo\xFF\
+    003122\xFEanbopomofo\xFF\
+    003123\xFEenbopomofo\xFF\
+    003124\xFEangbopomofo\xFF\
+    003125\xFEengbopomofo\xFF\
+    003126\xFEerbopomofo\xFF\
+    003127\xFEibopomofo\xFF\
+    003128\xFEubopomofo\xFF\
+    003129\xFEiubopomofo\xFF\
+    003131\xFEkiyeokkorean\xFF\
+    003132\xFEssangkiyeokkorean\xFF\
+    003133\xFEkiyeoksioskorean\xFF\
+    003134\xFEnieunkorean\xFF\
+    003135\xFEnieuncieuckorean\xFF\
+    003136\xFEnieunhieuhkorean\xFF\
+    003137\xFEtikeutkorean\xFF\
+    003138\xFEssangtikeutkorean\xFF\
+    003139\xFErieulkorean\xFF\
+    00313A\xFErieulkiyeokkorean\xFF\
+    00313B\xFErieulmieumkorean\xFF\
+    00313C\xFErieulpieupkorean\xFF\
+    00313D\xFErieulsioskorean\xFF\
+    00313E\xFErieulthieuthkorean\xFF\
+    00313F\xFErieulphieuphkorean\xFF\
+    003140\xFErieulhieuhkorean\xFF\
+    003141\xFEmieumkorean\xFF\
+    003142\xFEpieupkorean\xFF\
+    003143\xFEssangpieupkorean\xFF\
+    003144\xFEpieupsioskorean\xFF\
+    003145\xFEsioskorean\xFF\
+    003146\xFEssangsioskorean\xFF\
+    003147\xFEieungkorean\xFF\
+    003148\xFEcieuckorean\xFF\
+    003149\xFEssangcieuckorean\xFF\
+    00314A\xFEchieuchkorean\xFF\
+    00314B\xFEkhieukhkorean\xFF\
+    00314C\xFEthieuthkorean\xFF\
+    00314D\xFEphieuphkorean\xFF\
+    00314E\xFEhieuhkorean\xFF\
+    00314F\xFEakorean\xFF\
+    003150\xFEaekorean\xFF\
+    003151\xFEyakorean\xFF\
+    003152\xFEyaekorean\xFF\
+    003153\xFEeokorean\xFF\
+    003154\xFEekorean\xFF\
+    003155\xFEyeokorean\xFF\
+    003156\xFEyekorean\xFF\
+    003157\xFEokorean\xFF\
+    003158\xFEwakorean\xFF\
+    003159\xFEwaekorean\xFF\
+    00315A\xFEoekorean\xFF\
+    00315B\xFEyokorean\xFF\
+    00315C\xFEukorean\xFF\
+    00315D\xFEweokorean\xFF\
+    00315E\xFEwekorean\xFF\
+    00315F\xFEwikorean\xFF\
+    003160\xFEyukorean\xFF\
+    003161\xFEeukorean\xFF\
+    003162\xFEyikorean\xFF\
+    003163\xFEikorean\xFF\
+    003164\xFEhangulfiller\xFF\
+    003165\xFEssangnieunkorean\xFF\
+    003166\xFEnieuntikeutkorean\xFF\
+    003167\xFEnieunsioskorean\xFF\
+    003168\xFEnieunpansioskorean\xFF\
+    003169\xFErieulkiyeoksioskorean\xFF\
+    00316A\xFErieultikeutkorean\xFF\
+    00316B\xFErieulpieupsioskorean\xFF\
+    00316C\xFErieulpansioskorean\xFF\
+    00316D\xFErieulyeorinhieuhkorean\xFF\
+    00316E\xFEmieumpieupkorean\xFF\
+    00316F\xFEmieumsioskorean\xFF\
+    003170\xFEmieumpansioskorean\xFF\
+    003171\xFEkapyeounmieumkorean\xFF\
+    003172\xFEpieupkiyeokkorean\xFF\
+    003173\xFEpieuptikeutkorean\xFF\
+    003174\xFEpieupsioskiyeokkorean\xFF\
+    003175\xFEpieupsiostikeutkorean\xFF\
+    003176\xFEpieupcieuckorean\xFF\
+    003177\xFEpieupthieuthkorean\xFF\
+    003178\xFEkapyeounpieupkorean\xFF\
+    003179\xFEkapyeounssangpieupkorean\xFF\
+    00317A\xFEsioskiyeokkorean\xFF\
+    00317B\xFEsiosnieunkorean\xFF\
+    00317C\xFEsiostikeutkorean\xFF\
+    00317D\xFEsiospieupkorean\xFF\
+    00317E\xFEsioscieuckorean\xFF\
+    00317F\xFEpansioskorean\xFF\
+    003180\xFEssangieungkorean\xFF\
+    003181\xFEyesieungkorean\xFF\
+    003182\xFEyesieungsioskorean\xFF\
+    003183\xFEyesieungpansioskorean\xFF\
+    003184\xFEkapyeounphieuphkorean\xFF\
+    003185\xFEssanghieuhkorean\xFF\
+    003186\xFEyeorinhieuhkorean\xFF\
+    003187\xFEyoyakorean\xFF\
+    003188\xFEyoyaekorean\xFF\
+    003189\xFEyoikorean\xFF\
+    00318A\xFEyuyeokorean\xFF\
+    00318B\xFEyuyekorean\xFF\
+    00318C\xFEyuikorean\xFF\
+    00318D\xFEaraeakorean\xFF\
+    00318E\xFEaraeaekorean\xFF\
+    003200\xFEkiyeokparenkorean\xFF\
+    003201\xFEnieunparenkorean\xFF\
+    003202\xFEtikeutparenkorean\xFF\
+    003203\xFErieulparenkorean\xFF\
+    003204\xFEmieumparenkorean\xFF\
+    003205\xFEpieupparenkorean\xFF\
+    003206\xFEsiosparenkorean\xFF\
+    003207\xFEieungparenkorean\xFF\
+    003208\xFEcieucparenkorean\xFF\
+    003209\xFEchieuchparenkorean\xFF\
+    00320A\xFEkhieukhparenkorean\xFF\
+    00320B\xFEthieuthparenkorean\xFF\
+    00320C\xFEphieuphparenkorean\xFF\
+    00320D\xFEhieuhparenkorean\xFF\
+    00320E\xFEkiyeokaparenkorean\xFF\
+    00320F\xFEnieunaparenkorean\xFF\
+    003210\xFEtikeutaparenkorean\xFF\
+    003211\xFErieulaparenkorean\xFF\
+    003212\xFEmieumaparenkorean\xFF\
+    003213\xFEpieupaparenkorean\xFF\
+    003214\xFEsiosaparenkorean\xFF\
+    003215\xFEieungaparenkorean\xFF\
+    003216\xFEcieucaparenkorean\xFF\
+    003217\xFEchieuchaparenkorean\xFF\
+    003218\xFEkhieukhaparenkorean\xFF\
+    003219\xFEthieuthaparenkorean\xFF\
+    00321A\xFEphieuphaparenkorean\xFF\
+    00321B\xFEhieuhaparenkorean\xFF\
+    00321C\xFEcieucuparenkorean\xFF\
+    003220\xFEoneideographicparen\xFF\
+    003221\xFEtwoideographicparen\xFF\
+    003222\xFEthreeideographicparen\xFF\
+    003223\xFEfourideographicparen\xFF\
+    003224\xFEfiveideographicparen\xFF\
+    003225\xFEsixideographicparen\xFF\
+    003226\xFEsevenideographicparen\xFF\
+    003227\xFEeightideographicparen\xFF\
+    003228\xFEnineideographicparen\xFF\
+    003229\xFEtenideographicparen\xFF\
+    00322A\xFEideographicmoonparen\xFF\
+    00322B\xFEideographicfireparen\xFF\
+    00322C\xFEideographicwaterparen\xFF\
+    00322D\xFEideographicwoodparen\xFF\
+    00322E\xFEideographicmetalparen\xFF\
+    00322F\xFEideographicearthparen\xFF\
+    003230\xFEideographicsunparen\xFF\
+    003231\xFEideographicstockparen\xFF\
+    003232\xFEideographichaveparen\xFF\
+    003233\xFEideographicsocietyparen\xFF\
+    003234\xFEideographicnameparen\xFF\
+    003235\xFEideographicspecialparen\xFF\
+    003236\xFEideographicfinancialparen\xFF\
+    003237\xFEideographiccongratulationparen\xFF\
+    003238\xFEideographiclaborparen\xFF\
+    003239\xFEideographicrepresentparen\xFF\
+    00323A\xFEideographiccallparen\xFF\
+    00323B\xFEideographicstudyparen\xFF\
+    00323C\xFEideographicsuperviseparen\xFF\
+    00323D\xFEideographicenterpriseparen\xFF\
+    00323E\xFEideographicresourceparen\xFF\
+    00323F\xFEideographicallianceparen\xFF\
+    003240\xFEideographicfestivalparen\xFF\
+    003242\xFEideographicselfparen\xFF\
+    003243\xFEideographicreachparen\xFF\
+    003260\xFEkiyeokcirclekorean\xFF\
+    003261\xFEnieuncirclekorean\xFF\
+    003262\xFEtikeutcirclekorean\xFF\
+    003263\xFErieulcirclekorean\xFF\
+    003264\xFEmieumcirclekorean\xFF\
+    003265\xFEpieupcirclekorean\xFF\
+    003266\xFEsioscirclekorean\xFF\
+    003267\xFEieungcirclekorean\xFF\
+    003268\xFEcieuccirclekorean\xFF\
+    003269\xFEchieuchcirclekorean\xFF\
+    00326A\xFEkhieukhcirclekorean\xFF\
+    00326B\xFEthieuthcirclekorean\xFF\
+    00326C\xFEphieuphcirclekorean\xFF\
+    00326D\xFEhieuhcirclekorean\xFF\
+    00326E\xFEkiyeokacirclekorean\xFF\
+    00326F\xFEnieunacirclekorean\xFF\
+    003270\xFEtikeutacirclekorean\xFF\
+    003271\xFErieulacirclekorean\xFF\
+    003272\xFEmieumacirclekorean\xFF\
+    003273\xFEpieupacirclekorean\xFF\
+    003274\xFEsiosacirclekorean\xFF\
+    003275\xFEieungacirclekorean\xFF\
+    003276\xFEcieucacirclekorean\xFF\
+    003277\xFEchieuchacirclekorean\xFF\
+    003278\xFEkhieukhacirclekorean\xFF\
+    003279\xFEthieuthacirclekorean\xFF\
+    00327A\xFEphieuphacirclekorean\xFF\
+    00327B\xFEhieuhacirclekorean\xFF\
+    00327F\xFEkoreanstandardsymbol\xFF\
+    00328A\xFEideographmooncircle\xFF\
+    00328B\xFEideographfirecircle\xFF\
+    00328C\xFEideographwatercircle\xFF\
+    00328D\xFEideographwoodcircle\xFF\
+    00328E\xFEideographmetalcircle\xFF\
+    00328F\xFEideographearthcircle\xFF\
+    003290\xFEideographsuncircle\xFF\
+    003294\xFEideographnamecircle\xFF\
+    003296\xFEideographicfinancialcircle\xFF\
+    003298\xFEideographiclaborcircle\xFF\
+    003299\xFEideographicsecretcircle\xFF\
+    00329D\xFEideographicexcellentcircle\xFF\
+    00329E\xFEideographicprintcircle\xFF\
+    0032A3\xFEideographiccorrectcircle\xFF\
+    0032A4\xFEideographichighcircle\xFF\
+    0032A5\xFEideographiccentrecircle\xFF\
+    0032A6\xFEideographiclowcircle\xFF\
+    0032A7\xFEideographicleftcircle\xFF\
+    0032A8\xFEideographicrightcircle\xFF\
+    0032A9\xFEideographicmedicinecircle\xFF\
+    003300\xFEapaatosquare\xFF\
+    003303\xFEaarusquare\xFF\
+    003305\xFEintisquare\xFF\
+    00330D\xFEkaroriisquare\xFF\
+    003314\xFEkirosquare\xFF\
+    003315\xFEkiroguramusquare\xFF\
+    003316\xFEkiromeetorusquare\xFF\
+    003318\xFEguramusquare\xFF\
+    00331E\xFEkooposquare\xFF\
+    003322\xFEsentisquare\xFF\
+    003323\xFEsentosquare\xFF\
+    003326\xFEdorusquare\xFF\
+    003327\xFEtonsquare\xFF\
+    00332A\xFEhaitusquare\xFF\
+    00332B\xFEpaasentosquare\xFF\
+    003331\xFEbirusquare\xFF\
+    003333\xFEhuiitosquare\xFF\
+    003336\xFEhekutaarusquare\xFF\
+    003339\xFEherutusquare\xFF\
+    00333B\xFEpeezisquare\xFF\
+    003342\xFEhoonsquare\xFF\
+    003347\xFEmansyonsquare\xFF\
+    003349\xFEmirisquare\xFF\
+    00334A\xFEmiribaarusquare\xFF\
+    00334D\xFEmeetorusquare\xFF\
+    00334E\xFEyaadosquare\xFF\
+    003351\xFErittorusquare\xFF\
+    003357\xFEwattosquare\xFF\
+    00337B\xFEheiseierasquare\xFF\
+    00337C\xFEsyouwaerasquare\xFF\
+    00337D\xFEtaisyouerasquare\xFF\
+    00337E\xFEmeizierasquare\xFF\
+    00337F\xFEcorporationsquare\xFF\
+    003380\xFEpaampssquare\xFF\
+    003381\xFEnasquare\xFF\
+    003382\xFEmuasquare\xFF\
+    003383\xFEmasquare\xFF\
+    003384\xFEkasquare\xFF\
+    003385\xFEKBsquare\xFF\
+    003386\xFEMBsquare\xFF\
+    003387\xFEGBsquare\xFF\
+    003388\xFEcalsquare\xFF\
+    003389\xFEkcalsquare\xFF\
+    00338A\xFEpfsquare\xFF\
+    00338B\xFEnfsquare\xFF\
+    00338C\xFEmufsquare\xFF\
+    00338D\xFEmugsquare\xFF\
+    00338E\xFEsquaremg\xFF\
+    00338F\xFEsquarekg\xFF\
+    003390\xFEHzsquare\xFF\
+    003391\xFEkhzsquare\xFF\
+    003392\xFEmhzsquare\xFF\
+    003393\xFEghzsquare\xFF\
+    003394\xFEthzsquare\xFF\
+    003395\xFEmulsquare\xFF\
+    003396\xFEmlsquare\xFF\
+    003397\xFEdlsquare\xFF\
+    003398\xFEklsquare\xFF\
+    003399\xFEfmsquare\xFF\
+    00339A\xFEnmsquare\xFF\
+    00339B\xFEmumsquare\xFF\
+    00339C\xFEsquaremm\xFF\
+    00339D\xFEsquarecm\xFF\
+    00339E\xFEsquarekm\xFF\
+    00339F\xFEmmsquaredsquare\xFF\
+    0033A0\xFEcmsquaredsquare\xFF\
+    0033A1\xFEsquaremsquared\xFF\
+    0033A2\xFEkmsquaredsquare\xFF\
+    0033A3\xFEmmcubedsquare\xFF\
+    0033A4\xFEcmcubedsquare\xFF\
+    0033A5\xFEmcubedsquare\xFF\
+    0033A6\xFEkmcubedsquare\xFF\
+    0033A7\xFEmoverssquare\xFF\
+    0033A8\xFEmoverssquaredsquare\xFF\
+    0033A9\xFEpasquare\xFF\
+    0033AA\xFEkpasquare\xFF\
+    0033AB\xFEmpasquare\xFF\
+    0033AC\xFEgpasquare\xFF\
+    0033AD\xFEradsquare\xFF\
+    0033AE\xFEradoverssquare\xFF\
+    0033AF\xFEradoverssquaredsquare\xFF\
+    0033B0\xFEpssquare\xFF\
+    0033B1\xFEnssquare\xFF\
+    0033B2\xFEmussquare\xFF\
+    0033B3\xFEmssquare\xFF\
+    0033B4\xFEpvsquare\xFF\
+    0033B5\xFEnvsquare\xFF\
+    0033B6\xFEmuvsquare\xFF\
+    0033B7\xFEmvsquare\xFF\
+    0033B8\xFEkvsquare\xFF\
+    0033B9\xFEmvmegasquare\xFF\
+    0033BA\xFEpwsquare\xFF\
+    0033BB\xFEnwsquare\xFF\
+    0033BC\xFEmuwsquare\xFF\
+    0033BD\xFEmwsquare\xFF\
+    0033BE\xFEkwsquare\xFF\
+    0033BF\xFEmwmegasquare\xFF\
+    0033C0\xFEkohmsquare\xFF\
+    0033C1\xFEmohmsquare\xFF\
+    0033C2\xFEamsquare\xFF\
+    0033C3\xFEbqsquare\xFF\
+    0033C4\xFEsquarecc\xFF\
+    0033C5\xFEcdsquare\xFF\
+    0033C6\xFEcoverkgsquare\xFF\
+    0033C7\xFEcosquare\xFF\
+    0033C8\xFEdbsquare\xFF\
+    0033C9\xFEgysquare\xFF\
+    0033CA\xFEhasquare\xFF\
+    0033CB\xFEHPsquare\xFF\
+    0033CD\xFEKKsquare\xFF\
+    0033CE\xFEsquarekmcapital\xFF\
+    0033CF\xFEktsquare\xFF\
+    0033D0\xFElmsquare\xFF\
+    0033D1\xFEsquareln\xFF\
+    0033D2\xFEsquarelog\xFF\
+    0033D3\xFElxsquare\xFF\
+    0033D4\xFEmbsquare\xFF\
+    0033D5\xFEsquaremil\xFF\
+    0033D6\xFEmolsquare\xFF\
+    0033D8\xFEpmsquare\xFF\
+    0033DB\xFEsrsquare\xFF\
+    0033DC\xFEsvsquare\xFF\
+    0033DD\xFEwbsquare\xFF\
+    005344\xFEtwentyhangzhou\xFF\
+    00F6BE\xFEdotlessj\xFF\
+    00F6BF\xFELL\xFF\
+    00F6C0\xFEll\xFF\
+    00F6C3\xFEcommaaccent\xFF\
+    00F6C4\xFEafii10063\xFF\
+    00F6C5\xFEafii10064\xFF\
+    00F6C6\xFEafii10192\xFF\
+    00F6C7\xFEafii10831\xFF\
+    00F6C8\xFEafii10832\xFF\
+    00F6C9\xFEAcute\xFF\
+    00F6CA\xFECaron\xFF\
+    00F6CB\xFEDieresis\xFF\
+    00F6CC\xFEDieresisAcute\xFF\
+    00F6CD\xFEDieresisGrave\xFF\
+    00F6CE\xFEGrave\xFF\
+    00F6CF\xFEHungarumlaut\xFF\
+    00F6D0\xFEMacron\xFF\
+    00F6D1\xFEcyrBreve\xFF\
+    00F6D2\xFEcyrFlex\xFF\
+    00F6D3\xFEdblGrave\xFF\
+    00F6D4\xFEcyrbreve\xFF\
+    00F6D5\xFEcyrflex\xFF\
+    00F6D6\xFEdblgrave\xFF\
+    00F6D7\xFEdieresisacute\xFF\
+    00F6D8\xFEdieresisgrave\xFF\
+    00F6D9\xFEcopyrightserif\xFF\
+    00F6DA\xFEregisterserif\xFF\
+    00F6DB\xFEtrademarkserif\xFF\
+    00F6DC\xFEonefitted\xFF\
+    00F6DD\xFErupiah\xFF\
+    00F6DE\xFEthreequartersemdash\xFF\
+    00F6DF\xFEcentinferior\xFF\
+    00F6E0\xFEcentsuperior\xFF\
+    00F6E1\xFEcommainferior\xFF\
+    00F6E2\xFEcommasuperior\xFF\
+    00F6E3\xFEdollarinferior\xFF\
+    00F6E4\xFEdollarsuperior\xFF\
+    00F6E5\xFEhypheninferior\xFF\
+    00F6E6\xFEhyphensuperior\xFF\
+    00F6E7\xFEperiodinferior\xFF\
+    00F6E8\xFEperiodsuperior\xFF\
+    00F6E9\xFEasuperior\xFF\
+    00F6EA\xFEbsuperior\xFF\
+    00F6EB\xFEdsuperior\xFF\
+    00F6EC\xFEesuperior\xFF\
+    00F6ED\xFEisuperior\xFF\
+    00F6EE\xFElsuperior\xFF\
+    00F6EF\xFEmsuperior\xFF\
+    00F6F0\xFEosuperior\xFF\
+    00F6F1\xFErsuperior\xFF\
+    00F6F2\xFEssuperior\xFF\
+    00F6F3\xFEtsuperior\xFF\
+    00F6F4\xFEBrevesmall\xFF\
+    00F6F5\xFECaronsmall\xFF\
+    00F6F6\xFECircumflexsmall\xFF\
+    00F6F7\xFEDotaccentsmall\xFF\
+    00F6F8\xFEHungarumlautsmall\xFF\
+    00F6F9\xFELslashsmall\xFF\
+    00F6FA\xFEOEsmall\xFF\
+    00F6FB\xFEOgoneksmall\xFF\
+    00F6FC\xFERingsmall\xFF\
+    00F6FD\xFEScaronsmall\xFF\
+    00F6FE\xFETildesmall\xFF\
+    00F6FF\xFEZcaronsmall\xFF\
+    00F721\xFEexclamsmall\xFF\
+    00F724\xFEdollaroldstyle\xFF\
+    00F726\xFEampersandsmall\xFF\
+    00F730\xFEzerooldstyle\xFF\
+    00F731\xFEoneoldstyle\xFF\
+    00F732\xFEtwooldstyle\xFF\
+    00F733\xFEthreeoldstyle\xFF\
+    00F734\xFEfouroldstyle\xFF\
+    00F735\xFEfiveoldstyle\xFF\
+    00F736\xFEsixoldstyle\xFF\
+    00F737\xFEsevenoldstyle\xFF\
+    00F738\xFEeightoldstyle\xFF\
+    00F739\xFEnineoldstyle\xFF\
+    00F73F\xFEquestionsmall\xFF\
+    00F760\xFEGravesmall\xFF\
+    00F761\xFEAsmall\xFF\
+    00F762\xFEBsmall\xFF\
+    00F763\xFECsmall\xFF\
+    00F764\xFEDsmall\xFF\
+    00F765\xFEEsmall\xFF\
+    00F766\xFEFsmall\xFF\
+    00F767\xFEGsmall\xFF\
+    00F768\xFEHsmall\xFF\
+    00F769\xFEIsmall\xFF\
+    00F76A\xFEJsmall\xFF\
+    00F76B\xFEKsmall\xFF\
+    00F76C\xFELsmall\xFF\
+    00F76D\xFEMsmall\xFF\
+    00F76E\xFENsmall\xFF\
+    00F76F\xFEOsmall\xFF\
+    00F770\xFEPsmall\xFF\
+    00F771\xFEQsmall\xFF\
+    00F772\xFERsmall\xFF\
+    00F773\xFESsmall\xFF\
+    00F774\xFETsmall\xFF\
+    00F775\xFEUsmall\xFF\
+    00F776\xFEVsmall\xFF\
+    00F777\xFEWsmall\xFF\
+    00F778\xFEXsmall\xFF\
+    00F779\xFEYsmall\xFF\
+    00F77A\xFEZsmall\xFF\
+    00F7A1\xFEexclamdownsmall\xFF\
+    00F7A2\xFEcentoldstyle\xFF\
+    00F7A8\xFEDieresissmall\xFF\
+    00F7AF\xFEMacronsmall\xFF\
+    00F7B4\xFEAcutesmall\xFF\
+    00F7B8\xFECedillasmall\xFF\
+    00F7BF\xFEquestiondownsmall\xFF\
+    00F7E0\xFEAgravesmall\xFF\
+    00F7E1\xFEAacutesmall\xFF\
+    00F7E2\xFEAcircumflexsmall\xFF\
+    00F7E3\xFEAtildesmall\xFF\
+    00F7E4\xFEAdieresissmall\xFF\
+    00F7E5\xFEAringsmall\xFF\
+    00F7E6\xFEAEsmall\xFF\
+    00F7E7\xFECcedillasmall\xFF\
+    00F7E8\xFEEgravesmall\xFF\
+    00F7E9\xFEEacutesmall\xFF\
+    00F7EA\xFEEcircumflexsmall\xFF\
+    00F7EB\xFEEdieresissmall\xFF\
+    00F7EC\xFEIgravesmall\xFF\
+    00F7ED\xFEIacutesmall\xFF\
+    00F7EE\xFEIcircumflexsmall\xFF\
+    00F7EF\xFEIdieresissmall\xFF\
+    00F7F0\xFEEthsmall\xFF\
+    00F7F1\xFENtildesmall\xFF\
+    00F7F2\xFEOgravesmall\xFF\
+    00F7F3\xFEOacutesmall\xFF\
+    00F7F4\xFEOcircumflexsmall\xFF\
+    00F7F5\xFEOtildesmall\xFF\
+    00F7F6\xFEOdieresissmall\xFF\
+    00F7F8\xFEOslashsmall\xFF\
+    00F7F9\xFEUgravesmall\xFF\
+    00F7FA\xFEUacutesmall\xFF\
+    00F7FB\xFEUcircumflexsmall\xFF\
+    00F7FC\xFEUdieresissmall\xFF\
+    00F7FD\xFEYacutesmall\xFF\
+    00F7FE\xFEThornsmall\xFF\
+    00F7FF\xFEYdieresissmall\xFF\
+    00F884\xFEmaihanakatleftthai\xFF\
+    00F885\xFEsaraileftthai\xFF\
+    00F886\xFEsaraiileftthai\xFF\
+    00F887\xFEsaraueleftthai\xFF\
+    00F888\xFEsaraueeleftthai\xFF\
+    00F889\xFEmaitaikhuleftthai\xFF\
+    00F88A\xFEmaiekupperleftthai\xFF\
+    00F88B\xFEmaieklowrightthai\xFF\
+    00F88C\xFEmaieklowleftthai\xFF\
+    00F88D\xFEmaithoupperleftthai\xFF\
+    00F88E\xFEmaitholowrightthai\xFF\
+    00F88F\xFEmaitholowleftthai\xFF\
+    00F890\xFEmaitriupperleftthai\xFF\
+    00F891\xFEmaitrilowrightthai\xFF\
+    00F892\xFEmaitrilowleftthai\xFF\
+    00F893\xFEmaichattawaupperleftthai\xFF\
+    00F894\xFEmaichattawalowrightthai\xFF\
+    00F895\xFEmaichattawalowleftthai\xFF\
+    00F896\xFEthanthakhatupperleftthai\xFF\
+    00F897\xFEthanthakhatlowrightthai\xFF\
+    00F898\xFEthanthakhatlowleftthai\xFF\
+    00F899\xFEnikhahitleftthai\xFF\
+    00F8E5\xFEradicalex\xFF\
+    00F8E6\xFEarrowvertex\xFF\
+    00F8E7\xFEarrowhorizex\xFF\
+    00F8E8\xFEregistersans\xFF\
+    00F8E9\xFEcopyrightsans\xFF\
+    00F8EA\xFEtrademarksans\xFF\
+    00F8EB\xFEparenlefttp\xFF\
+    00F8EC\xFEparenleftex\xFF\
+    00F8ED\xFEparenleftbt\xFF\
+    00F8EE\xFEbracketlefttp\xFF\
+    00F8EF\xFEbracketleftex\xFF\
+    00F8F0\xFEbracketleftbt\xFF\
+    00F8F1\xFEbracelefttp\xFF\
+    00F8F2\xFEbraceleftmid\xFF\
+    00F8F3\xFEbraceleftbt\xFF\
+    00F8F4\xFEbraceex\xFF\
+    00F8F5\xFEintegralex\xFF\
+    00F8F6\xFEparenrighttp\xFF\
+    00F8F7\xFEparenrightex\xFF\
+    00F8F8\xFEparenrightbt\xFF\
+    00F8F9\xFEbracketrighttp\xFF\
+    00F8FA\xFEbracketrightex\xFF\
+    00F8FB\xFEbracketrightbt\xFF\
+    00F8FC\xFEbracerighttp\xFF\
+    00F8FD\xFEbracerightmid\xFF\
+    00F8FE\xFEbracerightbt\xFF\
+    00F8FF\xFEapple\xFF\
+    00FB00\xFEff\xFF\
+    00FB01\xFEfi\xFF\
+    00FB02\xFEfl\xFF\
+    00FB03\xFEffi\xFF\
+    00FB04\xFEffl\xFF\
+    00FB1F\xFEafii57705\xFF\
+    00FB20\xFEayinaltonehebrew\xFF\
+    00FB2A\xFEafii57694\xFF\
+    00FB2B\xFEafii57695\xFF\
+    00FB2C\xFEshindageshshindot\xFF\
+    00FB2D\xFEshindageshsindot\xFF\
+    00FB2E\xFEalefpatahhebrew\xFF\
+    00FB2F\xFEalefqamatshebrew\xFF\
+    00FB30\xFEalefdageshhebrew\xFF\
+    00FB31\xFEbetdagesh\xFF\
+    00FB32\xFEgimeldagesh\xFF\
+    00FB33\xFEdaletdagesh\xFF\
+    00FB34\xFEhedagesh\xFF\
+    00FB35\xFEafii57723\xFF\
+    00FB36\xFEzayindagesh\xFF\
+    00FB38\xFEtetdagesh\xFF\
+    00FB39\xFEyoddagesh\xFF\
+    00FB3A\xFEfinalkafdagesh\xFF\
+    00FB3B\xFEkafdagesh\xFF\
+    00FB3C\xFElameddagesh\xFF\
+    00FB3E\xFEmemdagesh\xFF\
+    00FB40\xFEnundagesh\xFF\
+    00FB41\xFEsamekhdagesh\xFF\
+    00FB43\xFEpefinaldageshhebrew\xFF\
+    00FB44\xFEpedagesh\xFF\
+    00FB46\xFEtsadidagesh\xFF\
+    00FB47\xFEqofdagesh\xFF\
+    00FB48\xFEreshdageshhebrew\xFF\
+    00FB49\xFEshindagesh\xFF\
+    00FB4A\xFEtavdages\xFF\
+    00FB4B\xFEafii57700\xFF\
+    00FB4C\xFEbetrafehebrew\xFF\
+    00FB4D\xFEkafrafehebrew\xFF\
+    00FB4E\xFEperafehebrew\xFF\
+    00FB4F\xFEaleflamedhebrew\xFF\
+    00FB57\xFEpehfinalarabic\xFF\
+    00FB58\xFEpehinitialarabic\xFF\
+    00FB59\xFEpehmedialarabic\xFF\
+    00FB67\xFEttehfinalarabic\xFF\
+    00FB68\xFEttehinitialarabic\xFF\
+    00FB69\xFEttehmedialarabic\xFF\
+    00FB6B\xFEvehfinalarabic\xFF\
+    00FB6C\xFEvehinitialarabic\xFF\
+    00FB6D\xFEvehmedialarabic\xFF\
+    00FB7B\xFEtchehfinalarabic\xFF\
+    00FB7C\xFEtchehinitialarabic\xFF\
+    00FB7D\xFEtchehmedialarabic\xFF\
+    00FB89\xFEddalfinalarabic\xFF\
+    00FB8B\xFEjehfinalarabic\xFF\
+    00FB8D\xFErrehfinalarabic\xFF\
+    00FB93\xFEgaffinalarabic\xFF\
+    00FB94\xFEgafinitialarabic\xFF\
+    00FB95\xFEgafmedialarabic\xFF\
+    00FB9F\xFEnoonghunnafinalarabic\xFF\
+    00FBA4\xFEhehhamzaaboveisolatedarabic\xFF\
+    00FBA5\xFEhehhamzaabovefinalarabic\xFF\
+    00FBA7\xFEhehfinalaltonearabic\xFF\
+    00FBA8\xFEhehinitialaltonearabic\xFF\
+    00FBA9\xFEhehmedialaltonearabic\xFF\
+    00FBAF\xFEyehbarreefinalarabic\xFF\
+    00FC08\xFEbehmeemisolatedarabic\xFF\
+    00FC0B\xFEtehjeemisolatedarabic\xFF\
+    00FC0C\xFEtehhahisolatedarabic\xFF\
+    00FC0E\xFEtehmeemisolatedarabic\xFF\
+    00FC48\xFEmeemmeemisolatedarabic\xFF\
+    00FC4B\xFEnoonjeemisolatedarabic\xFF\
+    00FC4E\xFEnoonmeemisolatedarabic\xFF\
+    00FC58\xFEyehmeemisolatedarabic\xFF\
+    00FC5E\xFEshaddadammatanarabic\xFF\
+    00FC5F\xFEshaddakasratanarabic\xFF\
+    00FC60\xFEshaddafathaarabic\xFF\
+    00FC61\xFEshaddadammaarabic\xFF\
+    00FC62\xFEshaddakasraarabic\xFF\
+    00FC6D\xFEbehnoonfinalarabic\xFF\
+    00FC73\xFEtehnoonfinalarabic\xFF\
+    00FC8D\xFEnoonnoonfinalarabic\xFF\
+    00FC94\xFEyehnoonfinalarabic\xFF\
+    00FC9F\xFEbehmeeminitialarabic\xFF\
+    00FCA1\xFEtehjeeminitialarabic\xFF\
+    00FCA2\xFEtehhahinitialarabic\xFF\
+    00FCA4\xFEtehmeeminitialarabic\xFF\
+    00FCC9\xFElamjeeminitialarabic\xFF\
+    00FCCA\xFElamhahinitialarabic\xFF\
+    00FCCB\xFElamkhahinitialarabic\xFF\
+    00FCCC\xFElammeeminitialarabic\xFF\
+    00FCD1\xFEmeemmeeminitialarabic\xFF\
+    00FCD2\xFEnoonjeeminitialarabic\xFF\
+    00FCD5\xFEnoonmeeminitialarabic\xFF\
+    00FCDD\xFEyehmeeminitialarabic\xFF\
+    00FD3E\xFEparenleftaltonearabic\xFF\
+    00FD3F\xFEparenrightaltonearabic\xFF\
+    00FD88\xFElammeemhahinitialarabic\xFF\
+    00FDF2\xFElamlamhehisolatedarabic\xFF\
+    00FDFA\xFEsallallahoualayhewasallamarabic\xFF\
+    00FE30\xFEtwodotleadervertical\xFF\
+    00FE31\xFEemdashvertical\xFF\
+    00FE32\xFEendashvertical\xFF\
+    00FE33\xFEunderscorevertical\xFF\
+    00FE34\xFEwavyunderscorevertical\xFF\
+    00FE35\xFEparenleftvertical\xFF\
+    00FE36\xFEparenrightvertical\xFF\
+    00FE37\xFEbraceleftvertical\xFF\
+    00FE38\xFEbracerightvertical\xFF\
+    00FE39\xFEtortoiseshellbracketleftvertical\xFF\
+    00FE3A\xFEtortoiseshellbracketrightvertical\xFF\
+    00FE3B\xFEblacklenticularbracketleftvertical\xFF\
+    00FE3C\xFEblacklenticularbracketrightvertical\xFF\
+    00FE3D\xFEdblanglebracketleftvertical\xFF\
+    00FE3E\xFEdblanglebracketrightvertical\xFF\
+    00FE3F\xFEanglebracketleftvertical\xFF\
+    00FE40\xFEanglebracketrightvertical\xFF\
+    00FE41\xFEcornerbracketleftvertical\xFF\
+    00FE42\xFEcornerbracketrightvertical\xFF\
+    00FE43\xFEwhitecornerbracketleftvertical\xFF\
+    00FE44\xFEwhitecornerbracketrightvertical\xFF\
+    00FE49\xFEoverlinedashed\xFF\
+    00FE4A\xFEoverlinecenterline\xFF\
+    00FE4B\xFEoverlinewavy\xFF\
+    00FE4C\xFEoverlinedblwavy\xFF\
+    00FE4D\xFElowlinedashed\xFF\
+    00FE4E\xFElowlinecenterline\xFF\
+    00FE4F\xFEunderscorewavy\xFF\
+    00FE50\xFEcommasmall\xFF\
+    00FE52\xFEperiodsmall\xFF\
+    00FE54\xFEsemicolonsmall\xFF\
+    00FE55\xFEcolonsmall\xFF\
+    00FE59\xFEparenleftsmall\xFF\
+    00FE5A\xFEparenrightsmall\xFF\
+    00FE5B\xFEbraceleftsmall\xFF\
+    00FE5C\xFEbracerightsmall\xFF\
+    00FE5D\xFEtortoiseshellbracketleftsmall\xFF\
+    00FE5E\xFEtortoiseshellbracketrightsmall\xFF\
+    00FE5F\xFEnumbersignsmall\xFF\
+    00FE61\xFEasterisksmall\xFF\
+    00FE62\xFEplussmall\xFF\
+    00FE63\xFEhyphensmall\xFF\
+    00FE64\xFElesssmall\xFF\
+    00FE65\xFEgreatersmall\xFF\
+    00FE66\xFEequalsmall\xFF\
+    00FE69\xFEdollarsmall\xFF\
+    00FE6A\xFEpercentsmall\xFF\
+    00FE6B\xFEatsmall\xFF\
+    00FE82\xFEalefmaddaabovefinalarabic\xFF\
+    00FE84\xFEalefhamzaabovefinalarabic\xFF\
+    00FE86\xFEwawhamzaabovefinalarabic\xFF\
+    00FE88\xFEalefhamzabelowfinalarabic\xFF\
+    00FE8A\xFEyehhamzaabovefinalarabic\xFF\
+    00FE8B\xFEyehhamzaaboveinitialarabic\xFF\
+    00FE8C\xFEyehhamzaabovemedialarabic\xFF\
+    00FE8E\xFEaleffinalarabic\xFF\
+    00FE90\xFEbehfinalarabic\xFF\
+    00FE91\xFEbehinitialarabic\xFF\
+    00FE92\xFEbehmedialarabic\xFF\
+    00FE94\xFEtehmarbutafinalarabic\xFF\
+    00FE96\xFEtehfinalarabic\xFF\
+    00FE97\xFEtehinitialarabic\xFF\
+    00FE98\xFEtehmedialarabic\xFF\
+    00FE9A\xFEthehfinalarabic\xFF\
+    00FE9B\xFEthehinitialarabic\xFF\
+    00FE9C\xFEthehmedialarabic\xFF\
+    00FE9E\xFEjeemfinalarabic\xFF\
+    00FE9F\xFEjeeminitialarabic\xFF\
+    00FEA0\xFEjeemmedialarabic\xFF\
+    00FEA2\xFEhahfinalarabic\xFF\
+    00FEA3\xFEhahinitialarabic\xFF\
+    00FEA4\xFEhahmedialarabic\xFF\
+    00FEA6\xFEkhahfinalarabic\xFF\
+    00FEA7\xFEkhahinitialarabic\xFF\
+    00FEA8\xFEkhahmedialarabic\xFF\
+    00FEAA\xFEdalfinalarabic\xFF\
+    00FEAC\xFEthalfinalarabic\xFF\
+    00FEAE\xFErehfinalarabic\xFF\
+    00FEB0\xFEzainfinalarabic\xFF\
+    00FEB2\xFEseenfinalarabic\xFF\
+    00FEB3\xFEseeninitialarabic\xFF\
+    00FEB4\xFEseenmedialarabic\xFF\
+    00FEB6\xFEsheenfinalarabic\xFF\
+    00FEB7\xFEsheeninitialarabic\xFF\
+    00FEB8\xFEsheenmedialarabic\xFF\
+    00FEBA\xFEsadfinalarabic\xFF\
+    00FEBB\xFEsadinitialarabic\xFF\
+    00FEBC\xFEsadmedialarabic\xFF\
+    00FEBE\xFEdadfinalarabic\xFF\
+    00FEBF\xFEdadinitialarabic\xFF\
+    00FEC0\xFEdadmedialarabic\xFF\
+    00FEC2\xFEtahfinalarabic\xFF\
+    00FEC3\xFEtahinitialarabic\xFF\
+    00FEC4\xFEtahmedialarabic\xFF\
+    00FEC6\xFEzahfinalarabic\xFF\
+    00FEC7\xFEzahinitialarabic\xFF\
+    00FEC8\xFEzahmedialarabic\xFF\
+    00FECA\xFEainfinalarabic\xFF\
+    00FECB\xFEaininitialarabic\xFF\
+    00FECC\xFEainmedialarabic\xFF\
+    00FECE\xFEghainfinalarabic\xFF\
+    00FECF\xFEghaininitialarabic\xFF\
+    00FED0\xFEghainmedialarabic\xFF\
+    00FED2\xFEfehfinalarabic\xFF\
+    00FED3\xFEfehinitialarabic\xFF\
+    00FED4\xFEfehmedialarabic\xFF\
+    00FED6\xFEqaffinalarabic\xFF\
+    00FED7\xFEqafinitialarabic\xFF\
+    00FED8\xFEqafmedialarabic\xFF\
+    00FEDA\xFEkaffinalarabic\xFF\
+    00FEDB\xFEkafinitialarabic\xFF\
+    00FEDC\xFEkafmedialarabic\xFF\
+    00FEDE\xFElamfinalarabic\xFF\
+    00FEDF\xFElaminitialarabic\xFF\
+    00FEE0\xFElammedialarabic\xFF\
+    00FEE2\xFEmeemfinalarabic\xFF\
+    00FEE3\xFEmeeminitialarabic\xFF\
+    00FEE4\xFEmeemmedialarabic\xFF\
+    00FEE6\xFEnoonfinalarabic\xFF\
+    00FEE7\xFEnooninitialarabic\xFF\
+    00FEE8\xFEnoonmedialarabic\xFF\
+    00FEEA\xFEhehfinalalttwoarabic\xFF\
+    00FEEB\xFEhehinitialarabic\xFF\
+    00FEEC\xFEhehmedialarabic\xFF\
+    00FEEE\xFEwawfinalarabic\xFF\
+    00FEF0\xFEalefmaksurafinalarabic\xFF\
+    00FEF2\xFEyehfinalarabic\xFF\
+    00FEF3\xFEalefmaksurainitialarabic\xFF\
+    00FEF4\xFEalefmaksuramedialarabic\xFF\
+    00FEF5\xFElamalefmaddaaboveisolatedarabic\xFF\
+    00FEF6\xFElamalefmaddaabovefinalarabic\xFF\
+    00FEF7\xFElamalefhamzaaboveisolatedarabic\xFF\
+    00FEF8\xFElamalefhamzaabovefinalarabic\xFF\
+    00FEF9\xFElamalefhamzabelowisolatedarabic\xFF\
+    00FEFA\xFElamalefhamzabelowfinalarabic\xFF\
+    00FEFB\xFElamalefisolatedarabic\xFF\
+    00FEFC\xFElamaleffinalarabic\xFF\
+    00FEFF\xFEzerowidthjoiner\xFF\
+    00FF01\xFEexclammonospace\xFF\
+    00FF02\xFEquotedblmonospace\xFF\
+    00FF03\xFEnumbersignmonospace\xFF\
+    00FF04\xFEdollarmonospace\xFF\
+    00FF05\xFEpercentmonospace\xFF\
+    00FF06\xFEampersandmonospace\xFF\
+    00FF07\xFEquotesinglemonospace\xFF\
+    00FF08\xFEparenleftmonospace\xFF\
+    00FF09\xFEparenrightmonospace\xFF\
+    00FF0A\xFEasteriskmonospace\xFF\
+    00FF0B\xFEplusmonospace\xFF\
+    00FF0C\xFEcommamonospace\xFF\
+    00FF0D\xFEhyphenmonospace\xFF\
+    00FF0E\xFEperiodmonospace\xFF\
+    00FF0F\xFEslashmonospace\xFF\
+    00FF10\xFEzeromonospace\xFF\
+    00FF11\xFEonemonospace\xFF\
+    00FF12\xFEtwomonospace\xFF\
+    00FF13\xFEthreemonospace\xFF\
+    00FF14\xFEfourmonospace\xFF\
+    00FF15\xFEfivemonospace\xFF\
+    00FF16\xFEsixmonospace\xFF\
+    00FF17\xFEsevenmonospace\xFF\
+    00FF18\xFEeightmonospace\xFF\
+    00FF19\xFEninemonospace\xFF\
+    00FF1A\xFEcolonmonospace\xFF\
+    00FF1B\xFEsemicolonmonospace\xFF\
+    00FF1C\xFElessmonospace\xFF\
+    00FF1D\xFEequalmonospace\xFF\
+    00FF1E\xFEgreatermonospace\xFF\
+    00FF1F\xFEquestionmonospace\xFF\
+    00FF20\xFEatmonospace\xFF\
+    00FF21\xFEAmonospace\xFF\
+    00FF22\xFEBmonospace\xFF\
+    00FF23\xFECmonospace\xFF\
+    00FF24\xFEDmonospace\xFF\
+    00FF25\xFEEmonospace\xFF\
+    00FF26\xFEFmonospace\xFF\
+    00FF27\xFEGmonospace\xFF\
+    00FF28\xFEHmonospace\xFF\
+    00FF29\xFEImonospace\xFF\
+    00FF2A\xFEJmonospace\xFF\
+    00FF2B\xFEKmonospace\xFF\
+    00FF2C\xFELmonospace\xFF\
+    00FF2D\xFEMmonospace\xFF\
+    00FF2E\xFENmonospace\xFF\
+    00FF2F\xFEOmonospace\xFF\
+    00FF30\xFEPmonospace\xFF\
+    00FF31\xFEQmonospace\xFF\
+    00FF32\xFERmonospace\xFF\
+    00FF33\xFESmonospace\xFF\
+    00FF34\xFETmonospace\xFF\
+    00FF35\xFEUmonospace\xFF\
+    00FF36\xFEVmonospace\xFF\
+    00FF37\xFEWmonospace\xFF\
+    00FF38\xFEXmonospace\xFF\
+    00FF39\xFEYmonospace\xFF\
+    00FF3A\xFEZmonospace\xFF\
+    00FF3B\xFEbracketleftmonospace\xFF\
+    00FF3C\xFEbackslashmonospace\xFF\
+    00FF3D\xFEbracketrightmonospace\xFF\
+    00FF3E\xFEasciicircummonospace\xFF\
+    00FF3F\xFEunderscoremonospace\xFF\
+    00FF40\xFEgravemonospace\xFF\
+    00FF41\xFEamonospace\xFF\
+    00FF42\xFEbmonospace\xFF\
+    00FF43\xFEcmonospace\xFF\
+    00FF44\xFEdmonospace\xFF\
+    00FF45\xFEemonospace\xFF\
+    00FF46\xFEfmonospace\xFF\
+    00FF47\xFEgmonospace\xFF\
+    00FF48\xFEhmonospace\xFF\
+    00FF49\xFEimonospace\xFF\
+    00FF4A\xFEjmonospace\xFF\
+    00FF4B\xFEkmonospace\xFF\
+    00FF4C\xFElmonospace\xFF\
+    00FF4D\xFEmmonospace\xFF\
+    00FF4E\xFEnmonospace\xFF\
+    00FF4F\xFEomonospace\xFF\
+    00FF50\xFEpmonospace\xFF\
+    00FF51\xFEqmonospace\xFF\
+    00FF52\xFErmonospace\xFF\
+    00FF53\xFEsmonospace\xFF\
+    00FF54\xFEtmonospace\xFF\
+    00FF55\xFEumonospace\xFF\
+    00FF56\xFEvmonospace\xFF\
+    00FF57\xFEwmonospace\xFF\
+    00FF58\xFExmonospace\xFF\
+    00FF59\xFEymonospace\xFF\
+    00FF5A\xFEzmonospace\xFF\
+    00FF5B\xFEbraceleftmonospace\xFF\
+    00FF5C\xFEbarmonospace\xFF\
+    00FF5D\xFEbracerightmonospace\xFF\
+    00FF5E\xFEasciitildemonospace\xFF\
+    00FF61\xFEperiodhalfwidth\xFF\
+    00FF62\xFEcornerbracketlefthalfwidth\xFF\
+    00FF63\xFEcornerbracketrighthalfwidth\xFF\
+    00FF64\xFEideographiccommaleft\xFF\
+    00FF65\xFEmiddledotkatakanahalfwidth\xFF\
+    00FF66\xFEwokatakanahalfwidth\xFF\
+    00FF67\xFEasmallkatakanahalfwidth\xFF\
+    00FF68\xFEismallkatakanahalfwidth\xFF\
+    00FF69\xFEusmallkatakanahalfwidth\xFF\
+    00FF6A\xFEesmallkatakanahalfwidth\xFF\
+    00FF6B\xFEosmallkatakanahalfwidth\xFF\
+    00FF6C\xFEyasmallkatakanahalfwidth\xFF\
+    00FF6D\xFEyusmallkatakanahalfwidth\xFF\
+    00FF6E\xFEyosmallkatakanahalfwidth\xFF\
+    00FF6F\xFEtusmallkatakanahalfwidth\xFF\
+    00FF70\xFEkatahiraprolongmarkhalfwidth\xFF\
+    00FF71\xFEakatakanahalfwidth\xFF\
+    00FF72\xFEikatakanahalfwidth\xFF\
+    00FF73\xFEukatakanahalfwidth\xFF\
+    00FF74\xFEekatakanahalfwidth\xFF\
+    00FF75\xFEokatakanahalfwidth\xFF\
+    00FF76\xFEkakatakanahalfwidth\xFF\
+    00FF77\xFEkikatakanahalfwidth\xFF\
+    00FF78\xFEkukatakanahalfwidth\xFF\
+    00FF79\xFEkekatakanahalfwidth\xFF\
+    00FF7A\xFEkokatakanahalfwidth\xFF\
+    00FF7B\xFEsakatakanahalfwidth\xFF\
+    00FF7C\xFEsikatakanahalfwidth\xFF\
+    00FF7D\xFEsukatakanahalfwidth\xFF\
+    00FF7E\xFEsekatakanahalfwidth\xFF\
+    00FF7F\xFEsokatakanahalfwidth\xFF\
+    00FF80\xFEtakatakanahalfwidth\xFF\
+    00FF81\xFEtikatakanahalfwidth\xFF\
+    00FF82\xFEtukatakanahalfwidth\xFF\
+    00FF83\xFEtekatakanahalfwidth\xFF\
+    00FF84\xFEtokatakanahalfwidth\xFF\
+    00FF85\xFEnakatakanahalfwidth\xFF\
+    00FF86\xFEnikatakanahalfwidth\xFF\
+    00FF87\xFEnukatakanahalfwidth\xFF\
+    00FF88\xFEnekatakanahalfwidth\xFF\
+    00FF89\xFEnokatakanahalfwidth\xFF\
+    00FF8A\xFEhakatakanahalfwidth\xFF\
+    00FF8B\xFEhikatakanahalfwidth\xFF\
+    00FF8C\xFEhukatakanahalfwidth\xFF\
+    00FF8D\xFEhekatakanahalfwidth\xFF\
+    00FF8E\xFEhokatakanahalfwidth\xFF\
+    00FF8F\xFEmakatakanahalfwidth\xFF\
+    00FF90\xFEmikatakanahalfwidth\xFF\
+    00FF91\xFEmukatakanahalfwidth\xFF\
+    00FF92\xFEmekatakanahalfwidth\xFF\
+    00FF93\xFEmokatakanahalfwidth\xFF\
+    00FF94\xFEyakatakanahalfwidth\xFF\
+    00FF95\xFEyukatakanahalfwidth\xFF\
+    00FF96\xFEyokatakanahalfwidth\xFF\
+    00FF97\xFErakatakanahalfwidth\xFF\
+    00FF98\xFErikatakanahalfwidth\xFF\
+    00FF99\xFErukatakanahalfwidth\xFF\
+    00FF9A\xFErekatakanahalfwidth\xFF\
+    00FF9B\xFErokatakanahalfwidth\xFF\
+    00FF9C\xFEwakatakanahalfwidth\xFF\
+    00FF9D\xFEnkatakanahalfwidth\xFF\
+    00FF9E\xFEvoicedmarkkanahalfwidth\xFF\
+    00FF9F\xFEsemivoicedmarkkanahalfwidth\xFF\
+    00FFE0\xFEcentmonospace\xFF\
+    00FFE1\xFEsterlingmonospace\xFF\
+    00FFE3\xFEmacronmonospace\xFF\
+    00FFE5\xFEyenmonospace\xFF\
+    00FFE6\xFEwonmonospace\xFF";

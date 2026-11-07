@@ -17,7 +17,8 @@ They are patched for what upstream does not have:
   `re` rectangles from other paths, the `Tf` operand and a substitute's stretch per glyph, and
   the two flags of `/Group`.
 - **hayro-font**: one table per font for what each character code does (glyph, stretch,
-  advance), instead of per-glyph lookups and an atomic refcount per glyph; how a substituted
+  advance), instead of per-glyph lookups and an atomic refcount per glyph; generated tables as sorted
+  bytes rather than `phf` maps, which leaves `phf` out of the build; how a substituted
   font's glyphs fit the PDF's widths; what a font's dictionary says about it.
 - **hayro-syntax**: pages built on first use, from a walk that counts repeated kids and skips cycles
   (for a ranged file, from a descent by `/Count` until something doesn't add up), and reading through

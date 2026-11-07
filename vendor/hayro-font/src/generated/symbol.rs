@@ -1,197 +1,196 @@
-use phf::phf_map;
-
+// recto: a sorted table rather than a phf map; see `by_name` in mod.rs.
 pub(crate) fn get(code: u8) -> Option<&'static str> {
-    SYMBOL.get(&code).copied()
+    static CODES: super::Codes = super::Codes::new();
+    CODES.get(SYMBOL, code)
 }
 
-static SYMBOL: phf::Map<u8, &'static str> = phf_map! {
-    32_u8 => "space",
-    33_u8 => "exclam",
-    34_u8 => "universal",
-    35_u8 => "numbersign",
-    36_u8 => "existential",
-    37_u8 => "percent",
-    38_u8 => "ampersand",
-    39_u8 => "suchthat",
-    40_u8 => "parenleft",
-    41_u8 => "parenright",
-    42_u8 => "asteriskmath",
-    43_u8 => "plus",
-    44_u8 => "comma",
-    45_u8 => "minus",
-    46_u8 => "period",
-    47_u8 => "slash",
-    48_u8 => "zero",
-    49_u8 => "one",
-    50_u8 => "two",
-    51_u8 => "three",
-    52_u8 => "four",
-    53_u8 => "five",
-    54_u8 => "six",
-    55_u8 => "seven",
-    56_u8 => "eight",
-    57_u8 => "nine",
-    58_u8 => "colon",
-    59_u8 => "semicolon",
-    60_u8 => "less",
-    61_u8 => "equal",
-    62_u8 => "greater",
-    63_u8 => "question",
-    64_u8 => "congruent",
-    65_u8 => "Alpha",
-    66_u8 => "Beta",
-    67_u8 => "Chi",
-    68_u8 => "Delta",
-    69_u8 => "Epsilon",
-    70_u8 => "Phi",
-    71_u8 => "Gamma",
-    72_u8 => "Eta",
-    73_u8 => "Iota",
-    74_u8 => "theta1",
-    75_u8 => "Kappa",
-    76_u8 => "Lambda",
-    77_u8 => "Mu",
-    78_u8 => "Nu",
-    79_u8 => "Omicron",
-    80_u8 => "Pi",
-    81_u8 => "Theta",
-    82_u8 => "Rho",
-    83_u8 => "Sigma",
-    84_u8 => "Tau",
-    85_u8 => "Upsilon",
-    86_u8 => "sigma1",
-    87_u8 => "Omega",
-    88_u8 => "Xi",
-    89_u8 => "Psi",
-    90_u8 => "Zeta",
-    91_u8 => "bracketleft",
-    92_u8 => "therefore",
-    93_u8 => "bracketright",
-    94_u8 => "perpendicular",
-    95_u8 => "underscore",
-    96_u8 => "radicalex",
-    97_u8 => "alpha",
-    98_u8 => "beta",
-    99_u8 => "chi",
-    100_u8 => "delta",
-    101_u8 => "epsilon",
-    102_u8 => "phi",
-    103_u8 => "gamma",
-    104_u8 => "eta",
-    105_u8 => "iota",
-    106_u8 => "phi1",
-    107_u8 => "kappa",
-    108_u8 => "lambda",
-    109_u8 => "mu",
-    110_u8 => "nu",
-    111_u8 => "omicron",
-    112_u8 => "pi",
-    113_u8 => "theta",
-    114_u8 => "rho",
-    115_u8 => "sigma",
-    116_u8 => "tau",
-    117_u8 => "upsilon",
-    118_u8 => "omega1",
-    119_u8 => "omega",
-    120_u8 => "xi",
-    121_u8 => "psi",
-    122_u8 => "zeta",
-    123_u8 => "braceleft",
-    124_u8 => "bar",
-    125_u8 => "braceright",
-    126_u8 => "similar",
-    160_u8 => "Euro",
-    161_u8 => "Upsilon1",
-    162_u8 => "minute",
-    163_u8 => "lessequal",
-    164_u8 => "fraction",
-    165_u8 => "infinity",
-    166_u8 => "florin",
-    167_u8 => "club",
-    168_u8 => "diamond",
-    169_u8 => "heart",
-    170_u8 => "spade",
-    171_u8 => "arrowboth",
-    172_u8 => "arrowleft",
-    173_u8 => "arrowup",
-    174_u8 => "arrowright",
-    175_u8 => "arrowdown",
-    176_u8 => "degree",
-    177_u8 => "plusminus",
-    178_u8 => "second",
-    179_u8 => "greaterequal",
-    180_u8 => "multiply",
-    181_u8 => "proportional",
-    182_u8 => "partialdiff",
-    183_u8 => "bullet",
-    184_u8 => "divide",
-    185_u8 => "notequal",
-    186_u8 => "equivalence",
-    187_u8 => "approxequal",
-    188_u8 => "ellipsis",
-    189_u8 => "arrowvertex",
-    190_u8 => "arrowhorizex",
-    191_u8 => "carriagereturn",
-    192_u8 => "aleph",
-    193_u8 => "Ifraktur",
-    194_u8 => "Rfraktur",
-    195_u8 => "weierstrass",
-    196_u8 => "circlemultiply",
-    197_u8 => "circleplus",
-    198_u8 => "emptyset",
-    199_u8 => "intersection",
-    200_u8 => "union",
-    201_u8 => "propersuperset",
-    202_u8 => "reflexsuperset",
-    203_u8 => "notsubset",
-    204_u8 => "propersubset",
-    205_u8 => "reflexsubset",
-    206_u8 => "element",
-    207_u8 => "notelement",
-    208_u8 => "angle",
-    209_u8 => "gradient",
-    210_u8 => "registerserif",
-    211_u8 => "copyrightserif",
-    212_u8 => "trademarkserif",
-    213_u8 => "product",
-    214_u8 => "radical",
-    215_u8 => "dotmath",
-    216_u8 => "logicalnot",
-    217_u8 => "logicaland",
-    218_u8 => "logicalor",
-    219_u8 => "arrowdblboth",
-    220_u8 => "arrowdblleft",
-    221_u8 => "arrowdblup",
-    222_u8 => "arrowdblright",
-    223_u8 => "arrowdbldown",
-    224_u8 => "lozenge",
-    225_u8 => "angleleft",
-    226_u8 => "registersans",
-    227_u8 => "copyrightsans",
-    228_u8 => "trademarksans",
-    229_u8 => "summation",
-    230_u8 => "parenlefttp",
-    231_u8 => "parenleftex",
-    232_u8 => "parenleftbt",
-    233_u8 => "bracketlefttp",
-    234_u8 => "bracketleftex",
-    235_u8 => "bracketleftbt",
-    236_u8 => "bracelefttp",
-    237_u8 => "braceleftmid",
-    238_u8 => "braceleftbt",
-    239_u8 => "braceex",
-    241_u8 => "angleright",
-    242_u8 => "integral",
-    243_u8 => "integraltp",
-    244_u8 => "integralex",
-    245_u8 => "integralbt",
-    246_u8 => "parenrighttp",
-    247_u8 => "parenrightex",
-    248_u8 => "parenrightbt",
-    249_u8 => "bracketrighttp",
-    250_u8 => "bracketrightex",
-    251_u8 => "bracketrightbt",
-    252_u8 => "bracerighttp",
-    253_u8 => "bracerightmid",
-    254_u8 => "bracerightbt",
-};
+pub(super) static SYMBOL: &[u8] = b"\
+    20\xFEspace\xFF\
+    21\xFEexclam\xFF\
+    22\xFEuniversal\xFF\
+    23\xFEnumbersign\xFF\
+    24\xFEexistential\xFF\
+    25\xFEpercent\xFF\
+    26\xFEampersand\xFF\
+    27\xFEsuchthat\xFF\
+    28\xFEparenleft\xFF\
+    29\xFEparenright\xFF\
+    2A\xFEasteriskmath\xFF\
+    2B\xFEplus\xFF\
+    2C\xFEcomma\xFF\
+    2D\xFEminus\xFF\
+    2E\xFEperiod\xFF\
+    2F\xFEslash\xFF\
+    30\xFEzero\xFF\
+    31\xFEone\xFF\
+    32\xFEtwo\xFF\
+    33\xFEthree\xFF\
+    34\xFEfour\xFF\
+    35\xFEfive\xFF\
+    36\xFEsix\xFF\
+    37\xFEseven\xFF\
+    38\xFEeight\xFF\
+    39\xFEnine\xFF\
+    3A\xFEcolon\xFF\
+    3B\xFEsemicolon\xFF\
+    3C\xFEless\xFF\
+    3D\xFEequal\xFF\
+    3E\xFEgreater\xFF\
+    3F\xFEquestion\xFF\
+    40\xFEcongruent\xFF\
+    41\xFEAlpha\xFF\
+    42\xFEBeta\xFF\
+    43\xFEChi\xFF\
+    44\xFEDelta\xFF\
+    45\xFEEpsilon\xFF\
+    46\xFEPhi\xFF\
+    47\xFEGamma\xFF\
+    48\xFEEta\xFF\
+    49\xFEIota\xFF\
+    4A\xFEtheta1\xFF\
+    4B\xFEKappa\xFF\
+    4C\xFELambda\xFF\
+    4D\xFEMu\xFF\
+    4E\xFENu\xFF\
+    4F\xFEOmicron\xFF\
+    50\xFEPi\xFF\
+    51\xFETheta\xFF\
+    52\xFERho\xFF\
+    53\xFESigma\xFF\
+    54\xFETau\xFF\
+    55\xFEUpsilon\xFF\
+    56\xFEsigma1\xFF\
+    57\xFEOmega\xFF\
+    58\xFEXi\xFF\
+    59\xFEPsi\xFF\
+    5A\xFEZeta\xFF\
+    5B\xFEbracketleft\xFF\
+    5C\xFEtherefore\xFF\
+    5D\xFEbracketright\xFF\
+    5E\xFEperpendicular\xFF\
+    5F\xFEunderscore\xFF\
+    60\xFEradicalex\xFF\
+    61\xFEalpha\xFF\
+    62\xFEbeta\xFF\
+    63\xFEchi\xFF\
+    64\xFEdelta\xFF\
+    65\xFEepsilon\xFF\
+    66\xFEphi\xFF\
+    67\xFEgamma\xFF\
+    68\xFEeta\xFF\
+    69\xFEiota\xFF\
+    6A\xFEphi1\xFF\
+    6B\xFEkappa\xFF\
+    6C\xFElambda\xFF\
+    6D\xFEmu\xFF\
+    6E\xFEnu\xFF\
+    6F\xFEomicron\xFF\
+    70\xFEpi\xFF\
+    71\xFEtheta\xFF\
+    72\xFErho\xFF\
+    73\xFEsigma\xFF\
+    74\xFEtau\xFF\
+    75\xFEupsilon\xFF\
+    76\xFEomega1\xFF\
+    77\xFEomega\xFF\
+    78\xFExi\xFF\
+    79\xFEpsi\xFF\
+    7A\xFEzeta\xFF\
+    7B\xFEbraceleft\xFF\
+    7C\xFEbar\xFF\
+    7D\xFEbraceright\xFF\
+    7E\xFEsimilar\xFF\
+    A0\xFEEuro\xFF\
+    A1\xFEUpsilon1\xFF\
+    A2\xFEminute\xFF\
+    A3\xFElessequal\xFF\
+    A4\xFEfraction\xFF\
+    A5\xFEinfinity\xFF\
+    A6\xFEflorin\xFF\
+    A7\xFEclub\xFF\
+    A8\xFEdiamond\xFF\
+    A9\xFEheart\xFF\
+    AA\xFEspade\xFF\
+    AB\xFEarrowboth\xFF\
+    AC\xFEarrowleft\xFF\
+    AD\xFEarrowup\xFF\
+    AE\xFEarrowright\xFF\
+    AF\xFEarrowdown\xFF\
+    B0\xFEdegree\xFF\
+    B1\xFEplusminus\xFF\
+    B2\xFEsecond\xFF\
+    B3\xFEgreaterequal\xFF\
+    B4\xFEmultiply\xFF\
+    B5\xFEproportional\xFF\
+    B6\xFEpartialdiff\xFF\
+    B7\xFEbullet\xFF\
+    B8\xFEdivide\xFF\
+    B9\xFEnotequal\xFF\
+    BA\xFEequivalence\xFF\
+    BB\xFEapproxequal\xFF\
+    BC\xFEellipsis\xFF\
+    BD\xFEarrowvertex\xFF\
+    BE\xFEarrowhorizex\xFF\
+    BF\xFEcarriagereturn\xFF\
+    C0\xFEaleph\xFF\
+    C1\xFEIfraktur\xFF\
+    C2\xFERfraktur\xFF\
+    C3\xFEweierstrass\xFF\
+    C4\xFEcirclemultiply\xFF\
+    C5\xFEcircleplus\xFF\
+    C6\xFEemptyset\xFF\
+    C7\xFEintersection\xFF\
+    C8\xFEunion\xFF\
+    C9\xFEpropersuperset\xFF\
+    CA\xFEreflexsuperset\xFF\
+    CB\xFEnotsubset\xFF\
+    CC\xFEpropersubset\xFF\
+    CD\xFEreflexsubset\xFF\
+    CE\xFEelement\xFF\
+    CF\xFEnotelement\xFF\
+    D0\xFEangle\xFF\
+    D1\xFEgradient\xFF\
+    D2\xFEregisterserif\xFF\
+    D3\xFEcopyrightserif\xFF\
+    D4\xFEtrademarkserif\xFF\
+    D5\xFEproduct\xFF\
+    D6\xFEradical\xFF\
+    D7\xFEdotmath\xFF\
+    D8\xFElogicalnot\xFF\
+    D9\xFElogicaland\xFF\
+    DA\xFElogicalor\xFF\
+    DB\xFEarrowdblboth\xFF\
+    DC\xFEarrowdblleft\xFF\
+    DD\xFEarrowdblup\xFF\
+    DE\xFEarrowdblright\xFF\
+    DF\xFEarrowdbldown\xFF\
+    E0\xFElozenge\xFF\
+    E1\xFEangleleft\xFF\
+    E2\xFEregistersans\xFF\
+    E3\xFEcopyrightsans\xFF\
+    E4\xFEtrademarksans\xFF\
+    E5\xFEsummation\xFF\
+    E6\xFEparenlefttp\xFF\
+    E7\xFEparenleftex\xFF\
+    E8\xFEparenleftbt\xFF\
+    E9\xFEbracketlefttp\xFF\
+    EA\xFEbracketleftex\xFF\
+    EB\xFEbracketleftbt\xFF\
+    EC\xFEbracelefttp\xFF\
+    ED\xFEbraceleftmid\xFF\
+    EE\xFEbraceleftbt\xFF\
+    EF\xFEbraceex\xFF\
+    F1\xFEangleright\xFF\
+    F2\xFEintegral\xFF\
+    F3\xFEintegraltp\xFF\
+    F4\xFEintegralex\xFF\
+    F5\xFEintegralbt\xFF\
+    F6\xFEparenrighttp\xFF\
+    F7\xFEparenrightex\xFF\
+    F8\xFEparenrightbt\xFF\
+    F9\xFEbracketrighttp\xFF\
+    FA\xFEbracketrightex\xFF\
+    FB\xFEbracketrightbt\xFF\
+    FC\xFEbracerighttp\xFF\
+    FD\xFEbracerightmid\xFF\
+    FE\xFEbracerightbt\xFF";
