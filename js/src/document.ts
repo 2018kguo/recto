@@ -281,6 +281,8 @@ export type Instance = {
   memory: WebAssembly.Memory;
   generation: number;
   openDocuments: number;
+  /** The engine's count of documents open, on any of its instances. */
+  documents: { open: number };
   /** Set once the instance trapped or an asset failed; nothing may call it again. */
   dead: boolean;
   /** An asset's load failure, rethrown by the call that needed the asset. */
@@ -452,6 +454,7 @@ export class RectoDocument implements PdfDocument {
     this.#fetchFailure = fetchFailure;
     this.pageCount = doc.pageCount;
     instance.openDocuments += 1;
+    instance.documents.open += 1;
   }
 
   #check(index: number): void {
@@ -652,6 +655,7 @@ export class RectoDocument implements PdfDocument {
     if (!this.#instance.dead) {
       this.#doc.free();
     }
+    this.#instance.documents.open -= 1;
     this.#instance.onClose?.();
   }
 

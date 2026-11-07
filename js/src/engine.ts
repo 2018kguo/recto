@@ -121,7 +121,13 @@ const hashOn =
   (bytes) =>
     instance.dead ? null : Array.from(instance.glue.sha256(bytes), (byte) => byte.toString(16).padStart(2, "0")).join("");
 
-function instantiate(generation: number, base: URL | null, module: WebAssembly.Module, full: boolean): Instance {
+function instantiate(
+  generation: number,
+  base: URL | null,
+  module: WebAssembly.Module,
+  full: boolean,
+  documents: { open: number } = { open: 0 }
+): Instance {
   // Each instance gets its own glue closure (scripts/package-wasm.mjs), so a retired
   // instance and its memory are collected with it.
   const glue = createGlue();
@@ -132,6 +138,7 @@ function instantiate(generation: number, base: URL | null, module: WebAssembly.M
     memory: exports.memory,
     generation,
     openDocuments: 0,
+    documents,
     dead: false,
     failure: undefined,
   };
@@ -182,6 +189,8 @@ class RectoEngine implements PdfEngine {
   #full: boolean;
   readonly #base: URL | null;
   readonly #recycleAboveBytes: number;
+  /** Across every instance: a document that moved, or stayed on an old one, still counts. */
+  readonly #documents: { open: number };
 
   constructor(instance: Instance, base: URL | null, recycleAboveBytes: number) {
     this.#instance = instance;
@@ -189,6 +198,7 @@ class RectoEngine implements PdfEngine {
     this.#generation = instance.generation;
     this.#base = base;
     this.#recycleAboveBytes = recycleAboveBytes;
+    this.#documents = instance.documents;
     this.#watch(instance);
   }
 
@@ -219,7 +229,7 @@ class RectoEngine implements PdfEngine {
     }
     const full = this.#full;
     this.#starting ??= compile(full ? "recto.wasm" : "recto-text.wasm", this.#base)
-      .then((module) => instantiate(this.#generation + 1, this.#base, module, full))
+      .then((module) => instantiate(this.#generation + 1, this.#base, module, full, this.#documents))
       .finally(() => {
         this.#starting = null;
       });
@@ -241,7 +251,7 @@ class RectoEngine implements PdfEngine {
       return current;
     }
     this.#full = true;
-    const instance = instantiate(this.#generation + 1, this.#base, fullModuleSync(this.#base, current ? hashOn(current) : undefined), true);
+    const instance = instantiate(this.#generation + 1, this.#base, fullModuleSync(this.#base, current ? hashOn(current) : undefined), true, this.#documents);
     this.#adopt(instance);
     return instance;
   }
@@ -336,7 +346,7 @@ class RectoEngine implements PdfEngine {
     return {
       heapBytes: this.#instance?.memory.buffer.byteLength ?? 0,
       generation: this.#generation,
-      openDocuments: this.#instance?.openDocuments ?? 0,
+      openDocuments: this.#documents.open,
     };
   }
 }
