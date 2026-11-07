@@ -200,7 +200,14 @@ async function main() {
             }
             if (!values.repair) fs.rmSync(file, { force: true });
             current = null;
-            feed();
+            // A generated file's memory is its own: wasm memory never shrinks, so one process would add them up.
+            if (values.structures) {
+              closing = true;
+              clearTimeout(timer);
+              proc.stdin.end();
+            } else {
+              feed();
+            }
           }
         });
         proc.on("close", () => {

@@ -233,7 +233,7 @@ on anything a user might upload, use one of those two.
   group is close but not exact. [The scorecard](docs/benchmarks.md#the-scorecard) compares pixels with pdfium,
   pdf.js and poppler on 539 small, mostly adversarial files, not at scale, and its threshold can hide a missing line. A blend mode against bare paper blends with the white (pdfium
   does too; the spec says the paper isn't there yet). Lab's dark colours and some mask edges differ a little. An annotation with no
-  appearance is drawn from its dictionary, with free text and field values in Helvetica, one line each, unwrapped;
+  appearance is drawn from its dictionary, with free text and field values in Helvetica, one line each, unwrapped, if a widget's in the form;
   a stale appearance isn't redrawn under `NeedAppearances`.
 - **Page sizes:** `/UserUnit` doesn't scale `pageInfo` or the boxes, where pdf.js scales them. A page with no usable
   `/MediaBox` is Letter. An empty `/CropBox`, or one outside the media box, gives way to the media box.

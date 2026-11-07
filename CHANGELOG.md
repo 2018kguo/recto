@@ -9,8 +9,9 @@ and the threshold can hide a missing line. See
 
 ### Added
 
+- `doc.structureTruncated()`: whether a limit cut the page tree, labels or outline short, or a damaged tree left no pages.
 - `doc.pageLabels()`: what each page is called. The same as pdf.js on all 16 suite files that have any.
-- `bench/scorecard.mjs`, `bench/fuzz.mjs`, `bench/fuzz-structures.mjs`, `bench/api-cases.mjs`, and a bounded fuzz test in CI.
+- `bench/scorecard.mjs`, `bench/fuzz.mjs`, `bench/fuzz-structures.mjs`, `bench/api-cases.mjs`, `examples/budgets.rs`, and a bounded fuzz test in CI.
 
 ### Fixed
 
@@ -18,7 +19,8 @@ Rendering:
 
 - An annotation with no appearance stream was left out. Highlights, underlines, squiggles, strikeouts,
   squares, circles, lines, polylines, polygons, ink, free text and form fields are drawn from their
-  dictionaries; a combo box shows its option's display text, and a list box its options.
+  dictionaries; a combo box shows its option's display text, and a list box its options. A widget the form doesn't list stays
+  blank, as in pdfium, pdf.js and poppler.
 - A TrueType font whose `loca` runs backwards lost those glyphs.
 - A hybrid file's `XRefStm` with the table's own `Prev` lost the xref, and the repair took old objects.
 - A visibility expression (`/VE`) was ignored, and so was `/OC` on an annotation, direct or not.
@@ -36,6 +38,7 @@ Text:
 Files built to cost, a hang or a `crash` before, now stopping at a budget: page labels, destination names and `/VE` whose nodes
 name the next twice; forms, patterns and Type 3 glyphs that draw the next twice; a large page repeated in `/Kids` or a large
 annotation in `/Annots` (read once each, drawn once each); annotations with no appearance that ask for gigabytes of stream.
+A page cut short has `truncated` true on what `text`, `objects`, `render` and `renderAsync` return.
 
 Damaged files, each a `crash`, a hang or all of memory before:
 

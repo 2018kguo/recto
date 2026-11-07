@@ -1,5 +1,5 @@
 {
- "date": "2026-11-07T05:17:35.378Z",
+ "date": "2026-11-07T05:36:50.652Z",
  "seed": 8,
  "sources": 973,
  "files": 60000,
@@ -13,14 +13,14 @@
   "overwriteRange": 6545,
   "truncate": 6678,
   "bitFlips": 6739,
-  "truncateTail": 6620,
-  "streamLengths": 6749,
   "numbers": 6671,
+  "streamLengths": 6749,
+  "truncateTail": 6620,
   "startxref": 6576,
   "keywords": 6729,
   "xrefOffsets": 6693
  },
- "peakRssMb": 389,
+ "peakRssMb": 397,
  "timeouts": 0,
  "crashes": 0,
  "untyped": 0,
@@ -61,7 +61,9 @@
    "overwriteRange",
    "streamLengths",
    "streamLengths"
-  ]
+  ],
+  "emptyFromLostKids": 43,
+  "emptyHonestly": 1
  },
  "repairSeed": 11,
  "before": {
@@ -76,7 +78,7 @@
   "seed": 21,
   "files": 3000,
   "opened": 3000,
-  "peakRssMb": 1395,
+  "peakRssMb": 745,
   "timeouts": 0,
   "crashes": 0,
   "untyped": 0,

@@ -1,5 +1,5 @@
 {
- "date": "2026-11-07T05:17:57.882Z",
+ "date": "2026-11-07T05:33:27.478Z",
  "settings": {
   "width": 800,
   "pagesPerFile": 3,
@@ -30,13 +30,13 @@
   },
   "pdfium": {
    "pages": 632,
-   "judged": 565,
-   "agrees": 521,
+   "judged": 564,
+   "agrees": 520,
    "differs": 44,
    "blankWhereOthersDraw": 6,
    "failedWhereOthersDraw": 4,
    "wrongShape": 2,
-   "percent": 92.21
+   "percent": 92.2
   },
   "pdf.js": {
    "pages": 632,
@@ -111,9 +111,9 @@
     "percent": 98
    },
    "pdfium": {
-    "judged": 101,
-    "agrees": 98,
-    "percent": 97.03
+    "judged": 100,
+    "agrees": 97,
+    "percent": 97
    },
    "pdf.js": {
     "judged": 105,
@@ -189,7 +189,7 @@
  ],
  "pageCountDisagreements": 0,
  "maxRssMb": {
-  "recto": 296,
+  "recto": 298,
   "pdfium": 130,
   "pdf.js": 767,
   "poppler": 73

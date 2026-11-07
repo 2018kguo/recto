@@ -83,7 +83,7 @@ streams (forms, patterns, Type 3 glyphs, soft masks) cost four times more each l
 second, out of 2^20, and stop at 50 levels; annotations with no appearance share 2^17 points; a `/VE` visits
 2^10 nodes. The document's own trees have limits too, which `structureTruncated()` reports: a page tree's repeats
 stop at 2^18 kids, page labels at 2^16 nodes or ranges, an outline at 2^16 items and 64 levels, its name tree at
-2^18 nodes. [What the costliest real pages use](benchmarks.md#the-scorecard) leaves them far from all of these.
+2^18 nodes. [The costliest real pages we measured](benchmarks.md#damaged-files) leave over 250× room on each.
 
 A render is capped at 16,384 px a side and 64 Mpx, and shrinks to fit. `maxHeight` defaults to
 4096; pass `Infinity` to fit the width alone.

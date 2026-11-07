@@ -330,7 +330,7 @@ each other, by whether it agrees with either. Each engine gets the same test.
 
 | Of the pages two others agree on | recto | pdfium | pdf.js | poppler |
 |---|---:|---:|---:|---:|
-| Agrees with them | **96.9%** of 546 | 92.2% of 565 | 88.0% of 582 | 76.5% of 600 |
+| Agrees with them | **96.9%** of 546 | 92.2% of 564 | 88.0% of 582 | 76.5% of 600 |
 | Blank where they draw | 2 | 6 | 4 | 9 |
 | Fails where they draw | 1 | 4 | 3 | 4 |
 | A different page shape | 0 | 2 | 0 | 3 |
@@ -398,8 +398,22 @@ labels on up to 3 pages of each. A file must end in a result or a `PdfError` tha
 Damage rarely makes a file built to cost, so `bench/fuzz-structures.mjs` generates them: repeats and chains in the
 page labels, destination names, outlines, `/Kids`, field parents and visibility expressions, and forms, patterns, Type 3
 glyphs, soft masks and annotations that ask for far more drawing than their size. That found hangs from a few KB and a
-crash at 2.6 GB. Each now stops at a limit, which leaves such a page incomplete. 3,000 of them, seed 21, with the same
-limits: no failures, and a peak of 1.4 GB in a process that had run many. CI runs each kind once, 15 s and 1.5 GB per file.
+crash at 2.6 GB. Each now stops at a limit and says so: `truncated` on the page's results, or `doc.structureTruncated()`.
+3,000 of them, seed 21, each in a process of its own: no failures, and a peak of 0.75 GB. CI runs each kind, 15 s and 1.5 GB per file,
+and checks exactly which results say so.
+
+The limits mustn't reach a real page. `crates/recto/examples/budgets.rs` reports the most any page or tree used of each,
+over all 543 files that open here (2,408 pages, text, objects and a render of each). Nothing is `truncated`. These are small
+suite files and 39 public ones, not a survey: a page far costlier than these could exist, and would say so.
+
+| Limit | The most used | Of | Room |
+|---|---:|---:|---:|
+| Nested streams | 800 | 2^20 | 1,310× |
+| Annotation points | 495 | 2^17 | 264× |
+| `/VE` nodes | 2 | 2^10 | 512× |
+| Page tree kids | 248 | objects + 2^18 | 1,059× |
+| Page label nodes | 1 | 2^16 | 65,536× |
+| Name tree nodes | 1 | 2^18 | 262,144× |
 
 Three more seeds (180,000 files) also found nothing. That says it's hard to find another with this
 fuzzer, not that there isn't one: a page can still take seconds and hold hundreds of megabytes.
@@ -407,8 +421,9 @@ fuzzer, not that there isn't one: a page can still take seconds and hold hundred
 Which of 1,000 such files each engine opens with at least one page: recto 753, poppler 510, pdf.js 506, pdfium 501.
 That's less of a win than it looks. In 23 files two others open one where recto doesn't, and many of those pages are only a
 trusted `/Count`: of the 27 such files before this fix, pdf.js reported a page in 16 and then couldn't load it. 44 open with no
-pages, down from 55: a tree that lost its kids is scanned, and where the page object itself is damaged the scan can't find it. A
-tree with nothing lost isn't scanned, and a scan doesn't bring back what a later revision removed.
+pages, down from 55: 43 lost their kids, where the page object itself is damaged and a scan can't find it, and
+`doc.structureTruncated().pages` says so; one is honestly empty. A tree with nothing lost isn't scanned, and a scan doesn't bring
+back what a later revision removed.
 
 `js/test/fuzz.test.ts` does the same to generated PDFs in CI, 20,000 files in 3 s, stopping at 30 s.
 
