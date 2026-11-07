@@ -159,3 +159,14 @@ test("a TrueType glyph whose loca entry runs backwards is still drawn", async ()
   // The big square, and not the small one that sits first in `glyf`.
   assert.deepEqual(page.at(50, 50), [0, 0, 0]);
 });
+
+test("a soft mask's group with its BBox corners the other way round still masks by its contents", async () => {
+  const page = await render(
+    pdfOf({
+      content: "/M gs 1 0 0 rg 0 0 100 100 re f",
+      resources: "/ExtGState <</M <</SMask <</S /Luminosity /G 5 0 R>>>>>>",
+      objects: [{ dict: " /Type /XObject /Subtype /Form /BBox [0 100 100 0] /Group <</S /Transparency /CS /DeviceGray>>", data: "1 g 0 0 100 100 re f" }],
+    })
+  );
+  assert.deepEqual(page.at(50, 50), RED);
+});
