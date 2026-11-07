@@ -64,15 +64,16 @@ Opening:
 
 ### Changed
 
-- **One wasm in four parts**, in place of the two builds: `recto.wasm` for text (0.42 MB with brotli),
-  `recto-render.wasm` for drawing (0.24 MB), `recto-more.wasm` and `recto-rare.wasm` for functions few files run (0.21
+- **One wasm in four parts**, in place of the two builds: `recto.wasm` for text (0.43 MB with brotli),
+  `recto-render.wasm` for drawing (0.23 MB), `recto-more.wasm` and `recto-rare.wasm` for functions few files run (0.21
   and 0.17 MB). A part loads inside the call that needs it, onto the same instance, so a document no longer moves
-  between engines. Text then pixels in a browser downloads 0.71 MB where it was 1.72 MB, text alone 0.45 MB where it was
-  0.53 MB, and a fresh page's first pixels go from 66 ms to 52 ms; its first text from 31 ms to 33 ms. Output is byte for byte
-  the same on 2,170 PDFs, whole and ranged. Drawing costs 2% more in Node, calls across the boundary, and text 2% less.
+  between engines. Text then pixels in a browser downloads 0.71 MB where it was 1.72 MB, text alone 0.46 MB where it was
+  0.53 MB, and a fresh page's first pixels go from 66 ms to 52 ms; its first text from 32 ms to 34 ms. Output is byte for byte
+  the same on 2,170 PDFs, whole and ranged. Drawing costs 2% more in Node, calls across the boundary, and text 2% less. The build is the same bytes on any machine.
   If a part fails to load mid-call, the call throws `missing-asset`, open documents stay usable and the next call retries.
 - **The standard fonts are a file each**, not `fonts.bin`: a page that draws one fetches 13–25 KB where it fetched
   213 KB. `preloadAssets` still takes `fonts.bin`, meaning all 14; an `assetBase` directory needs the new files.
+- **`createPdfPool` can't wait for ever**: a thread that can't start fails what's waiting, typed, and a pool from a CDN starts its threads through a blob.
 - `preloadAssets: ["recto.wasm"]` no longer picks an engine: it fetches and compiles what drawing needs now.
 - **Glyph and metric tables** are sorted bytes, not `phf` maps, and the table from a character to its
   glyph name is built on first use: 40 KB less to download with brotli. Reading text costs about 2% more, since

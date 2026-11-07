@@ -40,7 +40,7 @@ widths from `/W` or the metrics in the wasm.
 The wasm is one build cut in four by `wasm-split`, by what a call runs. `recto.wasm` holds what reading
 text runs; `recto-render.wasm` what drawing an ordinary page adds; `recto-more.wasm` the functions no
 profiled file ran; `recto-rare.wasm` the same for image codecs, meshes and the rasterizer's own rare
-paths. The lists in `scripts/wasm-parts/` say which is which, and nothing changes what a function does: a
+paths. The lists in `scripts/wasm-parts/` say which is which, by names that hold no build hash, and nothing changes what a function does: a
 part's functions start as placeholders in the instance's table, and the first call to one
 reads the part, checks it against its pin, instantiates it on the same memory and table, and carries
 on, from inside the call that needed it. That's why every thread that can read synchronously can

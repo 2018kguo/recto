@@ -28,8 +28,8 @@ away, without waiting. `open` then holds the file in WebAssembly memory for as l
 document is open, in memory that comes back only when the instance is replaced.
 
 **One engine, in parts.** The wasm comes in four files, loaded by what a call runs: reading text takes
-`recto.wasm` (1.4 MB, 0.42 MB with brotli); the first `render` adds `recto-render.wasm` (0.79 MB, 0.24 MB);
-functions most files never run are in `recto-more.wasm` (0.90 MB, 0.21 MB) and `recto-rare.wasm` (0.79 MB,
+`recto.wasm` (1.5 MB, 0.43 MB with brotli); the first `render` adds `recto-render.wasm` (0.77 MB, 0.23 MB);
+functions most files never run are in `recto-more.wasm` (0.86 MB, 0.21 MB) and `recto-rare.wasm` (0.79 MB,
 0.17 MB). There's nothing to call. If a part can't be loaded, the call throws `missing-asset`, every open
 document stays usable, and the next call tries again. A thread that will draw can save the first `render` that
 wait with `preloadAssets: ["recto.wasm"]`, which fetches and compiles what drawing needs now.

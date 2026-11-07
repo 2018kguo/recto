@@ -23,7 +23,11 @@ wasm rewrites `js/wasm/pins.mjs`, so the integrity pins are never edited by hand
 `node scripts/profile-wasm.mjs dir...` rewrites `scripts/wasm-parts/` from the test PDFs and the
 directories you give it, adding to the lists (`--replace` starts over). A function that's missing
 from them still works, from a later part, at the cost of a fetch; the output doesn't depend on the lists. The
-lists hold function names and nothing about the files.
+lists hold function names, without build hashes, and nothing about the files.
+
+`build-wasm.sh` tells cargo one host (`scripts/rustc-fixed-host.sh`), so that any machine builds the same bytes as the
+release, on Linux; CI compares a Linux and a macOS build. `node scripts/check-wasm-budget.mjs` holds the build to its download
+budget and to reading text with no part.
 
 `npm run smoke` takes `RECTO_SMOKE_DIR` (where to install; it is emptied) and
 `RECTO_SMOKE_BROWSERS` (default `chromium`; also `firefox`, `webkit`). Every step in it has a

@@ -1,7 +1,7 @@
 {
- "date": "2026-11-07T06:14:12.421Z",
+ "date": "2026-11-07T07:14:38.586Z",
  "machine": "Apple M5 Pro, 18 cores",
- "loadAverage": 2.98486328125,
+ "loadAverage": 1.69140625,
  "node": "v24.22.1",
  "pages": 2000,
  "rendered": 200,
@@ -9,39 +9,39 @@
  "results": {
   "1": {
    "start": 0,
-   "text": 644.5,
-   "render": 255.2,
-   "rss": 360742912
+   "text": 642.8,
+   "render": 256.3,
+   "rss": 360857600
   },
   "2": {
-   "start": 29.2,
-   "text": 323.9,
-   "render": 139.4,
-   "rss": 415039488
+   "start": 29.1,
+   "text": 323.1,
+   "render": 140,
+   "rss": 415760384
   },
   "4": {
-   "start": 31.4,
-   "text": 170.4,
+   "start": 29.6,
+   "text": 169.5,
    "render": 85.1,
-   "rss": 512688128
+   "rss": 515719168
   },
   "8": {
-   "start": 36.4,
-   "text": 102.9,
-   "render": 63.4,
-   "rss": 710787072
+   "start": 36.5,
+   "text": 103,
+   "render": 65,
+   "rss": 713080832
   },
   "16": {
-   "start": 41.9,
-   "text": 70.7,
-   "render": 56.1,
-   "rss": 1111474176
+   "start": 42.3,
+   "text": 72.8,
+   "render": 57.2,
+   "rss": 1116241920
   },
   "direct": {
    "start": 0,
-   "text": 577.3,
-   "render": 256.6,
-   "rss": 264470528
+   "text": 591.3,
+   "render": 259.9,
+   "rss": 265912320
   }
  }
 }
