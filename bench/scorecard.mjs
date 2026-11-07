@@ -409,12 +409,18 @@ function worstWindow(a, b) {
   return best;
 }
 const contestedRanking = contested.sort((a, b) => b.excess - a.excess);
+// Under the limit, which is generous enough to hide a line of text, but well past the references' own
+// difference: where to look for a small thing missing.
+const nearMisses = pageRows
+  .filter((row) => row.recto && row.recto.score <= 1 && row.recto.score > 0.1 && row.recto.score > 3 * row.recto.referenceScore)
+  .map((row) => ({ ...row.recto, id: row.id, localName: row.localName, page: row.page, excess: row.recto.score - row.recto.referenceScore }))
+  .sort((a, b) => b.excess - a.excess);
 const cropDir = path.join(out, "crops");
 fs.rmSync(cropDir, { recursive: true, force: true });
 fs.mkdirSync(cropDir, { recursive: true });
 const PANEL = 360;
 const reportRows = [];
-const toCrop = [...ranking.slice(0, Number(values.crops)).map((row) => ["", row]), ...contestedRanking.slice(0, Number(values.crops)).map((row) => ["c", row])];
+const toCrop = [...ranking.slice(0, Number(values.crops)).map((row) => ["", row]), ...contestedRanking.slice(0, Number(values.crops)).map((row) => ["c", row]), ...nearMisses.slice(0, Number(values.crops)).map((row) => ["n", row])];
 for (const [index, [prefix, row]] of toCrop.entries()) {
   const entry = files.find((f) => f.id === row.id);
   const images = ENGINES.map((engine) => [engine, loadPage(rendered.get(`${engine}|${entry.id}`), row.page)]);
@@ -460,9 +466,10 @@ const summary = {
   pageCountDisagreements: pageCountDisagreements.length,
   maxRssMb: maxRss,
   contestedWhereRectoIsFurthest: contested.length,
+  nearMisses: nearMisses.length,
   ranking: ranking.slice(0, 50).map(({ id, page, score: s, status, real, mae, blank, shape }) => ({ id, page, score: s === Infinity ? null : Math.round(s * 10) / 10, status, real: real === undefined ? undefined : Math.round(real * 100) / 100, mae: mae === undefined ? undefined : Math.round(mae * 10) / 10, blank: blank || undefined, shape: shape || undefined })),
 };
-fs.writeFileSync(path.join(out, "report.json"), JSON.stringify({ ...summary, ranking, contested: contestedRanking, pageCountDisagreements, failureExamples: Object.fromEntries(ENGINES.map((e) => [e, failures[e].examples])) }, null, 1));
+fs.writeFileSync(path.join(out, "report.json"), JSON.stringify({ ...summary, ranking, contested: contestedRanking, nearMisses, pageCountDisagreements, failureExamples: Object.fromEntries(ENGINES.map((e) => [e, failures[e].examples])) }, null, 1));
 if (values.results) fs.writeFileSync(values.results, `${JSON.stringify(summary, null, 1)}\n`);
 const line = (engine) => `${engine.padEnd(8)} ${String(rate(tally[engine])).padStart(6)}% of ${String(tally[engine].judged).padStart(5)} judged  differs ${String(tally[engine].differs).padStart(4)}  blank ${String(tally[engine].blankWhereOthersDraw).padStart(3)}  failed ${String(tally[engine].failedWhereOthersDraw).padStart(3)}  shape ${String(tally[engine].wrongShape).padStart(3)}`;
 for (const engine of ENGINES) console.log(line(engine));

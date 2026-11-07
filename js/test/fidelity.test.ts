@@ -203,6 +203,11 @@ test("markup, shapes and ink with no appearance are drawn from their dictionarie
   }
 });
 
+test("an ink stroke with an odd count of numbers is left out", async () => {
+  const page = await render(annotated("<</Type /Annot /Subtype /Ink /Rect [0 0 100 100] /InkList [[0 50 100 50 7]] /C [1 0 0] /BS <</W 6>>>>"));
+  assert.deepEqual(page.at(50, 49), WHITE);
+});
+
 test("a hidden annotation with no appearance stays hidden, and an empty /C draws no stroke", async () => {
   for (const dict of ["/F 2 /Subtype /Square /Rect [20 20 80 80] /IC [1 0 0]", "/Subtype /Square /Rect [20 20 80 80] /C []"]) {
     const page = await render(annotated(`<</Type /Annot ${dict}>>`));
@@ -243,4 +248,23 @@ test("a password that protects only attachments isn't asked for to read the page
   assert.deepEqual((await render(file("/Identity"))).at(50, 50), RED);
   // The same strings with the pages encrypted do need it.
   await assert.rejects(engine.open(file("/StdCF")), { code: "password-required" });
+});
+
+test("a form field with no appearance shows its background, border, value and caption", async () => {
+  const dark = (page: Awaited<ReturnType<typeof render>>) => {
+    let count = 0;
+    for (let y = 0; y < page.height; y++) for (let x = 0; x < page.width; x++) if ((page.at(x, y)[1] ?? 255) < 100) count++;
+    return count;
+  };
+  const box = "/Type /Annot /Subtype /Widget /Rect [10 40 90 60]";
+  const filled = await render(annotated(`<<${box} /FT /Btn /Ff 65536 /MK <</BG [0 1 0] /BC [1 0 0] /CA (Go)>> /BS <</W 2>> /DA (/Nope 12 Tf 0 g)>>`));
+  assert.deepEqual(filled.at(15, 50), GREEN, "background");
+  assert.deepEqual(filled.at(10, 50), RED, "border");
+  assert.ok(dark(filled) > 60, "border and caption");
+  const value = await render(annotated(`<<${box} /FT /Tx /V (HHHH) /DA (/Nope 14 Tf 0 g)>>`));
+  assert.ok(dark(value) > 30, `the value is drawn: ${dark(value)}`);
+  const inheritedValue = await render(pdfOf({ content: "", objects: [`<<${box} /Parent 6 0 R>>`, "<</FT /Tx /V (HHHH) /DA (/Nope 14 Tf 0 g)>>"], pageExtra: "/Annots [5 0 R]" }));
+  assert.ok(dark(inheritedValue) > 30, "from the field it belongs to");
+  const secret = await render(annotated(`<<${box} /FT /Tx /Ff 8192 /V (HHHH) /DA (/Nope 14 Tf 0 g)>>`));
+  assert.equal(dark(secret), 0, "a password field keeps its value");
 });

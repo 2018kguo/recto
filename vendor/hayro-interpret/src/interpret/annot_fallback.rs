@@ -95,7 +95,10 @@ fn contents_lines(annot: &Dict<'_>) -> Vec<Vec<u8>> {
     let Some(contents) = annot.get::<hayro_syntax::object::String<'_>>(&b"Contents"[..]) else {
         return Vec::new();
     };
-    let bytes = contents.as_bytes();
+    text_lines(contents.as_bytes())
+}
+
+fn text_lines(bytes: &[u8]) -> Vec<Vec<u8>> {
     let decoded: Vec<u8> = if let Some(wide) = bytes.strip_prefix(&[0xfe, 0xff]) {
         wide.chunks_exact(2)
             .map(|pair| if pair[0] == 0 { pair[1] } else { b'?' })
@@ -114,10 +117,12 @@ fn contents_lines(annot: &Dict<'_>) -> Vec<Vec<u8>> {
 
 /// The size and colour operators of `/DA`, which may name a font this page doesn't have.
 fn default_appearance(annot: &Dict<'_>) -> (f64, String) {
-    let Some(da) = annot.get::<hayro_syntax::object::String<'_>>(&b"DA"[..]) else {
-        return (12.0, "0 g\n".to_owned());
-    };
-    let text = core::str::from_utf8(da.as_bytes()).unwrap_or("");
+    let da = annot.get::<hayro_syntax::object::String<'_>>(&b"DA"[..]);
+    default_appearance_of(da.as_ref().map_or(b"", |da| da.as_bytes()))
+}
+
+fn default_appearance_of(da: &[u8]) -> (f64, String) {
+    let text = core::str::from_utf8(da).unwrap_or("");
     let tokens: Vec<&str> = text.split_ascii_whitespace().collect();
     let mut size = 12.0;
     let mut colour = "0 g\n".to_owned();
@@ -159,14 +164,93 @@ fn free_text(annot: &Dict<'_>, rect: &Rect, content: &mut String) {
     let _ = write!(content, "q {x0} {y0} {} {} re W n BT {colour}/Helv {size} Tf\n", x1 - x0, y1 - y0);
     let mut y = y1 - width - size;
     for line in contents_lines(annot) {
-        let _ = write!(content, "1 0 0 1 {} {y} Tm <", x0 + width + 2.0);
-        for byte in line {
-            let _ = write!(content, "{byte:02x}");
-        }
-        content.push_str("> Tj\n");
+        text_line(content, x0 + width + 2.0, y, &line);
         y -= size * 1.2;
     }
     content.push_str("ET Q\n");
+}
+
+/// The nearest of a widget and the fields above it that states `key`.
+fn owner<'a>(annot: &Dict<'a>, key: &[u8]) -> Option<Dict<'a>> {
+    let mut node = annot.clone();
+    for _ in 0..16 {
+        if node.contains_key(key) {
+            return Some(node);
+        }
+        node = node.get::<Dict<'_>>(&b"Parent"[..])?;
+    }
+    None
+}
+
+/// Writes a line of text, as a hex string, starting at `x`.
+fn text_line(out: &mut String, x: f64, y: f64, line: &[u8]) {
+    let _ = write!(out, "1 0 0 1 {x} {y} Tm <");
+    for byte in line {
+        let _ = write!(out, "{byte:02x}");
+    }
+    out.push_str("> Tj\n");
+}
+
+/// A form field with no appearance: its `/MK` background and border, a text field's value and a push
+/// button's caption. Helvetica's letters average about half an em, which is close enough to centre by.
+fn widget(annot: &Dict<'_>, rect: &Rect, out: &mut String) -> Option<()> {
+    const PUSH_BUTTON: u32 = 1 << 16;
+    const MULTILINE: u32 = 1 << 12;
+    const PASSWORD: u32 = 1 << 13;
+    let (x0, y0, x1, y1) = (rect.x0, rect.y0, rect.x1, rect.y1);
+    let (width, height) = (x1 - x0, y1 - y0);
+    let characteristics = annot.get::<Dict<'_>>(&b"MK"[..]);
+    let colour_of = |key: &[u8], stroke| {
+        let values = characteristics.as_ref()?.get::<Array<'_>>(key)?;
+        colour_op(&numbers(&values), stroke)
+    };
+    let (mut line_width, dash) = border(annot);
+    if let Some(fill) = colour_of(b"BG", false) {
+        let _ = writeln!(out, "{fill}{x0} {y0} {width} {height} re f");
+    }
+    let stroke = colour_of(b"BC", true);
+    if let Some(stroke) = stroke.filter(|_| line_width > 0.0) {
+        let half = line_width / 2.0;
+        let _ = writeln!(out, "{stroke}{line_width} w {dash}{} {} {} {} re S", x0 + half, y0 + half, width - line_width, height - line_width);
+    } else {
+        line_width = 0.0;
+    }
+
+    let kind = owner(annot, b"FT")?.get::<Name<'_>>(&b"FT"[..])?;
+    let flags = owner(annot, b"Ff").and_then(|o| o.get::<u32>(&b"Ff"[..])).unwrap_or(0);
+    let da = owner(annot, b"DA").and_then(|o| o.get::<hayro_syntax::object::String<'_>>(&b"DA"[..]));
+    let (size, colour) = default_appearance_of(da.as_ref().map_or(b"", |da| da.as_bytes()));
+    let auto_size = da.as_ref().is_some_and(|da| {
+        let text = core::str::from_utf8(da.as_bytes()).unwrap_or("");
+        let tokens: Vec<&str> = text.split_ascii_whitespace().collect();
+        tokens.windows(2).any(|pair| pair[1] == "Tf" && pair[0].parse::<f64>() == Ok(0.0))
+    });
+    let size = if auto_size { (height * 0.7).clamp(4.0, 12.0) } else { size };
+    let (lines, centred) = match kind.as_ref() {
+        b"Btn" if flags & PUSH_BUTTON != 0 => {
+            let caption = characteristics.as_ref()?.get::<hayro_syntax::object::String<'_>>(&b"CA"[..])?;
+            (text_lines(caption.as_bytes()), true)
+        }
+        b"Tx" | b"Ch" if flags & PASSWORD == 0 => {
+            let value = owner(annot, b"V")?.get::<hayro_syntax::object::String<'_>>(&b"V"[..])?;
+            (text_lines(value.as_bytes()), false)
+        }
+        _ => return Some(()),
+    };
+    let _ = writeln!(out, "q {x0} {y0} {width} {height} re W n BT {colour}/Helv {size} Tf");
+    let padding = line_width + 2.0;
+    let multiline = kind.as_ref() == b"Tx" && flags & MULTILINE != 0;
+    let mut y = if multiline { y1 - padding - size } else { y0 + (height - size) / 2.0 + size * 0.15 };
+    for line in lines {
+        let x = if centred { x0 + (width - line.len() as f64 * size * 0.5) / 2.0 } else { x0 + padding };
+        text_line(out, x, y, &line);
+        y -= size * 1.2;
+        if !multiline {
+            break;
+        }
+    }
+    out.push_str("ET Q\n");
+    Some(())
 }
 
 /// The stream, and whether it multiplies, as a highlight does.
@@ -272,11 +356,18 @@ fn appearance(annot: &Dict<'_>) -> Option<(String, bool)> {
             out.push_str(&stroke_op(&[0.0, 0.0, 0.0])?);
             let _ = write!(out, "{width} w 1 J 1 j {dash}");
             for stroke in annot.get::<Array<'_>>(&b"InkList"[..])?.iter::<Array<'_>>().take(MAX_POINTS) {
-                polyline(&mut out, &numbers(&stroke));
-                out.push_str("S\n");
+                let points = numbers(&stroke);
+                // An odd count isn't a list of points; the references leave it out too.
+                if points.len() % 2 == 0 {
+                    polyline(&mut out, &points);
+                    out.push_str("S\n");
+                }
             }
         }
         b"FreeText" => free_text(annot, &rect?, &mut out),
+        b"Widget" => {
+            let _ = widget(annot, &rect?, &mut out);
+        }
         _ => return None,
     }
     Some((out, multiply))

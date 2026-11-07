@@ -53,8 +53,11 @@ export function pdfjsEngine(pdfjs, options) {
   };
 }
 
-/** Stock pdfium from `@embedpdf/pdfium`, by its raw C API. `pdfium` is its initialised module. */
-export function pdfiumEngine(pdfium) {
+/**
+ * Stock pdfium from `@embedpdf/pdfium`, by its raw C API. `pdfium` is its initialised module.
+ * `forms` adds the form-fill environment, without which pdfium leaves widgets out of a render.
+ */
+export function pdfiumEngine(pdfium, { forms = false } = {}) {
   const m = pdfium.pdfium;
   const FPDFBitmap_BGRA = 4;
   const FPDF_REVERSE_BYTE_ORDER = 0x10;
@@ -69,6 +72,15 @@ export function pdfiumEngine(pdfium) {
       if (!handle) {
         m.wasmExports.free(at);
         throw new Error(`pdfium could not open it: error ${pdfium.FPDF_GetLastError()}`);
+      }
+      let formInfo = 0;
+      let formEnvironment = 0;
+      if (forms) {
+        // FPDF_FORMFILLINFO, version 2, with no callbacks.
+        formInfo = m.wasmExports.malloc(512);
+        m.HEAPU8.fill(0, formInfo, formInfo + 512);
+        m.HEAP32[formInfo >> 2] = 2;
+        formEnvironment = pdfium.FPDFDOC_InitFormFillEnvironment(handle, formInfo);
       }
       return {
         pageCount: pdfium.FPDF_GetPageCount(handle),
@@ -90,6 +102,7 @@ export function pdfiumEngine(pdfium) {
           const bitmap = pdfium.FPDFBitmap_CreateEx(width, height, FPDFBitmap_BGRA, 0, 0);
           pdfium.FPDFBitmap_FillRect(bitmap, 0, 0, width, height, 0xffffffff);
           pdfium.FPDF_RenderPageBitmap(bitmap, page, 0, 0, width, height, 0, FPDF_ANNOT | FPDF_REVERSE_BYTE_ORDER);
+          if (formEnvironment) pdfium.FPDF_FFLDraw(formEnvironment, bitmap, page, 0, 0, width, height, 0, FPDF_ANNOT | FPDF_REVERSE_BYTE_ORDER);
           const buffer = pdfium.FPDFBitmap_GetBuffer(bitmap);
           const rgba = m.HEAPU8.slice(buffer, buffer + width * height * 4);
           pdfium.FPDFBitmap_Destroy(bitmap);
@@ -97,6 +110,8 @@ export function pdfiumEngine(pdfium) {
           return { width, height, rgba };
         },
         close() {
+          if (formEnvironment) pdfium.FPDFDOC_ExitFormFillEnvironment(formEnvironment);
+          if (formInfo) m.wasmExports.free(formInfo);
           pdfium.FPDF_CloseDocument(handle);
           m.wasmExports.free(at);
         },

@@ -73,7 +73,13 @@ function poppler() {
   for (let page = FIRST; page < stop; page++) {
     say({ start: page });
     try {
-      const ppm = execFileSync("pdftoppm", ["-q", "-f", String(page + 1), "-l", String(page + 1), "-singlefile", "-cropbox", "-scale-to-x", String(WIDTH), "-scale-to-y", "-1", file], {
+      // pdftoppm's -scale-to-x and -y are the page's sides before /Rotate.
+      const box = execFileSync("pdfinfo", ["-f", String(page + 1), "-l", String(page + 1), file], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+      const size = /size:\s+([\d.]+) x ([\d.]+) pts/.exec(box);
+      const turned = Math.abs(Number(/rot:\s+(-?\d+)/.exec(box)?.[1] ?? 0)) % 180 === 90;
+      const [across, down] = turned ? [size?.[2], size?.[1]] : [size?.[1], size?.[2]];
+      const height = Math.ceil((WIDTH * Number(down)) / Number(across)) || -1;
+      const ppm = execFileSync("pdftoppm", ["-q", "-f", String(page + 1), "-l", String(page + 1), "-singlefile", "-cropbox", "-scale-to-x", String(turned ? height : WIDTH), "-scale-to-y", String(turned ? WIDTH : height), file], {
         maxBuffer: 2 ** 30,
         stdio: ["ignore", "pipe", "ignore"],
       });
@@ -108,7 +114,7 @@ try {
     await canvasEngine((bytes) => engine.open(bytes));
   } else if (engineName === "pdfium") {
     const { init } = await import(path.join(here, "node_modules/@embedpdf/pdfium/dist/index.js"));
-    const engine = pdfiumEngine(await init({ wasmBinary: fs.readFileSync(path.join(here, "node_modules/@embedpdf/pdfium/dist/pdfium.wasm")) }));
+    const engine = pdfiumEngine(await init({ wasmBinary: fs.readFileSync(path.join(here, "node_modules/@embedpdf/pdfium/dist/pdfium.wasm")) }), { forms: true });
     await canvasEngine((bytes) => engine.open(bytes));
   } else {
     throw new Error(`no engine called ${engineName}`);
