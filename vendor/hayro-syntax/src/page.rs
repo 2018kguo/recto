@@ -63,11 +63,29 @@ struct Walked<'a> {
     descent: Option<Descent<'a>>,
     walk: PageWalk<'a>,
     /// Pages found so far, and which entry of `walk.contexts` each inherits from.
-    found: Vec<(DictHead<'a>, u32)>,
+    found: Vec<(Found<'a>, u32)>,
+}
+
+/// recto: a page the walk found: by its object, whose dictionary the walk keeps once, or as a
+/// dictionary written in a node's `/Kids`.
+#[derive(Clone)]
+enum Found<'a> {
+    Ref(ObjectIdentifier),
+    Direct(Dict<'a>),
 }
 
 impl<'a> Walked<'a> {
-    fn walk_to(&mut self, index: usize, reader: &ReaderContext<'a>) -> Option<&(DictHead<'a>, u32)> {
+    /// Page `index`'s dictionary and context, walking as far as it.
+    fn page(&mut self, index: usize, reader: &ReaderContext<'a>) -> Option<(Dict<'a>, u32)> {
+        let (found, context) = self.walk_to(index, reader)?.clone();
+        let dict = match found {
+            Found::Ref(id) => self.walk.built(id)?,
+            Found::Direct(dict) => dict,
+        };
+        Some((dict, context))
+    }
+
+    fn walk_to(&mut self, index: usize, reader: &ReaderContext<'a>) -> Option<&(Found<'a>, u32)> {
         while self.found.len() <= index {
             let page = self.walk.next(reader)?;
             self.found.push(page);
@@ -243,7 +261,20 @@ impl<'a> PageWalk<'a> {
         Some(())
     }
 
-    fn next(&mut self, reader: &ReaderContext<'a>) -> Option<(DictHead<'a>, u32)> {
+    /// Object `id`'s dictionary, which the walk has read. Kept from its second build on, so an object
+    /// the tree lists many times costs its size twice, not per repeat, and one listed once keeps nothing.
+    fn built(&mut self, id: ObjectIdentifier) -> Option<Dict<'a>> {
+        let head = self.read.get_mut(&id)?.as_mut()?;
+        let dict = head.dict()?;
+        match head {
+            DictHead::Parsed { built_once: once @ false, .. } => *once = true,
+            DictHead::Parsed { .. } => *head = DictHead::Dict(dict.clone()),
+            DictHead::Dict(_) => {}
+        }
+        Some(dict)
+    }
+
+    fn next(&mut self, reader: &ReaderContext<'a>) -> Option<(Found<'a>, u32)> {
         loop {
             let frame = self.stack.last_mut()?;
             let context = frame.context;
@@ -283,12 +314,22 @@ impl<'a> PageWalk<'a> {
             };
             match dict.type_name().as_deref() {
                 Some(PAGES) => {
-                    let entered = dict.dict().and_then(|node| self.enter(&node, id, context));
+                    let node = match id {
+                        Some(id) => self.built(id),
+                        None => dict.dict(),
+                    };
+                    let entered = node.and_then(|node| self.enter(&node, id, context));
                     self.lost_kid |= entered.is_none();
                 }
                 // Let's be lenient and assume it's a `Page` in case it's `None` or something else
                 // (see corpus test case 0083781).
-                _ => return Some((dict, context)),
+                _ => {
+                    let found = match id {
+                        Some(id) => Found::Ref(id),
+                        None => Found::Direct(dict.dict()?),
+                    };
+                    return Some((found, context));
+                }
             }
         }
     }
@@ -423,8 +464,8 @@ impl<'a> Pages<'a> {
                     }
                     walked.descent = None;
                 }
-                let (dict, context) = walked.walk_to(index, &lazy.reader)?.clone();
-                Page::new(&dict.dict()?, &walked.walk.contexts[context as usize], &lazy.reader, false)
+                let (dict, context) = walked.page(index, &lazy.reader)?;
+                Page::new(&dict, &walked.walk.contexts[context as usize], &lazy.reader, false)
             })
             .as_ref()
     }
@@ -469,12 +510,10 @@ impl<'a> Deref for Pages<'a> {
             Some(lazy) => lazy.eager.get_or_init(|| {
                 let mut walked = lazy.walked.get();
                 walked.walk_to(usize::MAX, &lazy.reader);
-                let walked = &*walked;
-                walked
-                    .found
-                    .iter()
-                    .filter_map(|(dict, context)| {
-                        Page::new(&dict.dict()?, &walked.walk.contexts[*context as usize], &lazy.reader, false)
+                (0..walked.found.len())
+                    .filter_map(|index| {
+                        let (dict, context) = walked.page(index, &lazy.reader)?;
+                        Page::new(&dict, &walked.walk.contexts[context as usize], &lazy.reader, false)
                     })
                     .collect()
             }),

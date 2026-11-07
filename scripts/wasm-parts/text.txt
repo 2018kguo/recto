@@ -58,6 +58,7 @@
 <alloc::raw_vec::RawVec<recto::wasm::Document>>::grow_one
 <alloc::raw_vec::RawVec<u32>>::grow_one
 <alloc::raw_vec::RawVec<u8>>::grow_one
+<alloc::raw_vec::RawVec<zune_jpeg::decoder::ICCChunk>>::grow_one
 <alloc::raw_vec::RawVecInner<_>>::reserve::do_reserve_and_handle::<alloc::alloc::Global>
 <alloc::raw_vec::RawVecInner>::finish_grow
 <alloc::raw_vec::RawVecInner>::grow_amortized
@@ -94,7 +95,6 @@
 <alloc::sync::Arc<hayro_syntax::crypto::Decryptor>>::drop_slow
 <alloc::sync::Arc<hayro_syntax::data::Data>>::drop_slow
 <alloc::sync::Arc<hayro_syntax::metadata::Metadata>>::drop_slow
-<alloc::sync::Arc<hayro_syntax::object::dict::ParsedHead>>::drop_slow
 <alloc::sync::Arc<hayro_syntax::object::dict::Repr>>::drop_slow
 <alloc::sync::Arc<hayro_syntax::xref::SomeRepr>>::drop_slow
 <alloc::sync::Arc<hayro_syntax::xref::SomeRepr>>::make_mut
@@ -423,6 +423,7 @@
 <hayro_syntax::page::Page>::new
 <hayro_syntax::page::Page>::page_stream
 <hayro_syntax::page::Page>::render_dimensions
+<hayro_syntax::page::PageWalk>::built
 <hayro_syntax::page::PageWalk>::enter
 <hayro_syntax::page::Pages>::get
 <hayro_syntax::page::Pages>::lost_everything
@@ -628,7 +629,6 @@
 <std::sync::once_lock::OnceLock<core::option::Option<alloc::sync::Arc<dyn moxcms::transform::TransformExecutor<u8> + core::marker::Send + core::marker::Sync>>> as core::convert::From<core::option::Option<alloc::sync::Arc<dyn moxcms::transform::TransformExecutor<u8> + core::marker::Send + core::marker::Sync>>>>::from
 <std::sync::once_lock::OnceLock<core::option::Option<alloc::sync::Arc<dyn moxcms::transform::TransformExecutor<u8> + core::marker::Send + core::marker::Sync>>>>::initialize::<<std::sync::once_lock::OnceLock<core::option::Option<alloc::sync::Arc<dyn moxcms::transform::TransformExecutor<u8> + core::marker::Send + core::marker::Sync>>>>::get_or_init<<std::sync::once_lock::OnceLock<core::option::Option<alloc::sync::Arc<dyn moxcms::transform::TransformExecutor<u8> + core::marker::Send + core::marker::Sync>>>>::try_insert::{closure#0}>::{closure#0}, !>
 <std::sync::once_lock::OnceLock<core::option::Option<alloc::vec::Vec<u8>>>>::initialize::<<std::sync::once_lock::OnceLock<core::option::Option<alloc::vec::Vec<u8>>>>::get_or_init<<hayro_syntax::page::Page>::page_stream::{closure#1}>::{closure#0}, !>
-<std::sync::once_lock::OnceLock<core::option::Option<hayro_syntax::object::dict::Dict>>>::initialize::<<std::sync::once_lock::OnceLock<core::option::Option<hayro_syntax::object::dict::Dict>>>::get_or_init<<hayro_syntax::object::dict::DictHead>::dict::{closure#0}>::{closure#0}, !>
 <std::sync::once_lock::OnceLock<core::option::Option<hayro_syntax::page::Page>>>::initialize::<<std::sync::once_lock::OnceLock<core::option::Option<hayro_syntax::page::Page>>>::get_or_init<<hayro_syntax::page::Pages>::get::{closure#0}>::{closure#0}, !>
 <std::sync::once_lock::OnceLock<fn() -> core::option::Option<alloc::vec::Vec<u8>>>>::initialize::<<std::sync::once_lock::OnceLock<fn() -> core::option::Option<alloc::vec::Vec<u8>>>>::get_or_init<<std::sync::once_lock::OnceLock<fn() -> core::option::Option<alloc::vec::Vec<u8>>>>::try_insert::{closure#0}>::{closure#0}, !>
 <std::sync::once_lock::OnceLock<hayro_cmap::bcmap::embedded::Bundle>>::initialize::<<std::sync::once_lock::OnceLock<hayro_cmap::bcmap::embedded::Bundle>>::get_or_init<hayro_cmap::bcmap::embedded::bundle::{closure#0}>::{closure#0}, !>
