@@ -450,6 +450,48 @@ test("each failure has a code to branch on", async () => {
   assert.ok(new PdfError("failed", "x") instanceof Error);
 });
 
+test("a render paused when the instance traps rejects with crash, and steps no further", async () => {
+  const content = "0 0 1 1 re f\n".repeat(400_000);
+  const objects = [
+    "<</Type/Catalog/Pages 2 0 R>>",
+    "<</Type/Pages/Count 1/Kids[3 0 R]>>",
+    "<</Type/Page/MediaBox[0 0 100 100]/Contents 4 0 R>>",
+    `<</Length ${content.length}>>\nstream\n${content}\nendstream`,
+  ];
+  let file = "%PDF-1.7\n";
+  const offsets = objects.map((body, i) => {
+    const at = file.length;
+    file += `${i + 1} 0 obj\n${body}\nendobj\n`;
+    return at;
+  });
+  const xref = file.length;
+  file += `xref\n0 5\n0000000000 65535 f \n${offsets.map((at) => `${String(at).padStart(10, "0")} 00000 n \n`).join("")}`;
+  file += `trailer\n<</Size 5/Root 1 0 R>>\nstartxref\n${xref}\n%%EOF\n`;
+
+  const engine = await createPdfEngine({ recycleAboveBytes: Number.POSITIVE_INFINITY });
+  const doc = await engine.open(new TextEncoder().encode(file));
+  const paused = doc.renderAsync(0, { width: 100, sliceMs: 0 }).then(
+    () => "finished",
+    (error: PdfError) => error.code
+  );
+  const server = await startRangeServer(new Uint8Array(1));
+  server.setMode("huge");
+  let crash: unknown;
+  try {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      await engine.openRanged(server.url, { maxBytes: 1024 * 1024 }).catch((error: PdfError) => error);
+    }
+    await engine.open(new Uint8Array(512 * 1024 * 1024)).catch((error: PdfError) => {
+      crash = error.code === "crash" ? error : undefined;
+    });
+  } finally {
+    await server.close();
+  }
+  assert.ok(crash instanceof PdfError, "the instance trapped");
+  assert.equal(await paused, "crash");
+  doc.close();
+});
+
 test("a real trap retires the instance: open documents say so, the next open recovers", async () => {
   // Two ranged files of 1.9 GiB take nearly all of wasm32's 4 GiB of address space. A third is
   // refused cleanly, and then an allocation with nowhere to go aborts: a real trap.

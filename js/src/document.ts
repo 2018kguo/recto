@@ -622,6 +622,9 @@ export class RectoDocument implements PdfDocument {
       if (this.#closed) {
         throw new PdfError("closed", "this document is closed");
       }
+      if (instance.dead) {
+        throw instance.failure ?? new PdfError("crash", "the engine crashed while this render was paused; open the document again");
+      }
     };
     try {
       stopIfAsked();
@@ -652,10 +655,10 @@ export class RectoDocument implements PdfDocument {
     }
     this.#closed = true;
     this.#instance.openDocuments -= 1;
+    this.#instance.documents.open -= 1;
     if (!this.#instance.dead) {
       this.#doc.free();
     }
-    this.#instance.documents.open -= 1;
     this.#instance.onClose?.();
   }
 
