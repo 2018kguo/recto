@@ -56,8 +56,10 @@ pub(crate) fn root_xref(data: PdfData, password: &[u8]) -> Result<XRef, XRefErro
 
 /// Try to manually parse the PDF to build an xref table and trailer dictionary.
 pub(crate) fn fallback(data: PdfData, password: &[u8]) -> Result<XRef, XRefError> {
-    // recto: a repair scans the whole file.
-    data.ensure(0, usize::MAX);
+    // recto: a repair scans the whole file. Not one that's zeros after a failed read.
+    if !data.ensure(0, usize::MAX) {
+        return Err(XRefError::Unknown);
+    }
     let (xref_map, xref_input) = fallback_xref_map(&data, password);
 
     match xref_input {
@@ -631,10 +633,11 @@ impl XRef {
             return;
         }
 
-        // recto: a repair scans the whole file.
-        r.data.get().ensure(0, usize::MAX);
-        let (xref_map, _) = fallback_xref_map(r.data.get(), &r.password);
-        locked.xref_map = xref_map;
+        // recto: a repair scans the whole file. Not one that's zeros after a failed read.
+        if r.data.get().ensure(0, usize::MAX) {
+            let (xref_map, _) = fallback_xref_map(r.data.get(), &r.password);
+            locked.xref_map = xref_map;
+        }
         locked.repaired = true;
     }
 
@@ -751,7 +754,9 @@ impl XRef {
             let bound = repr.starts.get(next).copied().unwrap_or(data.as_ref().len());
             let mut want: usize = 4096;
             loop {
-                data.ensure(offset, offset.saturating_add(want));
+                if !data.ensure(offset, offset.saturating_add(want)) {
+                    break;
+                }
                 let mut probe = Reader::new(data.as_ref());
                 probe.jump(offset);
                 let end = probe
@@ -997,7 +1002,9 @@ fn populate_xref_impl_inner<'a>(
     if data.is_ranged() {
         let mut want: usize = 64 * 1024;
         loop {
-            data.ensure(pos, pos.saturating_add(want));
+            if !data.ensure(pos, pos.saturating_add(want)) {
+                break;
+            }
             match section_end(data.as_ref(), pos) {
                 Some(end) if end <= pos.saturating_add(want) => break,
                 Some(end) => want = want.saturating_mul(4).min(end - pos),

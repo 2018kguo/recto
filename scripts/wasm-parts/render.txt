@@ -125,6 +125,7 @@
 <hayro_interpret::interpret::page_run::PageRun>::new
 <hayro_interpret::interpret::page_run::Slice>::tick
 <hayro_interpret::pattern::ShadingPattern>::encode
+<hayro_interpret::types::StrokeProps as core::default::Default>::default
 <hayro_interpret::x_object::form::FormXObject>::draw::<hayro::Renderer>
 <hayro_interpret::x_object::form::FormXObject>::draw_contents::<hayro::Renderer>
 <hayro_interpret::x_object::image::ImageXObject as core::clone::Clone>::clone
@@ -469,9 +470,11 @@ __wbg_renderedpage_free
 __wbg_rendertask_free
 compiler_builtins::math::libm_math::cos::cos
 compiler_builtins::math::libm_math::fmod::fmod
+compiler_builtins::math::libm_math::log2::log2
 compiler_builtins::math::libm_math::powf::powf
 compiler_builtins::math::libm_math::rem_pio2::rem_pio2
 compiler_builtins::math::libm_math::sin::sin
+compiler_builtins::math::libm_math::tan::tan
 core::array::try_from_trusted_iterator::<skrifa::outline::autohint::metrics::UnscaledAxisMetrics, core::ops::try_trait::NeverShortCircuit<skrifa::outline::autohint::metrics::UnscaledAxisMetrics>, 2usize, core::iter::adapters::map::Map<core::iter::adapters::cloned::Cloned<core::slice::iter::Iter<skrifa::outline::autohint::metrics::UnscaledAxisMetrics>>, core::ops::try_trait::NeverShortCircuit<skrifa::outline::autohint::metrics::UnscaledAxisMetrics>>>
 core::fmt::float::float_to_decimal_common_shortest::<f64>
 core::num::imp::dec2flt::parse::parse_number
@@ -511,6 +514,7 @@ core::ptr::drop_in_place::<vello_cpu::render::RenderContext>
 core::ptr::drop_in_place::<zune_jpeg::decoder::ImageInfo>
 core::ptr::drop_in_place::<zune_jpeg::decoder::JpegDecoder<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>
 core::ptr::drop_in_place::<zune_jpeg::errors::DecodeErrors>
+core::slice::sort::shared::pivot::median3_rec::<usize, <[usize]>::sort_unstable_by<pic_scale::filter_weights::quantize_kernel::{closure#0}>::{closure#0}>
 core::slice::sort::shared::pivot::median3_rec::<vello_common::tile::Tile, <vello_common::tile::Tile as core::cmp::PartialOrd>::lt>
 core::slice::sort::shared::smallsort::insertion_sort_shift_left::<f64, <[f64]>::sort_by<<kurbo::cubicbez::CubicBez as kurbo::param_curve::ParamCurveExtrema>::extrema::{closure#0}>::{closure#0}>
 core::slice::sort::shared::smallsort::insertion_sort_shift_left::<i32, <i32 as core::cmp::PartialOrd>::lt>
@@ -567,7 +571,9 @@ hayro_interpret::x_object::decode::mask::decode_mask
 hayro_syntax::content::ops::parse_named_color
 kurbo::offset::offset_cubic
 kurbo::stroke::extend_reversed
+kurbo::stroke::round_join
 kurbo::stroke::square_cap
+log2
 pageobjects_imageBoxes
 pageobjects_imageBoxes multivalue shim
 pageobjects_imagePixels
@@ -623,6 +629,7 @@ skrifa::outline::autohint::metrics::scale::scale_style_metrics
 skrifa::outline::autohint::shape::sort_and_dedup
 skrifa::outline::autohint::topo::segments::compute_segments
 skrifa::outline::autohint::topo::segments::link_segments
+tan
 vello_common::clip::intersect
 vello_common::encode::invert_paint_transform
 vello_common::flatten::fill::<&kurbo::bezpath::BezPath>

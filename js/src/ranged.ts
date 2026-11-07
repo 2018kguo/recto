@@ -41,8 +41,10 @@ export type PdfRangedOpenOptions = {
   timeoutMs?: number;
   /**
    * Wall time for the whole read, from the first fetch on, in place of counting rounds (code "timeout").
-   * A fetch in flight is cut when it runs out, and none starts after. Reads of what's already fetched
-   * still work. Default: no limit.
+   * A fetch in flight is cut when it runs out, and none starts after; that bounds the network waits, not
+   * the parsing between them. What's already fetched reads until a read fails, after which every call
+   * on the document throws that failure: reopen to go on. In WebKit a response that keeps trickling is
+   * not cut. Default: no limit.
    */
   totalTimeoutMs?: number;
 };
@@ -173,12 +175,22 @@ class RangeLoader {
     if (this.length > 0 && this.#bytesFetched + wanted > this.#maxBytes) {
       throw tooLarge(this.#maxBytes);
     }
+    const passedTotal = `the ranged read passed its ${this.#totalTimeoutMs} ms (totalTimeoutMs)`;
     const left = this.#deadline - performance.now();
     if (left <= 0) {
-      throw new PdfError("timeout", `the ranged read passed its ${this.#totalTimeoutMs} ms (totalTimeoutMs)`);
+      throw new PdfError("timeout", passedTotal);
     }
     this.#rounds += 1;
-    const answers = this.#fetch(runs, Math.min(this.#timeoutMs, Math.ceil(left)), this.#maxBytes - this.#bytesFetched);
+    const passesTotal = left < this.#timeoutMs;
+    let answers: Answer[];
+    try {
+      answers = this.#fetch(runs, passesTotal ? Math.ceil(left) : this.#timeoutMs, this.#maxBytes - this.#bytesFetched);
+    } catch (error) {
+      if (passesTotal && (error as PdfError).code === "timeout") {
+        throw new PdfError("timeout", passedTotal, error);
+      }
+      throw error;
+    }
     for (const answer of answers) {
       this.#requests += 1;
       this.#bytesFetched += answer.bytes.byteLength;
@@ -317,7 +329,7 @@ export function startRangeLoader(
   options: PdfRangedOpenOptions = {}
 ): RangeLoader {
   const positive = (name: string, value: number | undefined) => {
-    if (value !== undefined && !(value > 0)) {
+    if (value !== undefined && !(typeof value === "number" && value > 0)) {
       throw new RangeError(`${name} must be above 0 (got ${value})`);
     }
   };
@@ -453,6 +465,8 @@ function answerOf(
   return { start, bytes, length, etag, status };
 }
 
+const NO_ANSWER = "the ranged read failed: the network, or a cross-origin server that does not allow it";
+
 function fetchOverXhr(url: string, ranges: Range[], timeoutMs: number, limit: number): Answer[] {
   const deadline = performance.now() + timeoutMs;
   return ranges.map((range) => {
@@ -469,9 +483,13 @@ function fetchOverXhr(url: string, ranges: Range[], timeoutMs: number, limit: nu
         timedOut ? "timeout" : "fetch-failed",
         timedOut
           ? `the ranged read timed out after ${timeoutMs} ms`
-          : "the ranged read failed: the network, or a cross-origin server that does not allow it",
+          : NO_ANSWER,
         error
       );
+    }
+    // Firefox reports a refused cross-origin read as status 0, not a throw.
+    if (xhr.status === 0) {
+      throw new PdfError("fetch-failed", NO_ANSWER);
     }
     return answerOf(
       range,
@@ -507,7 +525,7 @@ async function get(m, signal) {
   }
   const parts = [];
   let size = 0;
-  for await (const part of response.body) {
+  for await (const part of response.body ?? []) {
     size += part.byteLength;
     if (size > m.limit) return { ...reply, overLimit: true, bytes: new ArrayBuffer(0) };
     parts.push(part);

@@ -3,6 +3,7 @@
 // instance goes once nothing has been open on it for a moment, and a document still open on an
 // instance keeps it.
 
+import { PINS } from "../wasm/pins.mjs";
 import { createGlue, PART_TABLE } from "../wasm/recto.gen.mjs";
 import {
   type AssetName,
@@ -48,7 +49,7 @@ export type PdfEngineOptions = {
    * Files to fetch and verify while the engine is created, so that a missing one fails here and no later
    * call waits for it. `recto-render.wasm` saves the first `render` that wait; all three parts check the
    * whole engine at startup. The default is none, except where a thread can't read a file when it's needed
-   * (a page's main thread, a service worker): there it's all of them, 9.5 MB. Name fewer to fetch less, and
+   * (a page's main thread, a service worker): there it's all of them, about 9.6 MB. Name fewer to fetch less, and
    * a call that needs a font or CMaps you left out fails with `missing-asset`. The parts are fetched there
    * whatever you name, so it can always draw.
    */
@@ -443,6 +444,12 @@ export async function createPdfEngine(options: PdfEngineOptions = {}): Promise<P
 async function createEngine(options: PdfEngineOptions): Promise<RectoEngine> {
   const base = assetBaseUrl(options.assetBase);
   const canRead = canReadSync();
+  for (const asset of options.preloadAssets ?? []) {
+    if (asset !== "cmaps.brotli" && asset !== "fonts.bin" && !Object.hasOwn(PINS, asset)) {
+      const accepted = [...Object.keys(PINS), "cmaps.brotli", "fonts.bin"].join(", ");
+      throw new TypeError(`preloadAssets does not know ${JSON.stringify(asset)}. It takes: ${accepted}`);
+    }
+  }
   // cmaps.brotli is the old name of cmaps.deflate, and fonts.bin of all the fonts together.
   const names = (options.preloadAssets ?? (canRead ? [] : ALL_ASSETS)).flatMap((asset) =>
     asset === "cmaps.brotli" ? ("cmaps.deflate" as const) : asset === "fonts.bin" ? STANDARD_FONTS : asset

@@ -11,6 +11,7 @@ import { test } from "node:test";
 import { createPdfEngine, type PdfBitmap, type PdfDocument, PdfError } from "../src/index.ts";
 import { bilevel, jpxPdf, meshPdf, postScriptPdf, tensorPdf } from "./rare-pdfs.ts";
 import { startRangeServer } from "./range-server.ts";
+import { reportPdf } from "../../bench/generate.mjs";
 import { syntheticPdf } from "./synthetic-pdf.ts";
 import { hashOn } from "../src/engine.ts";
 import { PINS } from "../wasm/pins.mjs";
@@ -308,12 +309,20 @@ test("a thumbnail of a profiled file needs no part beyond drawing's", async () =
       continue;
     }
     for (let i = 0; i < Math.min(doc.pageCount, 8); i++) {
-      for (const width of [150, 300]) {
+      for (const width of [32, 64, 100, 150, 200, 300]) {
         doc.render(i, { width });
       }
     }
     doc.close();
   }
+  // Images, which shrink by another path the smaller they get.
+  const report = await engine.open(reportPdf({ pages: 4, imageEvery: 1, imageSize: 600 }));
+  for (const width of [32, 64, 100]) {
+    for (let i = 0; i < report.pageCount; i++) {
+      report.render(i, { width });
+    }
+  }
+  report.close();
 });
 
 test("the collector frees nothing on an abandoned instance", async () => {

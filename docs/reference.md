@@ -121,6 +121,9 @@ by default one less than the machine's cores and at most 8. A thread starts only
 wait and none is free, so calls awaited one at a time stay on one thread. Each thread that gets a
 page of a document holds its own copy of the file, and the pool holds one more until `doc.close()`.
 
+A bundled server build must keep the package external: `assetBase` moves the wasm and fonts, not the thread's own
+`dist/pool-worker.js`, and a pool can't start a thread without that file.
+
 It needs no COOP or COEP headers; with them, threads share one copy of the file. `threads` goes up to 64. Loaded
 from another origin, such as a CDN, threads start through a one-line blob that imports `dist/pool-worker.js`, so
 the CDN must send CORS headers for `dist/` as it does for the wasm, and a Content-Security-Policy must allow
@@ -147,7 +150,7 @@ Every failure is a `PdfError` with a `code`. A bad argument is a `RangeError` or
 | `closed` | The document was closed |
 | `missing-asset` | The wasm, a font or CMaps are missing, unreadable, or not this build's |
 | `wrong-thread` | A ranged read on a thread that can't block for one: a page's main thread, a service worker |
-| `fetch-failed` | A ranged read failed: the network, an HTTP error, a bad Range answer. `error.status` is the answer's HTTP status; undefined if the server never answered |
+| `fetch-failed` | A ranged read failed: the network, an HTTP error, a bad Range answer. `error.status` is the HTTP status when one is known; undefined when none is (a refused connection, a redirect loop, a response cut mid-stream) |
 | `timeout` | A ranged fetch waited longer than `timeoutMs`, or the read passed `totalTimeoutMs` |
 | `too-large` | A ranged read would pass `maxBytes`, the file is past 3.5 GiB, or the instance has no address space left for it (other open documents hold it) |
 | `failed` | Any other refusal, such as a page with no area |
@@ -179,9 +182,16 @@ server on the same thread cannot answer, and the read fails with `timeout` and s
 | `chunkBytes` | 64 KiB | The smallest fetch |
 | `maxBytes` | 64 MiB | Total to fetch before failing with `too-large` |
 | `timeoutMs` | 30 s | How long one fetch round may block |
-| `totalTimeoutMs` | none | Wall time for the whole read, from the first fetch: a fetch in flight is cut when it runs out, a stalled one included, and none starts after. It keeps counting while the document sits open. What's already fetched still reads |
+| `totalTimeoutMs` | none | Wall time for the whole read, from the first fetch: a fetch in flight is cut when it runs out, a stalled one included, and none starts after. It keeps counting while the document sits open, and it bounds the network waits, not the parsing between them |
 | `signal` | | Checked before the open and each fetch. It cannot interrupt a fetch, because the thread is blocked; `timeoutMs` and `totalTimeoutMs` bound that |
 | `password` | | |
+
+**A failed read ends the document.** What's already fetched reads, past `totalTimeoutMs` too, until a read fails.
+After that every call on it, a page it already holds included, throws the same failure: close it and reopen to go on.
+
+**In WebKit a trickling response isn't cut.** Its synchronous request runs until the response stops, so a server that keeps
+sending a little passes both `timeoutMs` and `totalTimeoutMs` (over 85 s, measured with a 500 ms limit), with nothing
+to interrupt it from the blocked thread. A full stall is cut, about a second after a 500 ms limit. Chromium, Firefox and Node cut both on time.
 
 **A ranged read trusts `/Count`.** It finds a page by each node's `/Count`, so that it fetches only
 the nodes on the way there, and checks what it reads on that path. If something doesn't add up it walks
@@ -234,10 +244,10 @@ The wasm and assets are found with `new URL("../wasm/…", import.meta.url)`.
 
 - **A Content-Security-Policy** must allow `wasm-unsafe-eval`, and `connect-src` for the assets.
 - **A page's main thread and service workers** can't read a file synchronously, so where that's
-  so, the assets are fetched while the engine is created: all of them by default, 9.5 MB, or only
+  so, the assets are fetched while the engine is created: all of them by default, about 9.6 MB, or only
   what `preloadAssets` names (a font such as `FoxitSans.pfb`, 15–30 KB, or `fonts.bin` for all 14, 0.26 MB;
   `cmaps.deflate` 0.36 MB; `cjk-fallback.ttf` 5.1 MB), and a call that needs one you left out fails with
-  `missing-asset`. The wasm's four parts (3.8 MB) come whatever you name, so it can always draw. It works, tested
+  `missing-asset`. The wasm's four parts (3.89 MB) come whatever you name, so it can always draw. It works, tested
   in Chromium, Firefox and WebKit, but **every call blocks that thread**: on a main thread the page
   freezes for the length of each call, so prefer a dedicated worker, where nothing is fetched
   until a document needs it. A ranged read still needs a thread that may block: `wrong-thread`.

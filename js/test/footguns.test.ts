@@ -376,6 +376,7 @@ test("bad ranged arguments are TypeErrors and RangeErrors, not hangs", async () 
     { timeoutMs: 0 },
     { totalTimeoutMs: 0 },
     { totalTimeoutMs: Number.NaN },
+    { totalTimeoutMs: "500" as unknown as number },
     { maxBytes: Number.NaN },
   ]) {
     await assert.rejects(engine.openRanged(pdf(), options), RangeError, JSON.stringify(options));
@@ -443,7 +444,13 @@ test("totalTimeoutMs bounds the whole read, a stalled round included", async () 
       for (let i = 0; i < doc.pageCount; i++) {
         doc.text(i);
       }
-    }, hasCode("timeout"));
+    }, (error: PdfError) => {
+      hasCode("timeout")(error);
+      // The limit the caller set, not what was left of it, and a cause that isn't this one is not offered.
+      assert.match(error.message, /700 ms \(totalTimeoutMs\)/u);
+      assert.doesNotMatch(error.message, /same thread/u);
+      return true;
+    });
     const elapsed = performance.now() - started;
     assert.ok(elapsed >= 650 && elapsed < 2000, `stopped after ${elapsed} ms`);
   } finally {
@@ -483,7 +490,7 @@ test("fetch-failed says the HTTP status when the server answered, and none when 
   const engine = await createPdfEngine();
   const server = await startRangeServer(pdf());
   try {
-    for (const [mode, status] of [["forbidden", 403], ["short", 206], ["unknown-total", 206]] as const) {
+    for (const [mode, status] of [["forbidden", 403], ["short", 206], ["unknown-total", 206], ["no-content", 204]] as const) {
       server.setMode(mode);
       await assert.rejects(engine.openRanged(server.url), (error: PdfError) => {
         hasCode("fetch-failed")(error);
@@ -499,6 +506,71 @@ test("fetch-failed says the HTTP status when the server answered, and none when 
     assert.equal(error.status, undefined);
     return true;
   });
+});
+
+test("the status of an answer that changed the file is on the error", async () => {
+  const engine = await createPdfEngine();
+  const server = await startRangeServer(syntheticPdf({ pages: 40, padBytes: 64 * 1024 }));
+  try {
+    for (const mode of ["changed", "replaced"] as const) {
+      server.setMode(mode);
+      await assert.rejects(engine.openRanged(server.url), (error: PdfError) => {
+        hasCode("fetch-failed")(error);
+        assert.equal(error.status, 206, mode);
+        return true;
+      });
+    }
+  } finally {
+    await server.close();
+  }
+});
+
+test("a browser's status 0 is no status: nothing answered", async () => {
+  const { getBuiltinModule } = process;
+  const { XMLHttpRequest: real } = globalThis as { XMLHttpRequest?: unknown };
+  // The path a worker in a browser takes, with Firefox's answer to a refused cross-origin read.
+  process.getBuiltinModule = ((name: string) => (name === "node:worker_threads" ? undefined : getBuiltinModule(name))) as typeof getBuiltinModule;
+  (globalThis as { XMLHttpRequest?: unknown }).XMLHttpRequest = class {
+    status = 0;
+    open() {}
+    setRequestHeader() {}
+    send() {}
+  };
+  try {
+    const engine = await createPdfEngine();
+    await assert.rejects(engine.openRanged("https://cdn.example/a.pdf"), (error: PdfError) => {
+      hasCode("fetch-failed")(error);
+      assert.equal(error.status, undefined);
+      assert.doesNotMatch(error.message, /HTTP 0/u);
+      return true;
+    });
+  } finally {
+    process.getBuiltinModule = getBuiltinModule;
+    (globalThis as { XMLHttpRequest?: unknown }).XMLHttpRequest = real;
+  }
+});
+
+test("preloadAssets refuses a name it does not know, and says which it takes", async () => {
+  for (const name of ["recto-text.wasm", "constructor", "__proto__", ""]) {
+    await assert.rejects(createPdfEngine({ preloadAssets: [name as "recto.wasm"] }), (error: TypeError) => {
+      assert.ok(error instanceof TypeError);
+      assert.ok(error.message.includes(JSON.stringify(name)), error.message);
+      assert.match(error.message, /recto-render\.wasm.*fonts\.bin/u);
+      return true;
+    });
+  }
+});
+
+test("preloadAssets checks a file against its pin in Node, not only that it's there", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "recto-preload-"));
+  for (const asset of ASSETS) {
+    copyFileSync(packaged(asset), join(dir, asset));
+  }
+  const bytes = readFileSync(join(dir, "FoxitSerif.pfb"));
+  bytes[0]! ^= 1;
+  writeFileSync(join(dir, "FoxitSerif.pfb"), bytes);
+  await assert.rejects(createPdfEngine({ assetBase: dir, preloadAssets: ["FoxitSerif.pfb"] }), hasCode("missing-asset"));
+  rmSync(dir, { recursive: true });
 });
 
 test("preloadAssets finds a missing file at startup, in Node as well", async () => {
