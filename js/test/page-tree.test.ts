@@ -6,6 +6,7 @@ import { execFileSync } from "node:child_process";
 import { test } from "node:test";
 
 import { createPdfEngine } from "../src/index.ts";
+import { threadCpuMs } from "./cpu-time.ts";
 
 /** Objects 1 and 2 are the catalog and the root node. */
 function fileOf(root: string, rest: string[]): Uint8Array {
@@ -341,4 +342,37 @@ test("page tree: a chain of nodes far deeper than the check goes opens, and keep
   );
   const file = fileOf(`<</Type/Pages/Count 1/Kids[${first} 0 R]>>`, [...pagesFrom(4, [1]), ...chain]);
   assert.deepEqual(await pagesOf(file), ["P1"]);
+});
+
+test("page tree: first reads are linear and take little memory beyond the open's", async () => {
+  // A binary tree, the shape that once cost a kept node per inner node and a hash lookup per level.
+  const LEVELS = 15;
+  const objects: string[] = [];
+  const build = (level: number): number => {
+    const id = 4 + objects.length;
+    const at = objects.length;
+    objects.push("");
+    if (level === 0) {
+      objects[at] = "<</Type/Page>>";
+    } else {
+      const [a, b] = [build(level - 1), build(level - 1)];
+      objects[at] = `<</Type/Pages/Count ${2 ** level}/Kids[${a} 0 R ${b} 0 R]>>`;
+    }
+    return id;
+  };
+  const top = build(LEVELS);
+  const file = fileOf(`<</Type/Pages/Count ${2 ** LEVELS}/Kids[${top} 0 R]>>`, objects);
+  const engine = await createPdfEngine();
+  const started = threadCpuMs();
+  const doc = await engine.open(file);
+  const openMs = threadCpuMs() - started;
+  const heapAtOpen = engine.stats().heapBytes;
+  const reading = threadCpuMs();
+  for (let i = 0; i < doc.pageCount; i++) {
+    doc.pageInfo(i);
+  }
+  const readMs = threadCpuMs() - reading;
+  assert.ok(readMs < openMs, `first read of every page ${readMs} ms, open ${openMs} ms`);
+  assert.ok(engine.stats().heapBytes < heapAtOpen * 1.15, `heap ${heapAtOpen} to ${engine.stats().heapBytes}`);
+  doc.close();
 });
