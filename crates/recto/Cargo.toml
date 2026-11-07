@@ -15,9 +15,7 @@ crate-type = ["cdylib", "rlib"]
 # Native builds embed hayro's Foxit fonts, so `cargo test` needs nothing else.
 # The WASM build turns this off and loads the same fonts lazily from fonts.bin
 # (src/assets.rs).
-default = ["embed-fonts", "render"]
-# Off in the text-only wasm: everything but the rasterizer.
-render = ["hayro/raster"]
+default = ["embed-fonts"]
 embed-fonts = ["hayro/embed-fonts"]
 wasm = [
   "dep:wasm-bindgen",
@@ -29,6 +27,7 @@ wasm = [
 [dependencies]
 hayro = { version = "=0.9.0", default-features = false, features = [
   "embed-cmaps",
+  "raster",
 ] }
 self_cell = "1"
 # Only to switch on `host-cmaps` in the WASM build (see src/assets.rs).

@@ -439,7 +439,6 @@ impl Document {
     }
 
     /// Text, objects and annotations from one interpretation of the page.
-    #[cfg(feature = "render")]
     pub fn scan(&self, index: usize) -> Result<PageScan, JsValue> {
         self.scan_parts(index, true, true)
     }
@@ -450,7 +449,6 @@ impl Document {
         self.scan_parts(index, false, true)
     }
 
-    #[cfg(feature = "render")]
     pub fn objects(&self, index: usize) -> Result<PageObjects, JsValue> {
         let s = self.0.scan(index, true, false).map_err(js_error)?;
         Ok(s.objects.into())
@@ -493,7 +491,6 @@ impl Document {
     }
 
     /// A render that returns to its caller between slices, for as long as it's asked to run.
-    #[cfg(feature = "render")]
     #[wasm_bindgen(js_name = renderTask)]
     pub fn render_task(
         &self,
@@ -506,7 +503,6 @@ impl Document {
             .map_err(js_error)
     }
 
-    #[cfg(feature = "render")]
     pub fn render(
         &self,
         index: usize,
@@ -523,11 +519,9 @@ impl Document {
     }
 }
 
-#[cfg(feature = "render")]
 #[wasm_bindgen]
 pub struct RenderTask(crate::RenderTask);
 
-#[cfg(feature = "render")]
 #[wasm_bindgen]
 impl RenderTask {
     /// Runs for about `budget_ms`; true once the page's content is done.

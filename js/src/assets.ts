@@ -18,14 +18,18 @@ import { PdfError } from "./errors.ts";
 import { sha256Hex } from "./sha256.ts";
 
 export type AssetName = keyof typeof PINS;
-export type WasmName = "recto.wasm" | "recto-text.wasm";
+export type WasmName = "recto.wasm" | "recto-render.wasm" | "recto-more.wasm" | "recto-rare.wasm";
 
 function packagedUrl(name: AssetName): URL {
   switch (name) {
     case "recto.wasm":
       return new URL("../wasm/recto.wasm", import.meta.url);
-    case "recto-text.wasm":
-      return new URL("../wasm/recto-text.wasm", import.meta.url);
+    case "recto-render.wasm":
+      return new URL("../wasm/recto-render.wasm", import.meta.url);
+    case "recto-more.wasm":
+      return new URL("../wasm/recto-more.wasm", import.meta.url);
+    case "recto-rare.wasm":
+      return new URL("../wasm/recto-rare.wasm", import.meta.url);
     case "fonts.bin":
       return new URL("../wasm/fonts.bin", import.meta.url);
     case "cjk-fallback.ttf":
@@ -210,13 +214,26 @@ export async function preloadAssets(base: URL | null, names: AssetName[]): Promi
 /** An asset, read synchronously. Throws a PdfError rather than returning nothing. */
 export function loadAssetSync(name: AssetName, base: URL | null, hash?: SyncHash): Uint8Array {
   let url: URL | null = null;
-  let bytes: Uint8Array;
   try {
     url = assetUrl(name, base);
     const cached = loaded.get(url.href);
     if (cached) {
       return cached;
     }
+  } catch (error) {
+    throw loadFailure(name, url, error instanceof Error ? error.message : String(error), error);
+  }
+  const bytes = readCheckedSync(name, base, hash);
+  loaded.set(url.href, bytes);
+  return bytes;
+}
+
+/** A file, read now and hashed before it's returned, and not kept: a part is compiled once. */
+export function readCheckedSync(name: AssetName, base: URL | null, hash?: SyncHash): Uint8Array {
+  let url: URL | null = null;
+  let bytes: Uint8Array;
+  try {
+    url = assetUrl(name, base);
     if (!canReadSync()) {
       throw new Error("this thread can only use assets fetched up front, and it was left out of preloadAssets");
     }
@@ -224,8 +241,7 @@ export function loadAssetSync(name: AssetName, base: URL | null, hash?: SyncHash
   } catch (error) {
     throw loadFailure(name, url, error instanceof Error ? error.message : String(error), error);
   }
-  loaded.set(url!.href, checked(name, url!, bytes, hash));
-  return bytes;
+  return checked(name, url, bytes, hash);
 }
 
 /** Entry `index` of fonts.bin: u32 count, u32 offsets[count + 1], bytes (little-endian). */

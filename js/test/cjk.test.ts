@@ -65,7 +65,7 @@ function cjkPdf(): Uint8Array {
 /** A directory of the package's assets without those named, for assetBase. */
 function assetsWithout(...missing: string[]): string {
   const dir = mkdtempSync(join(tmpdir(), "recto-assets-"));
-  for (const name of ["recto.wasm", "recto-text.wasm", "fonts.bin", "cjk-fallback.ttf", "cmaps.deflate"]) {
+  for (const name of ["recto.wasm", "recto-render.wasm", "recto-more.wasm", "recto-rare.wasm", "fonts.bin", "cjk-fallback.ttf", "cmaps.deflate"]) {
     if (!missing.includes(name)) {
       copyFileSync(new URL(`../wasm/${name}`, import.meta.url), join(dir, name));
     }

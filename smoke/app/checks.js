@@ -24,6 +24,9 @@ try {
   mainThread.poolInk = ink(poolBitmap);
   await pooled.close();
   pool.close();
+  const rareDoc = await openPdf(await (await fetch("/jbig2.pdf")).arrayBuffer());
+  mainThread.rareInk = rareDoc.render(0, { width: 64 }).rgba.some((v) => v < 128);
+  rareDoc.close();
   const engine = await createPdfEngine();
   mainThread.ranged = await engine.openRanged("/report.pdf").then(
     () => "opened",

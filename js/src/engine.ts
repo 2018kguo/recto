@@ -3,17 +3,17 @@
 // instance goes once nothing has been open on it for a moment, and a document still open on an
 // instance keeps it.
 
-import { createGlue } from "../wasm/recto.gen.mjs";
+import { createGlue, PART_TABLE } from "../wasm/recto.gen.mjs";
 import {
   type AssetName,
   assetBaseUrl,
   canReadSync,
-  hasFiles,
   fontFromBundle,
   type WasmName,
   compileWasm,
   loadAssetSync,
   preloadAssets,
+  readCheckedSync,
   type SyncHash,
 } from "./assets.ts";
 import {
@@ -47,13 +47,12 @@ export type PdfEngineOptions = {
   /**
    * Where a thread can't read a file synchronously (a page's main thread, a service worker), the
    * assets are fetched while the engine is created: by default all of them, 9.5 MB. Name fewer to
-   * fetch less, and a call that needs a font or CMaps you left out fails with `missing-asset`.
-   * `recto.wasm` is fetched there whatever you name, so it can always draw. Where assets can be read
-   * when needed, only `recto.wasm` means anything: named, the engine starts on it, which saves the first `render`
-   * moving there; left out, it starts on the text engine. A browser worker leaves it out by
-   * default, and Node names it, having no download to save.
+   * fetch less, and a call that needs a font or CMaps you left out fails with `missing-asset`. The
+   * wasm's parts are fetched there whatever you name, so it can always draw. Where assets can be read
+   * when needed, only `recto.wasm` means anything: named, what drawing needs is fetched and compiled
+   * now, which saves the first `render` blocking on it.
    */
-  preloadAssets?: (Exclude<AssetName, "recto-text.wasm"> | "cmaps.brotli")[];
+  preloadAssets?: (Exclude<AssetName, Part> | "cmaps.brotli")[];
 };
 
 export type PdfOpenOptions = {
@@ -86,7 +85,9 @@ export interface PdfEngine {
 
 const CJK_FONT_ASSET = 14;
 const CMAPS_ASSET = 15;
-const ALL_ASSETS = ["recto.wasm", "fonts.bin", "cmaps.deflate", "cjk-fallback.ttf"] as const;
+const PARTS = ["recto-render.wasm", "recto-more.wasm", "recto-rare.wasm"] as const;
+type Part = (typeof PARTS)[number];
+const ALL_ASSETS = ["fonts.bin", "cmaps.deflate", "cjk-fallback.ttf"] as const;
 /** Chosen from bench/results/recycle.json: retiring at each close made a repeated large file slow. */
 const IDLE_RECYCLE_ABOVE_BYTES = 64 * 1024 * 1024;
 const DEFAULT_RECYCLE_ABOVE_BYTES = 512 * 1024 * 1024;
@@ -111,12 +112,12 @@ function compile(name: WasmName, base: URL | null): Promise<WebAssembly.Module> 
   return module;
 }
 
-/** The full engine, from inside a synchronous call: a worker or Node reads it now. */
-function fullModuleSync(base: URL | null, hash?: SyncHash): WebAssembly.Module {
-  const key = moduleKey("recto.wasm", base);
+/** A part, from inside a synchronous call. Hashed before it's compiled; this is the only way in but `compile`. */
+function partModule(name: Part, base: URL | null, hash: SyncHash): WebAssembly.Module {
+  const key = moduleKey(name, base);
   let module = compiled.get(key);
   if (!module) {
-    module = new WebAssembly.Module(loadAssetSync("recto.wasm", base, hash) as Uint8Array<ArrayBuffer>);
+    module = new WebAssembly.Module(readCheckedSync(name, base, hash) as Uint8Array<ArrayBuffer>);
     compiled.set(key, module);
   }
   return module;
@@ -132,27 +133,58 @@ function instantiate(
   generation: number,
   base: URL | null,
   module: WebAssembly.Module,
-  full: boolean,
   documents: { open: number } = { open: 0 }
 ): Instance {
+  const parts = new Set<Part>();
+  // A function of a part that isn't loaded yet: load it, then make the call this was meant to be. A
+  // failure unwinds the engine's frames with its state half-done, so no call can follow on this
+  // instance. What was open on it reopens on another, at its next call.
+  const placeholders = (name: Part) =>
+    new Proxy(
+      {},
+      {
+        get: (_, slot) =>
+          (...args: unknown[]) => {
+            try {
+              instance.loadPart(name);
+            } catch (error) {
+              instance.abandoned = true;
+              throw error;
+            }
+            const table = exports[PART_TABLE as keyof typeof exports] as unknown as WebAssembly.Table;
+            return (table.get(Number(slot)) as (...args: unknown[]) => unknown)(...args);
+          },
+      }
+    );
   // Each instance gets its own glue closure (scripts/package-wasm.mjs), so a retired
   // instance and its memory are collected with it.
-  const glue = createGlue();
+  const glue = createGlue({
+    "part.recto-render": placeholders("recto-render.wasm"),
+    "part.recto-more": placeholders("recto-more.wasm"),
+    "part.recto-rare": placeholders("recto-rare.wasm"),
+  });
   const exports = glue.initSync({ module });
   const instance: Instance = {
     glue,
-    full,
+    loadPart(name) {
+      if (!parts.has(name)) {
+        // Its table entries replace its placeholders.
+        new WebAssembly.Instance(partModule(name, base, hashOn(instance)), { primary: exports as unknown as WebAssembly.ModuleImports });
+        parts.add(name);
+      }
+    },
     memory: exports.memory,
     generation,
     openDocuments: 0,
     documents,
     dead: false,
+    abandoned: false,
     failure: undefined,
   };
   // The engine asks for a built-in font (0..13), the CJK fallback or its predefined CMaps
   // the first time a document needs one. It reads a throw as a missing asset, which would
-  // be blank text, so keep the error for the call in progress to rethrow, and retire the
-  // instance so the next open tries again.
+  // be blank text, so keep the error for the call in progress to rethrow, and leave the instance
+  // so the next call tries again.
   glue.setAssetLoader((index) => {
     try {
       if (index === CMAPS_ASSET) {
@@ -163,7 +195,7 @@ function instantiate(
       }
       return fontFromBundle(loadAssetSync("fonts.bin", base, hashOn(instance)), index);
     } catch (error) {
-      instance.dead = true;
+      instance.abandoned = true;
       instance.failure = error as PdfError;
       return;
     }
@@ -192,8 +224,6 @@ class RectoEngine implements PdfEngine {
   #instance: Instance | null;
   #generation: number;
   #starting: Promise<Instance> | null = null;
-  /** Once something asked for the full engine it's loaded anyway, so later documents start on it. */
-  #full: boolean;
   readonly #base: URL | null;
   readonly #recycleAboveBytes: number;
   /** Past this, with nothing open, the instance only lasts until it's been idle for IDLE_MS. */
@@ -204,7 +234,6 @@ class RectoEngine implements PdfEngine {
 
   constructor(instance: Instance, base: URL | null, recycleAboveBytes: number | undefined) {
     this.#instance = instance;
-    this.#full = instance.full;
     this.#generation = instance.generation;
     this.#base = base;
     this.#recycleAboveBytes = recycleAboveBytes ?? DEFAULT_RECYCLE_ABOVE_BYTES;
@@ -239,7 +268,7 @@ class RectoEngine implements PdfEngine {
 
   /** Whether a new document can go on this instance. */
   #usable(instance: Instance | null): instance is Instance {
-    if (!instance || instance.dead) {
+    if (!instance || instance.dead || instance.abandoned) {
       return false;
     }
     const bytes = instance.memory.buffer.byteLength;
@@ -255,9 +284,8 @@ class RectoEngine implements PdfEngine {
     if (this.#usable(current)) {
       return current;
     }
-    const full = this.#full;
-    this.#starting ??= compile(full ? "recto.wasm" : "recto-text.wasm", this.#base)
-      .then((module) => instantiate(this.#generation + 1, this.#base, module, full, this.#documents))
+    this.#starting ??= compile("recto.wasm", this.#base)
+      .then((module) => instantiate(this.#generation + 1, this.#base, module, this.#documents))
       .finally(() => {
         this.#starting = null;
       });
@@ -272,14 +300,14 @@ class RectoEngine implements PdfEngine {
     this.#watch(instance);
   }
 
-  /** An instance that can draw, for a document moving onto it. Synchronous: `render` is. */
-  #fullInstance(): Instance {
+  /** An instance for a document to reopen on, its own having been abandoned. Synchronous: every call is. */
+  #another(): Instance {
     const current = this.#instance;
-    if (current?.full && this.#usable(current)) {
+    if (this.#usable(current)) {
       return current;
     }
-    this.#full = true;
-    const instance = instantiate(this.#generation + 1, this.#base, fullModuleSync(this.#base, current ? hashOn(current) : undefined), true, this.#documents);
+    // Compiled already: it's what the abandoned instance ran.
+    const instance = instantiate(this.#generation + 1, this.#base, compiled.get(moduleKey("recto.wasm", this.#base))!, this.#documents);
     this.#adopt(instance);
     return instance;
   }
@@ -307,12 +335,16 @@ class RectoEngine implements PdfEngine {
     const password = options.password ?? null;
     let doc: RectoDocument;
     try {
-      doc = new RectoDocument(instance, new instance.glue.Document(bytes, password), (old) => {
-        const full = this.#fullInstance();
-        // The file goes straight from the old heap to the new one. The old stays whole until the new
-        // has it, so a failure here leaves the document where it was.
-        const file = new Uint8Array(instance.memory.buffer, old.filePointer(), old.fileLength());
-        return { instance: full, doc: new full.glue.Document(file, password) };
+      // Where the file is, read now: an abandoned instance may run nothing.
+      let opened = new instance.glue.Document(bytes, password);
+      let pointer = opened.filePointer();
+      const length = opened.fileLength();
+      doc = new RectoDocument(instance, opened, (_, oldInstance) => {
+        const next = this.#another();
+        // The file goes straight from the old heap to the new one.
+        opened = new next.glue.Document(new Uint8Array(oldInstance.memory.buffer, pointer, length), password);
+        pointer = opened.filePointer();
+        return { instance: next, doc: opened };
       });
     } catch (error) {
       throw engineFailure(instance, error);
@@ -349,10 +381,10 @@ class RectoEngine implements PdfEngine {
         instance.glue.Document.openRanged(loader.length, loader.chunkBytes, read, password),
         () => {
           // Nothing is fetched twice: the loader keeps what it read.
-          const full = this.#fullInstance();
+          const next = this.#another();
           return {
-            instance: full,
-            doc: full.glue.Document.openRanged(loader.length, loader.chunkBytes, read, password),
+            instance: next,
+            doc: next.glue.Document.openRanged(loader.length, loader.chunkBytes, read, password),
           };
         },
         () => loader.failure
@@ -385,23 +417,20 @@ export async function createPdfEngine(options: PdfEngineOptions = {}): Promise<P
 
 async function createEngine(options: PdfEngineOptions): Promise<RectoEngine> {
   const base = assetBaseUrl(options.assetBase);
-  // The text engine saves a download. Reading from disk there's none to save, and moving would
-  // cost the first render, so the full engine. With no way to read it later, the same, always:
-  // what's listed can't take away the ability to draw.
   const canRead = canReadSync();
   // cmaps.brotli is the old name of cmaps.deflate.
-  const names = (options.preloadAssets ?? (canRead ? (hasFiles() ? ["recto.wasm" as const] : []) : ALL_ASSETS)).map((asset) =>
+  const names = (options.preloadAssets ?? (canRead ? [] : ALL_ASSETS)).map((asset) =>
     asset === "cmaps.brotli" ? ("cmaps.deflate" as const) : asset
   );
-  if (!canRead) {
-    await preloadAssets(base, names.filter((asset) => asset !== "recto.wasm"));
-  }
-  const name: WasmName = !canRead || names.includes("recto.wasm") ? "recto.wasm" : "recto-text.wasm";
-  return new RectoEngine(
-    instantiate(0, base, await compile(name, base), name === "recto.wasm"),
-    base,
-    options.recycleAboveBytes
-  );
+  // With no way to read a part from inside a call, all of them now, always: nothing listed can take
+  // away the ability to draw. Named elsewhere, what drawing runs, to save the first `render` the wait.
+  const parts = canRead ? (names.includes("recto.wasm") ? (["recto-render.wasm"] as const) : []) : PARTS;
+  const [module] = await Promise.all([
+    compile("recto.wasm", base),
+    ...parts.map((part) => compile(part, base)),
+    canRead ? undefined : preloadAssets(base, names.filter((asset) => asset !== "recto.wasm")),
+  ]);
+  return new RectoEngine(instantiate(0, base, module), base, options.recycleAboveBytes);
 }
 
 let shared: Promise<RectoEngine> | null = null;

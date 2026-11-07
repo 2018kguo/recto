@@ -18,6 +18,55 @@ const codeOf = async (promise) => {
   }
 };
 
+// A part lost and then changed by the server, found out before a call and in the middle of one.
+async function checkParts(pdfs, report) {
+  try {
+    const bytesOf = async (name) => await (await fetch(`/${name}`)).arrayBuffer();
+    const set = (name, state) => fetch(`${pdfs}/flaky-set/${name}/${state}`);
+    const attempt = (doc, then) => {
+      try {
+        return then(doc.render(0, { width: 64 }));
+      } catch (error) {
+        return error.code ?? String(error);
+      }
+    };
+    const stages = async (name, doc, then) => {
+      const seen = [];
+      for (const state of ["gone", "changed", "back"]) {
+        await set(name, state);
+        seen.push(state, attempt(doc, then));
+      }
+      return seen;
+    };
+    const assetBase = new URL("/flaky/", pdfs).href;
+    const beforeCall = await createPdfEngine({ assetBase });
+    const reportDoc = await beforeCall.open(report);
+    const render = await stages("recto-render.wasm", reportDoc, (bitmap) => (bitmap.rgba.some((v) => v !== 255) ? "drawn" : "blank"));
+    reportDoc.close();
+
+    const midCall = await createPdfEngine({ assetBase });
+    await set("recto-render.wasm", "back");
+    const jbig2Doc = await midCall.open(await bytesOf("jbig2.pdf"));
+    const other = await midCall.open(report);
+    const otherText = other.text(0).text;
+    const expected = (await (await createPdfEngine()).open(await bytesOf("raw.pdf"))).render(0, { width: 64 }).rgba.join();
+    const jbig2 = await stages("recto-rare.wasm", jbig2Doc, (bitmap) => (bitmap.rgba.join() === expected ? "same" : "different"));
+    const otherDocument = other.text(0).text === otherText;
+    jbig2Doc.close();
+    other.close();
+
+    const inked = async (name) => {
+      const doc = await (await createPdfEngine()).open(await bytesOf(name));
+      const { rgba } = doc.render(0, { width: 64 });
+      doc.close();
+      return rgba.some((v) => v < 200);
+    };
+    return { jbig2, render, otherDocument, jpxInk: await inked("jpx.pdf"), meshInk: await inked("mesh.pdf") };
+  } catch (error) {
+    return { failure: String(error) };
+  }
+}
+
 self.onmessage = async ({ data: pdfs }) => {
   try {
     const started = performance.now();
@@ -67,7 +116,9 @@ self.onmessage = async ({ data: pdfs }) => {
     );
     const missingAsset = { code: await codeOf(createPdfEngine({ assetBase: "/nowhere/" })) };
 
-    self.postMessage({ startMs, latin, closed, cjk, ranged, ignored, short, noExpose, missingAsset });
+    const parts = await checkParts(pdfs, report);
+
+    self.postMessage({ startMs, latin, closed, cjk, ranged, ignored, short, noExpose, missingAsset, parts });
   } catch (error) {
     self.postMessage({ failure: `${error}\n${error?.stack}` });
   }
