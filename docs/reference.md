@@ -16,7 +16,7 @@ engine.stats(): { heapBytes: number; generation: number; openDocuments: number }
 
 `openPdf` uses one shared engine per thread, created on first use. Create your own to set
 options, or to keep a job's memory apart. WebAssembly memory never shrinks, so memory comes back
-by dropping the instance. By default, an instance past 64 MiB goes a second after its last document
+by dropping the instance. By default, an instance that has grown since it started goes a second after its last document
 closes, unless an open reuses it first, and one past 512 MiB goes at the close. With
 `recycleAboveBytes` set, an instance past it goes at the close. Then `stats().heapBytes` reads 0 until
 the next open. If a document is still open past the mark, the next open gets a fresh instance and the
@@ -28,9 +28,9 @@ away, without waiting. `open` then holds the file in WebAssembly memory for as l
 document is open, in memory that comes back only when the instance is replaced.
 
 **One engine, in parts.** The wasm comes in four files, loaded by what a call runs: reading text takes
-`recto.wasm` (1.5 MB, 0.43 MB with brotli); the first `render` adds `recto-render.wasm` (0.77 MB, 0.23 MB);
-functions most files never run are in `recto-more.wasm` (0.86 MB, 0.21 MB) and `recto-rare.wasm` (0.79 MB,
-0.17 MB). There's nothing to call. If a part can't be loaded, the call throws `missing-asset`, every open
+`recto.wasm` (1.3 MB, 0.38 MB with brotli); the first `render` adds `recto-render.wasm` (0.85 MB, 0.26 MB);
+functions most files never run are in `recto-more.wasm` (0.99 MB, 0.26 MB) and `recto-rare.wasm` (0.88 MB,
+0.19 MB). There's nothing to call. If a part can't be loaded, the call throws `missing-asset`, every open
 document stays usable, and the next call tries again. A thread that will draw can save the first `render` that
 wait with `preloadAssets: ["recto-render.wasm"]`. To find a missing file at startup and not at the first page
 that needs it, name all three parts: `preloadAssets: ["recto-render.wasm", "recto-more.wasm", "recto-rare.wasm"]`

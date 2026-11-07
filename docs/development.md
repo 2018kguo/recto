@@ -1,9 +1,9 @@
 # Working on recto
 
 You need Rust 1.96.0 (`rust-toolchain.toml`) with the `wasm32-unknown-unknown` target,
-`cargo install wasm-bindgen-cli --version 0.2.129`, Node 24 or newer, and `wasm-split` from
+`cargo install wasm-bindgen-cli --version 0.2.129`, Node 24 or newer, and `wasm-split` and `wasm-dis` from
 [binaryen version_133](https://github.com/WebAssembly/binaryen/releases/tag/version_133) on your
-`PATH` (CI pins its checksum; npm's `binaryen` has no `wasm-split`). Nobody installing the package
+`PATH` (CI pins its checksum; npm's `binaryen` has neither). Nobody installing the package
 needs any of these.
 
 ```sh
