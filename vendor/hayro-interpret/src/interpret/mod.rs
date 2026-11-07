@@ -15,8 +15,8 @@ use crate::x_object::{FormXObject, ImageXObject, XObject};
 use bitflags::bitflags;
 use hayro_syntax::content::TypedIter;
 use hayro_syntax::content::ops::TypedInstruction;
-use hayro_syntax::object::dict::keys::{ANNOTS, AP, AS, F, N, OC, RECT};
-use hayro_syntax::object::{Array, Dict, Name, Object, Rect, Stream, dict_or_stream};
+use hayro_syntax::object::dict::keys::{AP, AS, F, N, OC, RECT};
+use hayro_syntax::object::{Dict, Name, Object, Rect, Stream, dict_or_stream};
 use hayro_syntax::page::{Page, Resources};
 use kurbo::{Affine, Point, Shape};
 use rustc_hash::FxHashMap;
@@ -99,6 +99,9 @@ pub struct InterpreterSettings {
     pub warning_sink: WarningSinkFn,
     /// Which parts of a page should be rendered.
     pub render_content: RenderContent,
+    /// recto: what's left of the page's budget for nested streams. `Context::new` starts it afresh.
+    #[doc(hidden)]
+    pub nested_budget: Arc<core::sync::atomic::AtomicU32>,
 }
 
 impl Default for InterpreterSettings {
@@ -118,6 +121,7 @@ impl Default for InterpreterSettings {
             warning_sink: Arc::new(|_| {}),
             // recto: not `all()`, which would take in TEXT_ONLY.
             render_content: RenderContent::PAGE | RenderContent::ANNOTATIONS,
+            nested_budget: Arc::default(),
         }
     }
 }
@@ -169,10 +173,8 @@ pub fn interpret_page<'a>(
         interpret(page.typed_operations(), resources, context, device);
     }
 
-    if render_content.contains(RenderContent::ANNOTATIONS)
-        && let Some(annot_arr) = page.raw().get::<Array<'_>>(ANNOTS)
-    {
-        for annot in annot_arr.iter::<Dict<'_>>() {
+    if render_content.contains(RenderContent::ANNOTATIONS) {
+        for annot in page.annotations() {
             interpret_annotation(&annot, resources, context, device);
         }
     }
@@ -282,6 +284,9 @@ pub fn interpret<'a>(
     context: &mut Context<'a>,
     device: &mut impl Device<'a>,
 ) {
+    if !context.charge_nested() {
+        return;
+    }
     let num_states = context.num_states();
 
     context.save_state();

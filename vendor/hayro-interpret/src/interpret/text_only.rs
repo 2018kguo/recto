@@ -175,6 +175,9 @@ pub(crate) fn interpret<'a>(
     context: &mut Context<'a>,
     device: &mut impl Device<'a>,
 ) {
+    if !context.charge_nested() {
+        return;
+    }
     let num_states = context.num_states();
     // Resolved once per name: resolving hashes the font dict.
     let mut fonts = FxHashMap::<&[u8], Option<TextStateFont<'a>>>::default();

@@ -187,6 +187,8 @@ struct PageWalk<'a> {
     /// What pages inherit, one entry per node that changes it.
     contexts: Vec<PagesContext<'a>>,
     kids_left: usize,
+    /// recto: read once each, or a large page repeated in `/Kids` is parsed every time: 2^18 times.
+    read: FxHashMap<ObjectIdentifier, Option<Dict<'a>>>,
     /// A kid was missing or broken, so the tree isn't all the file's pages.
     lost_kid: bool,
 }
@@ -204,6 +206,7 @@ impl<'a> PageWalk<'a> {
             path: FxHashSet::default(),
             contexts: vec![PagesContext::new()],
             kids_left: objects.saturating_add(MAX_REPEATED_KIDS),
+            read: FxHashMap::default(),
             lost_kid: false,
         };
         walk.enter(root, root.obj_id(), 0)?;
@@ -256,7 +259,12 @@ impl<'a> PageWalk<'a> {
                     if self.path.contains(&id) {
                         continue;
                     }
-                    (Some(id), reader.xref().get_with::<Dict<'a>>(id, reader))
+                    let dict = self
+                        .read
+                        .entry(id)
+                        .or_insert_with(|| reader.xref().get_with::<Dict<'a>>(id, reader))
+                        .clone();
+                    (Some(id), dict)
                 }
                 MaybeRef::NotRef(object) => (None, object.into_dict()),
             };
@@ -605,6 +613,25 @@ impl<'a> Page<'a> {
     /// Return the intersection of crop box and media box.
     pub fn intersected_crop_box(&self) -> Rect {
         self.crop_box().intersect(self.media_box())
+    }
+
+    /// recto: the page's annotations, each read once. One listed thousands of times would be parsed
+    /// thousands of times, however large.
+    pub fn annotations(&self) -> Vec<Dict<'a>> {
+        let Some(annotations) = self.raw().get::<Array<'a>>(ANNOTS) else {
+            return Vec::new();
+        };
+        let mut seen = FxHashSet::default();
+        annotations
+            .raw_iter()
+            .filter_map(|annotation| match annotation {
+                MaybeRef::Ref(id) => {
+                    let id: ObjectIdentifier = id.into();
+                    seen.insert(id).then(|| self.xref().get_with::<Dict<'a>>(id, &self.ctx))?
+                }
+                MaybeRef::NotRef(object) => object.into_dict(),
+            })
+            .collect()
     }
 
     /// Return the base dimensions of the page (same as `intersected_crop_box`, but with special

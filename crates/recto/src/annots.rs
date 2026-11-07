@@ -6,7 +6,7 @@ use hayro::hayro_interpret::{
 };
 use hayro::hayro_syntax::content::TypedIter;
 use hayro::hayro_syntax::content::ops::TypedInstruction;
-use hayro::hayro_syntax::object::{Array, Dict, Name, Object, Rect, Stream};
+use hayro::hayro_syntax::object::{Dict, Name, Object, Rect, Stream};
 use hayro::hayro_syntax::page::{Page, Resources};
 use hayro::kurbo::{self, Affine};
 
@@ -274,11 +274,8 @@ pub(crate) fn read<'a>(
     cache: &InterpreterCache<'a>,
     viewer: Affine,
 ) -> Vec<Annotation> {
-    let Some(annots) = page.raw().get::<Array<'_>>(b"Annots") else {
-        return Vec::new();
-    };
-    annots
-        .iter::<Dict<'_>>()
+    page.annotations()
+        .into_iter()
         .map(|annot| {
             let subtype = annot
                 .get::<Name<'_>>(b"Subtype")

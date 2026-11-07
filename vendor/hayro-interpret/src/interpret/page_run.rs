@@ -10,8 +10,7 @@ use crate::context::Context;
 use crate::device::Device;
 use crate::x_object::form::FormXObject;
 use hayro_syntax::content::TypedIter;
-use hayro_syntax::object::dict::keys::ANNOTS;
-use hayro_syntax::object::{Array, Dict};
+use hayro_syntax::object::Dict;
 use hayro_syntax::page::{Page, Resources};
 use std::borrow::Cow;
 
@@ -77,10 +76,7 @@ impl<'a> PageRun<'a> {
             .render_content
             .contains(crate::RenderContent::ANNOTATIONS)
         {
-            page.raw()
-                .get::<Array<'_>>(ANNOTS)
-                .map(|list| list.iter::<Dict<'_>>().collect())
-                .unwrap_or_default()
+            page.annotations()
         } else {
             Vec::new()
         };

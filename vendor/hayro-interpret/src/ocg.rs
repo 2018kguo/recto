@@ -73,11 +73,14 @@ impl OcgState {
 
     /// recto: a visibility expression (`/VE`): `[/And a b ...]`, `[/Or a b ...]` or `[/Not a]`, whose
     /// operands are groups or further expressions.
-    fn evaluate_expression(&self, expression: &Array<'_>, depth: usize) -> Option<bool> {
+    /// `nodes` is what's left to visit: an operand can name the same expression twice, so depth alone
+    /// leaves 2^32, each time the content uses it.
+    fn evaluate_expression(&self, expression: &Array<'_>, depth: usize, nodes: &mut u32) -> Option<bool> {
         const MAX_DEPTH: usize = 32;
-        if depth > MAX_DEPTH {
+        if depth > MAX_DEPTH || *nodes == 0 {
             return None;
         }
+        *nodes -= 1;
         let mut raw = expression.raw_iter();
         let mut resolved = expression.iter::<Object<'_>>();
         raw.next();
@@ -85,7 +88,7 @@ impl OcgState {
         let mut operands = Vec::new();
         for (item, object) in raw.zip(resolved) {
             let value = match (item.as_obj_ref(), object) {
-                (_, Object::Array(nested)) => self.evaluate_expression(&nested, depth + 1),
+                (_, Object::Array(nested)) => self.evaluate_expression(&nested, depth + 1, nodes),
                 (Some(reference), _) => {
                     let id: ObjectIdentifier = reference.into();
                     Some(!self.inactive_ocgs.contains(&id))
@@ -108,7 +111,7 @@ impl OcgState {
         // recto: `/VE` takes the place of `/OCGs` and `/P` for a reader that understands it.
         if let Some(on) = ocmd
             .get::<Array<'_>>(VE)
-            .and_then(|expression| self.evaluate_expression(&expression, 0))
+            .and_then(|expression| self.evaluate_expression(&expression, 0, &mut 1024))
         {
             let visible = self.is_visible() && on;
             self.visibility_stack.push(visible);

@@ -66,6 +66,10 @@ const CASES = {
     const nodes = doubling(30 + r.int(30), (n) => `<</Type/Pages/Kids[${n} 0 R ${n} 0 R]>>`, "<</Type/Pages/Kids[3 0 R 3 0 R]>>");
     return pdf({ pages: "/Kids[5 0 R 5 0 R]", extras: nodes });
   },
+  largePageRepeated: () => {
+    const nodes = doubling(18, (n) => `<</Type/Pages/Kids[${n} 0 R ${n} 0 R]>>`, "<</Type/Pages/Kids[3 0 R 3 0 R]>>");
+    return pdf({ pages: "/Kids[5 0 R 5 0 R]", page: `/Junk[${times(100_000, () => "1")}]`, extras: nodes });
+  },
   fieldParents: (r) => {
     const length = 20_000 + r.int(20_000);
     const parents = Array.from({ length }, (_, i) => (i === length - 1 ? "<</Parent 6 0 R>>" : `<</Parent ${7 + i} 0 R>>`));

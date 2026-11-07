@@ -18,7 +18,12 @@ use hayro_syntax::object::Name;
 use hayro_syntax::page::Resources;
 use hayro_syntax::xref::XRef;
 use kurbo::{Affine, BezPath, PathEl, Point, Rect, Shape};
+use core::sync::atomic::{AtomicU32, Ordering};
 use smallvec::smallvec;
+use std::sync::Arc;
+
+/// recto: see `Context::charge_nested`. At a run a form in a form, that's 262,144 on a page.
+pub(crate) const NESTED_BUDGET: u32 = 1 << 20;
 
 /// Maximum nesting depth for interpreting `XObject`'s/patterns/streams.
 pub(crate) const MAX_NESTED_INTERPRETATION_DEPTH: u32 = 50;
@@ -83,6 +88,8 @@ impl<'a> Context<'a> {
         settings: InterpreterSettings,
     ) -> Self {
         let state = State::new(initial_transform);
+        // recto: a page's budget; the contexts nested in this one share it through their settings.
+        let settings = InterpreterSettings { nested_budget: Arc::new(AtomicU32::new(NESTED_BUDGET)), ..settings };
 
         Self::new_with(initial_transform, bbox, cache, xref, settings, state, 0)
     }
@@ -388,6 +395,21 @@ impl<'a> Context<'a> {
         self.nesting_depth += 1;
 
         true
+    }
+
+    /// recto: pays to run a stream at this depth, and says whether the page can afford it. A form that
+    /// draws the next one twice is 2^depth runs from a few KB, and so is a pattern or a Type 3 glyph.
+    /// Nothing else limits that, so each level down costs four times as much. The page's own
+    /// streams are as long as the file makes them, and cost nothing.
+    pub(crate) fn charge_nested(&self) -> bool {
+        if self.nesting_depth <= 1 {
+            return true;
+        }
+        let cost = 1u32 << (2 * (self.nesting_depth - 1).min(8));
+        self.settings
+            .nested_budget
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |left| left.checked_sub(cost))
+            .is_ok()
     }
 
     pub(crate) fn end_nested_interpretation(&mut self) {

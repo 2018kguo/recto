@@ -428,3 +428,21 @@ test("what a page's annotations with no appearance can draw is bounded in total"
   doc.close();
   assert.ok(process.memoryUsage().rss - before < 1e9, "stays under a gigabyte");
 });
+
+test("forms nested a few levels deep and used many times are all drawn", async () => {
+  // A budget for streams that multiply mustn't reach a real page: a group of 2,000 symbols, each a form.
+  const form = (resources: string, data: string) =>
+    `<</Type/XObject/Subtype/Form/BBox[0 0 100 100]/Resources<<${resources}>>/Length ${data.length}>>\nstream\n${data}\nendstream`;
+  const page = await render(
+    pdfOf({
+      content: "/G Do",
+      resources: "/XObject <</G 5 0 R>>",
+      objects: [
+        form("/XObject<</S 6 0 R>>", `${"q 1 0 0 1 0 0 cm /S Do Q\n".repeat(2000)}`),
+        form("/XObject<</T 7 0 R>>", "/T Do"),
+        form("", "1 0 0 rg 0 0 100 100 re f"),
+      ],
+    }),
+  );
+  assert.deepEqual(page.at(50, 50), RED);
+});

@@ -17,7 +17,7 @@ use hayro_syntax::reader::{Reader, ReaderContext, ReaderExt};
 /// How many points and lines all of a page's annotations with no appearance may draw. Far more than
 /// a real page has; each of a list's items can ask for thousands, and the same one can be listed
 /// thousands of times, so a cap on one list leaves gigabytes of stream.
-pub(crate) const PAGE_POINTS: usize = 1 << 19;
+pub(crate) const PAGE_POINTS: usize = 1 << 17;
 
 fn spend(left: &Cell<usize>, amount: usize) {
     left.set(left.get().saturating_sub(amount));
