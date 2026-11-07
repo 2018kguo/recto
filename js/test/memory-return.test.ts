@@ -1,5 +1,6 @@
 // WebAssembly memory only comes back when nothing holds the instance. Collected, not just dropped.
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { test } from "node:test";
 import { setFlagsFromString } from "node:v8";
 import { runInNewContext } from "node:vm";
@@ -101,4 +102,57 @@ test("a document that moved lets go of the text instance while it stays open", a
   assert.ok(await collected(memories[first]!), "the text instance's memory is still reachable");
   assert.ok(doc.text(0).text.length > 50);
   doc.close();
+});
+
+/** A script in a process of its own, importing the engine as `createPdfEngine`; returns what it prints. */
+function inProcess(body: string): string {
+  const index = new URL("../src/index.ts", import.meta.url).href;
+  return execFileSync(
+    process.execPath,
+    ["--input-type=module", "-e", `const { createPdfEngine } = await import(${JSON.stringify(index)});\n${body}`],
+    { timeout: 120_000, encoding: "utf8" }
+  );
+}
+
+const padded = (mebibytes: number) => `
+  const { syntheticPdf } = await import(${JSON.stringify(new URL("./synthetic-pdf.ts", import.meta.url).href)});
+  const file = new Uint8Array(${mebibytes} * 2 ** 20);
+  file.fill(1);
+  file.set(syntheticPdf({ pages: 2, charsPerPage: 200 }));
+`;
+
+test("a retirement pending doesn't keep a process running", () => {
+  const out = inProcess(`${padded(100)}
+    const engine = await createPdfEngine();
+    const doc = await engine.open(file);
+    doc.close();
+    const closed = performance.now();
+    process.on("exit", () => console.log(performance.now() - closed));
+  `);
+  assert.ok(Number(out) < 700, `exited ${out} ms after the close; a retirement waits a second`);
+});
+
+test("past 64 MiB with a document still open, the next open gets a fresh instance", async () => {
+  const engine = await createPdfEngine();
+  const file = bigFile(100);
+  const first = await engine.open(file);
+  const second = await engine.open(file);
+  assert.equal(engine.stats().generation, 1);
+  assert.ok(first.text(0).text.length > 50);
+  first.close();
+  second.close();
+});
+
+test("a move holds the file in the two heaps and no third copy", () => {
+  const MIB = 200;
+  const out = inProcess(`${padded(MIB)}
+    const before = process.memoryUsage().rss;
+    const engine = await createPdfEngine({ preloadAssets: [] });
+    const doc = await engine.open(file);
+    doc.text(0);
+    doc.render(0, { width: 100 });
+    console.log((process.resourceUsage().maxRSS * 1024 - before) / 2 ** 20);
+  `);
+  // Two heaps of the file over the caller's copy, and room for the wasm and a little more.
+  assert.ok(Number(out) < 2.6 * MIB, `the move grew the peak by ${out} MiB on a ${MIB} MiB file`);
 });

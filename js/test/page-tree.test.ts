@@ -558,6 +558,59 @@ test("page tree: a chain of nodes far deeper than the check goes opens, and keep
   assert.deepEqual(await pagesOf(file), ["P1"]);
 });
 
+test("page tree: a ranged read of every page stays linear in a wide tree of nodes", async () => {
+  const cpuMsFor = async (nodeCount: number) => {
+    // Nodes of two pages each, all under the root, which is read in order. Enough objects that
+    // /Count is believed, so this is the descent and not the walk.
+    const firstNode = 4 + 2 * nodeCount;
+    const leaves = Array.from({ length: 2 * nodeCount }, () => "<</Type/Page>>");
+    const nodes = Array.from({ length: nodeCount }, (_, i) => `<</Type/Pages/Count 2/Kids[${4 + 2 * i} 0 R ${5 + 2 * i} 0 R]>>`);
+    const kids = nodes.map((_, i) => `${firstNode + i} 0 R`).join(" ");
+    const file = fileOf(`<</Type/Pages/Count ${2 * nodeCount}/Kids[${kids}]>>`, [...leaves, ...nodes]);
+    const engine = await createPdfEngine();
+    const best = [];
+    for (let run = 0; run < 3; run++) {
+      const doc = await engine.openRanged(file, { maxBytes: 2 ** 30 });
+      const started = threadCpuMs();
+      for (let i = 0; i < doc.pageCount; i++) {
+        doc.pageInfo(i);
+      }
+      best.push(threadCpuMs() - started);
+      doc.close();
+    }
+    return Math.min(...best);
+  };
+  const [small, large] = [await cpuMsFor(500), await cpuMsFor(4000)];
+  assert.ok(large < small * 24, `8 times the nodes took ${large / small} times as long`);
+});
+
+test("page tree: a ranged tree with more kids than objects stops where the whole file does", async () => {
+  const COUNT = 300_000;
+  const kids = Array.from({ length: COUNT }, () => "4 0 R").join(" ");
+  const file = fileOf(`<</Type/Pages/Count ${COUNT}/Kids[${kids}]>>`, pagesFrom(4, [1]));
+  const engine = await createPdfEngine();
+  const whole = await engine.open(file);
+  const ranged = await engine.openRanged(file, { maxBytes: 2 ** 30 });
+  assert.ok(whole.pageCount < COUNT);
+  assert.equal(ranged.pageCount, whole.pageCount);
+  whole.close();
+  ranged.close();
+});
+
+test("page tree: a ranged chain of nodes far past the check's depth opens, not overflowing its stack", async () => {
+  const DEPTH = 200_000;
+  const first = 6;
+  // Count 2 over one kid: each node has to be read and summed, so the check goes down.
+  const chain = Array.from({ length: DEPTH }, (_, i) =>
+    `<</Type/Pages/Count 2/Kids[${i === DEPTH - 1 ? 4 : first + i + 1} 0 R]>>`
+  );
+  const file = fileOf(`<</Type/Pages/Count 2/Kids[${first} 0 R]>>`, [...pagesFrom(4, [1]), ...chain]);
+  const engine = await createPdfEngine();
+  using doc = await engine.openRanged(file, { maxBytes: 2 ** 30 });
+  assert.equal(doc.pageCount, 1);
+  assert.equal(doc.text(0).text.trim(), "P1");
+});
+
 test("page tree: first reads are linear and take little memory beyond the open's", async () => {
   // A binary tree, the shape that once cost a kept node per inner node and a hash lookup per level.
   const LEVELS = 15;
