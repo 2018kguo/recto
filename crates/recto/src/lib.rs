@@ -322,11 +322,13 @@ impl Document {
         self.0.with_dependent(|pdf, _| labels::read(pdf, pages))
     }
 
-    /// Which of the document's trees a limit cut short, which only a file built to cost does. Walks
-    /// the outline and labels again to find out.
+    /// Which of the document's trees were cut short: by a limit, which only a file built to cost
+    /// reaches, or for pages by a tree that lost its kids and left none. Walks the outline and labels
+    /// again to find out.
     pub fn structure_truncated(&self) -> StructureTruncated {
         self.0.with_dependent(|pdf, _| StructureTruncated {
-            pages: pdf.pages().walk_stopped(),
+            // A tree that lost its kids, with nothing found by a scan, looks like an empty one.
+            pages: pdf.pages().walk_stopped() || pdf.pages().lost_everything(),
             page_labels: labels::walked(pdf).stopped,
             outline: outline::walked(pdf).stopped,
         })

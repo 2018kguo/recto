@@ -249,9 +249,9 @@ export interface PdfDocument {
   /** What each page is called, one string per page ("iv", "A-5"), or null if the file doesn't say. */
   pageLabels(): string[] | null;
   /**
-   * Which of the document's trees a limit cut short, which only a file built to cost does: `pages` means
-   * `pageCount` may be short, `pageLabels` and `outline` that those may be wrong or incomplete. A page's own
-   * limits are `truncated` on its results.
+   * Which of the document's trees were cut short: `pages` means `pageCount` may be short, by a limit or
+   * because a damaged tree left no pages (an honestly empty document says false). `pageLabels` and `outline`
+   * mean those passed a limit, and may be wrong or incomplete. A page's own limits are `truncated` on its results.
    */
   structureTruncated(): { pages: boolean; pageLabels: boolean; outline: boolean };
   pageInfo(index: number): PdfPageInfo;

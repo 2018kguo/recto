@@ -782,6 +782,18 @@ test("a revision's removals stay removed, read through the xref or by a scan, wh
   }
 });
 
+test("page tree: no pages from a damaged tree says so, and from an empty one doesn't", async () => {
+  const engine = await createPdfEngine();
+  const damaged = await engine.open(fileOf("<</Type/Pages/Kids[99 0 R]>>", []));
+  assert.equal(damaged.pageCount, 0);
+  assert.equal(damaged.structureTruncated().pages, true);
+  damaged.close();
+  const empty = await engine.open(fileOf("<</Type/Pages/Count 0/Kids[]>>", []));
+  assert.equal(empty.pageCount, 0);
+  assert.equal(empty.structureTruncated().pages, false);
+  empty.close();
+});
+
 test("page tree: an honestly empty tree in a long file is a document with no pages, and fetches little", async () => {
   // 3 MB of content nothing refers to. A repair would read it all.
   const padding = `<</Length 3000000>>\nstream\n${" ".repeat(3_000_000)}\nendstream`;
