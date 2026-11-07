@@ -80,3 +80,21 @@ test("an HTTP error says so", async () => {
   globalThis.fetch = (async () => new Response("nope", { status: 404 })) as typeof fetch;
   await assert.rejects(createPdfEngine({ assetBase: location() }), { code: "missing-asset", message: /HTTP 404/u });
 });
+
+test("listing other assets can't take away drawing, and the old CMaps name still works", async () => {
+  Object.defineProperty(globalThis, "crypto", realCrypto);
+  serve();
+  const pdf = syntheticPdf({ pages: 1, charsPerPage: 100 });
+  for (const preloadAssets of [["fonts.bin"], ["fonts.bin", "cmaps.brotli"]] as const) {
+    const engine = await createPdfEngine({ assetBase: location(), preloadAssets: [...preloadAssets] });
+    using doc = await engine.open(pdf);
+    assert.equal(doc.render(0, { width: 100 }).width, 100, `with ${preloadAssets.join()} listed`);
+    assert.equal((await doc.renderAsync(0, { width: 100 })).width, 100);
+    assert.equal(engine.stats().generation, 0, "it started on the wasm that draws");
+  }
+  // With nothing listed, what a page lacks is its font, and the wasm is there.
+  const engine = await createPdfEngine({ assetBase: location(), preloadAssets: [] });
+  using doc = await engine.open(pdf);
+  assert.ok(doc.objects(0));
+  assert.throws(() => doc.render(0, { width: 100 }), { code: "missing-asset", message: /fonts\.bin/u });
+});

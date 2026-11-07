@@ -30,7 +30,9 @@ set of PDFs before and after.
 - **Memory:** a render holds its pixels once. WebAssembly memory with a 40-page report open went from
   15.9 MB to 12.3 MB. `recycleAboveBytes` now defaults to 64 MiB, from 512 MiB.
 - A text pass reads no font file. The CMaps asset is now `cmaps.deflate` (0.36 MB, was
-  `cmaps.brotli`, 0.25 MB), so neither wasm carries a brotli decoder.
+  `cmaps.brotli`, 0.25 MB), so neither wasm carries a brotli decoder. `preloadAssets` still takes the
+  old name. A setup that copies the package's files by name to `assetBase` also needs
+  `recto-text.wasm` and `cmaps.deflate`; copying `wasm/*`, as the docs say, needs nothing new.
 
 ### Fixed
 

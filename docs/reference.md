@@ -184,9 +184,9 @@ The wasm and assets are found with `new URL("../wasm/…", import.meta.url)`.
 - **A Content-Security-Policy** must allow `wasm-unsafe-eval`, and `connect-src` for the assets.
 - **A page's main thread and service workers** can't read a file synchronously, so where that's
   so, the assets are fetched while the engine is created: all of them by default, 9.5 MB, or only
-  what `preloadAssets` names (`recto.wasm` 3.8 MB, `fonts.bin` 0.26 MB, `cmaps.deflate` 0.36 MB,
-  `cjk-fallback.ttf` 5.1 MB), and a call that needs one you left out fails with `missing-asset`;
-  leave out `recto.wasm` and it's `render` and `objects` that do. It works, tested
+  what `preloadAssets` names (`fonts.bin` 0.26 MB, `cmaps.deflate` 0.36 MB, `cjk-fallback.ttf` 5.1 MB),
+  and a call that needs one you left out fails with `missing-asset`. `recto.wasm` (3.8 MB) comes
+  whatever you name, so it can always draw. It works, tested
   in Chromium, Firefox and WebKit, but **every call blocks that thread**: on a main thread the page
   freezes for the length of each call, so prefer a dedicated worker, where nothing is fetched
   until a document needs it. A ranged read still needs a thread that may block: `wrong-thread`.

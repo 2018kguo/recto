@@ -42,14 +42,14 @@ export type PdfEngineOptions = {
   recycleAboveBytes?: number;
   /**
    * Where a thread can't read a file synchronously (a page's main thread, a service worker), the
-   * assets are fetched while the engine is created: by default all of them, 9.7 MB. Name fewer to
-   * fetch less, and a call that needs one you left out fails with `missing-asset`: leave out
-   * `recto.wasm` and `render` and `objects` do. Where assets can be read when needed, only
-   * `recto.wasm` means anything: named, the engine starts on it, which saves the first `render`
+   * assets are fetched while the engine is created: by default all of them, 9.5 MB. Name fewer to
+   * fetch less, and a call that needs a font or CMaps you left out fails with `missing-asset`.
+   * `recto.wasm` is fetched there whatever you name, so it can always draw. Where assets can be read
+   * when needed, only `recto.wasm` means anything: named, the engine starts on it, which saves the first `render`
    * moving there; left out, it starts on the text engine. A browser worker leaves it out by
    * default, and Node names it, having no download to save.
    */
-  preloadAssets?: Exclude<AssetName, "recto-text.wasm">[];
+  preloadAssets?: (Exclude<AssetName, "recto-text.wasm"> | "cmaps.brotli")[];
 };
 
 export type PdfOpenOptions = {
@@ -348,12 +348,17 @@ export async function createPdfEngine(options: PdfEngineOptions = {}): Promise<P
 async function createEngine(options: PdfEngineOptions): Promise<RectoEngine> {
   const base = assetBaseUrl(options.assetBase);
   // The text engine saves a download. Reading from disk there's none to save, and moving would
-  // cost the first render, so the full engine. With no way to read it later, the same.
-  const names = options.preloadAssets ?? (canReadSync() ? (hasFiles() ? ["recto.wasm" as const] : []) : ALL_ASSETS);
-  if (!canReadSync()) {
+  // cost the first render, so the full engine. With no way to read it later, the same, always:
+  // what's listed can't take away the ability to draw.
+  const canRead = canReadSync();
+  // cmaps.brotli is the old name of cmaps.deflate.
+  const names = (options.preloadAssets ?? (canRead ? (hasFiles() ? ["recto.wasm" as const] : []) : ALL_ASSETS)).map((asset) =>
+    asset === "cmaps.brotli" ? ("cmaps.deflate" as const) : asset
+  );
+  if (!canRead) {
     await preloadAssets(base, names.filter((asset) => asset !== "recto.wasm"));
   }
-  const name: WasmName = names.includes("recto.wasm") ? "recto.wasm" : "recto-text.wasm";
+  const name: WasmName = !canRead || names.includes("recto.wasm") ? "recto.wasm" : "recto-text.wasm";
   return new RectoEngine(
     instantiate(0, base, await compile(name, base), name === "recto.wasm"),
     base,
