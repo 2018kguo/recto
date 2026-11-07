@@ -19,7 +19,9 @@ options, or to keep a job's memory apart. WebAssembly memory never shrinks, so m
 by dropping the instance. By default, an instance that has grown since it started goes a second after its last document
 closes, unless an open reuses it first, and one past 512 MiB goes at the close. With
 `recycleAboveBytes` set, an instance past it goes at the close. Then `stats().heapBytes` reads 0 until
-the next open. If a document is still open past the mark, the next open gets a fresh instance and the
+the next open. Below the mark an instance stays however long it's idle, so a high `recycleAboveBytes` (512 MiB, say)
+keeps an engine that opens a file every few seconds from paying for a fresh instance each time: 2.7–6 ms more for
+open, first page and close, since fonts and CMaps are parsed again. If a document is still open past the mark, the next open gets a fresh instance and the
 old one goes when its documents close. A crashed instance is replaced at the next open.
 
 **The bytes are copied** before the call returns its promise, whether by `open` or by a ranged

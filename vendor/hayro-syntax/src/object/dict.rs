@@ -6,7 +6,7 @@ use crate::object::{Name, ObjectIdentifier};
 use crate::object::{Object, ObjectLike};
 use crate::reader::Reader;
 use crate::reader::{Readable, ReaderContext, ReaderExt, Skippable};
-use crate::sync::Arc;
+use crate::sync::{Arc, OnceLock};
 use crate::sync::FxHashMap;
 use alloc::format;
 use alloc::vec::Vec;
@@ -239,6 +239,19 @@ fn read_inner<'a>(
     }))))
 }
 
+#[cfg(feature = "std")]
+std::thread_local! {
+    static DICT_HEAD_BUILDS: core::cell::Cell<usize> = const { core::cell::Cell::new(0) };
+}
+
+/// recto: how many page-tree dictionaries this thread has built, for the tests that an object the
+/// tree lists many times is built once.
+#[cfg(feature = "std")]
+#[doc(hidden)]
+pub fn dict_head_builds() -> usize {
+    DICT_HEAD_BUILDS.with(|n| n.get())
+}
+
 /// recto: a dictionary that parsed, kept as its bytes and where its `/Type` is, without the index of
 /// its keys a [`Dict`] builds. The page walk reads every page's dictionary at open to tell pages from
 /// nodes, and building each one's index there was a fifth of opening a large file; a page's is built
@@ -246,14 +259,20 @@ fn read_inner<'a>(
 /// parse, keeping a different part.
 #[derive(Clone, Debug)]
 pub(crate) enum DictHead<'a> {
-    Parsed {
-        data: &'a [u8],
-        ctx: ReaderContext<'a>,
-        /// The last `/Type`'s value, as an offset into `data`: the one a `Dict` would keep.
-        type_at: Option<usize>,
-    },
+    /// Shared by every clone, so an object the tree lists many times is one allocation, and its
+    /// `Dict` is built once, as it was when the walk kept `Dict`s.
+    Parsed(Arc<ParsedHead<'a>>),
     /// Read some other way, as from an object stream: already a `Dict`.
     Dict(Dict<'a>),
+}
+
+#[derive(Debug)]
+pub(crate) struct ParsedHead<'a> {
+    data: &'a [u8],
+    ctx: ReaderContext<'a>,
+    /// The last `/Type`'s value, as an offset into `data`: the one a `Dict` would keep.
+    type_at: Option<usize>,
+    built: OnceLock<Option<Dict<'a>>>,
 }
 
 impl<'a> DictHead<'a> {
@@ -261,9 +280,9 @@ impl<'a> DictHead<'a> {
     pub(crate) fn type_name(&self) -> Option<Name<'a>> {
         match self {
             Self::Dict(dict) => dict.get::<Name<'a>>(keys::TYPE),
-            Self::Parsed { data, ctx, type_at } => Reader::new(&data[(*type_at)?..])
-                .read_with_context::<MaybeRef<Name<'a>>>(ctx)?
-                .resolve(ctx),
+            Self::Parsed(head) => Reader::new(&head.data[head.type_at?..])
+                .read_with_context::<MaybeRef<Name<'a>>>(&head.ctx)?
+                .resolve(&head.ctx),
         }
     }
 
@@ -271,7 +290,14 @@ impl<'a> DictHead<'a> {
     pub(crate) fn dict(&self) -> Option<Dict<'a>> {
         match self {
             Self::Dict(dict) => Some(dict.clone()),
-            Self::Parsed { data, ctx, .. } => Reader::new(data).read_with_context::<Dict<'a>>(ctx),
+            Self::Parsed(head) => head
+                .built
+                .get_or_init(|| {
+                    #[cfg(feature = "std")]
+                    DICT_HEAD_BUILDS.with(|n| n.set(n.get() + 1));
+                    Reader::new(head.data).read_with_context::<Dict<'a>>(&head.ctx)
+                })
+                .clone(),
         }
     }
 }
@@ -292,11 +318,12 @@ impl<'a> Readable<'a> for DictHead<'a> {
                 Some(())
             },
         )?;
-        Some(Self::Parsed {
+        Some(Self::Parsed(Arc::new(ParsedHead {
             data,
             ctx: ctx.clone(),
             type_at,
-        })
+            built: OnceLock::new(),
+        })))
     }
 }
 

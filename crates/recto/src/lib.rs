@@ -567,6 +567,38 @@ mod tests {
         s
     }
 
+    /// A node, and a page, listed many times in `/Kids`: each dictionary is built once, at open and
+    /// through every page's read, so a large one repeated doesn't cost its size per repeat.
+    #[test]
+    fn a_repeated_tree_object_is_built_once() {
+        use hayro::hayro_syntax::object::dict::dict_head_builds;
+        const N: usize = 2000;
+        let kids = format!("<< /Type /Pages /Count {N} /Kids [{}] >>", "3 0 R ".repeat(N));
+        let junk = format!("({})", "a".repeat(4096));
+        let page = "/Type /Page /MediaBox [0 0 100 100]";
+        let node_repeated = pdf(&[
+            b"<< /Type /Catalog /Pages 2 0 R >>",
+            kids.as_bytes(),
+            format!("<< /Type /Pages /Count 1 /Kids [4 0 R] /Junk {junk} >>").as_bytes(),
+            format!("<< {page} >>").as_bytes(),
+        ]);
+        let page_repeated = pdf(&[
+            b"<< /Type /Catalog /Pages 2 0 R >>",
+            kids.as_bytes(),
+            format!("<< {page} /Junk {junk} >>").as_bytes(),
+        ]);
+        for (name, file) in [("node", node_repeated), ("page", page_repeated)] {
+            let before = dict_head_builds();
+            let doc = Document::open(file, "").unwrap();
+            assert_eq!(doc.page_count(), N, "{name}");
+            for i in 0..N {
+                doc.page_info(i).unwrap();
+            }
+            let built = dict_head_builds() - before;
+            assert!(built <= 2, "{name}: {built} dictionaries built for 2 objects");
+        }
+    }
+
     /// One 200x200 page: a filled-and-stroked rect, `Tr 2` text, a `sh`, an
     /// image, a line; a stamp, a note and a choice widget.
     fn synthetic() -> Document {

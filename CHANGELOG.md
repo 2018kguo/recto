@@ -94,8 +94,10 @@ Opening:
   are the same on 2,170 PDFs and 6,000 damaged or generated ones, whole and ranged.
 - **An idle instance gives its memory back at any size**: by default it goes a second after its last document closes
   once it has grown at all, where it waited for 64 MiB. A 40-page report, read and drawn through in Node, left 16.4 MB
-  of WebAssembly memory held for as long as the engine lived; now none. An open after that second instantiates
-  again, about 1.2–2 ms.
+  of WebAssembly memory held for as long as the engine lived; now none. An open after that second gets a fresh
+  instance, which parses its fonts and CMaps again: open, first page and close took 2.7–6 ms longer (standard fonts,
+  text 2.8 to 5.5 ms and render 4.7 to 10.4 ms; CJK, text 2.4 to 8.3 ms and render 2.4 to 9.5 ms). To keep the
+  instance, pass a high `recycleAboveBytes`, such as 512 MiB: below it, an instance stays however long it's idle.
 
 ### Building
 
