@@ -62,8 +62,10 @@ Opening:
 
 ### Changed
 
-- **Glyph and metric tables** are sorted bytes, not `phf` maps: 27 KB less to download with brotli on
-  either wasm. Reading text costs about 2% more, since opening a font bisects where it hashed.
+- **Glyph and metric tables** are sorted bytes, not `phf` maps, and the table from a character to its
+  glyph name is built on first use: 40 KB less to download with brotli on either wasm (the text
+  one goes from 500 KB to 460 KB). Reading text costs about 2% more, since opening a font bisects where
+  it hashed.
 
 ## 0.2.0
 

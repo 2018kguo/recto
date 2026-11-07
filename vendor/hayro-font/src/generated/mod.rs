@@ -55,13 +55,6 @@ impl Codes {
     }
 }
 
-/// A table keyed by a character: six hex digits, since a control character is a value here.
-pub(crate) fn by_char(table: &'static [u8], c: char) -> Option<&'static str> {
-    let c = c as u32;
-    let key: [u8; 6] = core::array::from_fn(|i| HEX[((c >> (20 - 4 * i)) & 15) as usize]);
-    by_name(table, core::str::from_utf8(&key).ok()?)
-}
-
 /// A value that's a whole number: a width, or a character code.
 pub(crate) fn number(value: &str) -> Option<u16> {
     value.parse().ok()
@@ -80,7 +73,7 @@ mod tests {
     #[test]
     fn tables_are_sorted_and_find_each_of_their_keys() {
         let tables = [
-            glyph_names::GLYPH_NAMES, glyph_names::REVERSE_GLYPH_NAMES, tex_glyph_names::TEX_GLYPH_NAMES,
+            glyph_names::GLYPH_NAMES, tex_glyph_names::TEX_GLYPH_NAMES,
             mac_expert::MAC_EXPERT, mac_os_roman::MAC_OS_ROMAN, mac_os_roman::MAC_OS_ROMAN_INVERSE,
             mac_roman::MAC_ROMAN, mac_roman::MAC_ROMAN_INVERSE, standard::STANDARD, symbol::SYMBOL,
             win_ansi::WIN_ANSI, zapf_dings::ZAPF_DING_BATS, zapf_dings::GLYPH_NAMES,
@@ -110,6 +103,8 @@ mod tests {
         assert_eq!(glyph_names::get("controlHT"), Some("\t"));
         assert_eq!(glyph_names::get_reverse('\n'), Some("controlLF"));
         assert_eq!(glyph_names::get_reverse('A'), Some("A"));
+        assert_eq!(glyph_names::get_reverse('\u{A9}'), Some("copyright"));
+        assert_eq!(glyph_names::get_reverse('\u{10FFFF}'), None);
         assert_eq!(glyph_names::get(""), None);
         assert_eq!(glyph_names::get("A\u{FE}"), None);
         assert_eq!(glyph_names::get("no such glyph"), None);
