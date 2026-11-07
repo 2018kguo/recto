@@ -258,15 +258,17 @@ test("a form field with no appearance shows its background, border, value and ca
     return count;
   };
   const box = "/Type /Annot /Subtype /Widget /Rect [10 40 90 60]";
-  const filled = await render(annotated(`<<${box} /FT /Btn /Ff 65536 /MK <</BG [0 1 0] /BC [1 0 0] /CA (Go)>> /BS <</W 2>> /DA (/Nope 12 Tf 0 g)>>`));
+  const inForm = (widget: string) =>
+    pdfOf({ content: "", objects: [widget], pageExtra: "/Annots [5 0 R]", catalogExtra: "/AcroForm <</Fields [5 0 R]>>" });
+  const filled = await render(inForm(`<<${box} /FT /Btn /Ff 65536 /MK <</BG [0 1 0] /BC [1 0 0] /CA (Go)>> /BS <</W 2>> /DA (/Nope 12 Tf 0 g)>>`));
   assert.deepEqual(filled.at(15, 50), GREEN, "background");
   assert.deepEqual(filled.at(10, 50), RED, "border");
   assert.ok(dark(filled) > 60, "border and caption");
-  const value = await render(annotated(`<<${box} /FT /Tx /V (HHHH) /DA (/Nope 14 Tf 0 g)>>`));
+  const value = await render(inForm(`<<${box} /FT /Tx /V (HHHH) /DA (/Nope 14 Tf 0 g)>>`));
   assert.ok(dark(value) > 30, `the value is drawn: ${dark(value)}`);
-  const inheritedValue = await render(pdfOf({ content: "", objects: [`<<${box} /Parent 6 0 R>>`, "<</FT /Tx /V (HHHH) /DA (/Nope 14 Tf 0 g)>>"], pageExtra: "/Annots [5 0 R]" }));
+  const inheritedValue = await render(pdfOf({ content: "", objects: [`<<${box} /Parent 6 0 R>>`, "<</FT /Tx /V (HHHH) /DA (/Nope 14 Tf 0 g)>>"], catalogExtra: "/AcroForm <</Fields [6 0 R]>>", pageExtra: "/Annots [5 0 R]" }));
   assert.ok(dark(inheritedValue) > 30, "from the field it belongs to");
-  const secret = await render(annotated(`<<${box} /FT /Tx /Ff 8192 /V (HHHH) /DA (/Nope 14 Tf 0 g)>>`));
+  const secret = await render(inForm(`<<${box} /FT /Tx /Ff 8192 /V (HHHH) /DA (/Nope 14 Tf 0 g)>>`));
   assert.equal(dark(secret), 0, "a password field keeps its value");
 });
 
@@ -503,7 +505,9 @@ test("a choice field with no appearance shows its option's display text, and a l
     render(
       pdfOf({
         content: "",
-        pageExtra: `/Annots [<</Type /Annot /Subtype /Widget /FT /Ch /Ff ${flags} /Rect [0 0 100 100] /DA (/Helv 12 Tf 0 g) ${rest}>>]`,
+        pageExtra: "/Annots [5 0 R]",
+        catalogExtra: "/AcroForm <</Fields [5 0 R]>>",
+        objects: [`<</Type /Annot /Subtype /Widget /FT /Ch /Ff ${flags} /Rect [0 0 100 100] /DA (/Helv 12 Tf 0 g) ${rest}>>`],
       }),
     );
   const COMBO = 1 << 17;
@@ -516,4 +520,13 @@ test("a choice field with no appearance shows its option's display text, and a l
   assert.ok(inkIn(list, 0, 60, 30, 43) > 0, "the third option");
   assert.deepEqual(list.at(90, 22), [153, 193, 218], "the selection");
   assert.deepEqual(list.at(90, 8), WHITE);
+});
+
+test("a widget the form doesn't list stays blank, as in pdfium, pdf.js and poppler", async () => {
+  const widget = "<</Type /Annot /Subtype /Widget /FT /Tx /V (XXXXXXXX) /Rect [0 0 100 100] /DA (/Helv 12 Tf 0 g)>>";
+  const page = (catalogExtra: string) =>
+    render(pdfOf({ content: "", pageExtra: "/Annots [5 0 R]", catalogExtra, objects: [widget] }));
+  assert.equal(inkIn(await page(""), 0, 100, 0, 100), 0, "no form");
+  assert.equal(inkIn(await page("/AcroForm <</Fields []>>"), 0, 100, 0, 100), 0, "not in it");
+  assert.ok(inkIn(await page("/AcroForm <</Fields [5 0 R]>>"), 0, 100, 0, 100) > 0, "in it");
 });

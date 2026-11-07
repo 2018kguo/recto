@@ -33,6 +33,9 @@ const doubling = (depth, link, leaf) =>
   Array.from({ length: depth }, (_, i) => (i === depth - 1 ? leaf : link(5 + i + 1)));
 
 const annotated = (annots, extras = []) => pdf({ page: `/Annots[${annots}]`, extras });
+/** A widget that's in the form, as object 5. */
+const field = (widget, extras = []) =>
+  pdf({ page: "/Annots[5 0 R]", catalog: "/AcroForm<</Fields[5 0 R]>>", extras: [widget, ...extras] });
 
 const CASES = {
   labelTree: (r) =>
@@ -73,7 +76,7 @@ const CASES = {
   fieldParents: (r) => {
     const length = 20_000 + r.int(20_000);
     const parents = Array.from({ length }, (_, i) => (i === length - 1 ? "<</Parent 6 0 R>>" : `<</Parent ${7 + i} 0 R>>`));
-    return annotated("5 0 R", ["<</Subtype/Widget/Rect[0 0 100 20]/Parent 6 0 R>>", ...parents]);
+    return field("<</Subtype/Widget/Rect[0 0 100 20]/Parent 6 0 R>>", parents);
   },
   visibilityTree: (r) => {
     const depth = 20 + r.int(25);
@@ -114,11 +117,11 @@ const CASES = {
   },
   fieldLines: () => {
     const text = "x\\n".repeat(200_000);
-    return annotated(`<</Subtype/Widget/FT/Tx/Ff 4096/Rect[0 0 400 400]/DA(/Helv 1 Tf)/V(${text})>>`);
+    return field(`<</Subtype/Widget/FT/Tx/Ff 4096/Rect[0 0 400 400]/DA(/Helv 1 Tf)/V(${text})>>`);
   },
   listOptions: (r) => {
     const flags = r.int(2) ? 0 : 1 << 17;
-    return annotated(`<</Subtype/Widget/FT/Ch/Ff ${flags}/Rect[0 0 400 400]/V(a)/I[${times(20_000, (i) => i)}]/Opt[${times(50_000, () => "[(a)(b)]")}]>>`);
+    return field(`<</Subtype/Widget/FT/Ch/Ff ${flags}/Rect[0 0 400 400]/V(a)/I[${times(20_000, (i) => i)}]/Opt[${times(50_000, () => "[(a)(b)]")}]>>`);
   },
   formChain: (r) => {
     const depth = 20 + r.int(25);

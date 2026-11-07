@@ -15,6 +15,7 @@ use crate::{
 use hayro_syntax::content::ops::Transform;
 use hayro_syntax::object::Dict;
 use hayro_syntax::object::Name;
+use hayro_syntax::object::ObjectIdentifier;
 use hayro_syntax::page::Resources;
 use hayro_syntax::xref::XRef;
 use kurbo::{Affine, BezPath, PathEl, Point, Rect, Shape};
@@ -133,6 +134,8 @@ pub struct Context<'a> {
     pub(crate) ocg_state: OcgState,
     nesting_depth: u32,
     pub(crate) glyph_scratch: Vec<PositionedGlyph<'a>>,
+    /// recto: the fields the form lists, read when a widget with no appearance needs them.
+    pub(crate) form_fields: Option<std::collections::HashSet<ObjectIdentifier>>,
 }
 
 impl<'a> Context<'a> {
@@ -180,6 +183,7 @@ impl<'a> Context<'a> {
             ocg_state,
             nesting_depth,
             glyph_scratch: Vec::new(),
+            form_fields: None,
         }
     }
 

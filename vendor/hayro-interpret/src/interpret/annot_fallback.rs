@@ -10,7 +10,7 @@ use core::cell::Cell;
 use core::fmt::Write;
 use hayro_syntax::content::TypedIter;
 use hayro_syntax::object::dict::keys::{RECT, SUBTYPE};
-use hayro_syntax::object::{Array, Dict, Name, Object, Rect};
+use hayro_syntax::object::{Array, Dict, MaybeRef, Name, Object, Rect};
 use hayro_syntax::page::Resources;
 use hayro_syntax::reader::{Reader, ReaderContext, ReaderExt};
 
@@ -480,12 +480,47 @@ fn own_resources<'a>() -> Option<Resources<'a>> {
     Some(Resources::new(dict))
 }
 
+/// Whether a widget belongs to the document's form. One that doesn't is left blank by pdfium, pdf.js and
+/// poppler alike, whatever it says.
+fn in_form<'a>(annot: &Dict<'a>, context: &mut Context<'a>) -> bool {
+    let xref = context.xref;
+    let fields = context.form_fields.get_or_insert_with(|| {
+        let listed = xref
+            .get::<Dict<'_>>(xref.root_id())
+            .and_then(|root| root.get::<Dict<'_>>(&b"AcroForm"[..]))
+            .and_then(|form| form.get::<Array<'_>>(&b"Fields"[..]));
+        listed.map_or_else(Default::default, |listed| {
+            listed
+                .raw_iter()
+                .filter_map(|field| match field {
+                    MaybeRef::Ref(id) => Some(id.into()),
+                    MaybeRef::NotRef(_) => None,
+                })
+                .collect()
+        })
+    });
+    let mut node = annot.clone();
+    for _ in 0..16 {
+        if node.obj_id().is_some_and(|id| fields.contains(&id)) {
+            return true;
+        }
+        match node.get::<Dict<'_>>(&b"Parent"[..]) {
+            Some(parent) => node = parent,
+            None => return false,
+        }
+    }
+    false
+}
+
 pub(super) fn draw<'a>(
     annot: &Dict<'a>,
     resources: &Resources<'a>,
     context: &mut Context<'a>,
     device: &mut impl Device<'a>,
 ) {
+    if annot.get::<Name<'_>>(SUBTYPE).is_some_and(|subtype| subtype.as_ref() == b"Widget") && !in_form(annot, context) {
+        return;
+    }
     let budget = context.settings.budget.clone();
     if budget.annotation_points() == 0 {
         budget.trip();
