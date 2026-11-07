@@ -16,10 +16,11 @@ engine.stats(): { heapBytes: number; generation: number; openDocuments: number }
 
 `openPdf` uses one shared engine per thread, created on first use. Create your own to set
 options, or to keep a job's memory apart. WebAssembly memory never shrinks, so memory comes back
-by dropping the instance: when memory is past `recycleAboveBytes` (64 MiB by default) and the
-last document on it closes, it goes then, and `stats().heapBytes` reads 0 until the next open. If
-a document is still open, the next open gets a fresh instance and the old one goes when its
-documents close. A crashed instance is replaced at the next open.
+by dropping the instance. By default, an instance past 64 MiB goes a second after its last document
+closes, unless an open reuses it first, and one past 512 MiB goes at the close. With
+`recycleAboveBytes` set, an instance past it goes at the close. Then `stats().heapBytes` reads 0 until
+the next open. If a document is still open past the mark, the next open gets a fresh instance and the
+old one goes when its documents close. A crashed instance is replaced at the next open.
 
 **The bytes are copied** before the call returns its promise, whether by `open` or by a ranged
 open of bytes, so you can reuse a pooled `Buffer`, change the buffer, or transfer it straight

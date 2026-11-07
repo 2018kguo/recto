@@ -76,7 +76,7 @@ memory follows the bytes fetched, not the file's length. The allocator's zeroing
 all of it. Measured in Node, reading one page by range from a generated file, memory grew 42 MiB
 at 0.5 GiB, 43 MiB at 1.9 GiB and 40 MiB at 3.49 GiB. So the limit is address space, not memory:
 wasm32 has 4 GiB, a ranged file is capped at 3.5 GiB, and an instance past its recycle mark goes
-when its last document closes.
+soon after its last document closes.
 
 There is no sparse page map. The parser's objects are zero-copy slices of one buffer, addressed by
 file offset, so it would be a change through the whole parser, not this layer; it would save no
@@ -123,6 +123,8 @@ scope, and one module record per instance would pin every retired instance's mem
 retires the instance: `panic = abort` on wasm32, so a panic or a failed allocation arrives as a
 `WebAssembly.RuntimeError`, and its state is unknown after that.
 
-WebAssembly memory never shrinks, so the only way to give it back is to drop the instance. Past the
-recycle mark, the engine drops it when its last document closes, and the next open builds a new one;
-compiling is cached, so that costs only instantiation.
+WebAssembly memory never shrinks, so the only way to give it back is to drop the instance. Past 64 MiB
+the engine drops it once nothing has been open on it for a second, or at the close past 512 MiB. An open
+within that second reuses it: dropping it at every close made a repeated 70 MiB file 2.3 times slower
+for 1.5 times the peak memory (`bench/results/recycle.json`). An explicit `recycleAboveBytes` drops
+it at the close past that mark. Compiling is cached, so a new instance costs only instantiation.

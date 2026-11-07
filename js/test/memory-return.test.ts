@@ -39,8 +39,8 @@ function bigFile(mebibytes: number): Uint8Array {
   return big;
 }
 
-test("a file past the mark: after close and a collection, the memory is gone, with no open to follow", async () => {
-  const engine = await createPdfEngine();
+test("a file past the mark: at close with an explicit mark, its memory is gone, with no open to follow", async () => {
+  const engine = await createPdfEngine({ recycleAboveBytes: 64 * 2 ** 20 });
   await (async () => {
     const doc = await engine.open(bigFile(100));
     doc.text(0);
@@ -48,4 +48,42 @@ test("a file past the mark: after close and a collection, the memory is gone, wi
   })();
   assert.equal(engine.stats().heapBytes, 0);
   assert.ok(await collected(memories.at(-1)!), "the closed instance's memory is still reachable");
+});
+
+test("by default: an open within a second reuses the instance, and a second idle gives the memory back", async () => {
+  const engine = await createPdfEngine();
+  const file = bigFile(100);
+  // In a function of its own: a suspended async function can hold its last `doc` in a register.
+  const cycle = async () => {
+    const doc = await engine.open(file);
+    doc.text(0);
+    doc.close();
+  };
+  for (let i = 0; i < 3; i++) {
+    await cycle();
+  }
+  assert.equal(engine.stats().generation, 0, "reused");
+  assert.ok(engine.stats().heapBytes > 100 * 2 ** 20);
+  await new Promise((resolve) => setTimeout(resolve, 1200));
+  assert.equal(engine.stats().heapBytes, 0);
+  assert.ok(await collected(memories.at(-1)!), "the idle instance's memory is still reachable");
+});
+
+test("by default: past 512 MiB, the memory goes at the close", async () => {
+  const engine = await createPdfEngine();
+  const doc = await engine.open(bigFile(520));
+  doc.close();
+  assert.equal(engine.stats().heapBytes, 0);
+});
+
+test("an idle timer doesn't keep a process running, or an open document from being kept", async () => {
+  const engine = await createPdfEngine();
+  const file = bigFile(100);
+  const first = await engine.open(file);
+  first.close();
+  const second = await engine.open(file);
+  await new Promise((resolve) => setTimeout(resolve, 1200));
+  assert.ok(second.text(0).text.length > 50, "still open past the first close's second");
+  assert.ok(engine.stats().heapBytes > 0);
+  second.close();
 });

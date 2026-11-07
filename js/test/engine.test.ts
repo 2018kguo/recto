@@ -476,7 +476,7 @@ test("memory is recycled once it grows past the mark; open documents keep workin
   const fresh = await recycling.open(truth.bytes);
   const { heapBytes, ...rest } = recycling.stats();
   // 0 the engine that drew, 1 the replacement.
-  assert.deepEqual(rest, { generation: 1, openDocuments: 1 });
+  assert.deepEqual(rest, { generation: 1, openDocuments: 2 });
   assert.ok(heapBytes < 16 * 1024 * 1024, `a fresh heap, not the old one's: ${heapBytes}`);
   assert.match(
     old.text(0).text,
@@ -487,12 +487,13 @@ test("memory is recycled once it grows past the mark; open documents keep workin
   fresh.close();
 });
 
-test("by default a page drawn past 64 MiB gives its memory back when the document closes", async () => {
+test("by default a page drawn past 64 MiB gives its memory back a second after the document closes", async () => {
   const engine = await createPdfEngine();
   const doc = await engine.open(truth.bytes);
   doc.render(0, { width: 6000 });
   assert.ok(engine.stats().heapBytes > 64 * 1024 * 1024);
   doc.close();
+  await new Promise((resolve) => setTimeout(resolve, 1200));
   assert.equal(engine.stats().heapBytes, 0);
   const again = await engine.open(truth.bytes);
   assert.equal(again.pageCount, 5);

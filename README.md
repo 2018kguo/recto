@@ -216,7 +216,7 @@ on anything a user might upload, use one of those two.
   ranged read needs a worker. An edge runtime without synchronous requests should work
   the way a service worker does, but none has been run.
 - **Memory:** `open` copies the file into WebAssembly memory, which only comes back when an instance is
-  dropped (at the last close, past 64 MiB by default). A ranged file can be up to 3.5 GiB.
+  dropped (a second after the last close, past 64 MiB by default). A ranged file can be up to 3.5 GiB.
 - **Ranged reads trust `/Count`:** a file whose `/Count` values lie where the path to a page doesn't look
   can return a different page than a whole-file read. Open the whole file if you need the guarantee. See
   [ranged reads](docs/reference.md#ranged-reads).

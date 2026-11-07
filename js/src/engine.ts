@@ -1,6 +1,7 @@
 // The per-thread engine: owns one WebAssembly instance and replaces it when it trapped or
 // its memory grew past the recycle mark (WebAssembly memory never shrinks). Past the mark, the
-// instance goes as soon as its last document closes; documents still open on an instance keep it.
+// instance goes once nothing has been open on it for a moment, and a document still open on an
+// instance keeps it.
 
 import { createGlue } from "../wasm/recto.gen.mjs";
 import {
@@ -37,8 +38,11 @@ export type PdfEngineOptions = {
    * path or file: URL in Node. Defaults to the package's own wasm/ directory.
    */
   assetBase?: string | URL;
-  /** Past this much linear memory, the instance is dropped when its last document closes, or
-   * replaced at the next open if one is still open. Default 64 MiB. */
+  /**
+   * Past this much linear memory, the instance is dropped when its last document closes, or replaced
+   * at the next open if one is still open. By default, past 64 MiB it's dropped a second after the
+   * last close, and an open before then reuses it; past 512 MiB, at the close.
+   */
   recycleAboveBytes?: number;
   /**
    * Where a thread can't read a file synchronously (a page's main thread, a service worker), the
@@ -83,7 +87,10 @@ export interface PdfEngine {
 const CJK_FONT_ASSET = 14;
 const CMAPS_ASSET = 15;
 const ALL_ASSETS = ["recto.wasm", "fonts.bin", "cmaps.deflate", "cjk-fallback.ttf"] as const;
-const DEFAULT_RECYCLE_ABOVE_BYTES = 64 * 1024 * 1024;
+/** Chosen from bench/results/recycle.json: retiring at each close made a repeated large file slow. */
+const IDLE_RECYCLE_ABOVE_BYTES = 64 * 1024 * 1024;
+const DEFAULT_RECYCLE_ABOVE_BYTES = 512 * 1024 * 1024;
+const IDLE_MS = 1000;
 
 /** Each wasm, verified and compiled once per thread, per location. */
 const compiling = new Map<string, Promise<WebAssembly.Module>>();
@@ -189,15 +196,19 @@ class RectoEngine implements PdfEngine {
   #full: boolean;
   readonly #base: URL | null;
   readonly #recycleAboveBytes: number;
+  /** Past this, with nothing open, the instance only lasts until it's been idle for IDLE_MS. */
+  readonly #idleAboveBytes: number;
+  #idle: ReturnType<typeof setTimeout> | undefined;
   /** Across every instance: a document that moved, or stayed on an old one, still counts. */
   readonly #documents: { open: number };
 
-  constructor(instance: Instance, base: URL | null, recycleAboveBytes: number) {
+  constructor(instance: Instance, base: URL | null, recycleAboveBytes: number | undefined) {
     this.#instance = instance;
     this.#full = instance.full;
     this.#generation = instance.generation;
     this.#base = base;
-    this.#recycleAboveBytes = recycleAboveBytes;
+    this.#recycleAboveBytes = recycleAboveBytes ?? DEFAULT_RECYCLE_ABOVE_BYTES;
+    this.#idleAboveBytes = recycleAboveBytes ?? IDLE_RECYCLE_ABOVE_BYTES;
     this.#documents = instance.documents;
     this.#watch(instance);
   }
@@ -205,26 +216,43 @@ class RectoEngine implements PdfEngine {
   /** Memory only comes back with the instance, so don't keep one past the mark with nothing on it. */
   #watch(instance: Instance): void {
     instance.onClose = () => {
-      if (
-        this.#instance === instance &&
-        instance.openDocuments === 0 &&
-        instance.memory.buffer.byteLength > this.#recycleAboveBytes
-      ) {
+      if (this.#instance !== instance || instance.openDocuments > 0) {
+        return;
+      }
+      const bytes = instance.memory.buffer.byteLength;
+      if (bytes > this.#recycleAboveBytes) {
         this.#instance = null;
+      } else if (bytes > this.#idleAboveBytes) {
+        clearTimeout(this.#idle);
+        this.#idle = setTimeout(() => {
+          // Node's fired timer keeps its callback, and with it the instance.
+          this.#idle = undefined;
+          if (this.#instance === instance && instance.openDocuments === 0) {
+            this.#instance = null;
+          }
+        }, IDLE_MS);
+        // Not a reason for Node to stay running.
+        (this.#idle as { unref?: () => void }).unref?.();
       }
     };
   }
 
+  /** Whether a new document can go on this instance. */
+  #usable(instance: Instance | null): instance is Instance {
+    if (!instance || instance.dead) {
+      return false;
+    }
+    const bytes = instance.memory.buffer.byteLength;
+    return bytes <= this.#idleAboveBytes || (bytes <= this.#recycleAboveBytes && instance.openDocuments === 0);
+  }
+
   #ready(): Instance | null {
-    const current = this.#instance;
-    return current && !current.dead && current.memory.buffer.byteLength <= this.#recycleAboveBytes
-      ? current
-      : null;
+    return this.#usable(this.#instance) ? this.#instance : null;
   }
 
   async #live(): Promise<Instance> {
     const current = this.#instance;
-    if (current && !current.dead && current.memory.buffer.byteLength <= this.#recycleAboveBytes) {
+    if (this.#usable(current)) {
       return current;
     }
     const full = this.#full;
@@ -247,7 +275,7 @@ class RectoEngine implements PdfEngine {
   /** An instance that can draw, for a document moving onto it. Synchronous: `render` is. */
   #fullInstance(): Instance {
     const current = this.#instance;
-    if (current?.full && !current.dead && current.memory.buffer.byteLength <= this.#recycleAboveBytes) {
+    if (current?.full && this.#usable(current)) {
       return current;
     }
     this.#full = true;
@@ -372,7 +400,7 @@ async function createEngine(options: PdfEngineOptions): Promise<RectoEngine> {
   return new RectoEngine(
     instantiate(0, base, await compile(name, base), name === "recto.wasm"),
     base,
-    options.recycleAboveBytes ?? DEFAULT_RECYCLE_ABOVE_BYTES
+    options.recycleAboveBytes
   );
 }
 

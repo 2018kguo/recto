@@ -28,7 +28,10 @@ set of PDFs before and after.
 - **`open` no longer copies the file in JavaScript** on top of copying it into WebAssembly memory,
   when an instance is ready.
 - **Memory:** a render holds its pixels once. WebAssembly memory with a 40-page report open went from
-  15.9 MB to 12.3 MB. `recycleAboveBytes` now defaults to 64 MiB, from 512 MiB.
+  15.9 MB to 12.3 MB. By default an instance past 64 MiB now goes a second after its last
+  document closes, unless an open reuses it first, and one past 512 MiB goes at the close, as it did. 300
+  cycles on a 70 MiB file take 2.2 s and peak at 329 MB, with nothing held at rest (`recycle.json`). An
+  explicit `recycleAboveBytes` still works as it did.
 - A text pass reads no font file. The CMaps asset is now `cmaps.deflate` (0.36 MB, was
   `cmaps.brotli`, 0.25 MB), so neither wasm carries a brotli decoder. `preloadAssets` still takes the
   old name. A setup that copies the package's files by name to `assetBase` also needs

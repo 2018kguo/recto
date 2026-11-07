@@ -186,7 +186,7 @@ counted, and those are the same on all three.
 
 pdf.js holds the least. recto and pdfium keep the file and their state in WebAssembly memory, which
 never shrinks while the instance lives. Of recto's 12.3 MB: the 2 MB file, 1.8 MB of stack and static data, a
-page's pixels at 3.3 MB and what the page's drawing used, which then stays. Past 64 MiB, closing the last document gives it all back.
+page's pixels at 3.3 MB and what the page's drawing used, which then stays. Past 64 MiB, a second with nothing open gives it all back.
 
 ### What it does to the threads
 
