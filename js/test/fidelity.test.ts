@@ -218,3 +218,29 @@ test("a free text box with no appearance shows its fill and its words", async ()
   for (let y = 10; y < 45; y++) for (let x = 10; x < 90; x++) if ((page.at(x, y)[1] ?? 255) < 100) dark++;
   assert.ok(dark > 40, `the text is there: ${dark} dark pixels`);
 });
+
+test("a password that protects only attachments isn't asked for to read the pages", async () => {
+  // Revision 2 style strings that no empty password opens; /StmF and /StrF are /Identity.
+  const hash = "00".repeat(32);
+  const encrypt = (stm: string) => `<</Filter /Standard /V 4 /R 4 /Length 128 /P -4 /O <${hash}> /U <${hash}> /CF <</StdCF <</CFM /AESV2 /Length 16>>>> /StmF ${stm} /StrF ${stm} /EFF /StdCF>>`;
+  const file = (stm: string) => {
+    let out = "%PDF-1.6\n";
+    const offsets: number[] = [];
+    [
+      "<</Type /Catalog /Pages 2 0 R>>",
+      "<</Type /Pages /Count 1 /Kids [3 0 R]>>",
+      "<</Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R>>",
+      "<</Length 24>>\nstream\n1 0 0 rg 0 0 100 100 re f\nendstream",
+      encrypt(stm),
+    ].forEach((body, i) => {
+      offsets.push(out.length);
+      out += `${i + 1} 0 obj\n${body}\nendobj\n`;
+    });
+    const xref = out.length;
+    out += `xref\n0 6\n0000000000 65535 f \n${offsets.map((o) => `${String(o).padStart(10, "0")} 00000 n \n`).join("")}trailer\n<</Size 6 /Root 1 0 R /Encrypt 5 0 R /ID [<00> <00>]>>\nstartxref\n${xref}\n%%EOF\n`;
+    return latin1(out);
+  };
+  assert.deepEqual((await render(file("/Identity"))).at(50, 50), RED);
+  // The same strings with the pages encrypted do need it.
+  await assert.rejects(engine.open(file("/StdCF")), { code: "password-required" });
+});
