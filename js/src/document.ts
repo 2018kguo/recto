@@ -437,8 +437,8 @@ export class RectoDocument implements PdfDocument {
   #closed = false;
   #doc: Glue.Document;
   #instance: Instance;
-  /** The same file on the full engine. */
-  readonly #moveToFull: (doc: Glue.Document) => { instance: Instance; doc: Glue.Document };
+  /** The same file on the full engine. Dropped once used: it holds the instance it came from. */
+  #moveToFull: ((doc: Glue.Document) => { instance: Instance; doc: Glue.Document }) | null;
   /** A ranged read's failure, thrown by the call whose fetch it failed. */
   readonly #fetchFailure: () => PdfError | null;
 
@@ -506,7 +506,8 @@ export class RectoDocument implements PdfDocument {
       return;
     }
     const old = this.#instance;
-    const moved = this.#call(() => this.#moveToFull(this.#doc));
+    const moved = this.#call(() => this.#moveToFull!(this.#doc));
+    this.#moveToFull = null;
     old.openDocuments -= 1;
     this.#doc.free();
     old.onClose?.();
