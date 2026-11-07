@@ -336,3 +336,16 @@ test("a font whose table directory is damaged doesn't take the engine down", asy
     }
   }
 });
+
+test("a page the xref has lost is found by scanning the file", async () => {
+  // The xref reads, and marks the page free. Every reference's engine still finds it.
+  const body = pdfOf({ content: "1 0 0 rg 0 0 100 100 re f" });
+  const text = Buffer.from(body).toString("latin1");
+  const damaged = text.replace(/(xref\n0 \d+\n0000000000 65535 f \n\d{10} 00000 n \n\d{10} 00000 n \n\d{10}) 00000 n/, "$1 00000 f");
+  assert.notEqual(damaged, text);
+  const doc = await engine.open(latin1(damaged));
+  assert.equal(doc.pageCount, 1);
+  const { rgba } = doc.render(0, { width: 10 });
+  assert.deepEqual([...rgba.subarray(0, 3)], RED);
+  doc.close();
+});

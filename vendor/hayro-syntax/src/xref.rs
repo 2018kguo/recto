@@ -527,6 +527,18 @@ impl XRef {
         }
     }
 
+    /// recto: repairs, and says whether that's new.
+    pub(crate) fn repair_if_not_repaired(&self) -> bool {
+        let Inner::Some(r) = &self.0 else {
+            return false;
+        };
+        if r.map.get().repaired {
+            return false;
+        }
+        self.repair();
+        true
+    }
+
     pub(crate) fn repair(&self) {
         let Inner::Some(r) = &self.0 else {
             unreachable!();

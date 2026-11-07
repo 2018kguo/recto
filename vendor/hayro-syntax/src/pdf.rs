@@ -79,7 +79,14 @@ impl Pdf {
         };
         let xref = Arc::new(xref);
 
-        let pages = CachedPages::new(xref.clone()).ok_or(LoadPdfError::Invalid)?;
+        let mut pages = CachedPages::new(xref.clone());
+        // recto: an xref that reads well can still have lost the objects a page tree needs (an entry
+        // marked free, an offset into nowhere that never gets as far as a read). No pages from a file
+        // is worth one scan of it, or the document opens with nothing in it.
+        if pages.as_ref().is_none_or(|pages| pages.get().is_empty()) && xref.repair_if_not_repaired() {
+            pages = CachedPages::new(xref.clone());
+        }
+        let pages = pages.ok_or(LoadPdfError::Invalid)?;
 
         Ok(Self {
             xref,
