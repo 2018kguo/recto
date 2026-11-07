@@ -64,6 +64,8 @@ const cases = {
   "widget-value-no-appearance": { page: widget("/FT /Tx /V (Filled in) /DA (/Helv 14 Tf 0 g)"), objects: [HELV], content: "", pages: "/MediaBox [0 0 300 200]" },
   "widget-value-need-appearances": { page: widget("/FT /Tx /V (Filled in) /DA (/Helv 14 Tf 0 g)"), objects: [HELV], content: "", pages: "/MediaBox [0 0 300 200]", catalog: "/AcroForm <</NeedAppearances true /Fields []>>" },
   "widget-stale-need-appearances": { page: widget("/FT /Tx /V (New value) /DA (/Helv 14 Tf 0 g) /AP <</N 6 0 R>>"), objects: [HELV, FORM], content: "", pages: "/MediaBox [0 0 300 200]", catalog: "/AcroForm <</NeedAppearances true /Fields []>>" },
+  "widget-combo-export": { page: widget("/FT /Ch /Ff 131072 /V (e) /Opt [[(e) (Shown text)]] /DA (/Helv 14 Tf 0 g)"), objects: [HELV], content: "", pages: "/MediaBox [0 0 300 200]" },
+  "widget-list-box": { page: widget("/FT /Ch /V (b) /Opt [(First) (Second) (Third)] /DA (/Helv 10 Tf 0 g)"), objects: [HELV], content: "", pages: "/MediaBox [0 0 300 200]" },
   "widget-checkbox-on": { page: widget("/FT /Btn /AS /Yes /AP <</N <</Yes 6 0 R /Off 7 0 R>>>>"), objects: [HELV, FORM, FORM.replace("1 0 0 rg", "0 0 1 rg")], content: "", pages: "/MediaBox [0 0 300 200]" },
   "widget-checkbox-off": { page: widget("/FT /Btn /AS /Off /AP <</N <</Yes 6 0 R>>>>"), objects: [HELV, FORM], content: "", pages: "/MediaBox [0 0 300 200]" },
   "widget-hidden": { page: widget("/F 2 /FT /Tx /AP <</N 6 0 R>>"), objects: [HELV, FORM], content: "", pages: "/MediaBox [0 0 300 200]" },

@@ -491,3 +491,29 @@ test("a crop box with no area, or outside the media box, gives way to the media 
     assert.deepEqual((await render(bytes)).at(50, 50), RED, crop);
   }
 });
+
+const inkIn = (page: { at(x: number, y: number): number[] }, x0: number, x1: number, y0: number, y1: number) => {
+  let ink = 0;
+  for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) if (page.at(x, y)[0]! < 128) ink++;
+  return ink;
+};
+
+test("a choice field with no appearance shows its option's display text, and a list box its options", async () => {
+  const choice = (flags: number, rest: string) =>
+    render(
+      pdfOf({
+        content: "",
+        pageExtra: `/Annots [<</Type /Annot /Subtype /Widget /FT /Ch /Ff ${flags} /Rect [0 0 100 100] /DA (/Helv 12 Tf 0 g) ${rest}>>]`,
+      }),
+    );
+  const COMBO = 1 << 17;
+  // The export value is one letter, what's shown is long.
+  const combo = await choice(COMBO, "/V (e) /Opt [[(e) (WWWWWWWWWWWWWWWWWW)]]");
+  assert.ok(inkIn(combo, 50, 100, 40, 60) > 0, "the display text, not the export value");
+  // A list box: every option, top down, with the chosen one marked.
+  const list = await choice(0, "/V (bbbbbbbb) /Opt [(aaaaaaaa) (bbbbbbbb) (cccccccc)]");
+  assert.ok(inkIn(list, 0, 60, 0, 14) > 0, "the first option");
+  assert.ok(inkIn(list, 0, 60, 30, 43) > 0, "the third option");
+  assert.deepEqual(list.at(90, 22), [153, 193, 218], "the selection");
+  assert.deepEqual(list.at(90, 8), WHITE);
+});

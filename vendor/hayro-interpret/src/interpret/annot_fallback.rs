@@ -10,7 +10,7 @@ use core::cell::Cell;
 use core::fmt::Write;
 use hayro_syntax::content::TypedIter;
 use hayro_syntax::object::dict::keys::{RECT, SUBTYPE};
-use hayro_syntax::object::{Array, Dict, Name, Rect};
+use hayro_syntax::object::{Array, Dict, Name, Object, Rect};
 use hayro_syntax::page::Resources;
 use hayro_syntax::reader::{Reader, ReaderContext, ReaderExt};
 
@@ -204,12 +204,94 @@ fn text_line(out: &mut String, x: f64, y: f64, line: &[u8], left: &Cell<usize>) 
     out.push_str("> Tj\n");
 }
 
+/// An `/Opt` entry's export value and what's shown for it: one string, or a pair.
+fn option_of(option: &Object<'_>) -> Option<(Vec<u8>, Vec<u8>)> {
+    match option {
+        Object::String(text) => Some((text.as_bytes().to_vec(), text.as_bytes().to_vec())),
+        Object::Array(pair) => {
+            let mut parts = pair.iter::<hayro_syntax::object::String<'_>>();
+            let export = parts.next()?;
+            let display = parts.next()?;
+            Some((export.as_bytes().to_vec(), display.as_bytes().to_vec()))
+        }
+        _ => None,
+    }
+}
+
+/// What a combo box shows for its value: an option's display text, or the value if it's none of them.
+fn option_display(annot: &Dict<'_>, value: &[u8], left: &Cell<usize>) -> Option<Vec<u8>> {
+    let options = owner(annot, b"Opt")?.get::<Array<'_>>(&b"Opt"[..])?;
+    for option in options.iter::<Object<'_>>() {
+        if left.get() == 0 {
+            return None;
+        }
+        spend(left, 1);
+        if let Some((export, display)) = option_of(&option)
+            && export == value
+        {
+            return Some(display);
+        }
+    }
+    None
+}
+
+/// A list box with no appearance: its options from `/TI` down, the chosen ones marked as pdf.js marks them.
+fn list_box(
+    annot: &Dict<'_>,
+    rect: &Rect,
+    line_width: f64,
+    size: f64,
+    colour: &str,
+    out: &mut String,
+    left: &Cell<usize>,
+) -> Option<()> {
+    let options = owner(annot, b"Opt")?.get::<Array<'_>>(&b"Opt"[..])?;
+    let indices = owner(annot, b"I").and_then(|o| o.get::<Array<'_>>(&b"I"[..])).map(|i| numbers(&i, left));
+    let values: Vec<Vec<u8>> = owner(annot, b"V").map_or_else(Vec::new, |o| {
+        if let Some(one) = o.get::<hayro_syntax::object::String<'_>>(&b"V"[..]) {
+            return vec![one.as_bytes().to_vec()];
+        }
+        o.get::<Array<'_>>(&b"V"[..]).map_or_else(Vec::new, |many| {
+            many.iter::<hayro_syntax::object::String<'_>>().take(left.get()).map(|v| v.as_bytes().to_vec()).collect()
+        })
+    });
+    let first = owner(annot, b"TI").and_then(|o| o.get::<u32>(&b"TI"[..])).unwrap_or(0) as usize;
+    let (x0, y0, x1, y1) = (rect.x0, rect.y0, rect.x1, rect.y1);
+    let row = size * 1.2;
+    let mut marks = String::new();
+    let mut text = String::new();
+    let mut top = y1 - line_width;
+    for (index, option) in options.iter::<Object<'_>>().enumerate().skip(first) {
+        if top <= y0 || left.get() == 0 {
+            break;
+        }
+        let Some((export, display)) = option_of(&option) else {
+            continue;
+        };
+        let chosen = match &indices {
+            Some(indices) => indices.contains(&(index as f64)),
+            None => values.contains(&export),
+        };
+        if chosen {
+            let _ = writeln!(marks, "{x0} {} {} {row} re f", top - row, x1 - x0);
+        }
+        if let Some(line) = text_lines(&display).first() {
+            text_line(&mut text, x0 + line_width + 2.0, top - size, line, left);
+        }
+        top -= row;
+    }
+    let _ = writeln!(out, "q {x0} {y0} {} {} re W n", x1 - x0, y1 - y0);
+    let _ = write!(out, "0.6 0.757 0.855 rg\n{marks}BT {colour}/Helv {size} Tf\n{text}ET Q\n");
+    Some(())
+}
+
 /// A form field with no appearance: its `/MK` background and border, a text field's value and a push
 /// button's caption. Helvetica's letters average about half an em, which is close enough to centre by.
 fn widget(annot: &Dict<'_>, rect: &Rect, out: &mut String, left: &Cell<usize>) -> Option<()> {
     const PUSH_BUTTON: u32 = 1 << 16;
     const MULTILINE: u32 = 1 << 12;
     const PASSWORD: u32 = 1 << 13;
+    const COMBO: u32 = 1 << 17;
     let (x0, y0, x1, y1) = (rect.x0, rect.y0, rect.x1, rect.y1);
     let (width, height) = (x1 - x0, y1 - y0);
     let characteristics = annot.get::<Dict<'_>>(&b"MK"[..]);
@@ -244,9 +326,14 @@ fn widget(annot: &Dict<'_>, rect: &Rect, out: &mut String, left: &Cell<usize>) -
             let caption = characteristics.as_ref()?.get::<hayro_syntax::object::String<'_>>(&b"CA"[..])?;
             (text_lines(caption.as_bytes()), true)
         }
+        b"Ch" if flags & COMBO == 0 => {
+            let size = if auto_size { 12.0 } else { size };
+            return list_box(annot, rect, line_width, size, &colour, out, left);
+        }
         b"Tx" | b"Ch" if flags & PASSWORD == 0 => {
             let value = owner(annot, b"V")?.get::<hayro_syntax::object::String<'_>>(&b"V"[..])?;
-            (text_lines(value.as_bytes()), false)
+            let shown = (kind.as_ref() == b"Ch").then(|| option_display(annot, value.as_bytes(), left)).flatten();
+            (text_lines(shown.as_deref().unwrap_or(value.as_bytes())), false)
         }
         _ => return Some(()),
     };
