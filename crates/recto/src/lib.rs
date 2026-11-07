@@ -294,9 +294,9 @@ impl Document {
         }))
     }
 
-    /// The file as it was opened.
-    pub fn file_bytes(&self) -> Vec<u8> {
-        self.0.borrow_owner().data().as_ref().to_vec()
+    /// The file as it was opened, in place.
+    pub fn file_bytes(&self) -> &[u8] {
+        self.0.borrow_owner().data().as_ref()
     }
 
     /// The document's outline, in order; each item's children follow it, one level deeper.

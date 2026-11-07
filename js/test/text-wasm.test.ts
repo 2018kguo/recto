@@ -98,3 +98,41 @@ test("in Node, with no download to save, an engine starts on the full wasm and r
   doc.render(0, { width: 100 });
   assert.equal(engine.stats().generation, 0);
 });
+
+test("the count of open documents includes one that moved, and one left behind", async () => {
+  const bytes = pdf();
+  const engine = await createPdfEngine({ preloadAssets: [] });
+  const a = await engine.open(bytes);
+  const b = await engine.open(bytes);
+  assert.equal(engine.stats().openDocuments, 2);
+  a.render(0, { width: 100 });
+  assert.equal(engine.stats().openDocuments, 2);
+  b.close();
+  assert.equal(engine.stats().openDocuments, 1);
+  a.close();
+  assert.equal(engine.stats().openDocuments, 0);
+});
+
+test("a move doesn't grow the old instance's memory, and the bytes it left behind were the file", async () => {
+  const memories: WebAssembly.Memory[] = [];
+  const RealInstance = WebAssembly.Instance;
+  WebAssembly.Instance = function (module: WebAssembly.Module, imports?: WebAssembly.Imports) {
+    const instance = new RealInstance(module, imports);
+    memories.push(instance.exports["memory"] as WebAssembly.Memory);
+    return instance;
+  } as unknown as typeof WebAssembly.Instance;
+  try {
+    const small = pdf();
+    const big = new Uint8Array(20 * 2 ** 20);
+    big.set(small);
+    const engine = await createPdfEngine({ preloadAssets: [] });
+    using doc = await engine.open(big);
+    const text = doc.text(0).text;
+    const before = memories[0]!.buffer.byteLength;
+    assert.equal(doc.render(0, { width: 100 }).width, 100);
+    assert.equal(memories[0]!.buffer.byteLength, before);
+    assert.equal(doc.text(0).text, text);
+  } finally {
+    WebAssembly.Instance = RealInstance;
+  }
+});

@@ -271,7 +271,10 @@ class RectoEngine implements PdfEngine {
     try {
       doc = new RectoDocument(instance, new instance.glue.Document(bytes, password), (old) => {
         const full = this.#fullInstance();
-        return { instance: full, doc: new full.glue.Document(old.fileBytes(), password) };
+        // The file goes straight from the old heap to the new one. The old stays whole until the new
+        // has it, so a failure here leaves the document where it was.
+        const file = new Uint8Array(instance.memory.buffer, old.filePointer(), old.fileLength());
+        return { instance: full, doc: new full.glue.Document(file, password) };
       });
     } catch (error) {
       throw engineFailure(instance, error);

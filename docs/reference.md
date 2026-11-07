@@ -29,10 +29,11 @@ document is open, in memory that comes back only when the instance is replaced.
 **Two engines, one API.** A document starts on `recto-text.wasm` (1.7 MB, 0.50 MB with brotli),
 which reads everything but can't draw, and the first `render`, `renderAsync`, `objects` or `scan`
 moves it to `recto.wasm` (3.8 MB, 0.98 MB with brotli): loaded and checked once per thread, then the
-file is reopened there, with no fetch of the PDF. There's nothing to call and no way to hold it
-wrong; if the load fails, the call throws `missing-asset` and the document stays usable. A thread
-that will draw can start on the full engine with `preloadAssets: ["recto.wasm"]`, which saves that
-first render the move.
+file is reopened there, with no fetch of the PDF. There's nothing to call. If the load fails, the call
+throws `missing-asset` and the document stays usable. The move costs memory: while it runs the file is
+in both instances' memory, on top of any copy you hold, so a 400 MiB file you still hold peaks at 1.36 GB
+resident in Node where one that started on the full engine peaks at 0.94 GB. A thread that will draw, or a large file, should
+start on the full engine with `preloadAssets: ["recto.wasm"]`, which skips the move.
 
 ## A document
 

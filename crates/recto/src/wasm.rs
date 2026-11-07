@@ -408,10 +408,15 @@ impl Document {
         .map_err(js_error)
     }
 
-    /// A copy of the file, to reopen it on the full engine.
-    #[wasm_bindgen(js_name = fileBytes)]
-    pub fn file_bytes(&self) -> Vec<u8> {
-        self.0.file_bytes()
+    /// Where the file is in this instance's memory, to reopen it on the full engine without a copy.
+    #[wasm_bindgen(js_name = filePointer)]
+    pub fn file_pointer(&self) -> usize {
+        self.0.file_bytes().as_ptr() as usize
+    }
+
+    #[wasm_bindgen(js_name = fileLength)]
+    pub fn file_length(&self) -> usize {
+        self.0.file_bytes().len()
     }
 
     #[wasm_bindgen(getter, js_name = pageCount)]
