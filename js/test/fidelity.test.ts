@@ -406,3 +406,14 @@ test("a page tree whose kids are all lost falls back to the pages the file holds
   doc.close();
   assert.deepEqual((await render(latin1(lost))).at(50, 50), RED);
 });
+
+test("a one-row image under a TIFF predictor is drawn", async () => {
+  // 4 RGB pixels, each the previous plus red, deflated with /Predictor 2: the data is exactly one row.
+  const row = Uint8Array.from([255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+  const packed = deflateSync(row);
+  const image = `<</Type/XObject/Subtype/Image/Width 4/Height 1/BitsPerComponent 8/ColorSpace/DeviceRGB/Filter/FlateDecode/DecodeParms<</Predictor 2/Colors 3/Columns 4>>/Length ${packed.length}>>\nstream\n${String.fromCharCode(...packed)}\nendstream`;
+  const page = await render(
+    pdfOf({ content: "100 0 0 100 0 0 cm /I Do", resources: "/XObject <</I 5 0 R>>", objects: [image] }),
+  );
+  assert.deepEqual(page.at(50, 50), RED);
+});

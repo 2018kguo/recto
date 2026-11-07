@@ -749,7 +749,7 @@ fn apply_predictor(data: Vec<u8>, params: &PredictorParams) -> Option<Vec<u8>> {
             if row_bits == 0 {
                 return None;
             }
-            if row_bits / 8 >= data.len() {
+            if row_bits.div_ceil(8) + usize::from(is_png_predictor) > data.len() {
                 return Some(Vec::new());
             }
             let row_len = params.row_length_in_bytes();
