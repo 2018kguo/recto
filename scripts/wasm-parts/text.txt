@@ -49,6 +49,7 @@
 <alloc::raw_vec::RawVec<kurbo::bezpath::PathEl>>::grow_one
 <alloc::raw_vec::RawVec<kurbo::rect::Rect>>::grow_one
 <alloc::raw_vec::RawVec<moxcms::matrix::Matrix3f>>::grow_one
+<alloc::raw_vec::RawVec<recto::labels::Range>>::grow_one
 <alloc::raw_vec::RawVec<recto::text::Font>>::grow_one
 <alloc::raw_vec::RawVec<recto::text::Glyph>>::grow_one
 <alloc::raw_vec::RawVec<recto::text::Run>>::grow_one
@@ -73,6 +74,7 @@
 <alloc::rc::Rc<hayro_interpret::x_object::soft_mask::Repr>>::drop_slow
 <alloc::rc::Rc<recto::Document>>::drop_slow
 <alloc::string::String as core::clone::Clone>::clone
+<alloc::string::String as core::fmt::Display>::fmt
 <alloc::string::String as core::fmt::Write>::write_str
 <alloc::string::String as wasm_bindgen::convert::traits::VectorIntoWasmAbi>::vector_into_abi
 <alloc::string::String>::from_utf16
@@ -115,6 +117,7 @@
 <bool as hayro_syntax::reader::Readable>::read
 <bool as hayro_syntax::reader::Skippable>::skip
 <core::ffi::c_str::CStr>::to_str
+<core::fmt::Formatter>::pad
 <core::fmt::Formatter>::write_str
 <core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<core::ops::range::Range<usize>, <hayro_interpret::function::type0::Type0>::new::{closure#2}>, core::option::Option<core::convert::Infallible>> as core::iter::traits::iterator::Iterator>::next
 <core::iter::adapters::chain::Chain<core::iter::adapters::chain::Chain<core::iter::adapters::chain::Chain<core::iter::adapters::flatten::FlatMap<core::option::IntoIter<&read_fonts::model::charmap::EncodingTables>, core::iter::adapters::map::Map<core::iter::adapters::chain::Chain<core::iter::adapters::flatten::Flatten<core::slice::iter::Iter<core::option::Option<read_fonts::model::charmap::EncodingTable>>>, core::iter::adapters::filter::Filter<core::iter::adapters::flatten::Flatten<core::slice::iter::Iter<core::option::Option<read_fonts::model::charmap::EncodingTable>>>, <read_fonts::model::charmap::EncodingTables>::iter::{closure#0}>>, <read_fonts::model::charmap::EncodingTables>::iter::{closure#1}>, <read_fonts::model::charmap::EncodingTables>::iter>, core::option::IntoIter<read_fonts::model::charmap::Encoding>>, core::option::IntoIter<read_fonts::model::charmap::Encoding>>, core::option::IntoIter<read_fonts::model::charmap::Encoding>> as core::iter::traits::iterator::Iterator>::size_hint
@@ -340,6 +343,7 @@
 <hayro_syntax::object::array::ResolvedArrayIter<f32> as core::iter::traits::iterator::Iterator>::next
 <hayro_syntax::object::date::DateTime>::from_bytes
 <hayro_syntax::object::date::DateTime>::from_bytes::{closure#0}
+<hayro_syntax::object::dict::Dict as core::convert::TryFrom<hayro_syntax::object::Object>>::try_from
 <hayro_syntax::object::dict::Dict as hayro_font::util::CacheKey>::cache_key
 <hayro_syntax::object::dict::Dict as hayro_syntax::reader::Readable>::read
 <hayro_syntax::object::dict::Dict as hayro_syntax::reader::Skippable>::skip_with_depth
@@ -418,6 +422,7 @@
 <hayro_syntax::page::PageWalk>::enter
 <hayro_syntax::page::Pages>::get
 <hayro_syntax::page::Pages>::lost_everything
+<hayro_syntax::page::Pages>::walk_stopped
 <hayro_syntax::page::Resources>::get_color_space
 <hayro_syntax::page::Resources>::get_ext_g_state
 <hayro_syntax::page::Resources>::get_font
@@ -445,7 +450,9 @@
 <hayro_syntax::xref::XRef>::new::{closure#2}
 <hayro_syntax::xref::XRef>::root_id
 <i32 as hayro_syntax::reader::Readable>::read
+<i64 as core::convert::TryFrom<hayro_syntax::object::Object>>::try_from
 <i64 as hayro_syntax::reader::Readable>::read
+<js_sys::Array<_>>::push::__wbg_push externref shim
 <js_sys::Array>::new
 <js_sys::Array>::new::__wbg_new externref shim
 <js_sys::Function<_>>::call1::__wbg_call externref shim
@@ -576,6 +583,7 @@
 <recto::Document>::annotations
 <recto::Document>::open_data
 <recto::Document>::scan::{closure#0}
+<recto::Document>::structure_truncated
 <recto::Document>::text
 <recto::Inner as core::ops::drop::Drop>::drop
 <recto::assets::host::set_loader::{closure#2} as core::ops::function::FnOnce<()>>::call_once
@@ -587,6 +595,7 @@
 <recto::wasm::Document>::open
 <recto::wasm::Document>::outline
 <recto::wasm::Document>::page_info
+<recto::wasm::Document>::page_labels
 <recto::wasm::Document>::scan_parts
 <rustc_hash::FxBuildHasher as core::hash::BuildHasher>::hash_one::<&&[u8]>
 <rustc_hash::FxBuildHasher as core::hash::BuildHasher>::hash_one::<&[u8]>
@@ -633,8 +642,10 @@
 <std::sys::sync::once::no_threads::Once>::call::<<std::sync::once::Once>::call_once_force<<std::sync::lazy_lock::LazyLock<hayro_interpret::color::icc::ICCProfile>>::force::{closure#0}>::{closure#0}>
 <std::sys::thread_local::no_threads::LazyStorage<core::cell::Cell<(u64, u64)>>>::initialize::<<std::hash::random::RandomState>::new::KEYS::__rust_std_internal_init_fn>
 <std::sys::thread_local::no_threads::LazyStorage<core::cell::RefCell<std::collections::hash::map::HashMap<u32, alloc::sync::Arc<dyn core::convert::AsRef<[u8]> + core::marker::Send + core::marker::Sync>>>>>::initialize::<recto::assets::host::CACHE::__rust_std_internal_init_fn>
+<str as core::fmt::Display>::fmt
 <str>::trim_end_matches::<char>
 <u16 as hayro_syntax::reader::Readable>::read
+<u64>::_fmt
 <u8 as hayro_syntax::reader::Readable>::read
 <usize as hayro_syntax::reader::Readable>::read
 <zlib_rs::inflate::window::Window>::extend
@@ -780,8 +791,12 @@ document_outline externref shim
 document_pageCount
 document_pageInfo
 document_pageInfo multivalue shim
+document_pageLabels
+document_pageLabels externref shim
 document_pageText
 document_pageText multivalue shim
+document_structureTruncated
+document_structureTruncated multivalue shim
 document_textAndAnnotations
 document_textAndAnnotations multivalue shim
 flate2::zio::read::<flate2::bufreader::BufReader<&[u8]>, flate2::mem::Decompress>
@@ -959,7 +974,10 @@ recto::assets::host::fetch
 recto::assets::text_settings::{closure#0}
 recto::device::rgba
 recto::forms::base_letters
+recto::labels::collect
+recto::labels::read_walked
 recto::outline::read_walked
+recto::outline::walked
 recto::text::classify
 recto::text::mirrored
 recto::text::rtl_segment

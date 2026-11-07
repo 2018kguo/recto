@@ -52,7 +52,7 @@ export type PdfEngineOptions = {
    * when needed, only `recto.wasm` means anything: named, what drawing needs is fetched and compiled
    * now, which saves the first `render` blocking on it.
    */
-  preloadAssets?: (Exclude<AssetName, Part> | "cmaps.brotli" | "fonts.bin")[];
+  preloadAssets?: (Exclude<AssetName, Part> | "cmaps.brotli" | "fonts.bin" | "recto-text.wasm")[];
 };
 
 export type PdfOpenOptions = {
@@ -124,10 +124,21 @@ function partModule(name: Part, base: URL | null, hash: SyncHash): WebAssembly.M
 }
 
 /** An instance's own SHA-256, for an asset it needs: faster than JavaScript's in a cold browser. */
-const hashOn =
-  (instance: Instance): SyncHash =>
-  (bytes) =>
-    instance.dead ? null : Array.from(instance.glue.sha256(bytes), (byte) => byte.toString(16).padStart(2, "0")).join("");
+export function hashOn(instance: Pick<Instance, "dead" | "glue">): SyncHash {
+  return (bytes) => {
+    // A function the hash itself runs may be in a part, and that part's check can't use this hash.
+    if (instance.dead || hashing.has(instance)) {
+      return null;
+    }
+    hashing.add(instance);
+    try {
+      return Array.from(instance.glue.sha256(bytes), (byte) => byte.toString(16).padStart(2, "0")).join("");
+    } finally {
+      hashing.delete(instance);
+    }
+  };
+}
+const hashing = new WeakSet<object>();
 
 function instantiate(
   generation: number,
@@ -418,9 +429,10 @@ export async function createPdfEngine(options: PdfEngineOptions = {}): Promise<P
 async function createEngine(options: PdfEngineOptions): Promise<RectoEngine> {
   const base = assetBaseUrl(options.assetBase);
   const canRead = canReadSync();
-  // cmaps.brotli is the old name of cmaps.deflate, and fonts.bin of all the fonts together.
+  // cmaps.brotli is the old name of cmaps.deflate, fonts.bin of all the fonts together, and recto-text.wasm
+  // what an engine loads anyway.
   const names = (options.preloadAssets ?? (canRead ? [] : ALL_ASSETS)).flatMap((asset) =>
-    asset === "cmaps.brotli" ? ("cmaps.deflate" as const) : asset === "fonts.bin" ? STANDARD_FONTS : asset
+    asset === "cmaps.brotli" ? ("cmaps.deflate" as const) : asset === "fonts.bin" ? STANDARD_FONTS : asset === "recto-text.wasm" ? [] : asset
   );
   // With no way to read a part from inside a call, all of them now, always: nothing listed can take
   // away the ability to draw. Named elsewhere, what drawing runs, to save the first `render` the wait.

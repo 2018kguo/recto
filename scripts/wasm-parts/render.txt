@@ -36,7 +36,6 @@
 <alloc::rc::Rc<hayro::GlobalState>>::drop_slow
 <alloc::rc::Rc<kurbo::bezpath::BezPath>>::drop_slow
 <alloc::rc::Rc<skrifa::scaler::ScalerFont>>::drop_slow
-<alloc::string::String as core::fmt::Display>::fmt
 <alloc::sync::Arc<dyn pic_scale::convolution::ColumnFilter<f32, 1usize> + core::marker::Send + core::marker::Sync>>::drop_slow
 <alloc::sync::Arc<hayro::glyph_cache::CachedGlyph>>::drop_slow
 <alloc::sync::Arc<skrifa::outline::autohint::instance::LocatedState>>::drop_slow
@@ -49,7 +48,6 @@
 <alloc::vec::Vec<vello_cpu::coarse::bucketer::RowState>>::resize_with::<&mut <vello_cpu::coarse::bucketer::RowState>::new>
 <color::dynamic::DynamicColor>::convert
 <core::cell::once::OnceCell<vello_common::encode::GradientLut<u8>>>::try_init::<<core::cell::once::OnceCell<vello_common::encode::GradientLut<u8>>>::get_or_init<<vello_common::encode::EncodedGradient>::u8_lut<fearless_simd::generated::wasm::WasmSimd128>::{closure#0}>::{closure#0}, !>
-<core::fmt::Formatter>::pad
 <core::fmt::Formatter>::pad_formatted_parts
 <core::fmt::Formatter>::pad_integral
 <core::fmt::Formatter>::pad_integral::write_prefix
@@ -359,7 +357,6 @@
 <std::sync::once_lock::OnceLock<core::option::Option<alloc::boxed::Box<[[u8; 3usize]; 256usize]>>>>::initialize::<<std::sync::once_lock::OnceLock<core::option::Option<alloc::boxed::Box<[[u8; 3usize]; 256usize]>>>>::get_or_init<<hayro_interpret::color::U8Lookup<[u8; 3usize]>>::get_or_init_with<<hayro_interpret::color::U8Lookup<[u8; 3usize]>>::get_or_init<<hayro_interpret::color::indexed::Indexed>::u8_lookup::{closure#0}>::{closure#0}>::{closure#0}>::{closure#0}, !>
 <std::sync::once_lock::OnceLock<core::option::Option<alloc::boxed::Box<[u8; 256usize]>>>>::initialize::<<std::sync::once_lock::OnceLock<core::option::Option<alloc::boxed::Box<[u8; 256usize]>>>>::get_or_init<<hayro_interpret::color::U8Lookup<u8>>::get_or_init_with<<hayro_interpret::color::indexed::Indexed>::u8_luma_lookup::{closure#0}>::{closure#0}>::{closure#0}, !>
 <std::sync::once_lock::OnceLock<core::option::Option<read_fonts::ps::cff::font::Subfont>>>::initialize::<<std::sync::once_lock::OnceLock<core::option::Option<read_fonts::ps::cff::font::Subfont>>>::get_or_init<<read_fonts::model::font::Font>::cff_subfont::{closure#1}>::{closure#0}, !>
-<str as core::fmt::Display>::fmt
 <u8 as core::fmt::LowerHex>::fmt
 <vello_common::clip::ClipContext>::push_generated_clip::<<vello_common::clip::ClipContext>::push_clip_path<core::iter::adapters::copied::Copied<core::slice::iter::Iter<kurbo::bezpath::PathEl>>>::{closure#0}>
 <vello_common::clip::ClipContext>::push_generated_clip::<<vello_common::clip::ClipContext>::push_clip_rect::{closure#0}>

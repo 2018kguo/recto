@@ -91,9 +91,6 @@ function nodeFs() {
   return globalThis.process?.getBuiltinModule?.("node:fs");
 }
 
-/** Whether assets are files on this machine, so they cost no download. */
-export const hasFiles = (): boolean => Boolean(nodeFs());
-
 /** Whether an asset can be read at the moment the engine asks for it. */
 export function canReadSync(): boolean {
   if (nodeFs()) {

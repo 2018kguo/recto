@@ -12,6 +12,7 @@ import { createPdfEngine, type PdfBitmap, type PdfDocument, PdfError } from "../
 import { bilevel, jpxPdf, meshPdf, postScriptPdf, tensorPdf } from "./rare-pdfs.ts";
 import { startRangeServer } from "./range-server.ts";
 import { syntheticPdf } from "./synthetic-pdf.ts";
+import { hashOn } from "../src/engine.ts";
 import { PINS } from "../wasm/pins.mjs";
 import { stableName } from "../../scripts/split-wasm.mjs";
 
@@ -274,4 +275,44 @@ test("every machine tells cargo the same host, which goes into each crate's hash
   const said = execFileSync(script, ["-vV"], { encoding: "utf8" });
   assert.match(said, /^host: x86_64-unknown-linux-gnu$/mu);
   assert.match(said, /^release: /mu);
+});
+
+test("pageLabels and structureTruncated move off an abandoned instance like every other call", async () => {
+  const dir = assetDir(...FONTS);
+  const engine = await createPdfEngine({ assetBase: dir });
+  using doc = await engine.open(pdf());
+  for (const call of [() => doc.pageLabels(), () => doc.structureTruncated()]) {
+    assert.throws(() => doc.render(0, { width: 64 }), missing("FoxitSans.pfb"));
+    assert.doesNotThrow(call, "the failure was the render's, and it's over");
+  }
+});
+
+test("a part of the hash's own can't send its check round in a circle", () => {
+  const instance = {
+    dead: false,
+    glue: { sha256: (bytes: Uint8Array) => (inner.push(hashOn(instance as never)(bytes)), new Uint8Array(32)) },
+  };
+  const inner: unknown[] = [];
+  assert.equal(hashOn(instance as never)(new Uint8Array(1)), "00".repeat(32));
+  assert.deepEqual(inner, [null], "the check inside falls back to the one in JavaScript");
+});
+
+test("the old name of the text wasm is still taken", async () => {
+  const { getBuiltinModule } = process;
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = (async (input: URL) => new Response(getBuiltinModule("node:fs").readFileSync(input))) as typeof fetch;
+  // @ts-expect-error
+  process.getBuiltinModule = undefined;
+  // @ts-expect-error
+  globalThis.document = {};
+  try {
+    const engine = await createPdfEngine({ preloadAssets: ["recto-text.wasm"] });
+    using doc = await engine.open(pdf());
+    assert.ok(doc.text(0).count > 0);
+  } finally {
+    process.getBuiltinModule = getBuiltinModule;
+    globalThis.fetch = realFetch;
+    // @ts-expect-error
+    delete globalThis.document;
+  }
 });

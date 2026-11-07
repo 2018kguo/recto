@@ -558,6 +558,7 @@ export class RectoDocument implements PdfDocument {
     if (this.#closed) {
       throw new PdfError("closed", "this document is closed");
     }
+    this.#checkInstance();
     return this.#call(() => this.#doc.pageLabels() as string[] | null);
   }
 
@@ -565,6 +566,7 @@ export class RectoDocument implements PdfDocument {
     if (this.#closed) {
       throw new PdfError("closed", "this document is closed");
     }
+    this.#checkInstance();
     const [pages, pageLabels, outline] = this.#call(() => this.#doc.structureTruncated() as Uint8Array);
     return { pages: pages === 1, pageLabels: pageLabels === 1, outline: outline === 1 };
   }

@@ -82,6 +82,8 @@ async function profile(label, pass) {
 
 const text = await profile("text", async (doc) => {
   doc.outline();
+  doc.pageLabels();
+  doc.structureTruncated();
   for (let i = 0; i < Math.min(doc.pageCount, 40); i++) {
     doc.pageInfo(i);
     doc.text(i);
