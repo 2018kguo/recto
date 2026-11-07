@@ -351,10 +351,6 @@ impl<'a> Pages<'a> {
         } else {
             walked.walk_to(usize::MAX, ctx);
             walked.found.shrink_to_fit();
-            // recto: a damaged tree that gave nothing is no tree; an honestly empty one has no pages.
-            if walked.found.is_empty() && walked.walk.lost_kid {
-                return None;
-            }
             walked.found.len()
         };
         Some(Self {
@@ -375,6 +371,12 @@ impl<'a> Pages<'a> {
             Some(lazy) => lazy.built.len(),
             None => self.pages.len(),
         }
+    }
+
+    /// recto: whether a kid was lost and no pages were found: the tree is damaged, where one that's
+    /// honestly empty, or a document with no pages, isn't.
+    pub(crate) fn lost_everything(&self) -> bool {
+        self.is_empty() && self.lazy.as_ref().is_some_and(|lazy| lazy.walked.get().walk.lost_kid)
     }
 
     /// recto: whether there are no pages.
@@ -863,10 +865,14 @@ pub(crate) mod cached {
             let xref_reference: &'static XRef = unsafe { core::mem::transmute(xref.deref()) };
 
             let ctx = ReaderContext::new(xref_reference, false);
-            let pages = xref_reference
+            let tree = xref_reference
                 .get_with(xref.trailer_data().pages_ref, &ctx)
-                .and_then(|p| Pages::new(&p, &ctx, xref_reference))
-                .or_else(|| Pages::new_brute_force(&ctx, xref_reference))?;
+                .and_then(|p| Pages::new(&p, &ctx, xref_reference));
+            let pages = if tree.as_ref().is_none_or(Pages::lost_everything) {
+                Pages::new_brute_force(&ctx, xref_reference).or(tree)?
+            } else {
+                tree?
+            };
 
             Some(Self { pages, _xref: xref })
         }
