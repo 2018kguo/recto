@@ -161,7 +161,7 @@ fn rasterize(outline: &BezPath, transform: Affine) -> Option<Option<CachedGlyph>
     // TODO: Store a single coverage channel once vello supports one-channel images.
     let mut data = vec![0; usize::from(width) * usize::from(height) * 4];
     rasterizer.for_each_pixel(|idx, coverage| {
-        data[idx * 4 + 3] = (coverage.min(1.0) * 255.0).round() as u8;
+        data[idx * 4 + 3] = round_coverage(coverage.min(1.0) * 255.0);
     });
 
     let pixmap = Pixmap::from_parts(
@@ -179,4 +179,27 @@ fn rasterize(outline: &BezPath, transform: Affine) -> Option<Option<CachedGlyph>
         x: x0 as i32,
         y: y0 as i32,
     }))
+}
+
+/// recto: `x.round() as u8` without a call to `roundf`, once per pixel of every glyph. `trunc` is one
+/// wasm instruction, and `x - t` is exact, so this agrees wherever `round` does.
+#[inline]
+fn round_coverage(x: f32) -> u8 {
+    let t = x.trunc();
+    (t + if x - t >= 0.5 { 1.0 } else { 0.0 }) as u8
+}
+
+#[cfg(test)]
+mod round_tests {
+    #[test]
+    fn round_coverage_is_round_for_every_f32() {
+        // Every 4,099th bit pattern, and all of them around each half from 0 to 255.
+        let check = |x: f32| assert_eq!(super::round_coverage(x), x.round() as u8, "{x:?}");
+        (0..=u32::MAX).step_by(4099).map(f32::from_bits).for_each(check);
+        for half in 0..256 {
+            let bits = (half as f32 + 0.5).to_bits();
+            (bits - 4096..bits + 4096).map(f32::from_bits).for_each(check);
+        }
+        [-0.0, -0.3, -0.5, -0.7, -1.5, f32::NAN, f32::INFINITY, f32::NEG_INFINITY, 0.49999997].map(check);
+    }
 }

@@ -1,418 +1,416 @@
-use phf::phf_map;
-
+// recto: a sorted table rather than a phf map; see `by_name` in mod.rs.
 pub(crate) fn get(code: u8) -> Option<&'static str> {
-    ZAPF_DING_BATS.get(&code).copied()
+    static CODES: super::Codes = super::Codes::new();
+    CODES.get(ZAPF_DING_BATS, code)
 }
 
 pub(crate) fn glyph_name_to_unicode(name: &str) -> Option<char> {
-    GLYPH_NAMES.get(name).copied()
+    super::by_name(GLYPH_NAMES, name).and_then(|value| value.chars().next())
 }
 
-static ZAPF_DING_BATS: phf::Map<u8, &'static str> = phf_map! {
-    32_u8 => "space",
-    33_u8 => "a1",
-    34_u8 => "a2",
-    35_u8 => "a202",
-    36_u8 => "a3",
-    37_u8 => "a4",
-    38_u8 => "a5",
-    39_u8 => "a119",
-    40_u8 => "a118",
-    41_u8 => "a117",
-    42_u8 => "a11",
-    43_u8 => "a12",
-    44_u8 => "a13",
-    45_u8 => "a14",
-    46_u8 => "a15",
-    47_u8 => "a16",
-    48_u8 => "a105",
-    49_u8 => "a17",
-    50_u8 => "a18",
-    51_u8 => "a19",
-    52_u8 => "a20",
-    53_u8 => "a21",
-    54_u8 => "a22",
-    55_u8 => "a23",
-    56_u8 => "a24",
-    57_u8 => "a25",
-    58_u8 => "a26",
-    59_u8 => "a27",
-    60_u8 => "a28",
-    61_u8 => "a6",
-    62_u8 => "a7",
-    63_u8 => "a8",
-    64_u8 => "a9",
-    65_u8 => "a10",
-    66_u8 => "a29",
-    67_u8 => "a30",
-    68_u8 => "a31",
-    69_u8 => "a32",
-    70_u8 => "a33",
-    71_u8 => "a34",
-    72_u8 => "a35",
-    73_u8 => "a36",
-    74_u8 => "a37",
-    75_u8 => "a38",
-    76_u8 => "a39",
-    77_u8 => "a40",
-    78_u8 => "a41",
-    79_u8 => "a42",
-    80_u8 => "a43",
-    81_u8 => "a44",
-    82_u8 => "a45",
-    83_u8 => "a46",
-    84_u8 => "a47",
-    85_u8 => "a48",
-    86_u8 => "a49",
-    87_u8 => "a50",
-    88_u8 => "a51",
-    89_u8 => "a52",
-    90_u8 => "a53",
-    91_u8 => "a54",
-    92_u8 => "a55",
-    93_u8 => "a56",
-    94_u8 => "a57",
-    95_u8 => "a58",
-    96_u8 => "a59",
-    97_u8 => "a60",
-    98_u8 => "a61",
-    99_u8 => "a62",
-    100_u8 => "a63",
-    101_u8 => "a64",
-    102_u8 => "a65",
-    103_u8 => "a66",
-    104_u8 => "a67",
-    105_u8 => "a68",
-    106_u8 => "a69",
-    107_u8 => "a70",
-    108_u8 => "a71",
-    109_u8 => "a72",
-    110_u8 => "a73",
-    111_u8 => "a74",
-    112_u8 => "a203",
-    113_u8 => "a75",
-    114_u8 => "a204",
-    115_u8 => "a76",
-    116_u8 => "a77",
-    117_u8 => "a78",
-    118_u8 => "a79",
-    119_u8 => "a81",
-    120_u8 => "a82",
-    121_u8 => "a83",
-    122_u8 => "a84",
-    123_u8 => "a97",
-    124_u8 => "a98",
-    125_u8 => "a99",
-    126_u8 => "a100",
-    128_u8 => "a89",
-    129_u8 => "a90",
-    130_u8 => "a93",
-    131_u8 => "a94",
-    132_u8 => "a91",
-    133_u8 => "a92",
-    134_u8 => "a205",
-    135_u8 => "a85",
-    136_u8 => "a206",
-    137_u8 => "a86",
-    138_u8 => "a87",
-    139_u8 => "a88",
-    140_u8 => "a95",
-    141_u8 => "a96",
-    161_u8 => "a101",
-    162_u8 => "a102",
-    163_u8 => "a103",
-    164_u8 => "a104",
-    165_u8 => "a106",
-    166_u8 => "a107",
-    167_u8 => "a108",
-    168_u8 => "a112",
-    169_u8 => "a111",
-    170_u8 => "a110",
-    171_u8 => "a109",
-    172_u8 => "a120",
-    173_u8 => "a121",
-    174_u8 => "a122",
-    175_u8 => "a123",
-    176_u8 => "a124",
-    177_u8 => "a125",
-    178_u8 => "a126",
-    179_u8 => "a127",
-    180_u8 => "a128",
-    181_u8 => "a129",
-    182_u8 => "a130",
-    183_u8 => "a131",
-    184_u8 => "a132",
-    185_u8 => "a133",
-    186_u8 => "a134",
-    187_u8 => "a135",
-    188_u8 => "a136",
-    189_u8 => "a137",
-    190_u8 => "a138",
-    191_u8 => "a139",
-    192_u8 => "a140",
-    193_u8 => "a141",
-    194_u8 => "a142",
-    195_u8 => "a143",
-    196_u8 => "a144",
-    197_u8 => "a145",
-    198_u8 => "a146",
-    199_u8 => "a147",
-    200_u8 => "a148",
-    201_u8 => "a149",
-    202_u8 => "a150",
-    203_u8 => "a151",
-    204_u8 => "a152",
-    205_u8 => "a153",
-    206_u8 => "a154",
-    207_u8 => "a155",
-    208_u8 => "a156",
-    209_u8 => "a157",
-    210_u8 => "a158",
-    211_u8 => "a159",
-    212_u8 => "a160",
-    213_u8 => "a161",
-    214_u8 => "a163",
-    215_u8 => "a164",
-    216_u8 => "a196",
-    217_u8 => "a165",
-    218_u8 => "a192",
-    219_u8 => "a166",
-    220_u8 => "a167",
-    221_u8 => "a168",
-    222_u8 => "a169",
-    223_u8 => "a170",
-    224_u8 => "a171",
-    225_u8 => "a172",
-    226_u8 => "a173",
-    227_u8 => "a162",
-    228_u8 => "a174",
-    229_u8 => "a175",
-    230_u8 => "a176",
-    231_u8 => "a177",
-    232_u8 => "a178",
-    233_u8 => "a179",
-    234_u8 => "a193",
-    235_u8 => "a180",
-    236_u8 => "a199",
-    237_u8 => "a181",
-    238_u8 => "a200",
-    239_u8 => "a182",
-    241_u8 => "a201",
-    242_u8 => "a183",
-    243_u8 => "a184",
-    244_u8 => "a197",
-    245_u8 => "a185",
-    246_u8 => "a194",
-    247_u8 => "a198",
-    248_u8 => "a186",
-    249_u8 => "a195",
-    250_u8 => "a187",
-    251_u8 => "a188",
-    252_u8 => "a189",
-    253_u8 => "a190",
-    254_u8 => "a191",
-};
+pub(super) static ZAPF_DING_BATS: &[u8] = b"\
+    20\xFEspace\xFF\
+    21\xFEa1\xFF\
+    22\xFEa2\xFF\
+    23\xFEa202\xFF\
+    24\xFEa3\xFF\
+    25\xFEa4\xFF\
+    26\xFEa5\xFF\
+    27\xFEa119\xFF\
+    28\xFEa118\xFF\
+    29\xFEa117\xFF\
+    2A\xFEa11\xFF\
+    2B\xFEa12\xFF\
+    2C\xFEa13\xFF\
+    2D\xFEa14\xFF\
+    2E\xFEa15\xFF\
+    2F\xFEa16\xFF\
+    30\xFEa105\xFF\
+    31\xFEa17\xFF\
+    32\xFEa18\xFF\
+    33\xFEa19\xFF\
+    34\xFEa20\xFF\
+    35\xFEa21\xFF\
+    36\xFEa22\xFF\
+    37\xFEa23\xFF\
+    38\xFEa24\xFF\
+    39\xFEa25\xFF\
+    3A\xFEa26\xFF\
+    3B\xFEa27\xFF\
+    3C\xFEa28\xFF\
+    3D\xFEa6\xFF\
+    3E\xFEa7\xFF\
+    3F\xFEa8\xFF\
+    40\xFEa9\xFF\
+    41\xFEa10\xFF\
+    42\xFEa29\xFF\
+    43\xFEa30\xFF\
+    44\xFEa31\xFF\
+    45\xFEa32\xFF\
+    46\xFEa33\xFF\
+    47\xFEa34\xFF\
+    48\xFEa35\xFF\
+    49\xFEa36\xFF\
+    4A\xFEa37\xFF\
+    4B\xFEa38\xFF\
+    4C\xFEa39\xFF\
+    4D\xFEa40\xFF\
+    4E\xFEa41\xFF\
+    4F\xFEa42\xFF\
+    50\xFEa43\xFF\
+    51\xFEa44\xFF\
+    52\xFEa45\xFF\
+    53\xFEa46\xFF\
+    54\xFEa47\xFF\
+    55\xFEa48\xFF\
+    56\xFEa49\xFF\
+    57\xFEa50\xFF\
+    58\xFEa51\xFF\
+    59\xFEa52\xFF\
+    5A\xFEa53\xFF\
+    5B\xFEa54\xFF\
+    5C\xFEa55\xFF\
+    5D\xFEa56\xFF\
+    5E\xFEa57\xFF\
+    5F\xFEa58\xFF\
+    60\xFEa59\xFF\
+    61\xFEa60\xFF\
+    62\xFEa61\xFF\
+    63\xFEa62\xFF\
+    64\xFEa63\xFF\
+    65\xFEa64\xFF\
+    66\xFEa65\xFF\
+    67\xFEa66\xFF\
+    68\xFEa67\xFF\
+    69\xFEa68\xFF\
+    6A\xFEa69\xFF\
+    6B\xFEa70\xFF\
+    6C\xFEa71\xFF\
+    6D\xFEa72\xFF\
+    6E\xFEa73\xFF\
+    6F\xFEa74\xFF\
+    70\xFEa203\xFF\
+    71\xFEa75\xFF\
+    72\xFEa204\xFF\
+    73\xFEa76\xFF\
+    74\xFEa77\xFF\
+    75\xFEa78\xFF\
+    76\xFEa79\xFF\
+    77\xFEa81\xFF\
+    78\xFEa82\xFF\
+    79\xFEa83\xFF\
+    7A\xFEa84\xFF\
+    7B\xFEa97\xFF\
+    7C\xFEa98\xFF\
+    7D\xFEa99\xFF\
+    7E\xFEa100\xFF\
+    80\xFEa89\xFF\
+    81\xFEa90\xFF\
+    82\xFEa93\xFF\
+    83\xFEa94\xFF\
+    84\xFEa91\xFF\
+    85\xFEa92\xFF\
+    86\xFEa205\xFF\
+    87\xFEa85\xFF\
+    88\xFEa206\xFF\
+    89\xFEa86\xFF\
+    8A\xFEa87\xFF\
+    8B\xFEa88\xFF\
+    8C\xFEa95\xFF\
+    8D\xFEa96\xFF\
+    A1\xFEa101\xFF\
+    A2\xFEa102\xFF\
+    A3\xFEa103\xFF\
+    A4\xFEa104\xFF\
+    A5\xFEa106\xFF\
+    A6\xFEa107\xFF\
+    A7\xFEa108\xFF\
+    A8\xFEa112\xFF\
+    A9\xFEa111\xFF\
+    AA\xFEa110\xFF\
+    AB\xFEa109\xFF\
+    AC\xFEa120\xFF\
+    AD\xFEa121\xFF\
+    AE\xFEa122\xFF\
+    AF\xFEa123\xFF\
+    B0\xFEa124\xFF\
+    B1\xFEa125\xFF\
+    B2\xFEa126\xFF\
+    B3\xFEa127\xFF\
+    B4\xFEa128\xFF\
+    B5\xFEa129\xFF\
+    B6\xFEa130\xFF\
+    B7\xFEa131\xFF\
+    B8\xFEa132\xFF\
+    B9\xFEa133\xFF\
+    BA\xFEa134\xFF\
+    BB\xFEa135\xFF\
+    BC\xFEa136\xFF\
+    BD\xFEa137\xFF\
+    BE\xFEa138\xFF\
+    BF\xFEa139\xFF\
+    C0\xFEa140\xFF\
+    C1\xFEa141\xFF\
+    C2\xFEa142\xFF\
+    C3\xFEa143\xFF\
+    C4\xFEa144\xFF\
+    C5\xFEa145\xFF\
+    C6\xFEa146\xFF\
+    C7\xFEa147\xFF\
+    C8\xFEa148\xFF\
+    C9\xFEa149\xFF\
+    CA\xFEa150\xFF\
+    CB\xFEa151\xFF\
+    CC\xFEa152\xFF\
+    CD\xFEa153\xFF\
+    CE\xFEa154\xFF\
+    CF\xFEa155\xFF\
+    D0\xFEa156\xFF\
+    D1\xFEa157\xFF\
+    D2\xFEa158\xFF\
+    D3\xFEa159\xFF\
+    D4\xFEa160\xFF\
+    D5\xFEa161\xFF\
+    D6\xFEa163\xFF\
+    D7\xFEa164\xFF\
+    D8\xFEa196\xFF\
+    D9\xFEa165\xFF\
+    DA\xFEa192\xFF\
+    DB\xFEa166\xFF\
+    DC\xFEa167\xFF\
+    DD\xFEa168\xFF\
+    DE\xFEa169\xFF\
+    DF\xFEa170\xFF\
+    E0\xFEa171\xFF\
+    E1\xFEa172\xFF\
+    E2\xFEa173\xFF\
+    E3\xFEa162\xFF\
+    E4\xFEa174\xFF\
+    E5\xFEa175\xFF\
+    E6\xFEa176\xFF\
+    E7\xFEa177\xFF\
+    E8\xFEa178\xFF\
+    E9\xFEa179\xFF\
+    EA\xFEa193\xFF\
+    EB\xFEa180\xFF\
+    EC\xFEa199\xFF\
+    ED\xFEa181\xFF\
+    EE\xFEa200\xFF\
+    EF\xFEa182\xFF\
+    F1\xFEa201\xFF\
+    F2\xFEa183\xFF\
+    F3\xFEa184\xFF\
+    F4\xFEa197\xFF\
+    F5\xFEa185\xFF\
+    F6\xFEa194\xFF\
+    F7\xFEa198\xFF\
+    F8\xFEa186\xFF\
+    F9\xFEa195\xFF\
+    FA\xFEa187\xFF\
+    FB\xFEa188\xFF\
+    FC\xFEa189\xFF\
+    FD\xFEa190\xFF\
+    FE\xFEa191\xFF";
 
-static GLYPH_NAMES: phf::Map<&'static str, char> = phf_map! {
-    "a100" => '\u{275E}',
-    "a101" => '\u{2761}',
-    "a102" => '\u{2762}',
-    "a103" => '\u{2763}',
-    "a104" => '\u{2764}',
-    "a105" => '\u{2710}',
-    "a106" => '\u{2765}',
-    "a107" => '\u{2766}',
-    "a108" => '\u{2767}',
-    "a109" => '\u{2660}',
-    "a10" => '\u{2721}',
-    "a110" => '\u{2665}',
-    "a111" => '\u{2666}',
-    "a112" => '\u{2663}',
-    "a117" => '\u{2709}',
-    "a118" => '\u{2708}',
-    "a119" => '\u{2707}',
-    "a11" => '\u{261B}',
-    "a120" => '\u{2460}',
-    "a121" => '\u{2461}',
-    "a122" => '\u{2462}',
-    "a123" => '\u{2463}',
-    "a124" => '\u{2464}',
-    "a125" => '\u{2465}',
-    "a126" => '\u{2466}',
-    "a127" => '\u{2467}',
-    "a128" => '\u{2468}',
-    "a129" => '\u{2469}',
-    "a12" => '\u{261E}',
-    "a130" => '\u{2776}',
-    "a131" => '\u{2777}',
-    "a132" => '\u{2778}',
-    "a133" => '\u{2779}',
-    "a134" => '\u{277A}',
-    "a135" => '\u{277B}',
-    "a136" => '\u{277C}',
-    "a137" => '\u{277D}',
-    "a138" => '\u{277E}',
-    "a139" => '\u{277F}',
-    "a13" => '\u{270C}',
-    "a140" => '\u{2780}',
-    "a141" => '\u{2781}',
-    "a142" => '\u{2782}',
-    "a143" => '\u{2783}',
-    "a144" => '\u{2784}',
-    "a145" => '\u{2785}',
-    "a146" => '\u{2786}',
-    "a147" => '\u{2787}',
-    "a148" => '\u{2788}',
-    "a149" => '\u{2789}',
-    "a14" => '\u{270D}',
-    "a150" => '\u{278A}',
-    "a151" => '\u{278B}',
-    "a152" => '\u{278C}',
-    "a153" => '\u{278D}',
-    "a154" => '\u{278E}',
-    "a155" => '\u{278F}',
-    "a156" => '\u{2790}',
-    "a157" => '\u{2791}',
-    "a158" => '\u{2792}',
-    "a159" => '\u{2793}',
-    "a15" => '\u{270E}',
-    "a160" => '\u{2794}',
-    "a161" => '\u{2192}',
-    "a162" => '\u{27A3}',
-    "a163" => '\u{2194}',
-    "a164" => '\u{2195}',
-    "a165" => '\u{2799}',
-    "a166" => '\u{279B}',
-    "a167" => '\u{279C}',
-    "a168" => '\u{279D}',
-    "a169" => '\u{279E}',
-    "a16" => '\u{270F}',
-    "a170" => '\u{279F}',
-    "a171" => '\u{27A0}',
-    "a172" => '\u{27A1}',
-    "a173" => '\u{27A2}',
-    "a174" => '\u{27A4}',
-    "a175" => '\u{27A5}',
-    "a176" => '\u{27A6}',
-    "a177" => '\u{27A7}',
-    "a178" => '\u{27A8}',
-    "a179" => '\u{27A9}',
-    "a17" => '\u{2711}',
-    "a180" => '\u{27AB}',
-    "a181" => '\u{27AD}',
-    "a182" => '\u{27AF}',
-    "a183" => '\u{27B2}',
-    "a184" => '\u{27B3}',
-    "a185" => '\u{27B5}',
-    "a186" => '\u{27B8}',
-    "a187" => '\u{27BA}',
-    "a188" => '\u{27BB}',
-    "a189" => '\u{27BC}',
-    "a18" => '\u{2712}',
-    "a190" => '\u{27BD}',
-    "a191" => '\u{27BE}',
-    "a192" => '\u{279A}',
-    "a193" => '\u{27AA}',
-    "a194" => '\u{27B6}',
-    "a195" => '\u{27B9}',
-    "a196" => '\u{2798}',
-    "a197" => '\u{27B4}',
-    "a198" => '\u{27B7}',
-    "a199" => '\u{27AC}',
-    "a19" => '\u{2713}',
-    "a1" => '\u{2701}',
-    "a200" => '\u{27AE}',
-    "a201" => '\u{27B1}',
-    "a202" => '\u{2703}',
-    "a203" => '\u{2750}',
-    "a204" => '\u{2752}',
-    "a205" => '\u{276E}',
-    "a206" => '\u{2770}',
-    "a20" => '\u{2714}',
-    "a21" => '\u{2715}',
-    "a22" => '\u{2716}',
-    "a23" => '\u{2717}',
-    "a24" => '\u{2718}',
-    "a25" => '\u{2719}',
-    "a26" => '\u{271A}',
-    "a27" => '\u{271B}',
-    "a28" => '\u{271C}',
-    "a29" => '\u{2722}',
-    "a2" => '\u{2702}',
-    "a30" => '\u{2723}',
-    "a31" => '\u{2724}',
-    "a32" => '\u{2725}',
-    "a33" => '\u{2726}',
-    "a34" => '\u{2727}',
-    "a35" => '\u{2605}',
-    "a36" => '\u{2729}',
-    "a37" => '\u{272A}',
-    "a38" => '\u{272B}',
-    "a39" => '\u{272C}',
-    "a3" => '\u{2704}',
-    "a40" => '\u{272D}',
-    "a41" => '\u{272E}',
-    "a42" => '\u{272F}',
-    "a43" => '\u{2730}',
-    "a44" => '\u{2731}',
-    "a45" => '\u{2732}',
-    "a46" => '\u{2733}',
-    "a47" => '\u{2734}',
-    "a48" => '\u{2735}',
-    "a49" => '\u{2736}',
-    "a4" => '\u{260E}',
-    "a50" => '\u{2737}',
-    "a51" => '\u{2738}',
-    "a52" => '\u{2739}',
-    "a53" => '\u{273A}',
-    "a54" => '\u{273B}',
-    "a55" => '\u{273C}',
-    "a56" => '\u{273D}',
-    "a57" => '\u{273E}',
-    "a58" => '\u{273F}',
-    "a59" => '\u{2740}',
-    "a5" => '\u{2706}',
-    "a60" => '\u{2741}',
-    "a61" => '\u{2742}',
-    "a62" => '\u{2743}',
-    "a63" => '\u{2744}',
-    "a64" => '\u{2745}',
-    "a65" => '\u{2746}',
-    "a66" => '\u{2747}',
-    "a67" => '\u{2748}',
-    "a68" => '\u{2749}',
-    "a69" => '\u{274A}',
-    "a6" => '\u{271D}',
-    "a70" => '\u{274B}',
-    "a71" => '\u{25CF}',
-    "a72" => '\u{274D}',
-    "a73" => '\u{25A0}',
-    "a74" => '\u{274F}',
-    "a75" => '\u{2751}',
-    "a76" => '\u{25B2}',
-    "a77" => '\u{25BC}',
-    "a78" => '\u{25C6}',
-    "a79" => '\u{2756}',
-    "a7" => '\u{271E}',
-    "a81" => '\u{25D7}',
-    "a82" => '\u{2758}',
-    "a83" => '\u{2759}',
-    "a84" => '\u{275A}',
-    "a85" => '\u{276F}',
-    "a86" => '\u{2771}',
-    "a87" => '\u{2772}',
-    "a88" => '\u{2773}',
-    "a89" => '\u{2768}',
-    "a8" => '\u{271F}',
-    "a90" => '\u{2769}',
-    "a91" => '\u{276C}',
-    "a92" => '\u{276D}',
-    "a93" => '\u{276A}',
-    "a94" => '\u{276B}',
-    "a95" => '\u{2774}',
-    "a96" => '\u{2775}',
-    "a97" => '\u{275B}',
-    "a98" => '\u{275C}',
-    "a99" => '\u{275D}',
-    "a9" => '\u{2720}',
-};
+pub(super) static GLYPH_NAMES: &[u8] = b"\
+    a1\xFE\xE2\x9C\x81\xFF\
+    a10\xFE\xE2\x9C\xA1\xFF\
+    a100\xFE\xE2\x9D\x9E\xFF\
+    a101\xFE\xE2\x9D\xA1\xFF\
+    a102\xFE\xE2\x9D\xA2\xFF\
+    a103\xFE\xE2\x9D\xA3\xFF\
+    a104\xFE\xE2\x9D\xA4\xFF\
+    a105\xFE\xE2\x9C\x90\xFF\
+    a106\xFE\xE2\x9D\xA5\xFF\
+    a107\xFE\xE2\x9D\xA6\xFF\
+    a108\xFE\xE2\x9D\xA7\xFF\
+    a109\xFE\xE2\x99\xA0\xFF\
+    a11\xFE\xE2\x98\x9B\xFF\
+    a110\xFE\xE2\x99\xA5\xFF\
+    a111\xFE\xE2\x99\xA6\xFF\
+    a112\xFE\xE2\x99\xA3\xFF\
+    a117\xFE\xE2\x9C\x89\xFF\
+    a118\xFE\xE2\x9C\x88\xFF\
+    a119\xFE\xE2\x9C\x87\xFF\
+    a12\xFE\xE2\x98\x9E\xFF\
+    a120\xFE\xE2\x91\xA0\xFF\
+    a121\xFE\xE2\x91\xA1\xFF\
+    a122\xFE\xE2\x91\xA2\xFF\
+    a123\xFE\xE2\x91\xA3\xFF\
+    a124\xFE\xE2\x91\xA4\xFF\
+    a125\xFE\xE2\x91\xA5\xFF\
+    a126\xFE\xE2\x91\xA6\xFF\
+    a127\xFE\xE2\x91\xA7\xFF\
+    a128\xFE\xE2\x91\xA8\xFF\
+    a129\xFE\xE2\x91\xA9\xFF\
+    a13\xFE\xE2\x9C\x8C\xFF\
+    a130\xFE\xE2\x9D\xB6\xFF\
+    a131\xFE\xE2\x9D\xB7\xFF\
+    a132\xFE\xE2\x9D\xB8\xFF\
+    a133\xFE\xE2\x9D\xB9\xFF\
+    a134\xFE\xE2\x9D\xBA\xFF\
+    a135\xFE\xE2\x9D\xBB\xFF\
+    a136\xFE\xE2\x9D\xBC\xFF\
+    a137\xFE\xE2\x9D\xBD\xFF\
+    a138\xFE\xE2\x9D\xBE\xFF\
+    a139\xFE\xE2\x9D\xBF\xFF\
+    a14\xFE\xE2\x9C\x8D\xFF\
+    a140\xFE\xE2\x9E\x80\xFF\
+    a141\xFE\xE2\x9E\x81\xFF\
+    a142\xFE\xE2\x9E\x82\xFF\
+    a143\xFE\xE2\x9E\x83\xFF\
+    a144\xFE\xE2\x9E\x84\xFF\
+    a145\xFE\xE2\x9E\x85\xFF\
+    a146\xFE\xE2\x9E\x86\xFF\
+    a147\xFE\xE2\x9E\x87\xFF\
+    a148\xFE\xE2\x9E\x88\xFF\
+    a149\xFE\xE2\x9E\x89\xFF\
+    a15\xFE\xE2\x9C\x8E\xFF\
+    a150\xFE\xE2\x9E\x8A\xFF\
+    a151\xFE\xE2\x9E\x8B\xFF\
+    a152\xFE\xE2\x9E\x8C\xFF\
+    a153\xFE\xE2\x9E\x8D\xFF\
+    a154\xFE\xE2\x9E\x8E\xFF\
+    a155\xFE\xE2\x9E\x8F\xFF\
+    a156\xFE\xE2\x9E\x90\xFF\
+    a157\xFE\xE2\x9E\x91\xFF\
+    a158\xFE\xE2\x9E\x92\xFF\
+    a159\xFE\xE2\x9E\x93\xFF\
+    a16\xFE\xE2\x9C\x8F\xFF\
+    a160\xFE\xE2\x9E\x94\xFF\
+    a161\xFE\xE2\x86\x92\xFF\
+    a162\xFE\xE2\x9E\xA3\xFF\
+    a163\xFE\xE2\x86\x94\xFF\
+    a164\xFE\xE2\x86\x95\xFF\
+    a165\xFE\xE2\x9E\x99\xFF\
+    a166\xFE\xE2\x9E\x9B\xFF\
+    a167\xFE\xE2\x9E\x9C\xFF\
+    a168\xFE\xE2\x9E\x9D\xFF\
+    a169\xFE\xE2\x9E\x9E\xFF\
+    a17\xFE\xE2\x9C\x91\xFF\
+    a170\xFE\xE2\x9E\x9F\xFF\
+    a171\xFE\xE2\x9E\xA0\xFF\
+    a172\xFE\xE2\x9E\xA1\xFF\
+    a173\xFE\xE2\x9E\xA2\xFF\
+    a174\xFE\xE2\x9E\xA4\xFF\
+    a175\xFE\xE2\x9E\xA5\xFF\
+    a176\xFE\xE2\x9E\xA6\xFF\
+    a177\xFE\xE2\x9E\xA7\xFF\
+    a178\xFE\xE2\x9E\xA8\xFF\
+    a179\xFE\xE2\x9E\xA9\xFF\
+    a18\xFE\xE2\x9C\x92\xFF\
+    a180\xFE\xE2\x9E\xAB\xFF\
+    a181\xFE\xE2\x9E\xAD\xFF\
+    a182\xFE\xE2\x9E\xAF\xFF\
+    a183\xFE\xE2\x9E\xB2\xFF\
+    a184\xFE\xE2\x9E\xB3\xFF\
+    a185\xFE\xE2\x9E\xB5\xFF\
+    a186\xFE\xE2\x9E\xB8\xFF\
+    a187\xFE\xE2\x9E\xBA\xFF\
+    a188\xFE\xE2\x9E\xBB\xFF\
+    a189\xFE\xE2\x9E\xBC\xFF\
+    a19\xFE\xE2\x9C\x93\xFF\
+    a190\xFE\xE2\x9E\xBD\xFF\
+    a191\xFE\xE2\x9E\xBE\xFF\
+    a192\xFE\xE2\x9E\x9A\xFF\
+    a193\xFE\xE2\x9E\xAA\xFF\
+    a194\xFE\xE2\x9E\xB6\xFF\
+    a195\xFE\xE2\x9E\xB9\xFF\
+    a196\xFE\xE2\x9E\x98\xFF\
+    a197\xFE\xE2\x9E\xB4\xFF\
+    a198\xFE\xE2\x9E\xB7\xFF\
+    a199\xFE\xE2\x9E\xAC\xFF\
+    a2\xFE\xE2\x9C\x82\xFF\
+    a20\xFE\xE2\x9C\x94\xFF\
+    a200\xFE\xE2\x9E\xAE\xFF\
+    a201\xFE\xE2\x9E\xB1\xFF\
+    a202\xFE\xE2\x9C\x83\xFF\
+    a203\xFE\xE2\x9D\x90\xFF\
+    a204\xFE\xE2\x9D\x92\xFF\
+    a205\xFE\xE2\x9D\xAE\xFF\
+    a206\xFE\xE2\x9D\xB0\xFF\
+    a21\xFE\xE2\x9C\x95\xFF\
+    a22\xFE\xE2\x9C\x96\xFF\
+    a23\xFE\xE2\x9C\x97\xFF\
+    a24\xFE\xE2\x9C\x98\xFF\
+    a25\xFE\xE2\x9C\x99\xFF\
+    a26\xFE\xE2\x9C\x9A\xFF\
+    a27\xFE\xE2\x9C\x9B\xFF\
+    a28\xFE\xE2\x9C\x9C\xFF\
+    a29\xFE\xE2\x9C\xA2\xFF\
+    a3\xFE\xE2\x9C\x84\xFF\
+    a30\xFE\xE2\x9C\xA3\xFF\
+    a31\xFE\xE2\x9C\xA4\xFF\
+    a32\xFE\xE2\x9C\xA5\xFF\
+    a33\xFE\xE2\x9C\xA6\xFF\
+    a34\xFE\xE2\x9C\xA7\xFF\
+    a35\xFE\xE2\x98\x85\xFF\
+    a36\xFE\xE2\x9C\xA9\xFF\
+    a37\xFE\xE2\x9C\xAA\xFF\
+    a38\xFE\xE2\x9C\xAB\xFF\
+    a39\xFE\xE2\x9C\xAC\xFF\
+    a4\xFE\xE2\x98\x8E\xFF\
+    a40\xFE\xE2\x9C\xAD\xFF\
+    a41\xFE\xE2\x9C\xAE\xFF\
+    a42\xFE\xE2\x9C\xAF\xFF\
+    a43\xFE\xE2\x9C\xB0\xFF\
+    a44\xFE\xE2\x9C\xB1\xFF\
+    a45\xFE\xE2\x9C\xB2\xFF\
+    a46\xFE\xE2\x9C\xB3\xFF\
+    a47\xFE\xE2\x9C\xB4\xFF\
+    a48\xFE\xE2\x9C\xB5\xFF\
+    a49\xFE\xE2\x9C\xB6\xFF\
+    a5\xFE\xE2\x9C\x86\xFF\
+    a50\xFE\xE2\x9C\xB7\xFF\
+    a51\xFE\xE2\x9C\xB8\xFF\
+    a52\xFE\xE2\x9C\xB9\xFF\
+    a53\xFE\xE2\x9C\xBA\xFF\
+    a54\xFE\xE2\x9C\xBB\xFF\
+    a55\xFE\xE2\x9C\xBC\xFF\
+    a56\xFE\xE2\x9C\xBD\xFF\
+    a57\xFE\xE2\x9C\xBE\xFF\
+    a58\xFE\xE2\x9C\xBF\xFF\
+    a59\xFE\xE2\x9D\x80\xFF\
+    a6\xFE\xE2\x9C\x9D\xFF\
+    a60\xFE\xE2\x9D\x81\xFF\
+    a61\xFE\xE2\x9D\x82\xFF\
+    a62\xFE\xE2\x9D\x83\xFF\
+    a63\xFE\xE2\x9D\x84\xFF\
+    a64\xFE\xE2\x9D\x85\xFF\
+    a65\xFE\xE2\x9D\x86\xFF\
+    a66\xFE\xE2\x9D\x87\xFF\
+    a67\xFE\xE2\x9D\x88\xFF\
+    a68\xFE\xE2\x9D\x89\xFF\
+    a69\xFE\xE2\x9D\x8A\xFF\
+    a7\xFE\xE2\x9C\x9E\xFF\
+    a70\xFE\xE2\x9D\x8B\xFF\
+    a71\xFE\xE2\x97\x8F\xFF\
+    a72\xFE\xE2\x9D\x8D\xFF\
+    a73\xFE\xE2\x96\xA0\xFF\
+    a74\xFE\xE2\x9D\x8F\xFF\
+    a75\xFE\xE2\x9D\x91\xFF\
+    a76\xFE\xE2\x96\xB2\xFF\
+    a77\xFE\xE2\x96\xBC\xFF\
+    a78\xFE\xE2\x97\x86\xFF\
+    a79\xFE\xE2\x9D\x96\xFF\
+    a8\xFE\xE2\x9C\x9F\xFF\
+    a81\xFE\xE2\x97\x97\xFF\
+    a82\xFE\xE2\x9D\x98\xFF\
+    a83\xFE\xE2\x9D\x99\xFF\
+    a84\xFE\xE2\x9D\x9A\xFF\
+    a85\xFE\xE2\x9D\xAF\xFF\
+    a86\xFE\xE2\x9D\xB1\xFF\
+    a87\xFE\xE2\x9D\xB2\xFF\
+    a88\xFE\xE2\x9D\xB3\xFF\
+    a89\xFE\xE2\x9D\xA8\xFF\
+    a9\xFE\xE2\x9C\xA0\xFF\
+    a90\xFE\xE2\x9D\xA9\xFF\
+    a91\xFE\xE2\x9D\xAC\xFF\
+    a92\xFE\xE2\x9D\xAD\xFF\
+    a93\xFE\xE2\x9D\xAA\xFF\
+    a94\xFE\xE2\x9D\xAB\xFF\
+    a95\xFE\xE2\x9D\xB4\xFF\
+    a96\xFE\xE2\x9D\xB5\xFF\
+    a97\xFE\xE2\x9D\x9B\xFF\
+    a98\xFE\xE2\x9D\x9C\xFF\
+    a99\xFE\xE2\x9D\x9D\xFF";

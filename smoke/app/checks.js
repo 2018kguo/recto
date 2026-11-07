@@ -1,6 +1,6 @@
 // The page's own thread: no synchronous reads here, so assets are fetched up front, and the engine
 // works. A ranged read still has to refuse. And the same in a service worker.
-import { createPdfEngine, openPdf } from "@2018kguo/recto";
+import { createPdfEngine, createPdfPool, openPdf } from "@2018kguo/recto";
 
 const ink = ({ rgba }) => {
   let dark = 0;
@@ -16,6 +16,45 @@ try {
   mainThread.text = doc.text(0).text;
   mainThread.ink = ink(doc.render(0, { width: 1024 }));
   doc.close();
+  // Threads from a page, without a word of setup: the bundler has to find their file and what it loads.
+  const pool = await createPdfPool({ threads: 2 });
+  const pooled = await pool.open(report);
+  const [poolText, poolBitmap] = await Promise.all([pooled.text(0), pooled.render(0, { width: 1024 })]);
+  mainThread.poolText = poolText.text;
+  mainThread.poolInk = ink(poolBitmap);
+  // None of these may wait for ever, and a time limit here would only say so later: the page's limit says it.
+  mainThread.poolSignal = await pooled
+    .render(0, { width: 64, signal: new AbortController().signal })
+    .catch((error) => error.name);
+  await pooled.render(0, { width: () => 64 }).catch(() => {});
+  mainThread.poolAfterBadArgument = (await pooled.text(0)).count > 0 ? "fine" : "no text";
+  await pooled.close();
+  pool.close();
+  const failing = async (assetBase) => {
+    const broken = await createPdfPool({ threads: 2, assetBase });
+    const code = await broken.open(report).then(
+      () => "opened",
+      (error) => error.code
+    );
+    broken.close();
+    return code;
+  };
+  const pdfsBase = new URL(new URLSearchParams(location.search).get("pdfs"), location.href);
+  await fetch(new URL("/flaky-set/recto.wasm/gone", pdfsBase));
+  mainThread.poolNoWasm = await failing(new URL("/flaky/", pdfsBase).href);
+  await fetch(new URL("/flaky-set/none/none", pdfsBase));
+  mainThread.poolBadBase = await failing("/nothing-here/");
+  // The package from another origin, as from a CDN.
+  const cdn = await import(/* @vite-ignore */ new URL("/pkg/dist/index.js", pdfsBase).href);
+  const cdnPool = await cdn.createPdfPool({ threads: 2 });
+  const cdnDocs = [await cdnPool.open(report), await cdnPool.open(report), await cdnPool.open(report)];
+  mainThread.cdnText = (await cdnDocs[0].text(0)).text;
+  mainThread.cdnInk = ink(await cdnDocs[1].render(0, { width: 1024 }));
+  mainThread.cdnThirdOpen = (await cdnDocs[2].text(0)).count > 0 ? 1 : 0;
+  cdnPool.close();
+  const rareDoc = await openPdf(await (await fetch("/jbig2.pdf")).arrayBuffer());
+  mainThread.rareInk = rareDoc.render(0, { width: 64 }).rgba.some((v) => v < 128);
+  rareDoc.close();
   const engine = await createPdfEngine();
   mainThread.ranged = await engine.openRanged("/report.pdf").then(
     () => "opened",

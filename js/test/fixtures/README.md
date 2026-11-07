@@ -13,3 +13,4 @@ No file here is a real document; each has known text.
 | `encrypted-objstm-shifted.pdf` | 3 pages of `Encrypted page N`, encrypted, offsets shifted to force a repair | MuPDF |
 | `encrypted-r6-no-trailer.pdf`, `encrypted-r6-password-no-trailer.pdf` | Revision 6, trailer and xref cut off, the second with the password `secret` | qpdf, then cut by hand |
 | `encrypted-r4-no-trailer.pdf` | Revision 4, trailer and xref cut off, so its key can't be derived | qpdf, then cut by hand |
+| `half-red-half-blue.jp2` | 16 x 16, the left half red and the right half blue | Drawn for the tests, then `sips -s format jp2` |

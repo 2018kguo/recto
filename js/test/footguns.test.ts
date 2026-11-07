@@ -16,7 +16,7 @@ import { startRangeServer } from "./range-server.ts";
 import { syntheticPdf } from "./synthetic-pdf.ts";
 import { PINS } from "../wasm/pins.mjs";
 
-const ASSETS = ["recto.wasm", "recto-text.wasm", "fonts.bin", "cjk-fallback.ttf", "cmaps.deflate"] as const;
+const ASSETS = Object.keys(PINS);
 const packaged = (name: string) => new URL(`../wasm/${name}`, import.meta.url);
 
 /** A copy of the package's assets, to break. */
@@ -55,18 +55,18 @@ test("the pins are the shipped files' hashes", () => {
 
 test("a missing or wrong wasm fails the engine's creation; the refusal is not cached", async () => {
   const dir = assetDir();
-  rmSync(join(dir, "recto-text.wasm"));
+  rmSync(join(dir, "recto.wasm"));
   await assert.rejects(createPdfEngine({ assetBase: dir, preloadAssets: [] }), (error: PdfError) => {
     hasCode("missing-asset")(error);
-    assert.match(error.message, /recto-text\.wasm/u);
+    assert.match(error.message, /recto\.wasm/u);
     assert.match(error.message, /assetBase/u);
     return true;
   });
-  const wrong = readFileSync(packaged("recto-text.wasm"));
+  const wrong = readFileSync(packaged("recto.wasm"));
   wrong[wrong.length - 1] = (wrong.at(-1) ?? 0) ^ 1;
-  writeFileSync(join(dir, "recto-text.wasm"), wrong);
+  writeFileSync(join(dir, "recto.wasm"), wrong);
   await assert.rejects(createPdfEngine({ assetBase: dir, preloadAssets: [] }), hasCode("missing-asset"));
-  copyFileSync(packaged("recto-text.wasm"), join(dir, "recto-text.wasm"));
+  copyFileSync(packaged("recto.wasm"), join(dir, "recto.wasm"));
   const engine = await createPdfEngine({ assetBase: pathToFileURL(dir), preloadAssets: [] });
   (await engine.open(pdf())).close();
 });
@@ -76,21 +76,21 @@ for (const [label, damage] of [
   ["truncated", (file: string) => writeFileSync(file, readFileSync(file).subarray(0, 100))],
   ["HTML from a server's fallback", (file: string) => writeFileSync(file, "<!doctype html>")],
 ] as const) {
-  test(`a font bundle that is ${label} throws at the read that needs it, never blank text`, async () => {
+  test(`a font file that is ${label} throws at the read that needs it, never blank text`, async () => {
     const dir = assetDir();
-    damage(join(dir, "fonts.bin"));
+    damage(join(dir, "FoxitSans.pfb"));
     const engine = await createPdfEngine({ assetBase: dir });
     const doc = await engine.open(pdf());
     // Text has what it needs from the wasm's own tables.
     assert.ok(doc.text(0).text.length > 100);
     assert.throws(() => doc.render(0, { width: 64 }), (error: PdfError) => {
       hasCode("missing-asset")(error);
-      assert.match(error.message, /fonts\.bin/u);
+      assert.match(error.message, /FoxitSans\.pfb/u);
       return true;
     });
     doc.close();
     // Repaired, the next open reads on a fresh instance.
-    copyFileSync(packaged("fonts.bin"), join(dir, "fonts.bin"));
+    copyFileSync(packaged("FoxitSans.pfb"), join(dir, "FoxitSans.pfb"));
     await using after = await engine.open(pdf());
     assert.ok(after.render(0, { width: 100 }).rgba.some((v) => v !== 255));
   });
@@ -116,12 +116,12 @@ test("somewhere without synchronous reads, assets are fetched up front and the e
   // @ts-expect-error
   globalThis.document = {};
   try {
-    const engine = await createPdfEngine({ assetBase: pathToFileURL(`${assetDir()}/`), preloadAssets: ["recto.wasm", "fonts.bin"] });
+    const engine = await createPdfEngine({ assetBase: pathToFileURL(`${assetDir()}/`), preloadAssets: ["recto.wasm", "FoxitSans.pfb"] });
     using doc = await engine.open(pdf());
     assert.ok(doc.text(0).count > 0);
     assert.ok(doc.render(0, { width: 100 }).rgba.some((v) => v !== 255), "the page has ink, so the font was there");
-    assert.ok(asked.includes("fonts.bin") && !asked.includes("cjk-fallback.ttf"), `fetched ${asked}`);
-    assert.ok(!asked.includes("recto-text.wasm"), "with the full engine fetched, the text one isn't too");
+    assert.ok(asked.includes("FoxitSans.pfb") && !asked.includes("FoxitSerif.pfb") && !asked.includes("cjk-fallback.ttf"), `fetched ${asked}`);
+    assert.ok(asked.includes("recto-render.wasm") && asked.includes("recto-rare.wasm"), "nothing can be read later, so every part now");
 
     const textOnly = await createPdfEngine({ assetBase: pathToFileURL(`${assetDir()}/`), preloadAssets: [] });
     using light = await textOnly.open(pdf());

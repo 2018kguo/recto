@@ -1,0 +1,1009 @@
+<&[u8] as core::convert::AsRef<[u8]>>::as_ref
+<&read_fonts::model::font::tables::Tables as read_fonts::table_provider::TableProvider>::head
+<&read_fonts::model::font::tables::Tables as read_fonts::table_provider::TableProvider>::hhea
+<&read_fonts::model::font::tables::Tables as read_fonts::table_provider::TableProvider>::hhea_extended
+<&read_fonts::model::font::tables::Tables as read_fonts::table_provider::TableProvider>::maxp
+<&read_fonts::model::font::tables::Tables as read_fonts::table_provider::TableProvider>::maxp_extended
+<&read_fonts::model::font::tables::Tables as read_fonts::table_provider::TableProvider>::os2
+<&read_fonts::model::font::tables::Tables as read_fonts::table_provider::TableProvider>::post
+<&read_fonts::model::font::tables::Tables as read_fonts::table_provider::TableProvider>::vhea
+<&read_fonts::model::font::tables::Tables as read_fonts::table_provider::TableProvider>::vhea_extended
+<&str as core::str::pattern::Pattern>::is_contained_in
+<(f32, f32) as hayro_syntax::reader::Readable>::read
+<(u32, hayro_syntax::object::array::Array) as hayro_syntax::reader::Readable>::read
+<(u32, u32) as hayro_syntax::reader::Readable>::read
+<(u32, u32, f32) as hayro_syntax::reader::Readable>::read
+<<self_cell::unsafe_self_cell::OwnerAndCellDropGuard<_, _> as core::ops::drop::Drop>::drop::DeallocGuard as core::ops::drop::Drop>::drop
+<[_]>::reverse::revswap::<recto::text::Char>
+<[bool; 2usize] as hayro_syntax::reader::Readable>::read
+<[f32; 2usize] as hayro_syntax::reader::Readable>::read
+<[f32; 4usize] as hayro_syntax::reader::Readable>::read
+<[f64; 6usize] as hayro_syntax::reader::Readable>::read
+<[u8; 3usize] as core::convert::TryFrom<hayro_syntax::object::array::Array>>::try_from
+<[u8]>::repeat
+<alloc::raw_vec::RawVec<(hayro_font::OutlineGlyph, u32)>>::grow_one
+<alloc::raw_vec::RawVec<(hayro_interpret::interpret::state::CompositingState, u16)>>::grow_one
+<alloc::raw_vec::RawVec<(hayro_interpret::interpret::state::PaintState, u16)>>::grow_one
+<alloc::raw_vec::RawVec<(hayro_interpret::interpret::state::TextState, u16)>>::grow_one
+<alloc::raw_vec::RawVec<(hayro_interpret::types::StrokeProps, u16)>>::grow_one
+<alloc::raw_vec::RawVec<(hayro_syntax::object::dict::Dict, u32)>>::grow_one
+<alloc::raw_vec::RawVec<(kurbo::affine::Affine, u16)>>::grow_one
+<alloc::raw_vec::RawVec<alloc::string::String>>::grow_one
+<alloc::raw_vec::RawVec<alloc::vec::Vec<font_types::fixed::Fixed>>>::grow_one
+<alloc::raw_vec::RawVec<bool>>::grow_one
+<alloc::raw_vec::RawVec<core::ops::range::Range<usize>>>::grow_one
+<alloc::raw_vec::RawVec<core::option::Option<alloc::vec::Vec<u8>>>>::grow_one
+<alloc::raw_vec::RawVec<f32>>::grow_one
+<alloc::raw_vec::RawVec<hayro_cmap::BfRange>>::grow_one
+<alloc::raw_vec::RawVec<hayro_cmap::CodespaceRange>>::grow_one
+<alloc::raw_vec::RawVec<hayro_font::codes::CodeInfo>>::grow_one
+<alloc::raw_vec::RawVec<hayro_font::true_type::Width>>::grow_one
+<alloc::raw_vec::RawVec<hayro_interpret::font::PositionedGlyph>>::grow_one
+<alloc::raw_vec::RawVec<hayro_interpret::function::type4::PostScriptOp>>::grow_one
+<alloc::raw_vec::RawVec<hayro_interpret::interpret::stack::Frame>>::grow_one
+<alloc::raw_vec::RawVec<hayro_interpret::interpret::state::ClipType>>::grow_one
+<alloc::raw_vec::RawVec<hayro_syntax::object::Object>>::grow_one
+<alloc::raw_vec::RawVec<hayro_syntax::object::dict::Dict>>::grow_one
+<alloc::raw_vec::RawVec<hayro_syntax::page::WalkFrame>>::grow_one
+<alloc::raw_vec::RawVec<kurbo::affine::Affine>>::grow_one
+<alloc::raw_vec::RawVec<kurbo::bezpath::PathEl>>::grow_one
+<alloc::raw_vec::RawVec<kurbo::rect::Rect>>::grow_one
+<alloc::raw_vec::RawVec<moxcms::matrix::Matrix3f>>::grow_one
+<alloc::raw_vec::RawVec<recto::labels::Range>>::grow_one
+<alloc::raw_vec::RawVec<recto::text::Font>>::grow_one
+<alloc::raw_vec::RawVec<recto::text::Glyph>>::grow_one
+<alloc::raw_vec::RawVec<recto::text::Run>>::grow_one
+<alloc::raw_vec::RawVec<recto::text::Word>>::grow_one
+<alloc::raw_vec::RawVec<recto::wasm::Document>>::grow_one
+<alloc::raw_vec::RawVec<u32>>::grow_one
+<alloc::raw_vec::RawVec<u8>>::grow_one
+<alloc::raw_vec::RawVecInner<_>>::reserve::do_reserve_and_handle::<alloc::alloc::Global>
+<alloc::raw_vec::RawVecInner>::finish_grow
+<alloc::raw_vec::RawVecInner>::grow_amortized
+<alloc::raw_vec::RawVecInner>::try_allocate_in
+<alloc::raw_vec::RawVecInner>::try_reserve_exact
+<alloc::rc::Rc<core::cell::Cell<bool>>>::drop_slow
+<alloc::rc::Rc<core::cell::RefCell<std::collections::hash::map::HashMap<(u128, u32), core::option::Option<alloc::rc::Rc<kurbo::bezpath::BezPath>>, rustc_hash::FxBuildHasher>>>>::drop_slow
+<alloc::rc::Rc<core::cell::RefCell<std::collections::hash::map::HashMap<(u128, u32), core::option::Option<alloc::rc::Rc<skrifa::scaler::ScalerFont>>, rustc_hash::FxBuildHasher>>>>::drop_slow
+<alloc::rc::Rc<core::cell::RefCell<std::collections::hash::map::HashMap<hayro::glyph_cache::GlyphKey, core::option::Option<alloc::sync::Arc<hayro::glyph_cache::CachedGlyph>>, rustc_hash::FxBuildHasher>>>>::drop_slow
+<alloc::rc::Rc<hayro_font::FontCacheInner>>::drop_slow
+<alloc::rc::Rc<hayro_font::cid::Type0Font>>::drop_slow
+<alloc::rc::Rc<hayro_font::codes::CodeTable>>::drop_slow
+<alloc::rc::Rc<hayro_font::true_type::TrueTypeFont>>::drop_slow
+<alloc::rc::Rc<hayro_font::type1::Type1Font>>::drop_slow
+<alloc::rc::Rc<hayro_interpret::x_object::soft_mask::Repr>>::drop_slow
+<alloc::rc::Rc<recto::Document>>::drop_slow
+<alloc::string::String as core::clone::Clone>::clone
+<alloc::string::String as core::fmt::Display>::fmt
+<alloc::string::String as core::fmt::Write>::write_str
+<alloc::string::String as wasm_bindgen::convert::traits::VectorIntoWasmAbi>::vector_into_abi
+<alloc::string::String>::from_utf16
+<alloc::string::String>::from_utf8_lossy
+<alloc::sync::Arc<alloc::vec::Vec<usize>>>::drop_slow
+<alloc::sync::Arc<dyn core::convert::AsRef<[u8]> + core::marker::Send + core::marker::Sync>>::drop_slow
+<alloc::sync::Arc<dyn for<'a> core::ops::function::Fn<(&'a hayro_font::FontQuery,), Output = core::option::Option<(alloc::sync::Arc<dyn core::convert::AsRef<[u8]> + core::marker::Send + core::marker::Sync>, u32)>> + core::marker::Send + core::marker::Sync>>::drop_slow
+<alloc::sync::Arc<dyn for<'a> core::ops::function::Fn<(hayro_cmap::CMapName<'a>,), Output = core::option::Option<&[u8]>> + core::marker::Send + core::marker::Sync>>::drop_slow
+<alloc::sync::Arc<hayro_font::program::Inner>>::drop_slow
+<alloc::sync::Arc<hayro_interpret::color::ColorSpaceType>>::drop_slow
+<alloc::sync::Arc<hayro_interpret::color::icc::ICCColorRepr>>::drop_slow
+<alloc::sync::Arc<hayro_interpret::context::PageBudget>>::drop_slow
+<alloc::sync::Arc<hayro_interpret::function::Repr>>::drop_slow
+<alloc::sync::Arc<hayro_interpret::shading::Shading>>::drop_slow
+<alloc::sync::Arc<hayro_interpret::shading::ShadingType>>::drop_slow
+<alloc::sync::Arc<hayro_syntax::crypto::Decryptor>>::drop_slow
+<alloc::sync::Arc<hayro_syntax::data::Data>>::drop_slow
+<alloc::sync::Arc<hayro_syntax::metadata::Metadata>>::drop_slow
+<alloc::sync::Arc<hayro_syntax::object::dict::Repr>>::drop_slow
+<alloc::sync::Arc<hayro_syntax::reader::ReaderContextData>>::drop_slow
+<alloc::sync::Arc<hayro_syntax::reader::ReaderContextData>>::make_mut
+<alloc::sync::Arc<hayro_syntax::xref::SomeRepr>>::drop_slow
+<alloc::sync::Arc<hayro_syntax::xref::SomeRepr>>::make_mut
+<alloc::sync::Arc<hayro_syntax::xref::XRef>>::drop_slow
+<alloc::sync::Arc<read_fonts::model::font::SharedFontRepr>>::drop_slow
+<alloc::sync::Arc<read_fonts::model::font::blob::Blob>>::drop_slow
+<alloc::sync::Arc<read_fonts::model::font::tables::Tables>>::drop_slow
+<alloc::sync::Arc<std::sync::once_lock::OnceLock<[u8; 256usize]>>>::drop_slow
+<alloc::sync::Arc<std::sync::once_lock::OnceLock<core::option::Option<alloc::boxed::Box<[[u8; 3usize]; 256usize]>>>>>::drop_slow
+<alloc::sync::Arc<std::sync::poison::mutex::Mutex<std::collections::hash::map::HashMap<u128, core::option::Option<alloc::boxed::Box<dyn core::any::Any + core::marker::Send + core::marker::Sync>>, rustc_hash::FxBuildHasher>>>>::drop_slow
+<alloc::sync::Arc<std::sync::poison::rwlock::RwLock<hayro_syntax::xref::MapRepr>>>::drop_slow
+<alloc::vec::Vec<(f32, f32)> as hayro_syntax::reader::Readable>::read
+<alloc::vec::Vec<core::option::Option<read_fonts::model::charmap::EncodingTable>> as alloc::vec::spec_from_iter::SpecFromIter<core::option::Option<read_fonts::model::charmap::EncodingTable>, core::iter::adapters::flatten::FlatMap<core::option::IntoIter<read_fonts::tables::cmap::Cmap>, core::iter::adapters::map::Map<core::iter::adapters::enumerate::Enumerate<core::slice::iter::Iter<read_fonts::tables::cmap::EncodingRecord>>, <read_fonts::model::charmap::EncodingTables>::read<&read_fonts::model::font::tables::Tables>::{closure#0}::{closure#0}::{closure#0}>, <read_fonts::model::charmap::EncodingTables>::read<&read_fonts::model::font::tables::Tables>::{closure#0}::{closure#0}>>>::from_iter
+<alloc::vec::Vec<f32> as alloc::vec::spec_extend::SpecExtend<f32, alloc::vec::into_iter::IntoIter<f32>>>::spec_extend
+<alloc::vec::Vec<f32> as alloc::vec::spec_from_iter_nested::SpecFromIterNested<f32, hayro_syntax::object::array::ResolvedArrayIter<f32>>>::from_iter
+<alloc::vec::Vec<f32> as hayro_syntax::reader::Readable>::read
+<alloc::vec::Vec<u16>>::resize
+<alloc::vec::Vec<u32> as alloc::vec::spec_from_iter_nested::SpecFromIterNested<u32, hayro_syntax::object::array::ResolvedArrayIter<u32>>>::from_iter
+<alloc::vec::Vec<u8> as core::convert::AsRef<[u8]>>::as_ref
+<bool as hayro_syntax::reader::Readable>::read
+<bool as hayro_syntax::reader::Skippable>::skip
+<core::ffi::c_str::CStr>::to_str
+<core::fmt::Formatter>::pad
+<core::fmt::Formatter>::write_str
+<core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<core::ops::range::Range<usize>, <hayro_interpret::function::type0::Type0>::new::{closure#2}>, core::option::Option<core::convert::Infallible>> as core::iter::traits::iterator::Iterator>::next
+<core::iter::adapters::chain::Chain<core::iter::adapters::chain::Chain<core::iter::adapters::chain::Chain<core::iter::adapters::flatten::FlatMap<core::option::IntoIter<&read_fonts::model::charmap::EncodingTables>, core::iter::adapters::map::Map<core::iter::adapters::chain::Chain<core::iter::adapters::flatten::Flatten<core::slice::iter::Iter<core::option::Option<read_fonts::model::charmap::EncodingTable>>>, core::iter::adapters::filter::Filter<core::iter::adapters::flatten::Flatten<core::slice::iter::Iter<core::option::Option<read_fonts::model::charmap::EncodingTable>>>, <read_fonts::model::charmap::EncodingTables>::iter::{closure#0}>>, <read_fonts::model::charmap::EncodingTables>::iter::{closure#1}>, <read_fonts::model::charmap::EncodingTables>::iter>, core::option::IntoIter<read_fonts::model::charmap::Encoding>>, core::option::IntoIter<read_fonts::model::charmap::Encoding>>, core::option::IntoIter<read_fonts::model::charmap::Encoding>> as core::iter::traits::iterator::Iterator>::size_hint
+<core::iter::adapters::chain::Chain<core::iter::adapters::flatten::FlatMap<core::option::IntoIter<&read_fonts::model::charmap::EncodingTables>, core::iter::adapters::map::Map<core::iter::adapters::chain::Chain<core::iter::adapters::flatten::Flatten<core::slice::iter::Iter<core::option::Option<read_fonts::model::charmap::EncodingTable>>>, core::iter::adapters::filter::Filter<core::iter::adapters::flatten::Flatten<core::slice::iter::Iter<core::option::Option<read_fonts::model::charmap::EncodingTable>>>, <read_fonts::model::charmap::EncodingTables>::iter::{closure#0}>>, <read_fonts::model::charmap::EncodingTables>::iter::{closure#1}>, <read_fonts::model::charmap::EncodingTables>::iter>, core::option::IntoIter<read_fonts::model::charmap::Encoding>> as core::iter::traits::iterator::Iterator>::size_hint
+<core::iter::adapters::filter::Filter<core::iter::adapters::map::Map<core::slice::iter::Iter<alloc::string::String>, recto::annots::appearance::{closure#1}>, recto::annots::appearance::{closure#2}> as core::iter::traits::iterator::Iterator>::next
+<core::iter::adapters::filter_map::FilterMap<core::iter::adapters::chain::Chain<core::iter::adapters::chain::Chain<core::iter::adapters::chain::Chain<core::iter::adapters::chain::Chain<core::iter::adapters::flatten::FlatMap<core::option::IntoIter<&read_fonts::model::charmap::EncodingTables>, core::iter::adapters::map::Map<core::iter::adapters::chain::Chain<core::iter::adapters::flatten::Flatten<core::slice::iter::Iter<core::option::Option<read_fonts::model::charmap::EncodingTable>>>, core::iter::adapters::filter::Filter<core::iter::adapters::flatten::Flatten<core::slice::iter::Iter<core::option::Option<read_fonts::model::charmap::EncodingTable>>>, <read_fonts::model::charmap::EncodingTables>::iter::{closure#0}>>, <read_fonts::model::charmap::EncodingTables>::iter::{closure#1}>, <read_fonts::model::charmap::EncodingTables>::iter>, core::option::IntoIter<read_fonts::model::charmap::Encoding>>, core::option::IntoIter<read_fonts::model::charmap::Encoding>>, core::option::IntoIter<read_fonts::model::charmap::Encoding>>, core::option::IntoIter<read_fonts::model::charmap::Encoding>>, <hayro_font::program::FontProgram>::cmap_subtables::{closure#0}> as core::iter::traits::iterator::Iterator>::next
+<core::iter::adapters::filter_map::FilterMap<hayro_syntax::object::array::ArrayIter, <hayro_syntax::page::Page>::annotations::{closure#0}> as core::iter::traits::iterator::Iterator>::next
+<core::iter::adapters::flatten::FlattenCompat<_, _> as core::iter::traits::iterator::Iterator>::try_fold::flatten::<core::iter::adapters::map::Map<core::iter::adapters::chain::Chain<core::iter::adapters::flatten::Flatten<core::slice::iter::Iter<core::option::Option<read_fonts::model::charmap::EncodingTable>>>, core::iter::adapters::filter::Filter<core::iter::adapters::flatten::Flatten<core::slice::iter::Iter<core::option::Option<read_fonts::model::charmap::EncodingTable>>>, <read_fonts::model::charmap::EncodingTables>::iter::{closure#0}>>, <read_fonts::model::charmap::EncodingTables>::iter::{closure#1}>, (), core::ops::control_flow::ControlFlow<hayro_font::program::CmapSubtable>, &mut &mut &mut &mut core::iter::traits::iterator::Iterator::find_map::check<read_fonts::model::charmap::Encoding, hayro_font::program::CmapSubtable, &mut <hayro_font::program::FontProgram>::cmap_subtables::{closure#0}>::{closure#0}>::{closure#0}
+<core::iter::adapters::flatten::FlattenCompat<core::iter::adapters::map::Map<core::option::IntoIter<&std::collections::hash::map::HashMap<hayro_syntax::object::name::Name, usize, rustc_hash::FxBuildHasher>>, <hayro_syntax::object::dict::Dict>::keys::{closure#0}>, core::iter::adapters::cloned::Cloned<std::collections::hash::map::Keys<hayro_syntax::object::name::Name, usize>>> as core::iter::traits::iterator::Iterator>::next
+<core::iter::adapters::map::Map<hayro_syntax::object::array::ResolvedArrayIter<f32>, hayro_interpret::interpret::run_ops<recto::device::PageDevice>::{closure#2}> as core::iter::traits::iterator::Iterator>::next
+<core::iter::adapters::take::Take<core::iter::adapters::enumerate::Enumerate<core::slice::iter::Iter<u8>>> as core::iter::traits::iterator::Iterator>::nth
+<core::str::lossy::Utf8Chunks as core::iter::traits::iterator::Iterator>::next
+<core::str::pattern::CharSearcher as core::str::pattern::Searcher>::next_match
+<core::str::pattern::StrSearcher>::new
+<core::str::pattern::TwoWaySearcher>::next::<core::str::pattern::MatchOnly>
+<dlmalloc::dlmalloc::Dlmalloc<dlmalloc::sys::System>>::dispose_chunk
+<dlmalloc::dlmalloc::Dlmalloc<dlmalloc::sys::System>>::free
+<dlmalloc::dlmalloc::Dlmalloc<dlmalloc::sys::System>>::insert_large_chunk
+<dlmalloc::dlmalloc::Dlmalloc<dlmalloc::sys::System>>::malloc
+<dlmalloc::dlmalloc::Dlmalloc<dlmalloc::sys::System>>::memalign
+<dlmalloc::dlmalloc::Dlmalloc<dlmalloc::sys::System>>::unlink_chunk
+<dlmalloc::sys::System as dlmalloc::Allocator>::alloc
+<f32 as hayro_syntax::reader::Readable>::read
+<f64 as hayro_syntax::reader::Readable>::read
+<flate2::deflate::read::DeflateDecoder<&[u8]> as std::io::Read>::read
+<flate2::mem::Decompress as flate2::zio::Ops>::run
+<flate2::mem::Decompress>::new
+<hashbrown::map::HashMap<&[u8], core::option::Option<hayro_interpret::interpret::state::TextStateFont>, rustc_hash::FxBuildHasher>>::get::<[u8]>
+<hashbrown::map::HashMap<&[u8], core::option::Option<hayro_interpret::interpret::state::TextStateFont>, rustc_hash::FxBuildHasher>>::insert
+<hashbrown::map::HashMap<alloc::vec::Vec<u8>, hayro_syntax::crypto::CryptDictionary, std::hash::random::RandomState> as core::clone::Clone>::clone
+<hashbrown::map::HashMap<alloc::vec::Vec<u8>, hayro_syntax::crypto::CryptDictionary, std::hash::random::RandomState>>::get::<[u8]>
+<hashbrown::map::HashMap<hayro_syntax::object::ObjectIdentifier, (), rustc_hash::FxBuildHasher>>::insert
+<hashbrown::map::HashMap<hayro_syntax::object::ObjectIdentifier, hayro_syntax::xref::EntryType, rustc_hash::FxBuildHasher>>::insert
+<hashbrown::map::HashMap<hayro_syntax::object::ObjectIdentifier, hayro_syntax::xref::EntryType, rustc_hash::FxBuildHasher>>::remove::<hayro_syntax::object::ObjectIdentifier>
+<hashbrown::map::HashMap<hayro_syntax::object::name::Name, usize, rustc_hash::FxBuildHasher>>::contains_key::<[u8]>
+<hashbrown::map::HashMap<u128, core::option::Option<alloc::boxed::Box<dyn core::any::Any + core::marker::Send + core::marker::Sync>>, rustc_hash::FxBuildHasher>>::insert
+<hashbrown::map::HashMap<u128, core::option::Option<alloc::boxed::Box<dyn core::any::Any + core::marker::Send + core::marker::Sync>>, rustc_hash::FxBuildHasher>>::rustc_entry
+<hashbrown::map::HashMap<u128, core::option::Option<hayro_font::program::FontProgram>, rustc_hash::FxBuildHasher>>::insert
+<hashbrown::map::HashMap<u32, u32, rustc_hash::FxBuildHasher>>::insert
+<hashbrown::raw::RawTable<(&[u8], core::option::Option<hayro_interpret::interpret::state::TextStateFont>)>>::reserve_rehash::<hashbrown::map::make_hasher<&[u8], core::option::Option<hayro_interpret::interpret::state::TextStateFont>, rustc_hash::FxBuildHasher>::{closure#0}>
+<hashbrown::raw::RawTable<(alloc::vec::Vec<u8>, hayro_syntax::crypto::CryptDictionary)>>::reserve_rehash::<hashbrown::map::make_hasher<alloc::vec::Vec<u8>, hayro_syntax::crypto::CryptDictionary, std::hash::random::RandomState>::{closure#0}>
+<hashbrown::raw::RawTable<(hayro_syntax::object::ObjectIdentifier, ())>>::reserve_rehash::<hashbrown::map::make_hasher<hayro_syntax::object::ObjectIdentifier, (), rustc_hash::FxBuildHasher>::{closure#0}>
+<hashbrown::raw::RawTable<(hayro_syntax::object::ObjectIdentifier, core::option::Option<hayro_syntax::object::dict::Dict>)>>::reserve_rehash::<hashbrown::map::make_hasher<hayro_syntax::object::ObjectIdentifier, core::option::Option<hayro_syntax::object::dict::Dict>, rustc_hash::FxBuildHasher>::{closure#0}>
+<hashbrown::raw::RawTable<(hayro_syntax::object::ObjectIdentifier, hayro_syntax::xref::EntryType)>>::reserve_rehash::<hashbrown::map::make_hasher<hayro_syntax::object::ObjectIdentifier, hayro_syntax::xref::EntryType, rustc_hash::FxBuildHasher>::{closure#0}>
+<hashbrown::raw::RawTable<(hayro_syntax::object::ObjectIdentifier, usize)>>::reserve_rehash::<hashbrown::map::make_hasher<hayro_syntax::object::ObjectIdentifier, usize, rustc_hash::FxBuildHasher>::{closure#0}>
+<hashbrown::raw::RawTable<(hayro_syntax::object::name::Name, hayro_syntax::object::dict::Dict)>>::reserve_rehash::<hashbrown::map::make_hasher<hayro_syntax::object::name::Name, hayro_syntax::object::dict::Dict, rustc_hash::FxBuildHasher>::{closure#0}>
+<hashbrown::raw::RawTable<(hayro_syntax::object::name::Name, usize)>>::reserve_rehash::<hashbrown::map::make_hasher<hayro_syntax::object::name::Name, usize, rustc_hash::FxBuildHasher>::{closure#0}>
+<hashbrown::raw::RawTable<(u128, core::option::Option<alloc::boxed::Box<dyn core::any::Any + core::marker::Send + core::marker::Sync>>)>>::reserve_rehash::<hashbrown::map::make_hasher<u128, core::option::Option<alloc::boxed::Box<dyn core::any::Any + core::marker::Send + core::marker::Sync>>, rustc_hash::FxBuildHasher>::{closure#0}>
+<hashbrown::raw::RawTable<(u128, core::option::Option<hayro_font::Font>)>>::reserve_rehash::<hashbrown::map::make_hasher<u128, core::option::Option<hayro_font::Font>, rustc_hash::FxBuildHasher>::{closure#0}>
+<hashbrown::raw::RawTable<(u128, core::option::Option<hayro_font::program::FontProgram>)>>::reserve_rehash::<hashbrown::map::make_hasher<u128, core::option::Option<hayro_font::program::FontProgram>, rustc_hash::FxBuildHasher>::{closure#0}>
+<hashbrown::raw::RawTable<(u128, u32)>>::reserve_rehash::<hashbrown::map::make_hasher<u128, u32, rustc_hash::FxBuildHasher>::{closure#0}>
+<hashbrown::raw::RawTable<(u32, f32)>>::reserve_rehash::<hashbrown::map::make_hasher<u32, f32, rustc_hash::FxBuildHasher>::{closure#0}>
+<hashbrown::raw::RawTable<(u32, u32)>>::reserve_rehash::<hashbrown::map::make_hasher<u32, u32, rustc_hash::FxBuildHasher>::{closure#0}>
+<hashbrown::raw::RawTable<(u8, alloc::string::String)>>::reserve_rehash::<hashbrown::map::make_hasher<u8, alloc::string::String, rustc_hash::FxBuildHasher>::{closure#0}>
+<hashbrown::raw::RawTableInner>::fallible_with_capacity::<alloc::alloc::Global>
+<hayro::RenderCache>::new
+<hayro_cmap::CMap>::identity
+<hayro_cmap::CMap>::identity_h
+<hayro_cmap::CMap>::lookup_bf_string
+<hayro_cmap::CMap>::lookup_bf_string_inner
+<hayro_cmap::CMap>::lookup_cid_code
+<hayro_cmap::CMapName>::from_bytes
+<hayro_cmap::CidFamily as core::clone::Clone>::clone
+<hayro_cmap::CidFamily>::from_registry_ordering
+<hayro_cmap::PartitionedRanges>::sort
+<hayro_cmap::bcmap::embedded::load_embedded as core::ops::function::Fn<(hayro_cmap::CMapName,)>>::call
+<hayro_cmap::bcmap::huffman::HuffmanTable>::build
+<hayro_cmap::bcmap::huffman::decode_tables::{closure#0} as core::ops::function::FnOnce<(&mut hayro_cmap::bcmap::reader::Reader,)>>::call_once
+<hayro_cmap::bcmap::huffman::decode_tables::{closure#1} as core::ops::function::FnOnce<(&mut hayro_cmap::bcmap::reader::Reader,)>>::call_once
+<hayro_cmap::bcmap::reader::Reader>::eat_until::<hayro_cmap::bcmap::parse<hayro_font::read_to_unicode::{closure#2}::{closure#0}>::{closure#0}>
+<hayro_font::Encoding>::map_code
+<hayro_font::FallbackFontQuery>::new
+<hayro_font::Font>::code_advance_raw
+<hayro_font::Font>::code_metrics
+<hayro_font::Font>::glyph
+<hayro_font::Font>::glyph_stretch_raw
+<hayro_font::Font>::map_code_raw
+<hayro_font::Font>::origin_displacement_raw
+<hayro_font::Font>::read_code
+<hayro_font::FontCache>::font
+<hayro_font::FontCache>::new
+<hayro_font::FontFacts>::read
+<hayro_font::HintingCache>::new
+<hayro_font::OutlineGlyph>::font_data
+<hayro_font::OutlineGlyph>::unicode_and_width
+<hayro_font::ProgramLoader>::load
+<hayro_font::ProgramLoader>::resolve
+<hayro_font::cid::Type0Font>::char_code_to_unicode
+<hayro_font::cid::Type0Font>::code_advance
+<hayro_font::cid::Type0Font>::new
+<hayro_font::program::FontProgram>::advance_width
+<hayro_font::program::FontProgram>::cmap_glyph
+<hayro_font::program::FontProgram>::new
+<hayro_font::standard_font::StandardFont>::get_width
+<hayro_font::standard_font::StandardKind>::code_to_ps_name
+<hayro_font::standard_font::StandardKind>::glyph_stretch
+<hayro_font::standard_font::StandardKind>::new_with_standard
+<hayro_font::true_type::EmbeddedKind>::code_to_name
+<hayro_font::true_type::TrueTypeFont>::char_code_to_unicode
+<hayro_font::true_type::TrueTypeFont>::new
+<hayro_font::type1::EmbeddedKind>::code_to_ps_name
+<hayro_font::type1::Type1Font>::char_code_to_unicode
+<hayro_font::type1::Type1Font>::glyph_width
+<hayro_font::type1::Type1Font>::new
+<hayro_interpret::cache::Cache>::get_or_insert_with::<hayro_interpret::color::ColorSpaceType, <hayro_interpret::color::ColorSpaceType>::new_inner::{closure#0}>
+<hayro_interpret::color::Color>::same_as
+<hayro_interpret::color::ColorSpace as core::any::Any>::type_id
+<hayro_interpret::color::ColorSpace as hayro_interpret::color::ToRgb>::convert
+<hayro_interpret::color::ColorSpace>::component_ranges
+<hayro_interpret::color::ColorSpace>::device_cmyk
+<hayro_interpret::color::ColorSpace>::device_gray
+<hayro_interpret::color::ColorSpace>::device_rgb
+<hayro_interpret::color::ColorSpace>::encode_values
+<hayro_interpret::color::ColorSpace>::indexed_hival
+<hayro_interpret::color::ColorSpace>::initial_color
+<hayro_interpret::color::ColorSpace>::new
+<hayro_interpret::color::ColorSpace>::new_from_name
+<hayro_interpret::color::ColorSpace>::to_alpha_color
+<hayro_interpret::color::ColorSpaceType as core::any::Any>::type_id
+<hayro_interpret::color::ColorSpaceType as core::clone::Clone>::clone
+<hayro_interpret::color::ColorSpaceType>::new_from_name
+<hayro_interpret::color::ColorSpaceType>::new_inner
+<hayro_interpret::color::device_cmyk::CMYK_TRANSFORM::{closure#0} as core::ops::function::FnOnce<()>>::call_once
+<hayro_interpret::color::device_cmyk::DeviceCmyk as hayro_interpret::color::ToRgb>::convert
+<hayro_interpret::color::icc::ICCProfile>::new_from_src_profile
+<hayro_interpret::color::separation::Separation>::new
+<hayro_interpret::context::Context>::begin_nested_interpretation
+<hayro_interpret::context::Context>::budget_tripped
+<hayro_interpret::context::Context>::budget_used
+<hayro_interpret::context::Context>::charge_nested
+<hayro_interpret::context::Context>::compositing_mut
+<hayro_interpret::context::Context>::ctm
+<hayro_interpret::context::Context>::draw_props
+<hayro_interpret::context::Context>::fill_paint
+<hayro_interpret::context::Context>::fill_paint_mut
+<hayro_interpret::context::Context>::get_color_space
+<hayro_interpret::context::Context>::get_paint
+<hayro_interpret::context::Context>::new
+<hayro_interpret::context::Context>::new_with
+<hayro_interpret::context::Context>::pre_concat_affine
+<hayro_interpret::context::Context>::pre_concat_transform
+<hayro_interpret::context::Context>::push_bbox
+<hayro_interpret::context::Context>::push_clip_path::<recto::device::PageDevice>
+<hayro_interpret::context::Context>::push_root_transform
+<hayro_interpret::context::Context>::resolve_font
+<hayro_interpret::context::Context>::save_state
+<hayro_interpret::context::Context>::stroke_paint_mut
+<hayro_interpret::context::Context>::stroke_props
+<hayro_interpret::context::Context>::stroke_props_mut
+<hayro_interpret::context::Context>::text_state
+<hayro_interpret::context::Context>::text_state_mut
+<hayro_interpret::context::InterpreterCache>::new
+<hayro_interpret::function::Function>::eval
+<hayro_interpret::function::Function>::new_nested
+<hayro_interpret::function::type0::Type0>::new
+<hayro_interpret::function::type2::Type2>::new
+<hayro_interpret::function::type3::Type3>::new
+<hayro_interpret::function::type4::Type4>::new
+<hayro_interpret::interpret::InterpreterSettings as core::clone::Clone>::clone
+<hayro_interpret::interpret::InterpreterSettings as core::default::Default>::default
+<hayro_interpret::interpret::lex::Lexer>::new
+<hayro_interpret::interpret::lex::Lexer>::next
+<hayro_interpret::interpret::stack::StateStack>::push_clip
+<hayro_interpret::interpret::stack::StateStack>::restore
+<hayro_interpret::interpret::stack::StateStack>::restore_target_clips
+<hayro_interpret::interpret::state::PaintState as core::clone::Clone>::clone
+<hayro_interpret::interpret::state::State>::new
+<hayro_interpret::interpret::state::TextState as core::clone::Clone>::clone
+<hayro_interpret::interpret::state::TextStateFont as core::clone::Clone>::clone
+<hayro_interpret::ocg::OcgState>::begin_marked_content
+<hayro_interpret::ocg::OcgState>::begin_ocg
+<hayro_interpret::pattern::Pattern>::new
+<hayro_interpret::shading::Shading>::new
+<hayro_interpret::types::DrawProps as core::clone::Clone>::clone
+<hayro_interpret::x_object::form::FormXObject>::draw::<recto::device::PageDevice>
+<hayro_interpret::x_object::form::FormXObject>::draw_contents::<recto::device::PageDevice>
+<hayro_interpret::x_object::form::FormXObject>::new
+<hayro_postscript::Scanner>::at_end
+<hayro_postscript::Scanner>::parse_name
+<hayro_postscript::Scanner>::parse_number
+<hayro_postscript::Scanner>::parse_string
+<hayro_postscript::Scanner>::parse_token
+<hayro_postscript::name::Name>::as_str
+<hayro_postscript::string::String>::decode
+<hayro_postscript::string::String>::decode_into
+<hayro_syntax::byte_reader::Reader as hayro_syntax::reader::ReaderExt>::read::<hayro_syntax::object::indirect::IndirectObject<hayro_syntax::object::Object>>
+<hayro_syntax::byte_reader::Reader as hayro_syntax::reader::ReaderExt>::read::<hayro_syntax::object::indirect::IndirectObject<hayro_syntax::object::stream::Stream>>
+<hayro_syntax::byte_reader::Reader as hayro_syntax::reader::ReaderExt>::skip::<hayro_syntax::object::indirect::IndirectObject<hayro_syntax::object::Object>>
+<hayro_syntax::content::Operator as hayro_syntax::reader::Readable>::read
+<hayro_syntax::content::TypedIter>::next
+<hayro_syntax::content::UntypedIter>::next
+<hayro_syntax::crypto::DecryptorData>::from_dict
+<hayro_syntax::crypto::aes::AESCipher<16usize, 11usize>>::new
+<hayro_syntax::crypto::aes::AESCipher<32usize, 15usize>>::decrypt_cbc
+<hayro_syntax::crypto::aes::AESCipher<32usize, 15usize>>::new
+<hayro_syntax::data::Data>::object_stream
+<hayro_syntax::data::PdfData as core::convert::AsRef<[u8]>>::as_ref
+<hayro_syntax::data::PdfData as core::convert::From<alloc::vec::Vec<u8>>>::from
+<hayro_syntax::filter::Filter>::from_name
+<hayro_syntax::filter::lzw_flate::PredictorParams>::from_params
+<hayro_syntax::filter::lzw_flate::flate::fallback::FlateStream>::decode
+<hayro_syntax::filter::lzw_flate::flate::fallback::FlateStream>::read_compressed_block
+<hayro_syntax::object::Object as core::clone::Clone>::clone
+<hayro_syntax::object::Object as hayro_interpret::cache::CacheKey>::cache_key
+<hayro_syntax::object::Object as hayro_syntax::reader::Readable>::read
+<hayro_syntax::object::Object as hayro_syntax::reader::Readable>::read_indirect
+<hayro_syntax::object::Object as hayro_syntax::reader::Skippable>::skip_with_depth
+<hayro_syntax::object::ObjectIdentifier as hayro_syntax::reader::Readable>::read
+<hayro_syntax::object::ObjectIdentifier as hayro_syntax::reader::Skippable>::skip
+<hayro_syntax::object::array::Array as hayro_syntax::reader::Readable>::read
+<hayro_syntax::object::array::Array as hayro_syntax::reader::Skippable>::skip_with_depth
+<hayro_syntax::object::array::FlexArrayIter>::next::<(u32, hayro_syntax::object::array::Array)>
+<hayro_syntax::object::array::FlexArrayIter>::next::<f32>
+<hayro_syntax::object::array::FlexArrayIter>::next::<f64>
+<hayro_syntax::object::array::FlexArrayIter>::next::<hayro_syntax::object::Object>
+<hayro_syntax::object::array::FlexArrayIter>::next::<hayro_syntax::object::dict::Dict>
+<hayro_syntax::object::array::FlexArrayIter>::next::<hayro_syntax::object::name::Name>
+<hayro_syntax::object::array::FlexArrayIter>::next::<hayro_syntax::object::stream::Stream>
+<hayro_syntax::object::array::FlexArrayIter>::next::<u32>
+<hayro_syntax::object::array::FlexArrayIter>::next::<u8>
+<hayro_syntax::object::array::ResolvedArrayIter<(f32, f32)> as core::iter::traits::iterator::Iterator>::next
+<hayro_syntax::object::array::ResolvedArrayIter<bool> as core::iter::traits::iterator::Iterator>::next
+<hayro_syntax::object::array::ResolvedArrayIter<f32> as core::iter::traits::iterator::Iterator>::next
+<hayro_syntax::object::date::DateTime>::from_bytes
+<hayro_syntax::object::date::DateTime>::from_bytes::{closure#0}
+<hayro_syntax::object::dict::Dict as core::convert::TryFrom<hayro_syntax::object::Object>>::try_from
+<hayro_syntax::object::dict::Dict as hayro_font::util::CacheKey>::cache_key
+<hayro_syntax::object::dict::Dict as hayro_syntax::reader::Readable>::read
+<hayro_syntax::object::dict::Dict as hayro_syntax::reader::Skippable>::skip_with_depth
+<hayro_syntax::object::dict::Dict>::contains_key::<&[u8]>
+<hayro_syntax::object::dict::Dict>::get::<[bool; 2usize], &[u8]>
+<hayro_syntax::object::dict::Dict>::get::<[f32; 4usize], &[u8]>
+<hayro_syntax::object::dict::Dict>::get::<[f64; 6usize], &[u8]>
+<hayro_syntax::object::dict::Dict>::get::<[u8; 3usize], &[u8]>
+<hayro_syntax::object::dict::Dict>::get::<alloc::vec::Vec<f32>, &[u8]>
+<hayro_syntax::object::dict::Dict>::get::<alloc::vec::Vec<u32>, &[u8]>
+<hayro_syntax::object::dict::Dict>::get::<bool, &[u8]>
+<hayro_syntax::object::dict::Dict>::get::<f32, &[u8]>
+<hayro_syntax::object::dict::Dict>::get::<f32, hayro_syntax::object::name::Name>
+<hayro_syntax::object::dict::Dict>::get::<hayro_syntax::object::Object, &[u8]>
+<hayro_syntax::object::dict::Dict>::get::<hayro_syntax::object::array::Array, &[u8]>
+<hayro_syntax::object::dict::Dict>::get::<hayro_syntax::object::dict::Dict, &[u8]>
+<hayro_syntax::object::dict::Dict>::get::<hayro_syntax::object::dict::Dict, hayro_syntax::object::name::Name>
+<hayro_syntax::object::dict::Dict>::get::<hayro_syntax::object::name::Name, &[u8]>
+<hayro_syntax::object::dict::Dict>::get::<hayro_syntax::object::number::Number, hayro_syntax::object::name::Name>
+<hayro_syntax::object::dict::Dict>::get::<hayro_syntax::object::rect::Rect, &[u8]>
+<hayro_syntax::object::dict::Dict>::get::<hayro_syntax::object::stream::Stream, &[u8]>
+<hayro_syntax::object::dict::Dict>::get::<hayro_syntax::object::string::String, &[u8]>
+<hayro_syntax::object::dict::Dict>::get::<i64, &[u8]>
+<hayro_syntax::object::dict::Dict>::get::<smallvec::SmallVec<[f32; 4usize]>, &[u8]>
+<hayro_syntax::object::dict::Dict>::get::<u16, &[u8]>
+<hayro_syntax::object::dict::Dict>::get::<u32, &[u8]>
+<hayro_syntax::object::dict::Dict>::get::<u8, &[u8]>
+<hayro_syntax::object::dict::Dict>::get::<usize, &[u8]>
+<hayro_syntax::object::dict::Dict>::get_raw::<bool, &[u8]>
+<hayro_syntax::object::dict::Dict>::get_raw::<f32, &[u8]>
+<hayro_syntax::object::dict::Dict>::get_raw::<hayro_syntax::object::Object, &[u8]>
+<hayro_syntax::object::dict::Dict>::get_raw::<hayro_syntax::object::array::Array, &[u8]>
+<hayro_syntax::object::dict::Dict>::get_raw::<hayro_syntax::object::dict::Dict, &[u8]>
+<hayro_syntax::object::dict::Dict>::get_raw::<hayro_syntax::object::name::Name, &[u8]>
+<hayro_syntax::object::dict::Dict>::get_raw::<hayro_syntax::object::number::Number, &[u8]>
+<hayro_syntax::object::dict::Dict>::get_raw::<hayro_syntax::object::rect::Rect, &[u8]>
+<hayro_syntax::object::dict::Dict>::get_raw::<hayro_syntax::object::stream::Stream, &[u8]>
+<hayro_syntax::object::dict::Dict>::get_raw::<hayro_syntax::object::string::String, &[u8]>
+<hayro_syntax::object::dict::Dict>::get_raw::<i32, &[u8]>
+<hayro_syntax::object::dict::Dict>::get_raw::<u32, &[u8]>
+<hayro_syntax::object::dict::Dict>::get_raw::<u8, &[u8]>
+<hayro_syntax::object::dict::Dict>::get_raw::<usize, &[u8]>
+<hayro_syntax::object::dict::Dict>::get_ref::<&[u8]>
+<hayro_syntax::object::indirect::IndirectObject<hayro_syntax::object::dict::Dict> as hayro_syntax::reader::Readable>::read
+<hayro_syntax::object::name::Name as core::convert::TryFrom<hayro_syntax::object::Object>>::try_from
+<hayro_syntax::object::name::Name as hayro_syntax::reader::Readable>::read
+<hayro_syntax::object::name::Name>::as_str
+<hayro_syntax::object::number::Number as hayro_syntax::reader::Readable>::read
+<hayro_syntax::object::number::Number as hayro_syntax::reader::Skippable>::skip
+<hayro_syntax::object::rect::Rect as hayro_syntax::reader::Readable>::read
+<hayro_syntax::object::ref::MaybeRef<hayro_syntax::object::Object> as hayro_syntax::reader::Readable>::read
+<hayro_syntax::object::ref::MaybeRef<hayro_syntax::object::name::Name> as hayro_syntax::reader::Readable>::read
+<hayro_syntax::object::ref::MaybeRef<hayro_syntax::object::string::String> as hayro_syntax::reader::Readable>::read
+<hayro_syntax::object::ref::MaybeRef<u32> as hayro_syntax::reader::Readable>::read
+<hayro_syntax::object::ref::MaybeRef<u8> as hayro_syntax::reader::Readable>::read
+<hayro_syntax::object::ref::ObjRef as hayro_syntax::reader::Readable>::read
+<hayro_syntax::object::ref::ObjRef as hayro_syntax::reader::Skippable>::skip
+<hayro_syntax::object::stream::Stream as hayro_font::util::CacheKey>::cache_key
+<hayro_syntax::object::stream::Stream as hayro_interpret::cache::CacheKey>::cache_key
+<hayro_syntax::object::stream::Stream as hayro_syntax::reader::Readable>::read_indirect
+<hayro_syntax::object::stream::Stream>::decoded
+<hayro_syntax::object::stream::Stream>::decoded_data
+<hayro_syntax::object::stream::Stream>::decoded_image
+<hayro_syntax::object::stream::Stream>::filters_and_params
+<hayro_syntax::object::stream::Stream>::raw_data
+<hayro_syntax::object::string::String as hayro_syntax::reader::Readable>::read
+<hayro_syntax::object::string::String as hayro_syntax::reader::Skippable>::skip
+<hayro_syntax::object::string::String>::as_bytes
+<hayro_syntax::object::string::StringInner as core::convert::AsRef<[u8]>>::as_ref
+<hayro_syntax::object::string::StringInner as core::convert::From<alloc::vec::Vec<u8>>>::from
+<hayro_syntax::page::Page>::annotations
+<hayro_syntax::page::Page>::initial_transform
+<hayro_syntax::page::Page>::new
+<hayro_syntax::page::Page>::page_stream
+<hayro_syntax::page::Page>::render_dimensions
+<hayro_syntax::page::PageWalk>::enter
+<hayro_syntax::page::Pages>::get
+<hayro_syntax::page::Pages>::lost_everything
+<hayro_syntax::page::Pages>::walk_stopped
+<hayro_syntax::page::Resources>::get_color_space
+<hayro_syntax::page::Resources>::get_ext_g_state
+<hayro_syntax::page::Resources>::get_font
+<hayro_syntax::page::Resources>::get_pattern
+<hayro_syntax::page::Resources>::get_x_object
+<hayro_syntax::page::Resources>::new
+<hayro_syntax::page::Walked>::walk_to
+<hayro_syntax::page::cached::CachedPages>::new
+<hayro_syntax::pdf::LoadPdfError as core::fmt::Debug>::fmt
+<hayro_syntax::reader::ReaderContext>::new
+<hayro_syntax::reader::ReaderContext>::parent_chain_push
+<hayro_syntax::xref::ObjectStream>::get::<hayro_syntax::object::dict::Dict>
+<hayro_syntax::xref::ObjectStream>::new
+<hayro_syntax::xref::SubsectionHeader as hayro_syntax::reader::Readable>::read
+<hayro_syntax::xref::XRef>::decrypt
+<hayro_syntax::xref::XRef>::get_with::<hayro_syntax::object::Object>
+<hayro_syntax::xref::XRef>::get_with::<hayro_syntax::object::array::Array>
+<hayro_syntax::xref::XRef>::get_with::<hayro_syntax::object::dict::Dict>
+<hayro_syntax::xref::XRef>::get_with::<hayro_syntax::object::name::Name>
+<hayro_syntax::xref::XRef>::get_with::<hayro_syntax::object::stream::Stream>
+<hayro_syntax::xref::XRef>::get_with::<hayro_syntax::object::string::String>
+<hayro_syntax::xref::XRef>::get_with::<smallvec::SmallVec<[f32; 4usize]>>
+<hayro_syntax::xref::XRef>::locate
+<hayro_syntax::xref::XRef>::new
+<hayro_syntax::xref::XRef>::new::{closure#2}
+<hayro_syntax::xref::XRef>::root_id
+<i32 as hayro_syntax::reader::Readable>::read
+<i64 as core::convert::TryFrom<hayro_syntax::object::Object>>::try_from
+<i64 as hayro_syntax::reader::Readable>::read
+<js_sys::Array<_>>::push::__wbg_push externref shim
+<js_sys::Array>::new
+<js_sys::Array>::new::__wbg_new externref shim
+<js_sys::Function<_>>::call1::__wbg_call externref shim
+<js_sys::Uint8Array>::copy_to_slice::__wbg_prototypesetcall externref shim
+<js_sys::Uint8Array>::length
+<js_sys::Uint8Array>::length::__wbg_length externref shim
+<js_sys::Uint8Array>::new
+<js_sys::Uint8Array>::new::__wbg_new externref shim
+<js_sys::Uint8Array>::to_vec
+<kurbo::affine::Affine as core::ops::arith::Mul<kurbo::bezpath::BezPath>>::mul
+<kurbo::bezpath::BezPath as hayro_interpret::util::BezPathExt>::fast_bounding_box
+<kurbo::bezpath::BezPath>::close_path
+<kurbo::bezpath::BezPath>::is_empty
+<kurbo::bezpath::BezPath>::push
+<kurbo::rect::RectPathIter as core::iter::traits::iterator::Iterator>::collect::<alloc::vec::Vec<kurbo::bezpath::PathEl>>
+<memchr::arch::all::twoway::Shift>::reverse
+<moxcms::cicp::TransferCharacteristics>::gamma
+<moxcms::conversions::interpolator::Trilinear<17usize> as moxcms::conversions::interpolator::MultidimensionalInterpolation>::inter3
+<moxcms::conversions::lut4::Lut4x3 as moxcms::transform::Stage>::transform
+<moxcms::conversions::lut_transforms::MatrixStage as moxcms::transform::InPlaceStage>::transform
+<moxcms::conversions::transform_lut4_to_3::TransformLut4To3<u8, u8, 0u8, 17usize, 8usize, 256usize, 256usize> as moxcms::transform::TransformExecutor<u8>>::transform
+<moxcms::conversions::transform_lut4_to_3::TransformLut4To3<u8, u8, 0u8, 17usize, 8usize, 256usize, 256usize>>::transform_chunk::<moxcms::conversions::transform_lut4_to_3::DefaultVector3fLerp>
+<moxcms::conversions::xyz_lab::StageLabToXyz as moxcms::transform::InPlaceStage>::transform
+<moxcms::dat::ColorDateTime>::now
+<moxcms::profile::ColorProfile>::are_all_trc_the_same
+<moxcms::profile::ColorProfile>::build_gamma_table::<u8, 65536usize, 4096usize, 8usize>
+<moxcms::profile::ColorProfile>::build_r_linearize_table::<u8, 256usize, 8usize>
+<moxcms::profile::ColorProfile>::create_in_place_transform_8bit
+<moxcms::profile::ColorProfile>::create_transform_8bit
+<moxcms::profile::ColorProfile>::is_linear_matrix_shaper
+<moxcms::profile::ColorProfile>::is_matrix_shaper
+<moxcms::profile::ColorProfile>::new_from_slice
+<moxcms::profile::ColorProfile>::new_from_slice_with_options
+<moxcms::profile::ColorProfile>::new_srgb
+<moxcms::profile::ColorProfile>::read_lut_table_f32
+<moxcms::profile::ColorProfile>::read_lut_tag
+<moxcms::profile::ColorProfile>::read_meas_tag
+<moxcms::profile::ColorProfile>::read_string_tag
+<moxcms::profile::ColorProfile>::read_tech_tag
+<moxcms::profile::ColorProfile>::read_trc_tag
+<moxcms::profile::ColorProfile>::read_viewing_conditions
+<moxcms::profile::ColorProfile>::read_xyz_tag
+<moxcms::profile::ColorProfile>::transform_matrix
+<moxcms::profile::DataColorSpace as core::convert::TryFrom<u32>>::try_from
+<moxcms::profile::LutStore>::to_clut_f32
+<moxcms::profile::TechnologySignatures as core::convert::From<u32>>::from
+<moxcms::tag::Tag as core::convert::TryFrom<u32>>::try_from
+<moxcms::tag::TagTypeDefinition as core::convert::From<u32>>::from
+<moxcms::trc::ToneReprCurve>::build_linearize_table::<u8, 256usize, 8usize>
+<read_fonts::FileRef>::new
+<read_fonts::FontRef>::from_index
+<read_fonts::TableDirectory>::is_sorted
+<read_fonts::TableDirectory>::table_records
+<read_fonts::model::charmap::Charmap>::encodings
+<read_fonts::model::charmap::Charmap>::map_code
+<read_fonts::model::charmap::SfntUnicodeCharmap>::map
+<read_fonts::model::font::Font>::default_attributes
+<read_fonts::model::font::Font>::glyph_by_cid
+<read_fonts::model::font::Font>::glyph_by_name
+<read_fonts::model::font::Font>::is_hint_reliant
+<read_fonts::model::font::Font>::metrics
+<read_fonts::model::font::Font>::new::<alloc::sync::Arc<dyn core::convert::AsRef<[u8]> + core::marker::Send + core::marker::Sync>>
+<read_fonts::model::font::Font>::normalized_coords
+<read_fonts::model::font::Font>::outline_glyphs_with
+<read_fonts::model::font::Font>::style_metrics
+<read_fonts::model::font::SharedFont>::standalone_cff_unicode_charmap
+<read_fonts::model::font::SharedFont>::unicode_charmap
+<read_fonts::model::font::blob::Blob as core::ops::deref::Deref>::deref
+<read_fonts::model::font::format::Format>::new
+<read_fonts::model::font::tables::Tables>::cff2_state
+<read_fonts::model::font::tables::Tables>::cff_state
+<read_fonts::model::font::tables::Tables>::cmap_state
+<read_fonts::model::font::tables::Tables>::cvt_data
+<read_fonts::model::font::tables::Tables>::dmap_state
+<read_fonts::model::font::tables::Tables>::fpgm_data
+<read_fonts::model::font::tables::Tables>::glyf_extended_state
+<read_fonts::model::font::tables::Tables>::glyf_state
+<read_fonts::model::font::tables::Tables>::gvar_extended_state
+<read_fonts::model::font::tables::Tables>::gvar_state
+<read_fonts::model::font::tables::Tables>::head_state
+<read_fonts::model::font::tables::Tables>::hhea_extended_state
+<read_fonts::model::font::tables::Tables>::hhea_state
+<read_fonts::model::font::tables::Tables>::hmtx_extended_state
+<read_fonts::model::font::tables::Tables>::hmtx_state
+<read_fonts::model::font::tables::Tables>::hvar_state
+<read_fonts::model::font::tables::Tables>::loca_state
+<read_fonts::model::font::tables::Tables>::maxp_extended_state
+<read_fonts::model::font::tables::Tables>::maxp_state
+<read_fonts::model::font::tables::Tables>::name_state
+<read_fonts::model::font::tables::Tables>::new::<read_fonts::model::font::source::Source>::{closure#0}
+<read_fonts::model::font::tables::Tables>::os2_state
+<read_fonts::model::font::tables::Tables>::post_state
+<read_fonts::model::font::tables::Tables>::prep_data
+<read_fonts::model::font::tables::Tables>::varc_state
+<read_fonts::model::font::tables::Tables>::vhea_extended_state
+<read_fonts::model::font::tables::Tables>::vhea_state
+<read_fonts::model::font::tables::Tables>::vmtx_extended_state
+<read_fonts::model::glyph::outline::glyphs::OutlineGlyphs>::new
+<read_fonts::model::metrics::style::StyleMetrics>::from_sfnt::<&read_fonts::model::font::tables::Tables>
+<read_fonts::model::name::glyph::NameIter>::next_stored
+<read_fonts::ps::cff::charset::Charset>::string_id
+<read_fonts::ps::cff::charset::Iter as core::iter::traits::iterator::Iterator>::next
+<read_fonts::ps::cff::font::CffFontRef>::metadata
+<read_fonts::ps::cff::font::CffFontRef>::new
+<read_fonts::ps::cff::font::CffFontRef>::new_cff
+<read_fonts::ps::cff::font::CffFontRef>::new_impl
+<read_fonts::ps::cff::font::CffFontRef>::string
+<read_fonts::ps::cff::font::CffFontRef>::subfont
+<read_fonts::ps::cff::font::Subfont>::new
+<read_fonts::ps::cff::v1::Cff as read_fonts::read::FontRead>::read_with_args
+<read_fonts::ps::cff::v1::Cff>::charset
+<read_fonts::ps::cff::v1::Index>::get
+<read_fonts::ps::cff::v1::Index>::size_in_bytes
+<read_fonts::ps::num::BcdComponents>::parse
+<read_fonts::ps::num::BcdComponents>::value
+<read_fonts::tables::cmap::Cmap4>::lookup_glyph_id
+<read_fonts::tables::cmap::CmapSubtable>::map_codepoint::<u32>
+<read_fonts::tables::glyf::hint_reliant::AsciiName>::read
+<read_fonts::tables::os2::Os2>::fs_selection
+<read_fonts::tables::os2::Os2>::s_cap_height
+<read_fonts::tables::os2::Os2>::s_typo_ascender
+<read_fonts::tables::os2::Os2>::s_typo_descender
+<read_fonts::tables::os2::Os2>::s_typo_line_gap
+<read_fonts::tables::os2::Os2>::sx_height
+<read_fonts::tables::os2::Os2>::us_win_ascent
+<read_fonts::tables::os2::Os2>::us_win_descent
+<read_fonts::tables::post::GlyphNames as core::iter::traits::iterator::Iterator>::next
+<recto::Document>::annotations
+<recto::Document>::open_data
+<recto::Document>::scan::{closure#0}
+<recto::Document>::structure_truncated
+<recto::Document>::text
+<recto::Inner as core::ops::drop::Drop>::drop
+<recto::assets::host::set_loader::{closure#2} as core::ops::function::FnOnce<()>>::call_once
+<recto::ctext::Text>::first
+<recto::device::PageDevice as hayro_interpret::device::Device>::draw_glyph_run
+<recto::device::PageDevice as hayro_interpret::device::Device>::draw_path
+<recto::device::PageDevice>::font_id
+<recto::wasm::Annotations as core::convert::From<alloc::vec::Vec<recto::annots::Annotation>>>::from
+<recto::wasm::Document>::open
+<recto::wasm::Document>::outline
+<recto::wasm::Document>::page_info
+<recto::wasm::Document>::page_labels
+<recto::wasm::Document>::scan_parts
+<rustc_hash::FxBuildHasher as core::hash::BuildHasher>::hash_one::<&&[u8]>
+<rustc_hash::FxBuildHasher as core::hash::BuildHasher>::hash_one::<&[u8]>
+<rustc_hash::FxBuildHasher as core::hash::BuildHasher>::hash_one::<&hayro_syntax::object::name::Name>
+<siphasher::sip128::Hasher<siphasher::sip128::Sip13Rounds> as core::hash::Hasher>::write
+<siphasher::sip128::SipHasher13 as core::hash::Hasher>::write
+<skrifa::scaler::ScalerFont>::configure
+<smallvec::SmallVec<[f32; 4usize]> as core::convert::From<&[f32]>>::from
+<smallvec::SmallVec<[f32; 4usize]> as core::iter::traits::collect::Extend<f32>>::extend::<hayro_syntax::object::array::ResolvedArrayIter<f32>>
+<smallvec::SmallVec<[f32; 4usize]> as hayro_syntax::reader::Readable>::read
+<smallvec::SmallVec<[f32; 4usize]>>::push
+<smallvec::SmallVec<[u8; 23usize]>>::push
+<smallvec::SmallVec<[u8; 23usize]>>::reserve_one_unchecked
+<smallvec::SmallVec<[u8; 23usize]>>::try_grow
+<std::hash::random::DefaultHasher as core::hash::Hasher>::write
+<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&alloc::vec::Vec<u8>>
+<std::io::error::Error>::_new
+<std::io::error::Error>::new::<&str>
+<std::sync::once_lock::OnceLock<[core::option::Option<&str>; 256usize]>>::initialize::<<std::sync::once_lock::OnceLock<[core::option::Option<&str>; 256usize]>>::get_or_init<<hayro_font::generated::Codes>::get::{closure#0}>::{closure#0}, !>
+<std::sync::once_lock::OnceLock<alloc::boxed::Box<[std::sync::once_lock::OnceLock<hayro_syntax::xref::ObjectStream>]>>>::initialize::<<std::sync::once_lock::OnceLock<alloc::boxed::Box<[std::sync::once_lock::OnceLock<hayro_syntax::xref::ObjectStream>]>>>::get_or_init<<hayro_syntax::util::SegmentList<hayro_syntax::xref::ObjectStream, 32usize>>::get_or_init<<hayro_syntax::data::Data>::object_stream::{closure#0}>::{closure#0}>::{closure#0}, !>
+<std::sync::once_lock::OnceLock<alloc::boxed::Box<[u16]>>>::initialize::<<std::sync::once_lock::OnceLock<alloc::boxed::Box<[u16]>>>::get_or_init<<read_fonts::model::font::SharedFont>::cid_glyphs::{closure#0}>::{closure#0}, !>
+<std::sync::once_lock::OnceLock<alloc::boxed::Box<read_fonts::model::font::cache::TableCache<core::option::Option<read_fonts::model::glyph::outline::varc::Outlines>>>>>::initialize::<<std::sync::once_lock::OnceLock<alloc::boxed::Box<read_fonts::model::font::cache::TableCache<core::option::Option<read_fonts::model::glyph::outline::varc::Outlines>>>>>::get_or_init<<read_fonts::model::font::SharedFont>::varc_outlines::{closure#0}>::{closure#0}, !>
+<std::sync::once_lock::OnceLock<alloc::boxed::Box<read_fonts::model::font::cache::TableCache<read_fonts::model::charmap::EncodingTables>>>>::initialize::<<std::sync::once_lock::OnceLock<alloc::boxed::Box<read_fonts::model::font::cache::TableCache<read_fonts::model::charmap::EncodingTables>>>>::get_or_init<<read_fonts::model::font::SharedFont>::encodings::{closure#0}>::{closure#0}, !>
+<std::sync::once_lock::OnceLock<alloc::boxed::Box<read_fonts::model::metrics::style::StyleMetrics>>>::initialize::<<std::sync::once_lock::OnceLock<alloc::boxed::Box<read_fonts::model::metrics::style::StyleMetrics>>>::get_or_init<<read_fonts::model::font::SharedFont>::style_metrics::{closure#0}>::{closure#0}, !>
+<std::sync::once_lock::OnceLock<core::option::Option<alloc::boxed::Box<[[u8; 3usize]; 256usize]>>>>::initialize::<<std::sync::once_lock::OnceLock<core::option::Option<alloc::boxed::Box<[[u8; 3usize]; 256usize]>>>>::get_or_init<<hayro_interpret::color::U8Lookup<[u8; 3usize]>>::get_or_init_with<<hayro_interpret::color::U8Lookup<[u8; 3usize]>>::get_or_init<<hayro_interpret::color::separation::Separation>::u8_lookup::{closure#0}>::{closure#0}>::{closure#0}>::{closure#0}, !>
+<std::sync::once_lock::OnceLock<core::option::Option<alloc::sync::Arc<dyn moxcms::transform::TransformExecutor<u8> + core::marker::Send + core::marker::Sync>>> as core::convert::From<core::option::Option<alloc::sync::Arc<dyn moxcms::transform::TransformExecutor<u8> + core::marker::Send + core::marker::Sync>>>>::from
+<std::sync::once_lock::OnceLock<core::option::Option<alloc::sync::Arc<dyn moxcms::transform::TransformExecutor<u8> + core::marker::Send + core::marker::Sync>>>>::initialize::<<std::sync::once_lock::OnceLock<core::option::Option<alloc::sync::Arc<dyn moxcms::transform::TransformExecutor<u8> + core::marker::Send + core::marker::Sync>>>>::get_or_init<<std::sync::once_lock::OnceLock<core::option::Option<alloc::sync::Arc<dyn moxcms::transform::TransformExecutor<u8> + core::marker::Send + core::marker::Sync>>>>::try_insert::{closure#0}>::{closure#0}, !>
+<std::sync::once_lock::OnceLock<core::option::Option<alloc::vec::Vec<u8>>>>::initialize::<<std::sync::once_lock::OnceLock<core::option::Option<alloc::vec::Vec<u8>>>>::get_or_init<<hayro_syntax::page::Page>::page_stream::{closure#1}>::{closure#0}, !>
+<std::sync::once_lock::OnceLock<core::option::Option<hayro_syntax::page::Page>>>::initialize::<<std::sync::once_lock::OnceLock<core::option::Option<hayro_syntax::page::Page>>>::get_or_init<<hayro_syntax::page::Pages>::get::{closure#0}>::{closure#0}, !>
+<std::sync::once_lock::OnceLock<fn() -> core::option::Option<alloc::vec::Vec<u8>>>>::initialize::<<std::sync::once_lock::OnceLock<fn() -> core::option::Option<alloc::vec::Vec<u8>>>>::get_or_init<<std::sync::once_lock::OnceLock<fn() -> core::option::Option<alloc::vec::Vec<u8>>>>::try_insert::{closure#0}>::{closure#0}, !>
+<std::sync::once_lock::OnceLock<hayro_cmap::bcmap::embedded::Bundle>>::initialize::<<std::sync::once_lock::OnceLock<hayro_cmap::bcmap::embedded::Bundle>>::get_or_init<hayro_cmap::bcmap::embedded::bundle::{closure#0}>::{closure#0}, !>
+<std::sync::once_lock::OnceLock<hayro_syntax::xref::ObjectStream>>::initialize::<<std::sync::once_lock::OnceLock<hayro_syntax::xref::ObjectStream>>::get_or_init<<hayro_syntax::data::Data>::object_stream::{closure#0}>::{closure#0}, !>
+<std::sync::once_lock::OnceLock<read_fonts::model::font::cache::TableCache<read_fonts::model::charmap::SfntUnicodeCharmap>>>::initialize::<<std::sync::once_lock::OnceLock<read_fonts::model::font::cache::TableCache<read_fonts::model::charmap::SfntUnicodeCharmap>>>::get_or_init<<read_fonts::model::font::SharedFont>::unicode_charmap::{closure#0}>::{closure#0}, !>
+<std::sync::once_lock::OnceLock<read_fonts::model::font::cache::TableCache<read_fonts::model::font::cache::Cff2Font>>>::initialize::<<std::sync::once_lock::OnceLock<read_fonts::model::font::cache::TableCache<read_fonts::model::font::cache::Cff2Font>>>::get_or_init<<read_fonts::model::font::SharedFont>::cff2::{closure#0}>::{closure#0}, !>
+<std::sync::once_lock::OnceLock<read_fonts::model::font::cache::TableCache<read_fonts::model::font::cache::CffFont>>>::initialize::<<std::sync::once_lock::OnceLock<read_fonts::model::font::cache::TableCache<read_fonts::model::font::cache::CffFont>>>::get_or_init<<read_fonts::model::font::SharedFont>::cff::{closure#0}>::{closure#0}, !>
+<std::sync::once_lock::OnceLock<read_fonts::model::font::cache::TableCache<read_fonts::model::font::cache::GlyfLoca>>>::initialize::<<std::sync::once_lock::OnceLock<read_fonts::model::font::cache::TableCache<read_fonts::model::font::cache::GlyfLoca>>>::get_or_init<<read_fonts::model::font::SharedFont>::selected_glyf_loca::{closure#0}>::{closure#0}, !>
+<std::sync::once_lock::OnceLock<read_fonts::model::font::cache::TableCache<read_fonts::model::font::cache::GvarTable>>>::initialize::<<std::sync::once_lock::OnceLock<read_fonts::model::font::cache::TableCache<read_fonts::model::font::cache::GvarTable>>>::get_or_init<<read_fonts::model::font::SharedFont>::selected_gvar::{closure#0}>::{closure#0}, !>
+<std::sync::once_lock::OnceLock<read_fonts::model::font::cache::TableCache<read_fonts::model::font::cache::HvarTable>>>::initialize::<<std::sync::once_lock::OnceLock<read_fonts::model::font::cache::TableCache<read_fonts::model::font::cache::HvarTable>>>::get_or_init<<read_fonts::model::font::SharedFont>::hvar::{closure#0}>::{closure#0}, !>
+<std::sync::once_lock::OnceLock<read_fonts::model::font::cache::TableCache<read_fonts::model::font::cache::MetricsTable>>>::initialize::<<std::sync::once_lock::OnceLock<read_fonts::model::font::cache::TableCache<read_fonts::model::font::cache::MetricsTable>>>::get_or_init<<read_fonts::model::font::SharedFont>::h_metric_records::{closure#0}>::{closure#0}, !>
+<std::sync::once_lock::OnceLock<read_fonts::model::font::cache::TableCache<read_fonts::model::font::cache::MetricsTable>>>::initialize::<<std::sync::once_lock::OnceLock<read_fonts::model::font::cache::TableCache<read_fonts::model::font::cache::MetricsTable>>>::get_or_init<<read_fonts::model::font::SharedFont>::v_metric_records::{closure#0}>::{closure#0}, !>
+<std::sync::once_lock::OnceLock<read_fonts::model::metrics::global::Metrics>>::initialize::<<std::sync::once_lock::OnceLock<read_fonts::model::metrics::global::Metrics>>::get_or_init<<read_fonts::model::font::SharedFont>::metrics::{closure#0}>::{closure#0}, !>
+<std::sync::once_lock::OnceLock<read_fonts::model::name::glyph::GlyphNameIndex>>::initialize::<<std::sync::once_lock::OnceLock<read_fonts::model::name::glyph::GlyphNameIndex>>::get_or_init<<read_fonts::model::font::Font>::glyph_by_name::{closure#0}>::{closure#0}, !>
+<std::sync::once_lock::OnceLock<read_fonts::ps::charmap::UnicodeCharmap>>::initialize::<<std::sync::once_lock::OnceLock<read_fonts::ps::charmap::UnicodeCharmap>>::get_or_init<<read_fonts::model::font::SharedFont>::standalone_cff_unicode_charmap::{closure#0}>::{closure#0}, !>
+<std::sys::sync::once::no_threads::Once>::call::<<std::sync::once::Once>::call_once_force<<std::sync::lazy_lock::LazyLock<hayro_interpret::color::icc::ICCProfile>>::force::{closure#0}>::{closure#0}>
+<std::sys::thread_local::no_threads::LazyStorage<core::cell::Cell<(u64, u64)>>>::initialize::<<std::hash::random::RandomState>::new::KEYS::__rust_std_internal_init_fn>
+<std::sys::thread_local::no_threads::LazyStorage<core::cell::RefCell<std::collections::hash::map::HashMap<u32, alloc::sync::Arc<dyn core::convert::AsRef<[u8]> + core::marker::Send + core::marker::Sync>>>>>::initialize::<recto::assets::host::CACHE::__rust_std_internal_init_fn>
+<str as core::fmt::Display>::fmt
+<str>::trim_end_matches::<char>
+<u16 as hayro_syntax::reader::Readable>::read
+<u64>::_fmt
+<u8 as hayro_syntax::reader::Readable>::read
+<usize as hayro_syntax::reader::Readable>::read
+<zlib_rs::inflate::window::Window>::extend
+<zlib_rs::inflate::writer::Writer>::copy_match_runtime_dispatch
+<zlib_rs::inflate::writer::Writer>::extend_from_window_runtime_dispatch
+<zlib_rs::stable::Inflate as core::ops::drop::Drop>::drop
+<zlib_rs::stable::Inflate>::decompress
+<zlib_rs::stable::Inflate>::error_message
+<zlib_rs::stable::Inflate>::new
+F64 -> Externref externref shim
+Ref(String) -> Externref externref shim
+__ashlti3
+__externref_drop_slice
+__externref_table_alloc
+__externref_table_dealloc
+__lshrti3
+__multi3
+__rustc::__rdl_alloc
+__rustc::__rdl_alloc_zeroed
+__rustc::__rdl_dealloc
+__rustc::__rdl_realloc
+__rustc::__rust_alloc
+__rustc::__rust_alloc_zeroed
+__rustc::__rust_dealloc
+__rustc::__rust_no_alloc_shim_is_unstable_v2
+__rustc::__rust_realloc
+__umodti3
+__wbg_annotations_free
+__wbg_document_free
+__wbg_pagescan_free
+__wbg_pagetext_free
+__wbindgen_free
+__wbindgen_malloc
+alloc::boxed::box_new_uninit
+alloc::fmt::format::format_inner
+alloc::sync::arcinner_layout_for_value_layout
+annotations_appearanceObjects
+annotations_appearanceObjects multivalue shim
+annotations_appearanceText
+annotations_appearanceText multivalue shim
+annotations_appearanceTextObjects
+annotations_appearanceTextObjects multivalue shim
+annotations_boxes
+annotations_boxes multivalue shim
+annotations_contents
+annotations_contents multivalue shim
+annotations_count
+annotations_fieldTypes
+annotations_fieldTypes multivalue shim
+annotations_fieldValues
+annotations_fieldValues multivalue shim
+annotations_hasField
+annotations_hasField multivalue shim
+annotations_subtypes
+annotations_subtypes multivalue shim
+atan2
+compiler_builtins::int::specialized_div_rem::u128_div_rem
+compiler_builtins::math::libm_math::atan2::atan2
+compiler_builtins::math::libm_math::atan::atan
+compiler_builtins::math::libm_math::fmod::fmodf
+core::fmt::write
+core::iter::adapters::flatten::and_then_or_clear::<core::iter::adapters::map::Map<core::iter::adapters::enumerate::Enumerate<core::slice::iter::Iter<read_fonts::tables::cmap::EncodingRecord>>, <read_fonts::model::charmap::EncodingTables>::read<&read_fonts::model::font::tables::Tables>::{closure#0}::{closure#0}::{closure#0}>, core::option::Option<read_fonts::model::charmap::EncodingTable>, <core::iter::adapters::map::Map<core::iter::adapters::enumerate::Enumerate<core::slice::iter::Iter<read_fonts::tables::cmap::EncodingRecord>>, <read_fonts::model::charmap::EncodingTables>::read<&read_fonts::model::font::tables::Tables>::{closure#0}::{closure#0}::{closure#0}> as core::iter::traits::iterator::Iterator>::next>
+core::iter::adapters::try_process::<core::iter::adapters::map::Map<core::ops::range::Range<usize>, <hayro_interpret::function::type0::Type0>::new::{closure#2}>, f32, core::option::Option<core::convert::Infallible>, <core::option::Option<alloc::vec::Vec<f32>> as core::iter::traits::collect::FromIterator<core::option::Option<f32>>>::from_iter<core::iter::adapters::map::Map<core::ops::range::Range<usize>, <hayro_interpret::function::type0::Type0>::new::{closure#2}>>::{closure#0}, alloc::vec::Vec<f32>>
+core::ptr::drop_in_place::<<alloc::boxed::Box<dyn core::error::Error + core::marker::Send + core::marker::Sync> as core::convert::From<alloc::string::String>>::from::StringError>
+core::ptr::drop_in_place::<alloc::vec::Vec<recto::annots::Annotation>>
+core::ptr::drop_in_place::<alloc::vec::Vec<u8>>
+core::ptr::drop_in_place::<core::iter::adapters::zip::Zip<core::iter::adapters::zip::Zip<core::slice::iter::Iter<hayro_interpret::function::Interval>, alloc::vec::into_iter::IntoIter<hayro_interpret::function::Interval>>, alloc::vec::into_iter::IntoIter<u32>>>
+core::ptr::drop_in_place::<core::option::Option<(hayro_syntax::object::dict::Dict, hayro_syntax::object::ref::ObjRef)>>
+core::ptr::drop_in_place::<core::option::Option<alloc::boxed::Box<hayro_cmap::CMap>>>
+core::ptr::drop_in_place::<core::option::Option<hayro_cmap::CharacterCollection>>
+core::ptr::drop_in_place::<core::option::Option<hayro_interpret::interpret::state::ActiveTransferFunction>>
+core::ptr::drop_in_place::<core::option::Option<hayro_interpret::interpret::state::TextStateFont>>
+core::ptr::drop_in_place::<core::option::Option<hayro_syntax::object::dict::Dict>>
+core::ptr::drop_in_place::<core::option::Option<moxcms::profile::LutWarehouse>>
+core::ptr::drop_in_place::<core::option::Option<moxcms::profile::ProfileText>>
+core::ptr::drop_in_place::<core::option::Option<moxcms::trc::ToneReprCurve>>
+core::ptr::drop_in_place::<hayro_cmap::CMap>
+core::ptr::drop_in_place::<hayro_cmap::CharacterCollection>
+core::ptr::drop_in_place::<hayro_font::FallbackFontQuery>
+core::ptr::drop_in_place::<hayro_font::Font>
+core::ptr::drop_in_place::<hayro_font::OutlineGlyph>
+core::ptr::drop_in_place::<hayro_interpret::color::Color>
+core::ptr::drop_in_place::<hayro_interpret::color::ColorSpace>
+core::ptr::drop_in_place::<hayro_interpret::color::ColorSpaceType>
+core::ptr::drop_in_place::<hayro_interpret::context::Context>
+core::ptr::drop_in_place::<hayro_interpret::font::PositionedGlyph>
+core::ptr::drop_in_place::<hayro_interpret::function::FunctionType>
+core::ptr::drop_in_place::<hayro_interpret::function::type4::PostScriptOp>
+core::ptr::drop_in_place::<hayro_interpret::interpret::stack::Group<hayro_interpret::interpret::state::PaintState>>
+core::ptr::drop_in_place::<hayro_interpret::pattern::Pattern>
+core::ptr::drop_in_place::<hayro_interpret::types::DrawProps>
+core::ptr::drop_in_place::<hayro_interpret::x_object::form::FormXObject>
+core::ptr::drop_in_place::<hayro_syntax::crypto::Decryptor>
+core::ptr::drop_in_place::<hayro_syntax::metadata::Metadata>
+core::ptr::drop_in_place::<hayro_syntax::object::Object>
+core::ptr::drop_in_place::<hayro_syntax::object::stream::FiltersAndParams>
+core::ptr::drop_in_place::<hayro_syntax::page::Page>
+core::ptr::drop_in_place::<hayro_syntax::page::Resources>
+core::ptr::drop_in_place::<hayro_syntax::page::cached::CachedPages>
+core::ptr::drop_in_place::<hayro_syntax::xref::ObjectStream>
+core::ptr::drop_in_place::<moxcms::conversions::lut4::Lut4x3>
+core::ptr::drop_in_place::<moxcms::conversions::rgbxyz::TransformMatrixShaperOptScalar<u8, 0u8, 0u8, 256usize>>
+core::ptr::drop_in_place::<moxcms::profile::ColorProfile>
+core::ptr::drop_in_place::<recto::text::TextPage>
+core::ptr::drop_in_place::<recto::wasm::Annotations>
+core::ptr::drop_in_place::<recto::wasm::PageObjects>
+core::ptr::drop_in_place::<recto::wasm::PageText>
+core::ptr::drop_in_place::<skrifa::scaler::ScalerFont>
+core::ptr::drop_in_place::<std::collections::hash::map::HashMap<alloc::vec::Vec<u8>, hayro_syntax::crypto::CryptDictionary>>
+core::ptr::drop_in_place::<std::collections::hash::map::HashMap<hayro_syntax::object::name::Name, usize, rustc_hash::FxBuildHasher>>
+core::ptr::drop_in_place::<std::collections::hash::map::HashMap<u8, alloc::string::String, rustc_hash::FxBuildHasher>>
+core::slice::memchr::memchr_aligned
+core::slice::sort::shared::pivot::median3_rec::<(u32, u32, u32), <[(u32, u32, u32)]>::sort_unstable_by<<read_fonts::model::name::glyph::GlyphNameIndex>::new::{closure#1}>::{closure#0}>
+core::slice::sort::shared::pivot::median3_rec::<hayro_cmap::BfRange, <[hayro_cmap::BfRange]>::sort_by_key<u32, hayro_cmap::bcmap::parse<hayro_font::read_to_unicode::{closure#2}::{closure#0}>::{closure#2}>::{closure#0}>
+core::slice::sort::shared::smallsort::bidirectional_merge::<(u32, u32, u32), <[(u32, u32, u32)]>::sort_unstable_by<<read_fonts::model::name::glyph::GlyphNameIndex>::new::{closure#1}>::{closure#0}>
+core::slice::sort::shared::smallsort::insert_tail::<(u32, u32, u32), <[(u32, u32, u32)]>::sort_unstable_by<<read_fonts::model::name::glyph::GlyphNameIndex>::new::{closure#1}>::{closure#0}>
+core::slice::sort::shared::smallsort::insertion_sort_shift_left::<hayro_cmap::BfRange, <[hayro_cmap::BfRange]>::sort_by_key<u32, hayro_cmap::bcmap::parse<hayro_font::read_to_unicode::{closure#2}::{closure#0}>::{closure#2}>::{closure#0}>
+core::slice::sort::shared::smallsort::sort4_stable::<(u32, u32, u32), <[(u32, u32, u32)]>::sort_unstable_by<<read_fonts::model::name::glyph::GlyphNameIndex>::new::{closure#1}>::{closure#0}>
+core::slice::sort::shared::smallsort::sort8_stable::<hayro_cmap::CidRange, <[hayro_cmap::CidRange]>::sort_by_key<u32, <hayro_cmap::PartitionedRanges>::sort::{closure#0}>::{closure#0}>
+core::slice::sort::stable::drift::sort::<hayro_cmap::BfRange, <[hayro_cmap::BfRange]>::sort_by_key<u32, hayro_cmap::bcmap::parse<<hayro_font::cid::Type0Font>::new::{closure#5}>::{closure#2}>::{closure#0}>
+core::slice::sort::stable::drift::sort::<hayro_cmap::BfRange, <[hayro_cmap::BfRange]>::sort_by_key<u32, hayro_cmap::parse::parse_inner<hayro_font::read_to_unicode::{closure#2}::{closure#0}>::{closure#2}>::{closure#0}>
+core::slice::sort::stable::drift::sort::<hayro_cmap::CidRange, <[hayro_cmap::CidRange]>::sort_by_key<u32, <hayro_cmap::PartitionedRanges>::sort::{closure#0}>::{closure#0}>
+core::slice::sort::stable::drift::sqrt_approx
+core::slice::sort::stable::driftsort_main::<hayro_cmap::BfRange, <[hayro_cmap::BfRange]>::sort_by_key<u32, hayro_cmap::bcmap::parse<<hayro_font::cid::Type0Font>::new::{closure#5}>::{closure#2}>::{closure#0}, alloc::vec::Vec<hayro_cmap::BfRange>>
+core::slice::sort::stable::driftsort_main::<hayro_cmap::BfRange, <[hayro_cmap::BfRange]>::sort_by_key<u32, hayro_cmap::parse::parse_inner<hayro_font::read_to_unicode::{closure#2}::{closure#0}>::{closure#2}>::{closure#0}, alloc::vec::Vec<hayro_cmap::BfRange>>
+core::slice::sort::stable::driftsort_main::<hayro_cmap::CidRange, <[hayro_cmap::CidRange]>::sort_by_key<u32, <hayro_cmap::PartitionedRanges>::sort::{closure#0}>::{closure#0}, alloc::vec::Vec<hayro_cmap::CidRange>>
+core::slice::sort::stable::quicksort::quicksort::<hayro_cmap::BfRange, <[hayro_cmap::BfRange]>::sort_by_key<u32, hayro_cmap::bcmap::parse<<hayro_font::cid::Type0Font>::new::{closure#5}>::{closure#2}>::{closure#0}>
+core::slice::sort::stable::quicksort::quicksort::<hayro_cmap::BfRange, <[hayro_cmap::BfRange]>::sort_by_key<u32, hayro_cmap::parse::parse_inner<hayro_font::read_to_unicode::{closure#2}::{closure#0}>::{closure#2}>::{closure#0}>
+core::slice::sort::stable::quicksort::quicksort::<hayro_cmap::CidRange, <[hayro_cmap::CidRange]>::sort_by_key<u32, <hayro_cmap::PartitionedRanges>::sort::{closure#0}>::{closure#0}>
+core::slice::sort::unstable::ipnsort::<(u32, u32, u32), <[(u32, u32, u32)]>::sort_unstable_by<<read_fonts::model::name::glyph::GlyphNameIndex>::new::{closure#1}>::{closure#0}>
+core::slice::sort::unstable::quicksort::quicksort::<(u32, u32, u32), <[(u32, u32, u32)]>::sort_unstable_by<<read_fonts::model::name::glyph::GlyphNameIndex>::new::{closure#1}>::{closure#0}>
+core::str::converts::from_utf8
+core::unicode::unicode_data::alphabetic::lookup_slow
+core::unicode::unicode_data::n::lookup_slow
+document_annotations
+document_annotations multivalue shim
+document_fileLength
+document_filePointer
+document_open
+document_open multivalue shim
+document_outline
+document_outline externref shim
+document_pageCount
+document_pageInfo
+document_pageInfo multivalue shim
+document_pageLabels
+document_pageLabels externref shim
+document_pageText
+document_pageText multivalue shim
+document_structureTruncated
+document_structureTruncated multivalue shim
+document_textAndAnnotations
+document_textAndAnnotations multivalue shim
+flate2::zio::read::<flate2::bufreader::BufReader<&[u8]>, flate2::mem::Decompress>
+fmodf
+hayro_cmap::bcmap::embedded::bundle
+hayro_cmap::bcmap::embedded::load_embedded
+hayro_cmap::bcmap::embedded::set_bundle_source
+hayro_cmap::bcmap::huffman::decode_single_table
+hayro_cmap::bcmap::parse::<<hayro_font::cid::Type0Font>::new::{closure#5}>
+hayro_cmap::bcmap::parse::<hayro_font::cid::read_encoding::{closure#0}>
+hayro_cmap::bcmap::parse_bf_segment
+hayro_cmap::bcmap::parse_cid_segment
+hayro_cmap::bcmap::parse_codespace
+hayro_cmap::bcmap::parse_notdef
+hayro_cmap::parse::decode_be
+hayro_cmap::parse::name_matches
+hayro_cmap::parse::parse_inner::<<hayro_font::cid::Type0Font>::new::{closure#5}>
+hayro_cmap::parse::parse_inner::<hayro_font::cid::read_encoding::{closure#0}>
+hayro_cmap::parse::parse_inner::<hayro_font::read_to_unicode::{closure#2}::{closure#0}>
+hayro_cmap::parse::parse_inner::<hayro_font::read_to_unicode::{closure#2}::{closure#0}>::{closure#1}
+hayro_cmap::parse::parse_integer
+hayro_cmap::parse::parse_string_or_name
+hayro_font::generated::by_name
+hayro_font::generated::width
+hayro_font::glyph_name_to_unicode
+hayro_font::read_to_unicode
+hayro_font::standard_font::select_standard_font
+hayro_font::true_type::read_encoding
+hayro_font::true_type::read_encoding::get_encoding_base
+hayro_font::true_type::read_widths
+hayro_interpret::context::path_as_rect
+hayro_interpret::function::read_intervals
+hayro_interpret::function::type4::parse_procedure_inner
+hayro_interpret::interpret::interpret::<recto::device::PageDevice>
+hayro_interpret::interpret::lex::number
+hayro_interpret::interpret::lex::readable
+hayro_interpret::interpret::lex::skip_nested
+hayro_interpret::interpret::path::close_path
+hayro_interpret::interpret::path::end_path::<recto::device::PageDevice>
+hayro_interpret::interpret::path::fill_path_impl::<recto::device::PageDevice>::{closure#0}
+hayro_interpret::interpret::path::stroke_path_impl::<recto::device::PageDevice>
+hayro_interpret::interpret::run_ops::<recto::device::PageDevice>
+hayro_interpret::interpret::state::convert_blend_mode
+hayro_interpret::interpret::state::handle_gs
+hayro_interpret::interpret::text::append_text_string
+hayro_interpret::interpret::text::begin_glyph_run
+hayro_interpret::interpret::text::next_line
+hayro_interpret::interpret::text::show_glyph_run::<recto::device::PageDevice>
+hayro_interpret::interpret::text_only::color
+hayro_interpret::interpret::text_only::interpret::<recto::device::PageDevice>
+hayro_interpret::interpret::text_only::interpret::<recto::device::PageDevice>::{closure#10}
+hayro_interpret::interpret::text_only::interpret::<recto::device::PageDevice>::{closure#11}
+hayro_interpret::interpret::text_only::interpret::<recto::device::PageDevice>::{closure#12}
+hayro_interpret::interpret::text_only::interpret::<recto::device::PageDevice>::{closure#14}
+hayro_interpret::interpret::text_only::interpret::<recto::device::PageDevice>::{closure#8}
+hayro_interpret::interpret::text_only::name
+hayro_interpret::interpret::text_only::nums::<6usize>
+hayro_interpret::interpret::text_only::object
+hayro_interpret::interpret::text_only::show_texts
+hayro_interpret::interpret::text_only::string
+hayro_interpret::interpret::text_only::string_at
+hayro_interpret::shading::read_function
+hayro_interpret::util::hash128::<[u8]>
+hayro_interpret::x_object::form::uses_blend_mode
+hayro_interpret::x_object::xobject_oc
+hayro_postscript::name::parse_executable
+hayro_postscript::name::parse_literal
+hayro_postscript::token::skip_whitespace_and_comments
+hayro_syntax::crypto::authenticate_user_password_rev234
+hayro_syntax::crypto::compute_hash_rev56
+hayro_syntax::crypto::decrypt_aes128
+hayro_syntax::crypto::decryption_key_rev1234
+hayro_syntax::crypto::decryption_key_rev56
+hayro_syntax::crypto::get
+hayro_syntax::crypto::get_checked
+hayro_syntax::crypto::md5::calculate
+hayro_syntax::crypto::sha256::calculate
+hayro_syntax::crypto::sha256::compress
+hayro_syntax::crypto::sha512::calculate_with_initial_values
+hayro_syntax::filter::ascii_85::decode::{closure#1}
+hayro_syntax::filter::lzw_flate::apply_predictor
+hayro_syntax::filter::lzw_flate::apply_predictor_8bit_png
+hayro_syntax::filter::lzw_flate::flate::fallback::generate_huffman_table
+hayro_syntax::filter::png::unfilter
+hayro_syntax::object::dict::read_inner
+hayro_syntax::object::rect::from_arr
+hayro_syntax::pdf::find_version
+hayro_syntax::sha256
+hayro_syntax::util::find_needle
+hayro_syntax::util::findr_needle
+hayro_syntax::xref::fallback
+hayro_syntax::xref::fallback_xref_map_inner
+hayro_syntax::xref::free_entry
+hayro_syntax::xref::populate_xref_impl_inner
+hayro_syntax::xref::read_xref_table_trailer
+hayro_syntax::xref::root_xref
+hayro_syntax::xref::xref_stream_subsection
+hypot
+memchr::memmem::searcher::searcher_kind_simd128
+memcmp
+moxcms::conversions::lut4::create_lut4::<17usize>
+moxcms::conversions::lut4::create_lut4_norm_samples::<17usize>
+moxcms::conversions::lut_transforms::make_lut_transform::<u8, 8usize, 256usize, 4096usize>
+moxcms::conversions::lut_transforms::make_transformer_4x3::<u8, 17usize, 8usize>
+moxcms::conversions::lut_transforms::pcs_lab_v2_to_v4
+moxcms::conversions::lut_transforms::pcs_lab_v4_to_v2
+moxcms::conversions::prelude_lut_xyz_rgb::prepare_inverse_lut_rgb_xyz::<u8, 8usize, 4096usize>
+moxcms::helpers::read_matrix_3d
+moxcms::reader::read_desc_unicode
+pagescan_takeAnnotations
+pagescan_takeText
+pagetext_angles
+pagetext_angles multivalue shim
+pagetext_boxes
+pagetext_boxes multivalue shim
+pagetext_codepoints
+pagetext_codepoints multivalue shim
+pagetext_count
+pagetext_fills
+pagetext_fills multivalue shim
+pagetext_flags
+pagetext_flags multivalue shim
+pagetext_fontAscents
+pagetext_fontAscents multivalue shim
+pagetext_fontDescents
+pagetext_fontDescents multivalue shim
+pagetext_fontEmbedded
+pagetext_fontEmbedded multivalue shim
+pagetext_fontFlags
+pagetext_fontFlags multivalue shim
+pagetext_fontIds
+pagetext_fontIds multivalue shim
+pagetext_fontNames
+pagetext_fontNames multivalue shim
+pagetext_fontSizes
+pagetext_fontSizes multivalue shim
+pagetext_fontWeights
+pagetext_fontWeights multivalue shim
+pagetext_runEms
+pagetext_runEms multivalue shim
+pagetext_runIds
+pagetext_runIds multivalue shim
+pagetext_runOrigins
+pagetext_runOrigins multivalue shim
+pagetext_text
+pagetext_text multivalue shim
+pagetext_tfSizes
+pagetext_tfSizes multivalue shim
+pagetext_truncated
+pagetext_wordBoxes
+pagetext_wordBoxes multivalue shim
+pagetext_wordFirstChar
+pagetext_wordFirstChar multivalue shim
+pagetext_wordLastChar
+pagetext_wordLastChar multivalue shim
+pxfm::logs::log::log_accurate
+pxfm::pow::f_pow
+pxfm::pow::pow_rational128
+pxfm::pow_exec::exp_dyadic
+pxfm::pow_exec::pow_exp_1
+pxfm::pow_exec::pow_log_1
+read_fonts::model::metrics::global::units_per_em
+read_fonts::model::metrics::metric
+read_fonts::model::name::glyph::name_iter
+read_fonts::model::name::glyph::source
+read_fonts::ps::cff::dict::entries_impl::{closure#0}
+read_fonts::ps::cff::dict::parse_entry
+read_fonts::ps::num::parse_int
+recto::annots::field_attr
+recto::annots::object_text
+recto::annots::read
+recto::annots::text_string
+recto::annots::text_string::{closure#0}
+recto::assets::host::fetch
+recto::assets::text_settings::{closure#0}
+recto::device::rgba
+recto::forms::base_letters
+recto::labels::collect
+recto::labels::read_walked
+recto::outline::read_walked
+recto::outline::walked
+recto::text::classify
+recto::text::mirrored
+recto::text::rtl_segment
+recto::wasm::js_error
+recto::wasm::js_set_raw::__wbg_set externref shim
+recto::wasm::js_sys_error::__wbg_Error externref shim
+recto::wasm::page_text
+recto::wasm::page_text::{closure#8}
+roundf
+setAssetLoader
+setAssetLoader externref shim
+sha256
+sha256 multivalue shim
+skrifa::scaler::resolve_outlines
+std::io::default_read_to_end::small_probe_read::<flate2::deflate::read::DeflateDecoder<&[u8]>>
+std::io::default_read_to_end::small_probe_read::<flate2::zlib::read::ZlibDecoder<&[u8]>>
+std::sys::random::unsupported::hashmap_random_keys
+strlen
+wasm_bindgen::__wbindgen_is_null
+wasm_bindgen::__wbindgen_is_null::__wbg___wbindgen_is_null externref shim
+wasm_bindgen::__wbindgen_is_undefined
+wasm_bindgen::__wbindgen_is_undefined::__wbg___wbindgen_is_undefined externref shim
+zlib_rs::adler32::adler32
+zlib_rs::crc32::braid::crc32_braid::<5usize>
+zlib_rs::inflate::end
+zlib_rs::inflate::inflate
+zlib_rs::inflate::inflate_fast_help
+zlib_rs::inflate::inftrees::inflate_table
+zlib_rs::inflate::init

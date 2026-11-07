@@ -1,48 +1,47 @@
+// recto: a sorted table rather than a phf map; see `by_name` in mod.rs.
 // See <https://github.com/apache/pdfbox/blob/4438b8fdc67a3a9ebfb194595d0e81f88b708a37/pdfbox/src/main/java/org/apache/pdfbox/pdmodel/font/encoding/MacOSRomanEncoding.java.java>
-use phf::phf_map;
 
 pub(crate) fn get(code: u8) -> Option<&'static str> {
-    MAC_OS_ROMAN.get(&code).copied()
+    static CODES: super::Codes = super::Codes::new();
+    CODES.get(MAC_OS_ROMAN, code)
 }
 
 pub(crate) fn get_inverse(name: &str) -> Option<u8> {
-    MAC_OS_ROMAN_INVERSE.get(name).copied()
+    super::by_name(MAC_OS_ROMAN_INVERSE, name).and_then(super::number).map(|code| code as u8)
 }
 
-static MAC_OS_ROMAN: phf::Map<u8, &'static str> = phf_map! {
-    173_u8 => "notequal",
-    176_u8 => "infinity",
-    178_u8 => "lessequal",
-    179_u8 => "greaterequal",
-    182_u8 => "partialdiff",
-    183_u8 => "summation",
-    184_u8 => "product",
-    185_u8 => "pi",
-    186_u8 => "integral",
-    189_u8 => "Omega",
-    195_u8 => "radical",
-    197_u8 => "approxequal",
-    198_u8 => "Delta",
-    215_u8 => "lozenge",
-    219_u8 => "Euro",
-    240_u8 => "apple"
-};
+pub(super) static MAC_OS_ROMAN: &[u8] = b"\
+    AD\xFEnotequal\xFF\
+    B0\xFEinfinity\xFF\
+    B2\xFElessequal\xFF\
+    B3\xFEgreaterequal\xFF\
+    B6\xFEpartialdiff\xFF\
+    B7\xFEsummation\xFF\
+    B8\xFEproduct\xFF\
+    B9\xFEpi\xFF\
+    BA\xFEintegral\xFF\
+    BD\xFEOmega\xFF\
+    C3\xFEradical\xFF\
+    C5\xFEapproxequal\xFF\
+    C6\xFEDelta\xFF\
+    D7\xFElozenge\xFF\
+    DB\xFEEuro\xFF\
+    F0\xFEapple\xFF";
 
-static MAC_OS_ROMAN_INVERSE: phf::Map<&'static str, u8> = phf_map! {
-    "notequal" => 0o0255_u8,
-    "infinity" => 0o0260_u8,
-    "lessequal" => 0o0262_u8,
-    "greaterequal" => 0o0263_u8,
-    "partialdiff" => 0o0266_u8,
-    "summation" => 0o0267_u8,
-    "product" => 0o0270_u8,
-    "pi" => 0o0271_u8,
-    "integral" => 0o0272_u8,
-    "Omega" => 0o0275_u8,
-    "radical" => 0o0303_u8,
-    "approxequal" => 0o0305_u8,
-    "Delta" => 0o0306_u8,
-    "lozenge" => 0o0327_u8,
-    "Euro" => 0o0333_u8,
-    "apple" => 0o0360_u8,
-};
+pub(super) static MAC_OS_ROMAN_INVERSE: &[u8] = b"\
+    Delta\xFE198\xFF\
+    Euro\xFE219\xFF\
+    Omega\xFE189\xFF\
+    apple\xFE240\xFF\
+    approxequal\xFE197\xFF\
+    greaterequal\xFE179\xFF\
+    infinity\xFE176\xFF\
+    integral\xFE186\xFF\
+    lessequal\xFE178\xFF\
+    lozenge\xFE215\xFF\
+    notequal\xFE173\xFF\
+    partialdiff\xFE182\xFF\
+    pi\xFE185\xFF\
+    product\xFE184\xFF\
+    radical\xFE195\xFF\
+    summation\xFE183\xFF";

@@ -1,174 +1,174 @@
+// recto: a sorted table rather than a phf map; see `by_name` in mod.rs.
 // See <https://github.com/apache/pdfbox/blob/4438b8fdc67a3a9ebfb194595d0e81f88b708a37/pdfbox/src/main/java/org/apache/pdfbox/pdmodel/font/encoding/MacExpertEncoding.java>
-use phf::phf_map;
 
 pub(crate) fn get(code: u8) -> Option<&'static str> {
-    MAC_EXPERT.get(&code).copied()
+    static CODES: super::Codes = super::Codes::new();
+    CODES.get(MAC_EXPERT, code)
 }
 
-static MAC_EXPERT: phf::Map<u8, &'static str> = phf_map! {
-    190_u8 => "AEsmall",
-    135_u8 => "Aacutesmall",
-    137_u8 => "Acircumflexsmall",
-    39_u8 => "Acutesmall",
-    138_u8 => "Adieresissmall",
-    136_u8 => "Agravesmall",
-    140_u8 => "Aringsmall",
-    97_u8 => "Asmall",
-    139_u8 => "Atildesmall",
-    243_u8 => "Brevesmall",
-    98_u8 => "Bsmall",
-    174_u8 => "Caronsmall",
-    141_u8 => "Ccedillasmall",
-    201_u8 => "Cedillasmall",
-    94_u8 => "Circumflexsmall",
-    99_u8 => "Csmall",
-    172_u8 => "Dieresissmall",
-    250_u8 => "Dotaccentsmall",
-    100_u8 => "Dsmall",
-    142_u8 => "Eacutesmall",
-    144_u8 => "Ecircumflexsmall",
-    145_u8 => "Edieresissmall",
-    143_u8 => "Egravesmall",
-    101_u8 => "Esmall",
-    68_u8 => "Ethsmall",
-    102_u8 => "Fsmall",
-    96_u8 => "Gravesmall",
-    103_u8 => "Gsmall",
-    104_u8 => "Hsmall",
-    34_u8 => "Hungarumlautsmall",
-    146_u8 => "Iacutesmall",
-    148_u8 => "Icircumflexsmall",
-    149_u8 => "Idieresissmall",
-    147_u8 => "Igravesmall",
-    105_u8 => "Ismall",
-    106_u8 => "Jsmall",
-    107_u8 => "Ksmall",
-    194_u8 => "Lslashsmall",
-    108_u8 => "Lsmall",
-    244_u8 => "Macronsmall",
-    109_u8 => "Msmall",
-    110_u8 => "Nsmall",
-    150_u8 => "Ntildesmall",
-    207_u8 => "OEsmall",
-    151_u8 => "Oacutesmall",
-    153_u8 => "Ocircumflexsmall",
-    154_u8 => "Odieresissmall",
-    242_u8 => "Ogoneksmall",
-    152_u8 => "Ogravesmall",
-    191_u8 => "Oslashsmall",
-    111_u8 => "Osmall",
-    155_u8 => "Otildesmall",
-    112_u8 => "Psmall",
-    113_u8 => "Qsmall",
-    251_u8 => "Ringsmall",
-    114_u8 => "Rsmall",
-    167_u8 => "Scaronsmall",
-    115_u8 => "Ssmall",
-    185_u8 => "Thornsmall",
-    126_u8 => "Tildesmall",
-    116_u8 => "Tsmall",
-    156_u8 => "Uacutesmall",
-    158_u8 => "Ucircumflexsmall",
-    159_u8 => "Udieresissmall",
-    157_u8 => "Ugravesmall",
-    117_u8 => "Usmall",
-    118_u8 => "Vsmall",
-    119_u8 => "Wsmall",
-    120_u8 => "Xsmall",
-    180_u8 => "Yacutesmall",
-    216_u8 => "Ydieresissmall",
-    121_u8 => "Ysmall",
-    189_u8 => "Zcaronsmall",
-    122_u8 => "Zsmall",
-    38_u8 => "ampersandsmall",
-    129_u8 => "asuperior",
-    245_u8 => "bsuperior",
-    169_u8 => "centinferior",
-    35_u8 => "centoldstyle",
-    130_u8 => "centsuperior",
-    58_u8 => "colon",
-    123_u8 => "colonmonetary",
-    44_u8 => "comma",
-    178_u8 => "commainferior",
-    248_u8 => "commasuperior",
-    182_u8 => "dollarinferior",
-    36_u8 => "dollaroldstyle",
-    37_u8 => "dollarsuperior",
-    235_u8 => "dsuperior",
-    165_u8 => "eightinferior",
-    56_u8 => "eightoldstyle",
-    161_u8 => "eightsuperior",
-    228_u8 => "esuperior",
-    214_u8 => "exclamdownsmall",
-    33_u8 => "exclamsmall",
-    86_u8 => "ff",
-    89_u8 => "ffi",
-    90_u8 => "ffl",
-    87_u8 => "fi",
-    208_u8 => "figuredash",
-    76_u8 => "fiveeighths",
-    176_u8 => "fiveinferior",
-    53_u8 => "fiveoldstyle",
-    222_u8 => "fivesuperior",
-    88_u8 => "fl",
-    162_u8 => "fourinferior",
-    52_u8 => "fouroldstyle",
-    221_u8 => "foursuperior",
-    47_u8 => "fraction",
-    45_u8 => "hyphen",
-    95_u8 => "hypheninferior",
-    209_u8 => "hyphensuperior",
-    233_u8 => "isuperior",
-    241_u8 => "lsuperior",
-    247_u8 => "msuperior",
-    187_u8 => "nineinferior",
-    57_u8 => "nineoldstyle",
-    225_u8 => "ninesuperior",
-    246_u8 => "nsuperior",
-    43_u8 => "onedotenleader",
-    74_u8 => "oneeighth",
-    124_u8 => "onefitted",
-    72_u8 => "onehalf",
-    193_u8 => "oneinferior",
-    49_u8 => "oneoldstyle",
-    71_u8 => "onequarter",
-    218_u8 => "onesuperior",
-    78_u8 => "onethird",
-    175_u8 => "osuperior",
-    91_u8 => "parenleftinferior",
-    40_u8 => "parenleftsuperior",
-    93_u8 => "parenrightinferior",
-    41_u8 => "parenrightsuperior",
-    46_u8 => "period",
-    179_u8 => "periodinferior",
-    249_u8 => "periodsuperior",
-    192_u8 => "questiondownsmall",
-    63_u8 => "questionsmall",
-    229_u8 => "rsuperior",
-    125_u8 => "rupiah",
-    59_u8 => "semicolon",
-    77_u8 => "seveneighths",
-    166_u8 => "seveninferior",
-    55_u8 => "sevenoldstyle",
-    224_u8 => "sevensuperior",
-    164_u8 => "sixinferior",
-    54_u8 => "sixoldstyle",
-    223_u8 => "sixsuperior",
-    32_u8 => "space",
-    234_u8 => "ssuperior",
-    75_u8 => "threeeighths",
-    163_u8 => "threeinferior",
-    51_u8 => "threeoldstyle",
-    73_u8 => "threequarters",
-    61_u8 => "threequartersemdash",
-    220_u8 => "threesuperior",
-    230_u8 => "tsuperior",
-    42_u8 => "twodotenleader",
-    170_u8 => "twoinferior",
-    50_u8 => "twooldstyle",
-    219_u8 => "twosuperior",
-    79_u8 => "twothirds",
-    188_u8 => "zeroinferior",
-    48_u8 => "zerooldstyle",
-    226_u8 => "zerosuperior",
-};
+pub(super) static MAC_EXPERT: &[u8] = b"\
+    20\xFEspace\xFF\
+    21\xFEexclamsmall\xFF\
+    22\xFEHungarumlautsmall\xFF\
+    23\xFEcentoldstyle\xFF\
+    24\xFEdollaroldstyle\xFF\
+    25\xFEdollarsuperior\xFF\
+    26\xFEampersandsmall\xFF\
+    27\xFEAcutesmall\xFF\
+    28\xFEparenleftsuperior\xFF\
+    29\xFEparenrightsuperior\xFF\
+    2A\xFEtwodotenleader\xFF\
+    2B\xFEonedotenleader\xFF\
+    2C\xFEcomma\xFF\
+    2D\xFEhyphen\xFF\
+    2E\xFEperiod\xFF\
+    2F\xFEfraction\xFF\
+    30\xFEzerooldstyle\xFF\
+    31\xFEoneoldstyle\xFF\
+    32\xFEtwooldstyle\xFF\
+    33\xFEthreeoldstyle\xFF\
+    34\xFEfouroldstyle\xFF\
+    35\xFEfiveoldstyle\xFF\
+    36\xFEsixoldstyle\xFF\
+    37\xFEsevenoldstyle\xFF\
+    38\xFEeightoldstyle\xFF\
+    39\xFEnineoldstyle\xFF\
+    3A\xFEcolon\xFF\
+    3B\xFEsemicolon\xFF\
+    3D\xFEthreequartersemdash\xFF\
+    3F\xFEquestionsmall\xFF\
+    44\xFEEthsmall\xFF\
+    47\xFEonequarter\xFF\
+    48\xFEonehalf\xFF\
+    49\xFEthreequarters\xFF\
+    4A\xFEoneeighth\xFF\
+    4B\xFEthreeeighths\xFF\
+    4C\xFEfiveeighths\xFF\
+    4D\xFEseveneighths\xFF\
+    4E\xFEonethird\xFF\
+    4F\xFEtwothirds\xFF\
+    56\xFEff\xFF\
+    57\xFEfi\xFF\
+    58\xFEfl\xFF\
+    59\xFEffi\xFF\
+    5A\xFEffl\xFF\
+    5B\xFEparenleftinferior\xFF\
+    5D\xFEparenrightinferior\xFF\
+    5E\xFECircumflexsmall\xFF\
+    5F\xFEhypheninferior\xFF\
+    60\xFEGravesmall\xFF\
+    61\xFEAsmall\xFF\
+    62\xFEBsmall\xFF\
+    63\xFECsmall\xFF\
+    64\xFEDsmall\xFF\
+    65\xFEEsmall\xFF\
+    66\xFEFsmall\xFF\
+    67\xFEGsmall\xFF\
+    68\xFEHsmall\xFF\
+    69\xFEIsmall\xFF\
+    6A\xFEJsmall\xFF\
+    6B\xFEKsmall\xFF\
+    6C\xFELsmall\xFF\
+    6D\xFEMsmall\xFF\
+    6E\xFENsmall\xFF\
+    6F\xFEOsmall\xFF\
+    70\xFEPsmall\xFF\
+    71\xFEQsmall\xFF\
+    72\xFERsmall\xFF\
+    73\xFESsmall\xFF\
+    74\xFETsmall\xFF\
+    75\xFEUsmall\xFF\
+    76\xFEVsmall\xFF\
+    77\xFEWsmall\xFF\
+    78\xFEXsmall\xFF\
+    79\xFEYsmall\xFF\
+    7A\xFEZsmall\xFF\
+    7B\xFEcolonmonetary\xFF\
+    7C\xFEonefitted\xFF\
+    7D\xFErupiah\xFF\
+    7E\xFETildesmall\xFF\
+    81\xFEasuperior\xFF\
+    82\xFEcentsuperior\xFF\
+    87\xFEAacutesmall\xFF\
+    88\xFEAgravesmall\xFF\
+    89\xFEAcircumflexsmall\xFF\
+    8A\xFEAdieresissmall\xFF\
+    8B\xFEAtildesmall\xFF\
+    8C\xFEAringsmall\xFF\
+    8D\xFECcedillasmall\xFF\
+    8E\xFEEacutesmall\xFF\
+    8F\xFEEgravesmall\xFF\
+    90\xFEEcircumflexsmall\xFF\
+    91\xFEEdieresissmall\xFF\
+    92\xFEIacutesmall\xFF\
+    93\xFEIgravesmall\xFF\
+    94\xFEIcircumflexsmall\xFF\
+    95\xFEIdieresissmall\xFF\
+    96\xFENtildesmall\xFF\
+    97\xFEOacutesmall\xFF\
+    98\xFEOgravesmall\xFF\
+    99\xFEOcircumflexsmall\xFF\
+    9A\xFEOdieresissmall\xFF\
+    9B\xFEOtildesmall\xFF\
+    9C\xFEUacutesmall\xFF\
+    9D\xFEUgravesmall\xFF\
+    9E\xFEUcircumflexsmall\xFF\
+    9F\xFEUdieresissmall\xFF\
+    A1\xFEeightsuperior\xFF\
+    A2\xFEfourinferior\xFF\
+    A3\xFEthreeinferior\xFF\
+    A4\xFEsixinferior\xFF\
+    A5\xFEeightinferior\xFF\
+    A6\xFEseveninferior\xFF\
+    A7\xFEScaronsmall\xFF\
+    A9\xFEcentinferior\xFF\
+    AA\xFEtwoinferior\xFF\
+    AC\xFEDieresissmall\xFF\
+    AE\xFECaronsmall\xFF\
+    AF\xFEosuperior\xFF\
+    B0\xFEfiveinferior\xFF\
+    B2\xFEcommainferior\xFF\
+    B3\xFEperiodinferior\xFF\
+    B4\xFEYacutesmall\xFF\
+    B6\xFEdollarinferior\xFF\
+    B9\xFEThornsmall\xFF\
+    BB\xFEnineinferior\xFF\
+    BC\xFEzeroinferior\xFF\
+    BD\xFEZcaronsmall\xFF\
+    BE\xFEAEsmall\xFF\
+    BF\xFEOslashsmall\xFF\
+    C0\xFEquestiondownsmall\xFF\
+    C1\xFEoneinferior\xFF\
+    C2\xFELslashsmall\xFF\
+    C9\xFECedillasmall\xFF\
+    CF\xFEOEsmall\xFF\
+    D0\xFEfiguredash\xFF\
+    D1\xFEhyphensuperior\xFF\
+    D6\xFEexclamdownsmall\xFF\
+    D8\xFEYdieresissmall\xFF\
+    DA\xFEonesuperior\xFF\
+    DB\xFEtwosuperior\xFF\
+    DC\xFEthreesuperior\xFF\
+    DD\xFEfoursuperior\xFF\
+    DE\xFEfivesuperior\xFF\
+    DF\xFEsixsuperior\xFF\
+    E0\xFEsevensuperior\xFF\
+    E1\xFEninesuperior\xFF\
+    E2\xFEzerosuperior\xFF\
+    E4\xFEesuperior\xFF\
+    E5\xFErsuperior\xFF\
+    E6\xFEtsuperior\xFF\
+    E9\xFEisuperior\xFF\
+    EA\xFEssuperior\xFF\
+    EB\xFEdsuperior\xFF\
+    F1\xFElsuperior\xFF\
+    F2\xFEOgoneksmall\xFF\
+    F3\xFEBrevesmall\xFF\
+    F4\xFEMacronsmall\xFF\
+    F5\xFEbsuperior\xFF\
+    F6\xFEnsuperior\xFF\
+    F7\xFEmsuperior\xFF\
+    F8\xFEcommasuperior\xFF\
+    F9\xFEperiodsuperior\xFF\
+    FA\xFEDotaccentsmall\xFF\
+    FB\xFERingsmall\xFF";

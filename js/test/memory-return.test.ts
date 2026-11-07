@@ -89,21 +89,6 @@ test("an idle timer doesn't keep a process running, or an open document from bei
   second.close();
 });
 
-test("a document that moved lets go of the text instance while it stays open", async () => {
-  const first = memories.length;
-  const engine = await createPdfEngine({ preloadAssets: [] });
-  const file = bigFile(20);
-  const doc = await (async () => {
-    const opened = await engine.open(file);
-    opened.text(0);
-    opened.render(0, { width: 100 });
-    return opened;
-  })();
-  assert.ok(await collected(memories[first]!), "the text instance's memory is still reachable");
-  assert.ok(doc.text(0).text.length > 50);
-  doc.close();
-});
-
 /** A script in a process of its own, importing the engine as `createPdfEngine`; returns what it prints. */
 function inProcess(body: string): string {
   const index = new URL("../src/index.ts", import.meta.url).href;

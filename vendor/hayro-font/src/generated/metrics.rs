@@ -1,4215 +1,4200 @@
-use phf::phf_map;
+// recto: a sorted table rather than a phf map; see `by_name` in mod.rs.
+pub(crate) static COURIER: &[u8] = b"\
+    A\xFE600\xFF\
+    AE\xFE600\xFF\
+    Aacute\xFE600\xFF\
+    Abreve\xFE600\xFF\
+    Acircumflex\xFE600\xFF\
+    Adieresis\xFE600\xFF\
+    Agrave\xFE600\xFF\
+    Amacron\xFE600\xFF\
+    Aogonek\xFE600\xFF\
+    Aring\xFE600\xFF\
+    Atilde\xFE600\xFF\
+    B\xFE600\xFF\
+    C\xFE600\xFF\
+    Cacute\xFE600\xFF\
+    Ccaron\xFE600\xFF\
+    Ccedilla\xFE600\xFF\
+    D\xFE600\xFF\
+    Dcaron\xFE600\xFF\
+    Dcroat\xFE600\xFF\
+    Delta\xFE600\xFF\
+    E\xFE600\xFF\
+    Eacute\xFE600\xFF\
+    Ecaron\xFE600\xFF\
+    Ecircumflex\xFE600\xFF\
+    Edieresis\xFE600\xFF\
+    Edotaccent\xFE600\xFF\
+    Egrave\xFE600\xFF\
+    Emacron\xFE600\xFF\
+    Eogonek\xFE600\xFF\
+    Eth\xFE600\xFF\
+    Euro\xFE600\xFF\
+    F\xFE600\xFF\
+    G\xFE600\xFF\
+    Gbreve\xFE600\xFF\
+    Gcommaaccent\xFE600\xFF\
+    H\xFE600\xFF\
+    I\xFE600\xFF\
+    Iacute\xFE600\xFF\
+    Icircumflex\xFE600\xFF\
+    Idieresis\xFE600\xFF\
+    Idotaccent\xFE600\xFF\
+    Igrave\xFE600\xFF\
+    Imacron\xFE600\xFF\
+    Iogonek\xFE600\xFF\
+    J\xFE600\xFF\
+    K\xFE600\xFF\
+    Kcommaaccent\xFE600\xFF\
+    L\xFE600\xFF\
+    Lacute\xFE600\xFF\
+    Lcaron\xFE600\xFF\
+    Lcommaaccent\xFE600\xFF\
+    Lslash\xFE600\xFF\
+    M\xFE600\xFF\
+    N\xFE600\xFF\
+    Nacute\xFE600\xFF\
+    Ncaron\xFE600\xFF\
+    Ncommaaccent\xFE600\xFF\
+    Ntilde\xFE600\xFF\
+    O\xFE600\xFF\
+    OE\xFE600\xFF\
+    Oacute\xFE600\xFF\
+    Ocircumflex\xFE600\xFF\
+    Odieresis\xFE600\xFF\
+    Ograve\xFE600\xFF\
+    Ohungarumlaut\xFE600\xFF\
+    Omacron\xFE600\xFF\
+    Oslash\xFE600\xFF\
+    Otilde\xFE600\xFF\
+    P\xFE600\xFF\
+    Q\xFE600\xFF\
+    R\xFE600\xFF\
+    Racute\xFE600\xFF\
+    Rcaron\xFE600\xFF\
+    Rcommaaccent\xFE600\xFF\
+    S\xFE600\xFF\
+    Sacute\xFE600\xFF\
+    Scaron\xFE600\xFF\
+    Scedilla\xFE600\xFF\
+    Scommaaccent\xFE600\xFF\
+    T\xFE600\xFF\
+    Tcaron\xFE600\xFF\
+    Tcommaaccent\xFE600\xFF\
+    Thorn\xFE600\xFF\
+    U\xFE600\xFF\
+    Uacute\xFE600\xFF\
+    Ucircumflex\xFE600\xFF\
+    Udieresis\xFE600\xFF\
+    Ugrave\xFE600\xFF\
+    Uhungarumlaut\xFE600\xFF\
+    Umacron\xFE600\xFF\
+    Uogonek\xFE600\xFF\
+    Uring\xFE600\xFF\
+    V\xFE600\xFF\
+    W\xFE600\xFF\
+    X\xFE600\xFF\
+    Y\xFE600\xFF\
+    Yacute\xFE600\xFF\
+    Ydieresis\xFE600\xFF\
+    Z\xFE600\xFF\
+    Zacute\xFE600\xFF\
+    Zcaron\xFE600\xFF\
+    Zdotaccent\xFE600\xFF\
+    a\xFE600\xFF\
+    aacute\xFE600\xFF\
+    abreve\xFE600\xFF\
+    acircumflex\xFE600\xFF\
+    acute\xFE600\xFF\
+    adieresis\xFE600\xFF\
+    ae\xFE600\xFF\
+    agrave\xFE600\xFF\
+    amacron\xFE600\xFF\
+    ampersand\xFE600\xFF\
+    aogonek\xFE600\xFF\
+    aring\xFE600\xFF\
+    asciicircum\xFE600\xFF\
+    asciitilde\xFE600\xFF\
+    asterisk\xFE600\xFF\
+    at\xFE600\xFF\
+    atilde\xFE600\xFF\
+    b\xFE600\xFF\
+    backslash\xFE600\xFF\
+    bar\xFE600\xFF\
+    braceleft\xFE600\xFF\
+    braceright\xFE600\xFF\
+    bracketleft\xFE600\xFF\
+    bracketright\xFE600\xFF\
+    breve\xFE600\xFF\
+    brokenbar\xFE600\xFF\
+    bullet\xFE600\xFF\
+    c\xFE600\xFF\
+    cacute\xFE600\xFF\
+    caron\xFE600\xFF\
+    ccaron\xFE600\xFF\
+    ccedilla\xFE600\xFF\
+    cedilla\xFE600\xFF\
+    cent\xFE600\xFF\
+    circumflex\xFE600\xFF\
+    colon\xFE600\xFF\
+    comma\xFE600\xFF\
+    commaaccent\xFE600\xFF\
+    copyright\xFE600\xFF\
+    currency\xFE600\xFF\
+    d\xFE600\xFF\
+    dagger\xFE600\xFF\
+    daggerdbl\xFE600\xFF\
+    dcaron\xFE600\xFF\
+    dcroat\xFE600\xFF\
+    degree\xFE600\xFF\
+    dieresis\xFE600\xFF\
+    divide\xFE600\xFF\
+    dollar\xFE600\xFF\
+    dotaccent\xFE600\xFF\
+    dotlessi\xFE600\xFF\
+    e\xFE600\xFF\
+    eacute\xFE600\xFF\
+    ecaron\xFE600\xFF\
+    ecircumflex\xFE600\xFF\
+    edieresis\xFE600\xFF\
+    edotaccent\xFE600\xFF\
+    egrave\xFE600\xFF\
+    eight\xFE600\xFF\
+    ellipsis\xFE600\xFF\
+    emacron\xFE600\xFF\
+    emdash\xFE600\xFF\
+    endash\xFE600\xFF\
+    eogonek\xFE600\xFF\
+    equal\xFE600\xFF\
+    eth\xFE600\xFF\
+    exclam\xFE600\xFF\
+    exclamdown\xFE600\xFF\
+    f\xFE600\xFF\
+    fi\xFE600\xFF\
+    five\xFE600\xFF\
+    fl\xFE600\xFF\
+    florin\xFE600\xFF\
+    four\xFE600\xFF\
+    fraction\xFE600\xFF\
+    g\xFE600\xFF\
+    gbreve\xFE600\xFF\
+    gcommaaccent\xFE600\xFF\
+    germandbls\xFE600\xFF\
+    grave\xFE600\xFF\
+    greater\xFE600\xFF\
+    greaterequal\xFE600\xFF\
+    guillemotleft\xFE600\xFF\
+    guillemotright\xFE600\xFF\
+    guilsinglleft\xFE600\xFF\
+    guilsinglright\xFE600\xFF\
+    h\xFE600\xFF\
+    hungarumlaut\xFE600\xFF\
+    hyphen\xFE600\xFF\
+    i\xFE600\xFF\
+    iacute\xFE600\xFF\
+    icircumflex\xFE600\xFF\
+    idieresis\xFE600\xFF\
+    igrave\xFE600\xFF\
+    imacron\xFE600\xFF\
+    iogonek\xFE600\xFF\
+    j\xFE600\xFF\
+    k\xFE600\xFF\
+    kcommaaccent\xFE600\xFF\
+    l\xFE600\xFF\
+    lacute\xFE600\xFF\
+    lcaron\xFE600\xFF\
+    lcommaaccent\xFE600\xFF\
+    less\xFE600\xFF\
+    lessequal\xFE600\xFF\
+    logicalnot\xFE600\xFF\
+    lozenge\xFE600\xFF\
+    lslash\xFE600\xFF\
+    m\xFE600\xFF\
+    macron\xFE600\xFF\
+    minus\xFE600\xFF\
+    mu\xFE600\xFF\
+    multiply\xFE600\xFF\
+    n\xFE600\xFF\
+    nacute\xFE600\xFF\
+    ncaron\xFE600\xFF\
+    ncommaaccent\xFE600\xFF\
+    nine\xFE600\xFF\
+    notequal\xFE600\xFF\
+    ntilde\xFE600\xFF\
+    numbersign\xFE600\xFF\
+    o\xFE600\xFF\
+    oacute\xFE600\xFF\
+    ocircumflex\xFE600\xFF\
+    odieresis\xFE600\xFF\
+    oe\xFE600\xFF\
+    ogonek\xFE600\xFF\
+    ograve\xFE600\xFF\
+    ohungarumlaut\xFE600\xFF\
+    omacron\xFE600\xFF\
+    one\xFE600\xFF\
+    onehalf\xFE600\xFF\
+    onequarter\xFE600\xFF\
+    onesuperior\xFE600\xFF\
+    ordfeminine\xFE600\xFF\
+    ordmasculine\xFE600\xFF\
+    oslash\xFE600\xFF\
+    otilde\xFE600\xFF\
+    p\xFE600\xFF\
+    paragraph\xFE600\xFF\
+    parenleft\xFE600\xFF\
+    parenright\xFE600\xFF\
+    partialdiff\xFE600\xFF\
+    percent\xFE600\xFF\
+    period\xFE600\xFF\
+    periodcentered\xFE600\xFF\
+    perthousand\xFE600\xFF\
+    plus\xFE600\xFF\
+    plusminus\xFE600\xFF\
+    q\xFE600\xFF\
+    question\xFE600\xFF\
+    questiondown\xFE600\xFF\
+    quotedbl\xFE600\xFF\
+    quotedblbase\xFE600\xFF\
+    quotedblleft\xFE600\xFF\
+    quotedblright\xFE600\xFF\
+    quoteleft\xFE600\xFF\
+    quoteright\xFE600\xFF\
+    quotesinglbase\xFE600\xFF\
+    quotesingle\xFE600\xFF\
+    r\xFE600\xFF\
+    racute\xFE600\xFF\
+    radical\xFE600\xFF\
+    rcaron\xFE600\xFF\
+    rcommaaccent\xFE600\xFF\
+    registered\xFE600\xFF\
+    ring\xFE600\xFF\
+    s\xFE600\xFF\
+    sacute\xFE600\xFF\
+    scaron\xFE600\xFF\
+    scedilla\xFE600\xFF\
+    scommaaccent\xFE600\xFF\
+    section\xFE600\xFF\
+    semicolon\xFE600\xFF\
+    seven\xFE600\xFF\
+    six\xFE600\xFF\
+    slash\xFE600\xFF\
+    space\xFE600\xFF\
+    sterling\xFE600\xFF\
+    summation\xFE600\xFF\
+    t\xFE600\xFF\
+    tcaron\xFE600\xFF\
+    tcommaaccent\xFE600\xFF\
+    thorn\xFE600\xFF\
+    three\xFE600\xFF\
+    threequarters\xFE600\xFF\
+    threesuperior\xFE600\xFF\
+    tilde\xFE600\xFF\
+    trademark\xFE600\xFF\
+    two\xFE600\xFF\
+    twosuperior\xFE600\xFF\
+    u\xFE600\xFF\
+    uacute\xFE600\xFF\
+    ucircumflex\xFE600\xFF\
+    udieresis\xFE600\xFF\
+    ugrave\xFE600\xFF\
+    uhungarumlaut\xFE600\xFF\
+    umacron\xFE600\xFF\
+    underscore\xFE600\xFF\
+    uogonek\xFE600\xFF\
+    uring\xFE600\xFF\
+    v\xFE600\xFF\
+    w\xFE600\xFF\
+    x\xFE600\xFF\
+    y\xFE600\xFF\
+    yacute\xFE600\xFF\
+    ydieresis\xFE600\xFF\
+    yen\xFE600\xFF\
+    z\xFE600\xFF\
+    zacute\xFE600\xFF\
+    zcaron\xFE600\xFF\
+    zdotaccent\xFE600\xFF\
+    zero\xFE600\xFF";
 
-pub(crate) static COURIER: phf::Map<&'static str, f32> = phf_map! {
-    "space" => 600_f32,
-    "exclam" => 600_f32,
-    "quotedbl" => 600_f32,
-    "numbersign" => 600_f32,
-    "dollar" => 600_f32,
-    "percent" => 600_f32,
-    "ampersand" => 600_f32,
-    "quoteright" => 600_f32,
-    "parenleft" => 600_f32,
-    "parenright" => 600_f32,
-    "asterisk" => 600_f32,
-    "plus" => 600_f32,
-    "comma" => 600_f32,
-    "hyphen" => 600_f32,
-    "period" => 600_f32,
-    "slash" => 600_f32,
-    "zero" => 600_f32,
-    "one" => 600_f32,
-    "two" => 600_f32,
-    "three" => 600_f32,
-    "four" => 600_f32,
-    "five" => 600_f32,
-    "six" => 600_f32,
-    "seven" => 600_f32,
-    "eight" => 600_f32,
-    "nine" => 600_f32,
-    "colon" => 600_f32,
-    "semicolon" => 600_f32,
-    "less" => 600_f32,
-    "equal" => 600_f32,
-    "greater" => 600_f32,
-    "question" => 600_f32,
-    "at" => 600_f32,
-    "A" => 600_f32,
-    "B" => 600_f32,
-    "C" => 600_f32,
-    "D" => 600_f32,
-    "E" => 600_f32,
-    "F" => 600_f32,
-    "G" => 600_f32,
-    "H" => 600_f32,
-    "I" => 600_f32,
-    "J" => 600_f32,
-    "K" => 600_f32,
-    "L" => 600_f32,
-    "M" => 600_f32,
-    "N" => 600_f32,
-    "O" => 600_f32,
-    "P" => 600_f32,
-    "Q" => 600_f32,
-    "R" => 600_f32,
-    "S" => 600_f32,
-    "T" => 600_f32,
-    "U" => 600_f32,
-    "V" => 600_f32,
-    "W" => 600_f32,
-    "X" => 600_f32,
-    "Y" => 600_f32,
-    "Z" => 600_f32,
-    "bracketleft" => 600_f32,
-    "backslash" => 600_f32,
-    "bracketright" => 600_f32,
-    "asciicircum" => 600_f32,
-    "underscore" => 600_f32,
-    "quoteleft" => 600_f32,
-    "a" => 600_f32,
-    "b" => 600_f32,
-    "c" => 600_f32,
-    "d" => 600_f32,
-    "e" => 600_f32,
-    "f" => 600_f32,
-    "g" => 600_f32,
-    "h" => 600_f32,
-    "i" => 600_f32,
-    "j" => 600_f32,
-    "k" => 600_f32,
-    "l" => 600_f32,
-    "m" => 600_f32,
-    "n" => 600_f32,
-    "o" => 600_f32,
-    "p" => 600_f32,
-    "q" => 600_f32,
-    "r" => 600_f32,
-    "s" => 600_f32,
-    "t" => 600_f32,
-    "u" => 600_f32,
-    "v" => 600_f32,
-    "w" => 600_f32,
-    "x" => 600_f32,
-    "y" => 600_f32,
-    "z" => 600_f32,
-    "braceleft" => 600_f32,
-    "bar" => 600_f32,
-    "braceright" => 600_f32,
-    "asciitilde" => 600_f32,
-    "exclamdown" => 600_f32,
-    "cent" => 600_f32,
-    "sterling" => 600_f32,
-    "fraction" => 600_f32,
-    "yen" => 600_f32,
-    "florin" => 600_f32,
-    "section" => 600_f32,
-    "currency" => 600_f32,
-    "quotesingle" => 600_f32,
-    "quotedblleft" => 600_f32,
-    "guillemotleft" => 600_f32,
-    "guilsinglleft" => 600_f32,
-    "guilsinglright" => 600_f32,
-    "fi" => 600_f32,
-    "fl" => 600_f32,
-    "endash" => 600_f32,
-    "dagger" => 600_f32,
-    "daggerdbl" => 600_f32,
-    "periodcentered" => 600_f32,
-    "paragraph" => 600_f32,
-    "bullet" => 600_f32,
-    "quotesinglbase" => 600_f32,
-    "quotedblbase" => 600_f32,
-    "quotedblright" => 600_f32,
-    "guillemotright" => 600_f32,
-    "ellipsis" => 600_f32,
-    "perthousand" => 600_f32,
-    "questiondown" => 600_f32,
-    "grave" => 600_f32,
-    "acute" => 600_f32,
-    "circumflex" => 600_f32,
-    "tilde" => 600_f32,
-    "macron" => 600_f32,
-    "breve" => 600_f32,
-    "dotaccent" => 600_f32,
-    "dieresis" => 600_f32,
-    "ring" => 600_f32,
-    "cedilla" => 600_f32,
-    "hungarumlaut" => 600_f32,
-    "ogonek" => 600_f32,
-    "caron" => 600_f32,
-    "emdash" => 600_f32,
-    "AE" => 600_f32,
-    "ordfeminine" => 600_f32,
-    "Lslash" => 600_f32,
-    "Oslash" => 600_f32,
-    "OE" => 600_f32,
-    "ordmasculine" => 600_f32,
-    "ae" => 600_f32,
-    "dotlessi" => 600_f32,
-    "lslash" => 600_f32,
-    "oslash" => 600_f32,
-    "oe" => 600_f32,
-    "germandbls" => 600_f32,
-    "Idieresis" => 600_f32,
-    "eacute" => 600_f32,
-    "abreve" => 600_f32,
-    "uhungarumlaut" => 600_f32,
-    "ecaron" => 600_f32,
-    "Ydieresis" => 600_f32,
-    "divide" => 600_f32,
-    "Yacute" => 600_f32,
-    "Acircumflex" => 600_f32,
-    "aacute" => 600_f32,
-    "Ucircumflex" => 600_f32,
-    "yacute" => 600_f32,
-    "scommaaccent" => 600_f32,
-    "ecircumflex" => 600_f32,
-    "Uring" => 600_f32,
-    "Udieresis" => 600_f32,
-    "aogonek" => 600_f32,
-    "Uacute" => 600_f32,
-    "uogonek" => 600_f32,
-    "Edieresis" => 600_f32,
-    "Dcroat" => 600_f32,
-    "commaaccent" => 600_f32,
-    "copyright" => 600_f32,
-    "Emacron" => 600_f32,
-    "ccaron" => 600_f32,
-    "aring" => 600_f32,
-    "Ncommaaccent" => 600_f32,
-    "lacute" => 600_f32,
-    "agrave" => 600_f32,
-    "Tcommaaccent" => 600_f32,
-    "Cacute" => 600_f32,
-    "atilde" => 600_f32,
-    "Edotaccent" => 600_f32,
-    "scaron" => 600_f32,
-    "scedilla" => 600_f32,
-    "iacute" => 600_f32,
-    "lozenge" => 600_f32,
-    "Rcaron" => 600_f32,
-    "Gcommaaccent" => 600_f32,
-    "ucircumflex" => 600_f32,
-    "acircumflex" => 600_f32,
-    "Amacron" => 600_f32,
-    "rcaron" => 600_f32,
-    "ccedilla" => 600_f32,
-    "Zdotaccent" => 600_f32,
-    "Thorn" => 600_f32,
-    "Omacron" => 600_f32,
-    "Racute" => 600_f32,
-    "Sacute" => 600_f32,
-    "dcaron" => 600_f32,
-    "Umacron" => 600_f32,
-    "uring" => 600_f32,
-    "threesuperior" => 600_f32,
-    "Ograve" => 600_f32,
-    "Agrave" => 600_f32,
-    "Abreve" => 600_f32,
-    "multiply" => 600_f32,
-    "uacute" => 600_f32,
-    "Tcaron" => 600_f32,
-    "partialdiff" => 600_f32,
-    "ydieresis" => 600_f32,
-    "Nacute" => 600_f32,
-    "icircumflex" => 600_f32,
-    "Ecircumflex" => 600_f32,
-    "adieresis" => 600_f32,
-    "edieresis" => 600_f32,
-    "cacute" => 600_f32,
-    "nacute" => 600_f32,
-    "umacron" => 600_f32,
-    "Ncaron" => 600_f32,
-    "Iacute" => 600_f32,
-    "plusminus" => 600_f32,
-    "brokenbar" => 600_f32,
-    "registered" => 600_f32,
-    "Gbreve" => 600_f32,
-    "Idotaccent" => 600_f32,
-    "summation" => 600_f32,
-    "Egrave" => 600_f32,
-    "racute" => 600_f32,
-    "omacron" => 600_f32,
-    "Zacute" => 600_f32,
-    "Zcaron" => 600_f32,
-    "greaterequal" => 600_f32,
-    "Eth" => 600_f32,
-    "Ccedilla" => 600_f32,
-    "lcommaaccent" => 600_f32,
-    "tcaron" => 600_f32,
-    "eogonek" => 600_f32,
-    "Uogonek" => 600_f32,
-    "Aacute" => 600_f32,
-    "Adieresis" => 600_f32,
-    "egrave" => 600_f32,
-    "zacute" => 600_f32,
-    "iogonek" => 600_f32,
-    "Oacute" => 600_f32,
-    "oacute" => 600_f32,
-    "amacron" => 600_f32,
-    "sacute" => 600_f32,
-    "idieresis" => 600_f32,
-    "Ocircumflex" => 600_f32,
-    "Ugrave" => 600_f32,
-    "Delta" => 600_f32,
-    "thorn" => 600_f32,
-    "twosuperior" => 600_f32,
-    "Odieresis" => 600_f32,
-    "mu" => 600_f32,
-    "igrave" => 600_f32,
-    "ohungarumlaut" => 600_f32,
-    "Eogonek" => 600_f32,
-    "dcroat" => 600_f32,
-    "threequarters" => 600_f32,
-    "Scedilla" => 600_f32,
-    "lcaron" => 600_f32,
-    "Kcommaaccent" => 600_f32,
-    "Lacute" => 600_f32,
-    "trademark" => 600_f32,
-    "edotaccent" => 600_f32,
-    "Igrave" => 600_f32,
-    "Imacron" => 600_f32,
-    "Lcaron" => 600_f32,
-    "onehalf" => 600_f32,
-    "lessequal" => 600_f32,
-    "ocircumflex" => 600_f32,
-    "ntilde" => 600_f32,
-    "Uhungarumlaut" => 600_f32,
-    "Eacute" => 600_f32,
-    "emacron" => 600_f32,
-    "gbreve" => 600_f32,
-    "onequarter" => 600_f32,
-    "Scaron" => 600_f32,
-    "Scommaaccent" => 600_f32,
-    "Ohungarumlaut" => 600_f32,
-    "degree" => 600_f32,
-    "ograve" => 600_f32,
-    "Ccaron" => 600_f32,
-    "ugrave" => 600_f32,
-    "radical" => 600_f32,
-    "Dcaron" => 600_f32,
-    "rcommaaccent" => 600_f32,
-    "Ntilde" => 600_f32,
-    "otilde" => 600_f32,
-    "Rcommaaccent" => 600_f32,
-    "Lcommaaccent" => 600_f32,
-    "Atilde" => 600_f32,
-    "Aogonek" => 600_f32,
-    "Aring" => 600_f32,
-    "Otilde" => 600_f32,
-    "zdotaccent" => 600_f32,
-    "Ecaron" => 600_f32,
-    "Iogonek" => 600_f32,
-    "kcommaaccent" => 600_f32,
-    "minus" => 600_f32,
-    "Icircumflex" => 600_f32,
-    "ncaron" => 600_f32,
-    "tcommaaccent" => 600_f32,
-    "logicalnot" => 600_f32,
-    "odieresis" => 600_f32,
-    "udieresis" => 600_f32,
-    "notequal" => 600_f32,
-    "gcommaaccent" => 600_f32,
-    "eth" => 600_f32,
-    "zcaron" => 600_f32,
-    "ncommaaccent" => 600_f32,
-    "onesuperior" => 600_f32,
-    "imacron" => 600_f32,
-    "Euro" => 600_f32,
-};
+pub(crate) static COURIER_BOLD: &[u8] = b"\
+    A\xFE600\xFF\
+    AE\xFE600\xFF\
+    Aacute\xFE600\xFF\
+    Abreve\xFE600\xFF\
+    Acircumflex\xFE600\xFF\
+    Adieresis\xFE600\xFF\
+    Agrave\xFE600\xFF\
+    Amacron\xFE600\xFF\
+    Aogonek\xFE600\xFF\
+    Aring\xFE600\xFF\
+    Atilde\xFE600\xFF\
+    B\xFE600\xFF\
+    C\xFE600\xFF\
+    Cacute\xFE600\xFF\
+    Ccaron\xFE600\xFF\
+    Ccedilla\xFE600\xFF\
+    D\xFE600\xFF\
+    Dcaron\xFE600\xFF\
+    Dcroat\xFE600\xFF\
+    Delta\xFE600\xFF\
+    E\xFE600\xFF\
+    Eacute\xFE600\xFF\
+    Ecaron\xFE600\xFF\
+    Ecircumflex\xFE600\xFF\
+    Edieresis\xFE600\xFF\
+    Edotaccent\xFE600\xFF\
+    Egrave\xFE600\xFF\
+    Emacron\xFE600\xFF\
+    Eogonek\xFE600\xFF\
+    Eth\xFE600\xFF\
+    Euro\xFE600\xFF\
+    F\xFE600\xFF\
+    G\xFE600\xFF\
+    Gbreve\xFE600\xFF\
+    Gcommaaccent\xFE600\xFF\
+    H\xFE600\xFF\
+    I\xFE600\xFF\
+    Iacute\xFE600\xFF\
+    Icircumflex\xFE600\xFF\
+    Idieresis\xFE600\xFF\
+    Idotaccent\xFE600\xFF\
+    Igrave\xFE600\xFF\
+    Imacron\xFE600\xFF\
+    Iogonek\xFE600\xFF\
+    J\xFE600\xFF\
+    K\xFE600\xFF\
+    Kcommaaccent\xFE600\xFF\
+    L\xFE600\xFF\
+    Lacute\xFE600\xFF\
+    Lcaron\xFE600\xFF\
+    Lcommaaccent\xFE600\xFF\
+    Lslash\xFE600\xFF\
+    M\xFE600\xFF\
+    N\xFE600\xFF\
+    Nacute\xFE600\xFF\
+    Ncaron\xFE600\xFF\
+    Ncommaaccent\xFE600\xFF\
+    Ntilde\xFE600\xFF\
+    O\xFE600\xFF\
+    OE\xFE600\xFF\
+    Oacute\xFE600\xFF\
+    Ocircumflex\xFE600\xFF\
+    Odieresis\xFE600\xFF\
+    Ograve\xFE600\xFF\
+    Ohungarumlaut\xFE600\xFF\
+    Omacron\xFE600\xFF\
+    Oslash\xFE600\xFF\
+    Otilde\xFE600\xFF\
+    P\xFE600\xFF\
+    Q\xFE600\xFF\
+    R\xFE600\xFF\
+    Racute\xFE600\xFF\
+    Rcaron\xFE600\xFF\
+    Rcommaaccent\xFE600\xFF\
+    S\xFE600\xFF\
+    Sacute\xFE600\xFF\
+    Scaron\xFE600\xFF\
+    Scedilla\xFE600\xFF\
+    Scommaaccent\xFE600\xFF\
+    T\xFE600\xFF\
+    Tcaron\xFE600\xFF\
+    Tcommaaccent\xFE600\xFF\
+    Thorn\xFE600\xFF\
+    U\xFE600\xFF\
+    Uacute\xFE600\xFF\
+    Ucircumflex\xFE600\xFF\
+    Udieresis\xFE600\xFF\
+    Ugrave\xFE600\xFF\
+    Uhungarumlaut\xFE600\xFF\
+    Umacron\xFE600\xFF\
+    Uogonek\xFE600\xFF\
+    Uring\xFE600\xFF\
+    V\xFE600\xFF\
+    W\xFE600\xFF\
+    X\xFE600\xFF\
+    Y\xFE600\xFF\
+    Yacute\xFE600\xFF\
+    Ydieresis\xFE600\xFF\
+    Z\xFE600\xFF\
+    Zacute\xFE600\xFF\
+    Zcaron\xFE600\xFF\
+    Zdotaccent\xFE600\xFF\
+    a\xFE600\xFF\
+    aacute\xFE600\xFF\
+    abreve\xFE600\xFF\
+    acircumflex\xFE600\xFF\
+    acute\xFE600\xFF\
+    adieresis\xFE600\xFF\
+    ae\xFE600\xFF\
+    agrave\xFE600\xFF\
+    amacron\xFE600\xFF\
+    ampersand\xFE600\xFF\
+    aogonek\xFE600\xFF\
+    aring\xFE600\xFF\
+    asciicircum\xFE600\xFF\
+    asciitilde\xFE600\xFF\
+    asterisk\xFE600\xFF\
+    at\xFE600\xFF\
+    atilde\xFE600\xFF\
+    b\xFE600\xFF\
+    backslash\xFE600\xFF\
+    bar\xFE600\xFF\
+    braceleft\xFE600\xFF\
+    braceright\xFE600\xFF\
+    bracketleft\xFE600\xFF\
+    bracketright\xFE600\xFF\
+    breve\xFE600\xFF\
+    brokenbar\xFE600\xFF\
+    bullet\xFE600\xFF\
+    c\xFE600\xFF\
+    cacute\xFE600\xFF\
+    caron\xFE600\xFF\
+    ccaron\xFE600\xFF\
+    ccedilla\xFE600\xFF\
+    cedilla\xFE600\xFF\
+    cent\xFE600\xFF\
+    circumflex\xFE600\xFF\
+    colon\xFE600\xFF\
+    comma\xFE600\xFF\
+    commaaccent\xFE600\xFF\
+    copyright\xFE600\xFF\
+    currency\xFE600\xFF\
+    d\xFE600\xFF\
+    dagger\xFE600\xFF\
+    daggerdbl\xFE600\xFF\
+    dcaron\xFE600\xFF\
+    dcroat\xFE600\xFF\
+    degree\xFE600\xFF\
+    dieresis\xFE600\xFF\
+    divide\xFE600\xFF\
+    dollar\xFE600\xFF\
+    dotaccent\xFE600\xFF\
+    dotlessi\xFE600\xFF\
+    e\xFE600\xFF\
+    eacute\xFE600\xFF\
+    ecaron\xFE600\xFF\
+    ecircumflex\xFE600\xFF\
+    edieresis\xFE600\xFF\
+    edotaccent\xFE600\xFF\
+    egrave\xFE600\xFF\
+    eight\xFE600\xFF\
+    ellipsis\xFE600\xFF\
+    emacron\xFE600\xFF\
+    emdash\xFE600\xFF\
+    endash\xFE600\xFF\
+    eogonek\xFE600\xFF\
+    equal\xFE600\xFF\
+    eth\xFE600\xFF\
+    exclam\xFE600\xFF\
+    exclamdown\xFE600\xFF\
+    f\xFE600\xFF\
+    fi\xFE600\xFF\
+    five\xFE600\xFF\
+    fl\xFE600\xFF\
+    florin\xFE600\xFF\
+    four\xFE600\xFF\
+    fraction\xFE600\xFF\
+    g\xFE600\xFF\
+    gbreve\xFE600\xFF\
+    gcommaaccent\xFE600\xFF\
+    germandbls\xFE600\xFF\
+    grave\xFE600\xFF\
+    greater\xFE600\xFF\
+    greaterequal\xFE600\xFF\
+    guillemotleft\xFE600\xFF\
+    guillemotright\xFE600\xFF\
+    guilsinglleft\xFE600\xFF\
+    guilsinglright\xFE600\xFF\
+    h\xFE600\xFF\
+    hungarumlaut\xFE600\xFF\
+    hyphen\xFE600\xFF\
+    i\xFE600\xFF\
+    iacute\xFE600\xFF\
+    icircumflex\xFE600\xFF\
+    idieresis\xFE600\xFF\
+    igrave\xFE600\xFF\
+    imacron\xFE600\xFF\
+    iogonek\xFE600\xFF\
+    j\xFE600\xFF\
+    k\xFE600\xFF\
+    kcommaaccent\xFE600\xFF\
+    l\xFE600\xFF\
+    lacute\xFE600\xFF\
+    lcaron\xFE600\xFF\
+    lcommaaccent\xFE600\xFF\
+    less\xFE600\xFF\
+    lessequal\xFE600\xFF\
+    logicalnot\xFE600\xFF\
+    lozenge\xFE600\xFF\
+    lslash\xFE600\xFF\
+    m\xFE600\xFF\
+    macron\xFE600\xFF\
+    minus\xFE600\xFF\
+    mu\xFE600\xFF\
+    multiply\xFE600\xFF\
+    n\xFE600\xFF\
+    nacute\xFE600\xFF\
+    ncaron\xFE600\xFF\
+    ncommaaccent\xFE600\xFF\
+    nine\xFE600\xFF\
+    notequal\xFE600\xFF\
+    ntilde\xFE600\xFF\
+    numbersign\xFE600\xFF\
+    o\xFE600\xFF\
+    oacute\xFE600\xFF\
+    ocircumflex\xFE600\xFF\
+    odieresis\xFE600\xFF\
+    oe\xFE600\xFF\
+    ogonek\xFE600\xFF\
+    ograve\xFE600\xFF\
+    ohungarumlaut\xFE600\xFF\
+    omacron\xFE600\xFF\
+    one\xFE600\xFF\
+    onehalf\xFE600\xFF\
+    onequarter\xFE600\xFF\
+    onesuperior\xFE600\xFF\
+    ordfeminine\xFE600\xFF\
+    ordmasculine\xFE600\xFF\
+    oslash\xFE600\xFF\
+    otilde\xFE600\xFF\
+    p\xFE600\xFF\
+    paragraph\xFE600\xFF\
+    parenleft\xFE600\xFF\
+    parenright\xFE600\xFF\
+    partialdiff\xFE600\xFF\
+    percent\xFE600\xFF\
+    period\xFE600\xFF\
+    periodcentered\xFE600\xFF\
+    perthousand\xFE600\xFF\
+    plus\xFE600\xFF\
+    plusminus\xFE600\xFF\
+    q\xFE600\xFF\
+    question\xFE600\xFF\
+    questiondown\xFE600\xFF\
+    quotedbl\xFE600\xFF\
+    quotedblbase\xFE600\xFF\
+    quotedblleft\xFE600\xFF\
+    quotedblright\xFE600\xFF\
+    quoteleft\xFE600\xFF\
+    quoteright\xFE600\xFF\
+    quotesinglbase\xFE600\xFF\
+    quotesingle\xFE600\xFF\
+    r\xFE600\xFF\
+    racute\xFE600\xFF\
+    radical\xFE600\xFF\
+    rcaron\xFE600\xFF\
+    rcommaaccent\xFE600\xFF\
+    registered\xFE600\xFF\
+    ring\xFE600\xFF\
+    s\xFE600\xFF\
+    sacute\xFE600\xFF\
+    scaron\xFE600\xFF\
+    scedilla\xFE600\xFF\
+    scommaaccent\xFE600\xFF\
+    section\xFE600\xFF\
+    semicolon\xFE600\xFF\
+    seven\xFE600\xFF\
+    six\xFE600\xFF\
+    slash\xFE600\xFF\
+    space\xFE600\xFF\
+    sterling\xFE600\xFF\
+    summation\xFE600\xFF\
+    t\xFE600\xFF\
+    tcaron\xFE600\xFF\
+    tcommaaccent\xFE600\xFF\
+    thorn\xFE600\xFF\
+    three\xFE600\xFF\
+    threequarters\xFE600\xFF\
+    threesuperior\xFE600\xFF\
+    tilde\xFE600\xFF\
+    trademark\xFE600\xFF\
+    two\xFE600\xFF\
+    twosuperior\xFE600\xFF\
+    u\xFE600\xFF\
+    uacute\xFE600\xFF\
+    ucircumflex\xFE600\xFF\
+    udieresis\xFE600\xFF\
+    ugrave\xFE600\xFF\
+    uhungarumlaut\xFE600\xFF\
+    umacron\xFE600\xFF\
+    underscore\xFE600\xFF\
+    uogonek\xFE600\xFF\
+    uring\xFE600\xFF\
+    v\xFE600\xFF\
+    w\xFE600\xFF\
+    x\xFE600\xFF\
+    y\xFE600\xFF\
+    yacute\xFE600\xFF\
+    ydieresis\xFE600\xFF\
+    yen\xFE600\xFF\
+    z\xFE600\xFF\
+    zacute\xFE600\xFF\
+    zcaron\xFE600\xFF\
+    zdotaccent\xFE600\xFF\
+    zero\xFE600\xFF";
 
-pub(crate) static COURIER_BOLD: phf::Map<&'static str, f32> = phf_map! {
-    "space" => 600_f32,
-    "exclam" => 600_f32,
-    "quotedbl" => 600_f32,
-    "numbersign" => 600_f32,
-    "dollar" => 600_f32,
-    "percent" => 600_f32,
-    "ampersand" => 600_f32,
-    "quoteright" => 600_f32,
-    "parenleft" => 600_f32,
-    "parenright" => 600_f32,
-    "asterisk" => 600_f32,
-    "plus" => 600_f32,
-    "comma" => 600_f32,
-    "hyphen" => 600_f32,
-    "period" => 600_f32,
-    "slash" => 600_f32,
-    "zero" => 600_f32,
-    "one" => 600_f32,
-    "two" => 600_f32,
-    "three" => 600_f32,
-    "four" => 600_f32,
-    "five" => 600_f32,
-    "six" => 600_f32,
-    "seven" => 600_f32,
-    "eight" => 600_f32,
-    "nine" => 600_f32,
-    "colon" => 600_f32,
-    "semicolon" => 600_f32,
-    "less" => 600_f32,
-    "equal" => 600_f32,
-    "greater" => 600_f32,
-    "question" => 600_f32,
-    "at" => 600_f32,
-    "A" => 600_f32,
-    "B" => 600_f32,
-    "C" => 600_f32,
-    "D" => 600_f32,
-    "E" => 600_f32,
-    "F" => 600_f32,
-    "G" => 600_f32,
-    "H" => 600_f32,
-    "I" => 600_f32,
-    "J" => 600_f32,
-    "K" => 600_f32,
-    "L" => 600_f32,
-    "M" => 600_f32,
-    "N" => 600_f32,
-    "O" => 600_f32,
-    "P" => 600_f32,
-    "Q" => 600_f32,
-    "R" => 600_f32,
-    "S" => 600_f32,
-    "T" => 600_f32,
-    "U" => 600_f32,
-    "V" => 600_f32,
-    "W" => 600_f32,
-    "X" => 600_f32,
-    "Y" => 600_f32,
-    "Z" => 600_f32,
-    "bracketleft" => 600_f32,
-    "backslash" => 600_f32,
-    "bracketright" => 600_f32,
-    "asciicircum" => 600_f32,
-    "underscore" => 600_f32,
-    "quoteleft" => 600_f32,
-    "a" => 600_f32,
-    "b" => 600_f32,
-    "c" => 600_f32,
-    "d" => 600_f32,
-    "e" => 600_f32,
-    "f" => 600_f32,
-    "g" => 600_f32,
-    "h" => 600_f32,
-    "i" => 600_f32,
-    "j" => 600_f32,
-    "k" => 600_f32,
-    "l" => 600_f32,
-    "m" => 600_f32,
-    "n" => 600_f32,
-    "o" => 600_f32,
-    "p" => 600_f32,
-    "q" => 600_f32,
-    "r" => 600_f32,
-    "s" => 600_f32,
-    "t" => 600_f32,
-    "u" => 600_f32,
-    "v" => 600_f32,
-    "w" => 600_f32,
-    "x" => 600_f32,
-    "y" => 600_f32,
-    "z" => 600_f32,
-    "braceleft" => 600_f32,
-    "bar" => 600_f32,
-    "braceright" => 600_f32,
-    "asciitilde" => 600_f32,
-    "exclamdown" => 600_f32,
-    "cent" => 600_f32,
-    "sterling" => 600_f32,
-    "fraction" => 600_f32,
-    "yen" => 600_f32,
-    "florin" => 600_f32,
-    "section" => 600_f32,
-    "currency" => 600_f32,
-    "quotesingle" => 600_f32,
-    "quotedblleft" => 600_f32,
-    "guillemotleft" => 600_f32,
-    "guilsinglleft" => 600_f32,
-    "guilsinglright" => 600_f32,
-    "fi" => 600_f32,
-    "fl" => 600_f32,
-    "endash" => 600_f32,
-    "dagger" => 600_f32,
-    "daggerdbl" => 600_f32,
-    "periodcentered" => 600_f32,
-    "paragraph" => 600_f32,
-    "bullet" => 600_f32,
-    "quotesinglbase" => 600_f32,
-    "quotedblbase" => 600_f32,
-    "quotedblright" => 600_f32,
-    "guillemotright" => 600_f32,
-    "ellipsis" => 600_f32,
-    "perthousand" => 600_f32,
-    "questiondown" => 600_f32,
-    "grave" => 600_f32,
-    "acute" => 600_f32,
-    "circumflex" => 600_f32,
-    "tilde" => 600_f32,
-    "macron" => 600_f32,
-    "breve" => 600_f32,
-    "dotaccent" => 600_f32,
-    "dieresis" => 600_f32,
-    "ring" => 600_f32,
-    "cedilla" => 600_f32,
-    "hungarumlaut" => 600_f32,
-    "ogonek" => 600_f32,
-    "caron" => 600_f32,
-    "emdash" => 600_f32,
-    "AE" => 600_f32,
-    "ordfeminine" => 600_f32,
-    "Lslash" => 600_f32,
-    "Oslash" => 600_f32,
-    "OE" => 600_f32,
-    "ordmasculine" => 600_f32,
-    "ae" => 600_f32,
-    "dotlessi" => 600_f32,
-    "lslash" => 600_f32,
-    "oslash" => 600_f32,
-    "oe" => 600_f32,
-    "germandbls" => 600_f32,
-    "Idieresis" => 600_f32,
-    "eacute" => 600_f32,
-    "abreve" => 600_f32,
-    "uhungarumlaut" => 600_f32,
-    "ecaron" => 600_f32,
-    "Ydieresis" => 600_f32,
-    "divide" => 600_f32,
-    "Yacute" => 600_f32,
-    "Acircumflex" => 600_f32,
-    "aacute" => 600_f32,
-    "Ucircumflex" => 600_f32,
-    "yacute" => 600_f32,
-    "scommaaccent" => 600_f32,
-    "ecircumflex" => 600_f32,
-    "Uring" => 600_f32,
-    "Udieresis" => 600_f32,
-    "aogonek" => 600_f32,
-    "Uacute" => 600_f32,
-    "uogonek" => 600_f32,
-    "Edieresis" => 600_f32,
-    "Dcroat" => 600_f32,
-    "commaaccent" => 600_f32,
-    "copyright" => 600_f32,
-    "Emacron" => 600_f32,
-    "ccaron" => 600_f32,
-    "aring" => 600_f32,
-    "Ncommaaccent" => 600_f32,
-    "lacute" => 600_f32,
-    "agrave" => 600_f32,
-    "Tcommaaccent" => 600_f32,
-    "Cacute" => 600_f32,
-    "atilde" => 600_f32,
-    "Edotaccent" => 600_f32,
-    "scaron" => 600_f32,
-    "scedilla" => 600_f32,
-    "iacute" => 600_f32,
-    "lozenge" => 600_f32,
-    "Rcaron" => 600_f32,
-    "Gcommaaccent" => 600_f32,
-    "ucircumflex" => 600_f32,
-    "acircumflex" => 600_f32,
-    "Amacron" => 600_f32,
-    "rcaron" => 600_f32,
-    "ccedilla" => 600_f32,
-    "Zdotaccent" => 600_f32,
-    "Thorn" => 600_f32,
-    "Omacron" => 600_f32,
-    "Racute" => 600_f32,
-    "Sacute" => 600_f32,
-    "dcaron" => 600_f32,
-    "Umacron" => 600_f32,
-    "uring" => 600_f32,
-    "threesuperior" => 600_f32,
-    "Ograve" => 600_f32,
-    "Agrave" => 600_f32,
-    "Abreve" => 600_f32,
-    "multiply" => 600_f32,
-    "uacute" => 600_f32,
-    "Tcaron" => 600_f32,
-    "partialdiff" => 600_f32,
-    "ydieresis" => 600_f32,
-    "Nacute" => 600_f32,
-    "icircumflex" => 600_f32,
-    "Ecircumflex" => 600_f32,
-    "adieresis" => 600_f32,
-    "edieresis" => 600_f32,
-    "cacute" => 600_f32,
-    "nacute" => 600_f32,
-    "umacron" => 600_f32,
-    "Ncaron" => 600_f32,
-    "Iacute" => 600_f32,
-    "plusminus" => 600_f32,
-    "brokenbar" => 600_f32,
-    "registered" => 600_f32,
-    "Gbreve" => 600_f32,
-    "Idotaccent" => 600_f32,
-    "summation" => 600_f32,
-    "Egrave" => 600_f32,
-    "racute" => 600_f32,
-    "omacron" => 600_f32,
-    "Zacute" => 600_f32,
-    "Zcaron" => 600_f32,
-    "greaterequal" => 600_f32,
-    "Eth" => 600_f32,
-    "Ccedilla" => 600_f32,
-    "lcommaaccent" => 600_f32,
-    "tcaron" => 600_f32,
-    "eogonek" => 600_f32,
-    "Uogonek" => 600_f32,
-    "Aacute" => 600_f32,
-    "Adieresis" => 600_f32,
-    "egrave" => 600_f32,
-    "zacute" => 600_f32,
-    "iogonek" => 600_f32,
-    "Oacute" => 600_f32,
-    "oacute" => 600_f32,
-    "amacron" => 600_f32,
-    "sacute" => 600_f32,
-    "idieresis" => 600_f32,
-    "Ocircumflex" => 600_f32,
-    "Ugrave" => 600_f32,
-    "Delta" => 600_f32,
-    "thorn" => 600_f32,
-    "twosuperior" => 600_f32,
-    "Odieresis" => 600_f32,
-    "mu" => 600_f32,
-    "igrave" => 600_f32,
-    "ohungarumlaut" => 600_f32,
-    "Eogonek" => 600_f32,
-    "dcroat" => 600_f32,
-    "threequarters" => 600_f32,
-    "Scedilla" => 600_f32,
-    "lcaron" => 600_f32,
-    "Kcommaaccent" => 600_f32,
-    "Lacute" => 600_f32,
-    "trademark" => 600_f32,
-    "edotaccent" => 600_f32,
-    "Igrave" => 600_f32,
-    "Imacron" => 600_f32,
-    "Lcaron" => 600_f32,
-    "onehalf" => 600_f32,
-    "lessequal" => 600_f32,
-    "ocircumflex" => 600_f32,
-    "ntilde" => 600_f32,
-    "Uhungarumlaut" => 600_f32,
-    "Eacute" => 600_f32,
-    "emacron" => 600_f32,
-    "gbreve" => 600_f32,
-    "onequarter" => 600_f32,
-    "Scaron" => 600_f32,
-    "Scommaaccent" => 600_f32,
-    "Ohungarumlaut" => 600_f32,
-    "degree" => 600_f32,
-    "ograve" => 600_f32,
-    "Ccaron" => 600_f32,
-    "ugrave" => 600_f32,
-    "radical" => 600_f32,
-    "Dcaron" => 600_f32,
-    "rcommaaccent" => 600_f32,
-    "Ntilde" => 600_f32,
-    "otilde" => 600_f32,
-    "Rcommaaccent" => 600_f32,
-    "Lcommaaccent" => 600_f32,
-    "Atilde" => 600_f32,
-    "Aogonek" => 600_f32,
-    "Aring" => 600_f32,
-    "Otilde" => 600_f32,
-    "zdotaccent" => 600_f32,
-    "Ecaron" => 600_f32,
-    "Iogonek" => 600_f32,
-    "kcommaaccent" => 600_f32,
-    "minus" => 600_f32,
-    "Icircumflex" => 600_f32,
-    "ncaron" => 600_f32,
-    "tcommaaccent" => 600_f32,
-    "logicalnot" => 600_f32,
-    "odieresis" => 600_f32,
-    "udieresis" => 600_f32,
-    "notequal" => 600_f32,
-    "gcommaaccent" => 600_f32,
-    "eth" => 600_f32,
-    "zcaron" => 600_f32,
-    "ncommaaccent" => 600_f32,
-    "onesuperior" => 600_f32,
-    "imacron" => 600_f32,
-    "Euro" => 600_f32,
-};
+pub(crate) static COURIER_BOLD_OBLIQUE: &[u8] = b"\
+    A\xFE600\xFF\
+    AE\xFE600\xFF\
+    Aacute\xFE600\xFF\
+    Abreve\xFE600\xFF\
+    Acircumflex\xFE600\xFF\
+    Adieresis\xFE600\xFF\
+    Agrave\xFE600\xFF\
+    Amacron\xFE600\xFF\
+    Aogonek\xFE600\xFF\
+    Aring\xFE600\xFF\
+    Atilde\xFE600\xFF\
+    B\xFE600\xFF\
+    C\xFE600\xFF\
+    Cacute\xFE600\xFF\
+    Ccaron\xFE600\xFF\
+    Ccedilla\xFE600\xFF\
+    D\xFE600\xFF\
+    Dcaron\xFE600\xFF\
+    Dcroat\xFE600\xFF\
+    Delta\xFE600\xFF\
+    E\xFE600\xFF\
+    Eacute\xFE600\xFF\
+    Ecaron\xFE600\xFF\
+    Ecircumflex\xFE600\xFF\
+    Edieresis\xFE600\xFF\
+    Edotaccent\xFE600\xFF\
+    Egrave\xFE600\xFF\
+    Emacron\xFE600\xFF\
+    Eogonek\xFE600\xFF\
+    Eth\xFE600\xFF\
+    Euro\xFE600\xFF\
+    F\xFE600\xFF\
+    G\xFE600\xFF\
+    Gbreve\xFE600\xFF\
+    Gcommaaccent\xFE600\xFF\
+    H\xFE600\xFF\
+    I\xFE600\xFF\
+    Iacute\xFE600\xFF\
+    Icircumflex\xFE600\xFF\
+    Idieresis\xFE600\xFF\
+    Idotaccent\xFE600\xFF\
+    Igrave\xFE600\xFF\
+    Imacron\xFE600\xFF\
+    Iogonek\xFE600\xFF\
+    J\xFE600\xFF\
+    K\xFE600\xFF\
+    Kcommaaccent\xFE600\xFF\
+    L\xFE600\xFF\
+    Lacute\xFE600\xFF\
+    Lcaron\xFE600\xFF\
+    Lcommaaccent\xFE600\xFF\
+    Lslash\xFE600\xFF\
+    M\xFE600\xFF\
+    N\xFE600\xFF\
+    Nacute\xFE600\xFF\
+    Ncaron\xFE600\xFF\
+    Ncommaaccent\xFE600\xFF\
+    Ntilde\xFE600\xFF\
+    O\xFE600\xFF\
+    OE\xFE600\xFF\
+    Oacute\xFE600\xFF\
+    Ocircumflex\xFE600\xFF\
+    Odieresis\xFE600\xFF\
+    Ograve\xFE600\xFF\
+    Ohungarumlaut\xFE600\xFF\
+    Omacron\xFE600\xFF\
+    Oslash\xFE600\xFF\
+    Otilde\xFE600\xFF\
+    P\xFE600\xFF\
+    Q\xFE600\xFF\
+    R\xFE600\xFF\
+    Racute\xFE600\xFF\
+    Rcaron\xFE600\xFF\
+    Rcommaaccent\xFE600\xFF\
+    S\xFE600\xFF\
+    Sacute\xFE600\xFF\
+    Scaron\xFE600\xFF\
+    Scedilla\xFE600\xFF\
+    Scommaaccent\xFE600\xFF\
+    T\xFE600\xFF\
+    Tcaron\xFE600\xFF\
+    Tcommaaccent\xFE600\xFF\
+    Thorn\xFE600\xFF\
+    U\xFE600\xFF\
+    Uacute\xFE600\xFF\
+    Ucircumflex\xFE600\xFF\
+    Udieresis\xFE600\xFF\
+    Ugrave\xFE600\xFF\
+    Uhungarumlaut\xFE600\xFF\
+    Umacron\xFE600\xFF\
+    Uogonek\xFE600\xFF\
+    Uring\xFE600\xFF\
+    V\xFE600\xFF\
+    W\xFE600\xFF\
+    X\xFE600\xFF\
+    Y\xFE600\xFF\
+    Yacute\xFE600\xFF\
+    Ydieresis\xFE600\xFF\
+    Z\xFE600\xFF\
+    Zacute\xFE600\xFF\
+    Zcaron\xFE600\xFF\
+    Zdotaccent\xFE600\xFF\
+    a\xFE600\xFF\
+    aacute\xFE600\xFF\
+    abreve\xFE600\xFF\
+    acircumflex\xFE600\xFF\
+    acute\xFE600\xFF\
+    adieresis\xFE600\xFF\
+    ae\xFE600\xFF\
+    agrave\xFE600\xFF\
+    amacron\xFE600\xFF\
+    ampersand\xFE600\xFF\
+    aogonek\xFE600\xFF\
+    aring\xFE600\xFF\
+    asciicircum\xFE600\xFF\
+    asciitilde\xFE600\xFF\
+    asterisk\xFE600\xFF\
+    at\xFE600\xFF\
+    atilde\xFE600\xFF\
+    b\xFE600\xFF\
+    backslash\xFE600\xFF\
+    bar\xFE600\xFF\
+    braceleft\xFE600\xFF\
+    braceright\xFE600\xFF\
+    bracketleft\xFE600\xFF\
+    bracketright\xFE600\xFF\
+    breve\xFE600\xFF\
+    brokenbar\xFE600\xFF\
+    bullet\xFE600\xFF\
+    c\xFE600\xFF\
+    cacute\xFE600\xFF\
+    caron\xFE600\xFF\
+    ccaron\xFE600\xFF\
+    ccedilla\xFE600\xFF\
+    cedilla\xFE600\xFF\
+    cent\xFE600\xFF\
+    circumflex\xFE600\xFF\
+    colon\xFE600\xFF\
+    comma\xFE600\xFF\
+    commaaccent\xFE600\xFF\
+    copyright\xFE600\xFF\
+    currency\xFE600\xFF\
+    d\xFE600\xFF\
+    dagger\xFE600\xFF\
+    daggerdbl\xFE600\xFF\
+    dcaron\xFE600\xFF\
+    dcroat\xFE600\xFF\
+    degree\xFE600\xFF\
+    dieresis\xFE600\xFF\
+    divide\xFE600\xFF\
+    dollar\xFE600\xFF\
+    dotaccent\xFE600\xFF\
+    dotlessi\xFE600\xFF\
+    e\xFE600\xFF\
+    eacute\xFE600\xFF\
+    ecaron\xFE600\xFF\
+    ecircumflex\xFE600\xFF\
+    edieresis\xFE600\xFF\
+    edotaccent\xFE600\xFF\
+    egrave\xFE600\xFF\
+    eight\xFE600\xFF\
+    ellipsis\xFE600\xFF\
+    emacron\xFE600\xFF\
+    emdash\xFE600\xFF\
+    endash\xFE600\xFF\
+    eogonek\xFE600\xFF\
+    equal\xFE600\xFF\
+    eth\xFE600\xFF\
+    exclam\xFE600\xFF\
+    exclamdown\xFE600\xFF\
+    f\xFE600\xFF\
+    fi\xFE600\xFF\
+    five\xFE600\xFF\
+    fl\xFE600\xFF\
+    florin\xFE600\xFF\
+    four\xFE600\xFF\
+    fraction\xFE600\xFF\
+    g\xFE600\xFF\
+    gbreve\xFE600\xFF\
+    gcommaaccent\xFE600\xFF\
+    germandbls\xFE600\xFF\
+    grave\xFE600\xFF\
+    greater\xFE600\xFF\
+    greaterequal\xFE600\xFF\
+    guillemotleft\xFE600\xFF\
+    guillemotright\xFE600\xFF\
+    guilsinglleft\xFE600\xFF\
+    guilsinglright\xFE600\xFF\
+    h\xFE600\xFF\
+    hungarumlaut\xFE600\xFF\
+    hyphen\xFE600\xFF\
+    i\xFE600\xFF\
+    iacute\xFE600\xFF\
+    icircumflex\xFE600\xFF\
+    idieresis\xFE600\xFF\
+    igrave\xFE600\xFF\
+    imacron\xFE600\xFF\
+    iogonek\xFE600\xFF\
+    j\xFE600\xFF\
+    k\xFE600\xFF\
+    kcommaaccent\xFE600\xFF\
+    l\xFE600\xFF\
+    lacute\xFE600\xFF\
+    lcaron\xFE600\xFF\
+    lcommaaccent\xFE600\xFF\
+    less\xFE600\xFF\
+    lessequal\xFE600\xFF\
+    logicalnot\xFE600\xFF\
+    lozenge\xFE600\xFF\
+    lslash\xFE600\xFF\
+    m\xFE600\xFF\
+    macron\xFE600\xFF\
+    minus\xFE600\xFF\
+    mu\xFE600\xFF\
+    multiply\xFE600\xFF\
+    n\xFE600\xFF\
+    nacute\xFE600\xFF\
+    ncaron\xFE600\xFF\
+    ncommaaccent\xFE600\xFF\
+    nine\xFE600\xFF\
+    notequal\xFE600\xFF\
+    ntilde\xFE600\xFF\
+    numbersign\xFE600\xFF\
+    o\xFE600\xFF\
+    oacute\xFE600\xFF\
+    ocircumflex\xFE600\xFF\
+    odieresis\xFE600\xFF\
+    oe\xFE600\xFF\
+    ogonek\xFE600\xFF\
+    ograve\xFE600\xFF\
+    ohungarumlaut\xFE600\xFF\
+    omacron\xFE600\xFF\
+    one\xFE600\xFF\
+    onehalf\xFE600\xFF\
+    onequarter\xFE600\xFF\
+    onesuperior\xFE600\xFF\
+    ordfeminine\xFE600\xFF\
+    ordmasculine\xFE600\xFF\
+    oslash\xFE600\xFF\
+    otilde\xFE600\xFF\
+    p\xFE600\xFF\
+    paragraph\xFE600\xFF\
+    parenleft\xFE600\xFF\
+    parenright\xFE600\xFF\
+    partialdiff\xFE600\xFF\
+    percent\xFE600\xFF\
+    period\xFE600\xFF\
+    periodcentered\xFE600\xFF\
+    perthousand\xFE600\xFF\
+    plus\xFE600\xFF\
+    plusminus\xFE600\xFF\
+    q\xFE600\xFF\
+    question\xFE600\xFF\
+    questiondown\xFE600\xFF\
+    quotedbl\xFE600\xFF\
+    quotedblbase\xFE600\xFF\
+    quotedblleft\xFE600\xFF\
+    quotedblright\xFE600\xFF\
+    quoteleft\xFE600\xFF\
+    quoteright\xFE600\xFF\
+    quotesinglbase\xFE600\xFF\
+    quotesingle\xFE600\xFF\
+    r\xFE600\xFF\
+    racute\xFE600\xFF\
+    radical\xFE600\xFF\
+    rcaron\xFE600\xFF\
+    rcommaaccent\xFE600\xFF\
+    registered\xFE600\xFF\
+    ring\xFE600\xFF\
+    s\xFE600\xFF\
+    sacute\xFE600\xFF\
+    scaron\xFE600\xFF\
+    scedilla\xFE600\xFF\
+    scommaaccent\xFE600\xFF\
+    section\xFE600\xFF\
+    semicolon\xFE600\xFF\
+    seven\xFE600\xFF\
+    six\xFE600\xFF\
+    slash\xFE600\xFF\
+    space\xFE600\xFF\
+    sterling\xFE600\xFF\
+    summation\xFE600\xFF\
+    t\xFE600\xFF\
+    tcaron\xFE600\xFF\
+    tcommaaccent\xFE600\xFF\
+    thorn\xFE600\xFF\
+    three\xFE600\xFF\
+    threequarters\xFE600\xFF\
+    threesuperior\xFE600\xFF\
+    tilde\xFE600\xFF\
+    trademark\xFE600\xFF\
+    two\xFE600\xFF\
+    twosuperior\xFE600\xFF\
+    u\xFE600\xFF\
+    uacute\xFE600\xFF\
+    ucircumflex\xFE600\xFF\
+    udieresis\xFE600\xFF\
+    ugrave\xFE600\xFF\
+    uhungarumlaut\xFE600\xFF\
+    umacron\xFE600\xFF\
+    underscore\xFE600\xFF\
+    uogonek\xFE600\xFF\
+    uring\xFE600\xFF\
+    v\xFE600\xFF\
+    w\xFE600\xFF\
+    x\xFE600\xFF\
+    y\xFE600\xFF\
+    yacute\xFE600\xFF\
+    ydieresis\xFE600\xFF\
+    yen\xFE600\xFF\
+    z\xFE600\xFF\
+    zacute\xFE600\xFF\
+    zcaron\xFE600\xFF\
+    zdotaccent\xFE600\xFF\
+    zero\xFE600\xFF";
 
-pub(crate) static COURIER_BOLD_OBLIQUE: phf::Map<&'static str, f32> = phf_map! {
-    "space" => 600_f32,
-    "exclam" => 600_f32,
-    "quotedbl" => 600_f32,
-    "numbersign" => 600_f32,
-    "dollar" => 600_f32,
-    "percent" => 600_f32,
-    "ampersand" => 600_f32,
-    "quoteright" => 600_f32,
-    "parenleft" => 600_f32,
-    "parenright" => 600_f32,
-    "asterisk" => 600_f32,
-    "plus" => 600_f32,
-    "comma" => 600_f32,
-    "hyphen" => 600_f32,
-    "period" => 600_f32,
-    "slash" => 600_f32,
-    "zero" => 600_f32,
-    "one" => 600_f32,
-    "two" => 600_f32,
-    "three" => 600_f32,
-    "four" => 600_f32,
-    "five" => 600_f32,
-    "six" => 600_f32,
-    "seven" => 600_f32,
-    "eight" => 600_f32,
-    "nine" => 600_f32,
-    "colon" => 600_f32,
-    "semicolon" => 600_f32,
-    "less" => 600_f32,
-    "equal" => 600_f32,
-    "greater" => 600_f32,
-    "question" => 600_f32,
-    "at" => 600_f32,
-    "A" => 600_f32,
-    "B" => 600_f32,
-    "C" => 600_f32,
-    "D" => 600_f32,
-    "E" => 600_f32,
-    "F" => 600_f32,
-    "G" => 600_f32,
-    "H" => 600_f32,
-    "I" => 600_f32,
-    "J" => 600_f32,
-    "K" => 600_f32,
-    "L" => 600_f32,
-    "M" => 600_f32,
-    "N" => 600_f32,
-    "O" => 600_f32,
-    "P" => 600_f32,
-    "Q" => 600_f32,
-    "R" => 600_f32,
-    "S" => 600_f32,
-    "T" => 600_f32,
-    "U" => 600_f32,
-    "V" => 600_f32,
-    "W" => 600_f32,
-    "X" => 600_f32,
-    "Y" => 600_f32,
-    "Z" => 600_f32,
-    "bracketleft" => 600_f32,
-    "backslash" => 600_f32,
-    "bracketright" => 600_f32,
-    "asciicircum" => 600_f32,
-    "underscore" => 600_f32,
-    "quoteleft" => 600_f32,
-    "a" => 600_f32,
-    "b" => 600_f32,
-    "c" => 600_f32,
-    "d" => 600_f32,
-    "e" => 600_f32,
-    "f" => 600_f32,
-    "g" => 600_f32,
-    "h" => 600_f32,
-    "i" => 600_f32,
-    "j" => 600_f32,
-    "k" => 600_f32,
-    "l" => 600_f32,
-    "m" => 600_f32,
-    "n" => 600_f32,
-    "o" => 600_f32,
-    "p" => 600_f32,
-    "q" => 600_f32,
-    "r" => 600_f32,
-    "s" => 600_f32,
-    "t" => 600_f32,
-    "u" => 600_f32,
-    "v" => 600_f32,
-    "w" => 600_f32,
-    "x" => 600_f32,
-    "y" => 600_f32,
-    "z" => 600_f32,
-    "braceleft" => 600_f32,
-    "bar" => 600_f32,
-    "braceright" => 600_f32,
-    "asciitilde" => 600_f32,
-    "exclamdown" => 600_f32,
-    "cent" => 600_f32,
-    "sterling" => 600_f32,
-    "fraction" => 600_f32,
-    "yen" => 600_f32,
-    "florin" => 600_f32,
-    "section" => 600_f32,
-    "currency" => 600_f32,
-    "quotesingle" => 600_f32,
-    "quotedblleft" => 600_f32,
-    "guillemotleft" => 600_f32,
-    "guilsinglleft" => 600_f32,
-    "guilsinglright" => 600_f32,
-    "fi" => 600_f32,
-    "fl" => 600_f32,
-    "endash" => 600_f32,
-    "dagger" => 600_f32,
-    "daggerdbl" => 600_f32,
-    "periodcentered" => 600_f32,
-    "paragraph" => 600_f32,
-    "bullet" => 600_f32,
-    "quotesinglbase" => 600_f32,
-    "quotedblbase" => 600_f32,
-    "quotedblright" => 600_f32,
-    "guillemotright" => 600_f32,
-    "ellipsis" => 600_f32,
-    "perthousand" => 600_f32,
-    "questiondown" => 600_f32,
-    "grave" => 600_f32,
-    "acute" => 600_f32,
-    "circumflex" => 600_f32,
-    "tilde" => 600_f32,
-    "macron" => 600_f32,
-    "breve" => 600_f32,
-    "dotaccent" => 600_f32,
-    "dieresis" => 600_f32,
-    "ring" => 600_f32,
-    "cedilla" => 600_f32,
-    "hungarumlaut" => 600_f32,
-    "ogonek" => 600_f32,
-    "caron" => 600_f32,
-    "emdash" => 600_f32,
-    "AE" => 600_f32,
-    "ordfeminine" => 600_f32,
-    "Lslash" => 600_f32,
-    "Oslash" => 600_f32,
-    "OE" => 600_f32,
-    "ordmasculine" => 600_f32,
-    "ae" => 600_f32,
-    "dotlessi" => 600_f32,
-    "lslash" => 600_f32,
-    "oslash" => 600_f32,
-    "oe" => 600_f32,
-    "germandbls" => 600_f32,
-    "Idieresis" => 600_f32,
-    "eacute" => 600_f32,
-    "abreve" => 600_f32,
-    "uhungarumlaut" => 600_f32,
-    "ecaron" => 600_f32,
-    "Ydieresis" => 600_f32,
-    "divide" => 600_f32,
-    "Yacute" => 600_f32,
-    "Acircumflex" => 600_f32,
-    "aacute" => 600_f32,
-    "Ucircumflex" => 600_f32,
-    "yacute" => 600_f32,
-    "scommaaccent" => 600_f32,
-    "ecircumflex" => 600_f32,
-    "Uring" => 600_f32,
-    "Udieresis" => 600_f32,
-    "aogonek" => 600_f32,
-    "Uacute" => 600_f32,
-    "uogonek" => 600_f32,
-    "Edieresis" => 600_f32,
-    "Dcroat" => 600_f32,
-    "commaaccent" => 600_f32,
-    "copyright" => 600_f32,
-    "Emacron" => 600_f32,
-    "ccaron" => 600_f32,
-    "aring" => 600_f32,
-    "Ncommaaccent" => 600_f32,
-    "lacute" => 600_f32,
-    "agrave" => 600_f32,
-    "Tcommaaccent" => 600_f32,
-    "Cacute" => 600_f32,
-    "atilde" => 600_f32,
-    "Edotaccent" => 600_f32,
-    "scaron" => 600_f32,
-    "scedilla" => 600_f32,
-    "iacute" => 600_f32,
-    "lozenge" => 600_f32,
-    "Rcaron" => 600_f32,
-    "Gcommaaccent" => 600_f32,
-    "ucircumflex" => 600_f32,
-    "acircumflex" => 600_f32,
-    "Amacron" => 600_f32,
-    "rcaron" => 600_f32,
-    "ccedilla" => 600_f32,
-    "Zdotaccent" => 600_f32,
-    "Thorn" => 600_f32,
-    "Omacron" => 600_f32,
-    "Racute" => 600_f32,
-    "Sacute" => 600_f32,
-    "dcaron" => 600_f32,
-    "Umacron" => 600_f32,
-    "uring" => 600_f32,
-    "threesuperior" => 600_f32,
-    "Ograve" => 600_f32,
-    "Agrave" => 600_f32,
-    "Abreve" => 600_f32,
-    "multiply" => 600_f32,
-    "uacute" => 600_f32,
-    "Tcaron" => 600_f32,
-    "partialdiff" => 600_f32,
-    "ydieresis" => 600_f32,
-    "Nacute" => 600_f32,
-    "icircumflex" => 600_f32,
-    "Ecircumflex" => 600_f32,
-    "adieresis" => 600_f32,
-    "edieresis" => 600_f32,
-    "cacute" => 600_f32,
-    "nacute" => 600_f32,
-    "umacron" => 600_f32,
-    "Ncaron" => 600_f32,
-    "Iacute" => 600_f32,
-    "plusminus" => 600_f32,
-    "brokenbar" => 600_f32,
-    "registered" => 600_f32,
-    "Gbreve" => 600_f32,
-    "Idotaccent" => 600_f32,
-    "summation" => 600_f32,
-    "Egrave" => 600_f32,
-    "racute" => 600_f32,
-    "omacron" => 600_f32,
-    "Zacute" => 600_f32,
-    "Zcaron" => 600_f32,
-    "greaterequal" => 600_f32,
-    "Eth" => 600_f32,
-    "Ccedilla" => 600_f32,
-    "lcommaaccent" => 600_f32,
-    "tcaron" => 600_f32,
-    "eogonek" => 600_f32,
-    "Uogonek" => 600_f32,
-    "Aacute" => 600_f32,
-    "Adieresis" => 600_f32,
-    "egrave" => 600_f32,
-    "zacute" => 600_f32,
-    "iogonek" => 600_f32,
-    "Oacute" => 600_f32,
-    "oacute" => 600_f32,
-    "amacron" => 600_f32,
-    "sacute" => 600_f32,
-    "idieresis" => 600_f32,
-    "Ocircumflex" => 600_f32,
-    "Ugrave" => 600_f32,
-    "Delta" => 600_f32,
-    "thorn" => 600_f32,
-    "twosuperior" => 600_f32,
-    "Odieresis" => 600_f32,
-    "mu" => 600_f32,
-    "igrave" => 600_f32,
-    "ohungarumlaut" => 600_f32,
-    "Eogonek" => 600_f32,
-    "dcroat" => 600_f32,
-    "threequarters" => 600_f32,
-    "Scedilla" => 600_f32,
-    "lcaron" => 600_f32,
-    "Kcommaaccent" => 600_f32,
-    "Lacute" => 600_f32,
-    "trademark" => 600_f32,
-    "edotaccent" => 600_f32,
-    "Igrave" => 600_f32,
-    "Imacron" => 600_f32,
-    "Lcaron" => 600_f32,
-    "onehalf" => 600_f32,
-    "lessequal" => 600_f32,
-    "ocircumflex" => 600_f32,
-    "ntilde" => 600_f32,
-    "Uhungarumlaut" => 600_f32,
-    "Eacute" => 600_f32,
-    "emacron" => 600_f32,
-    "gbreve" => 600_f32,
-    "onequarter" => 600_f32,
-    "Scaron" => 600_f32,
-    "Scommaaccent" => 600_f32,
-    "Ohungarumlaut" => 600_f32,
-    "degree" => 600_f32,
-    "ograve" => 600_f32,
-    "Ccaron" => 600_f32,
-    "ugrave" => 600_f32,
-    "radical" => 600_f32,
-    "Dcaron" => 600_f32,
-    "rcommaaccent" => 600_f32,
-    "Ntilde" => 600_f32,
-    "otilde" => 600_f32,
-    "Rcommaaccent" => 600_f32,
-    "Lcommaaccent" => 600_f32,
-    "Atilde" => 600_f32,
-    "Aogonek" => 600_f32,
-    "Aring" => 600_f32,
-    "Otilde" => 600_f32,
-    "zdotaccent" => 600_f32,
-    "Ecaron" => 600_f32,
-    "Iogonek" => 600_f32,
-    "kcommaaccent" => 600_f32,
-    "minus" => 600_f32,
-    "Icircumflex" => 600_f32,
-    "ncaron" => 600_f32,
-    "tcommaaccent" => 600_f32,
-    "logicalnot" => 600_f32,
-    "odieresis" => 600_f32,
-    "udieresis" => 600_f32,
-    "notequal" => 600_f32,
-    "gcommaaccent" => 600_f32,
-    "eth" => 600_f32,
-    "zcaron" => 600_f32,
-    "ncommaaccent" => 600_f32,
-    "onesuperior" => 600_f32,
-    "imacron" => 600_f32,
-    "Euro" => 600_f32,
-};
+pub(crate) static COURIER_OBLIQUE: &[u8] = b"\
+    A\xFE600\xFF\
+    AE\xFE600\xFF\
+    Aacute\xFE600\xFF\
+    Abreve\xFE600\xFF\
+    Acircumflex\xFE600\xFF\
+    Adieresis\xFE600\xFF\
+    Agrave\xFE600\xFF\
+    Amacron\xFE600\xFF\
+    Aogonek\xFE600\xFF\
+    Aring\xFE600\xFF\
+    Atilde\xFE600\xFF\
+    B\xFE600\xFF\
+    C\xFE600\xFF\
+    Cacute\xFE600\xFF\
+    Ccaron\xFE600\xFF\
+    Ccedilla\xFE600\xFF\
+    D\xFE600\xFF\
+    Dcaron\xFE600\xFF\
+    Dcroat\xFE600\xFF\
+    Delta\xFE600\xFF\
+    E\xFE600\xFF\
+    Eacute\xFE600\xFF\
+    Ecaron\xFE600\xFF\
+    Ecircumflex\xFE600\xFF\
+    Edieresis\xFE600\xFF\
+    Edotaccent\xFE600\xFF\
+    Egrave\xFE600\xFF\
+    Emacron\xFE600\xFF\
+    Eogonek\xFE600\xFF\
+    Eth\xFE600\xFF\
+    Euro\xFE600\xFF\
+    F\xFE600\xFF\
+    G\xFE600\xFF\
+    Gbreve\xFE600\xFF\
+    Gcommaaccent\xFE600\xFF\
+    H\xFE600\xFF\
+    I\xFE600\xFF\
+    Iacute\xFE600\xFF\
+    Icircumflex\xFE600\xFF\
+    Idieresis\xFE600\xFF\
+    Idotaccent\xFE600\xFF\
+    Igrave\xFE600\xFF\
+    Imacron\xFE600\xFF\
+    Iogonek\xFE600\xFF\
+    J\xFE600\xFF\
+    K\xFE600\xFF\
+    Kcommaaccent\xFE600\xFF\
+    L\xFE600\xFF\
+    Lacute\xFE600\xFF\
+    Lcaron\xFE600\xFF\
+    Lcommaaccent\xFE600\xFF\
+    Lslash\xFE600\xFF\
+    M\xFE600\xFF\
+    N\xFE600\xFF\
+    Nacute\xFE600\xFF\
+    Ncaron\xFE600\xFF\
+    Ncommaaccent\xFE600\xFF\
+    Ntilde\xFE600\xFF\
+    O\xFE600\xFF\
+    OE\xFE600\xFF\
+    Oacute\xFE600\xFF\
+    Ocircumflex\xFE600\xFF\
+    Odieresis\xFE600\xFF\
+    Ograve\xFE600\xFF\
+    Ohungarumlaut\xFE600\xFF\
+    Omacron\xFE600\xFF\
+    Oslash\xFE600\xFF\
+    Otilde\xFE600\xFF\
+    P\xFE600\xFF\
+    Q\xFE600\xFF\
+    R\xFE600\xFF\
+    Racute\xFE600\xFF\
+    Rcaron\xFE600\xFF\
+    Rcommaaccent\xFE600\xFF\
+    S\xFE600\xFF\
+    Sacute\xFE600\xFF\
+    Scaron\xFE600\xFF\
+    Scedilla\xFE600\xFF\
+    Scommaaccent\xFE600\xFF\
+    T\xFE600\xFF\
+    Tcaron\xFE600\xFF\
+    Tcommaaccent\xFE600\xFF\
+    Thorn\xFE600\xFF\
+    U\xFE600\xFF\
+    Uacute\xFE600\xFF\
+    Ucircumflex\xFE600\xFF\
+    Udieresis\xFE600\xFF\
+    Ugrave\xFE600\xFF\
+    Uhungarumlaut\xFE600\xFF\
+    Umacron\xFE600\xFF\
+    Uogonek\xFE600\xFF\
+    Uring\xFE600\xFF\
+    V\xFE600\xFF\
+    W\xFE600\xFF\
+    X\xFE600\xFF\
+    Y\xFE600\xFF\
+    Yacute\xFE600\xFF\
+    Ydieresis\xFE600\xFF\
+    Z\xFE600\xFF\
+    Zacute\xFE600\xFF\
+    Zcaron\xFE600\xFF\
+    Zdotaccent\xFE600\xFF\
+    a\xFE600\xFF\
+    aacute\xFE600\xFF\
+    abreve\xFE600\xFF\
+    acircumflex\xFE600\xFF\
+    acute\xFE600\xFF\
+    adieresis\xFE600\xFF\
+    ae\xFE600\xFF\
+    agrave\xFE600\xFF\
+    amacron\xFE600\xFF\
+    ampersand\xFE600\xFF\
+    aogonek\xFE600\xFF\
+    aring\xFE600\xFF\
+    asciicircum\xFE600\xFF\
+    asciitilde\xFE600\xFF\
+    asterisk\xFE600\xFF\
+    at\xFE600\xFF\
+    atilde\xFE600\xFF\
+    b\xFE600\xFF\
+    backslash\xFE600\xFF\
+    bar\xFE600\xFF\
+    braceleft\xFE600\xFF\
+    braceright\xFE600\xFF\
+    bracketleft\xFE600\xFF\
+    bracketright\xFE600\xFF\
+    breve\xFE600\xFF\
+    brokenbar\xFE600\xFF\
+    bullet\xFE600\xFF\
+    c\xFE600\xFF\
+    cacute\xFE600\xFF\
+    caron\xFE600\xFF\
+    ccaron\xFE600\xFF\
+    ccedilla\xFE600\xFF\
+    cedilla\xFE600\xFF\
+    cent\xFE600\xFF\
+    circumflex\xFE600\xFF\
+    colon\xFE600\xFF\
+    comma\xFE600\xFF\
+    commaaccent\xFE600\xFF\
+    copyright\xFE600\xFF\
+    currency\xFE600\xFF\
+    d\xFE600\xFF\
+    dagger\xFE600\xFF\
+    daggerdbl\xFE600\xFF\
+    dcaron\xFE600\xFF\
+    dcroat\xFE600\xFF\
+    degree\xFE600\xFF\
+    dieresis\xFE600\xFF\
+    divide\xFE600\xFF\
+    dollar\xFE600\xFF\
+    dotaccent\xFE600\xFF\
+    dotlessi\xFE600\xFF\
+    e\xFE600\xFF\
+    eacute\xFE600\xFF\
+    ecaron\xFE600\xFF\
+    ecircumflex\xFE600\xFF\
+    edieresis\xFE600\xFF\
+    edotaccent\xFE600\xFF\
+    egrave\xFE600\xFF\
+    eight\xFE600\xFF\
+    ellipsis\xFE600\xFF\
+    emacron\xFE600\xFF\
+    emdash\xFE600\xFF\
+    endash\xFE600\xFF\
+    eogonek\xFE600\xFF\
+    equal\xFE600\xFF\
+    eth\xFE600\xFF\
+    exclam\xFE600\xFF\
+    exclamdown\xFE600\xFF\
+    f\xFE600\xFF\
+    fi\xFE600\xFF\
+    five\xFE600\xFF\
+    fl\xFE600\xFF\
+    florin\xFE600\xFF\
+    four\xFE600\xFF\
+    fraction\xFE600\xFF\
+    g\xFE600\xFF\
+    gbreve\xFE600\xFF\
+    gcommaaccent\xFE600\xFF\
+    germandbls\xFE600\xFF\
+    grave\xFE600\xFF\
+    greater\xFE600\xFF\
+    greaterequal\xFE600\xFF\
+    guillemotleft\xFE600\xFF\
+    guillemotright\xFE600\xFF\
+    guilsinglleft\xFE600\xFF\
+    guilsinglright\xFE600\xFF\
+    h\xFE600\xFF\
+    hungarumlaut\xFE600\xFF\
+    hyphen\xFE600\xFF\
+    i\xFE600\xFF\
+    iacute\xFE600\xFF\
+    icircumflex\xFE600\xFF\
+    idieresis\xFE600\xFF\
+    igrave\xFE600\xFF\
+    imacron\xFE600\xFF\
+    iogonek\xFE600\xFF\
+    j\xFE600\xFF\
+    k\xFE600\xFF\
+    kcommaaccent\xFE600\xFF\
+    l\xFE600\xFF\
+    lacute\xFE600\xFF\
+    lcaron\xFE600\xFF\
+    lcommaaccent\xFE600\xFF\
+    less\xFE600\xFF\
+    lessequal\xFE600\xFF\
+    logicalnot\xFE600\xFF\
+    lozenge\xFE600\xFF\
+    lslash\xFE600\xFF\
+    m\xFE600\xFF\
+    macron\xFE600\xFF\
+    minus\xFE600\xFF\
+    mu\xFE600\xFF\
+    multiply\xFE600\xFF\
+    n\xFE600\xFF\
+    nacute\xFE600\xFF\
+    ncaron\xFE600\xFF\
+    ncommaaccent\xFE600\xFF\
+    nine\xFE600\xFF\
+    notequal\xFE600\xFF\
+    ntilde\xFE600\xFF\
+    numbersign\xFE600\xFF\
+    o\xFE600\xFF\
+    oacute\xFE600\xFF\
+    ocircumflex\xFE600\xFF\
+    odieresis\xFE600\xFF\
+    oe\xFE600\xFF\
+    ogonek\xFE600\xFF\
+    ograve\xFE600\xFF\
+    ohungarumlaut\xFE600\xFF\
+    omacron\xFE600\xFF\
+    one\xFE600\xFF\
+    onehalf\xFE600\xFF\
+    onequarter\xFE600\xFF\
+    onesuperior\xFE600\xFF\
+    ordfeminine\xFE600\xFF\
+    ordmasculine\xFE600\xFF\
+    oslash\xFE600\xFF\
+    otilde\xFE600\xFF\
+    p\xFE600\xFF\
+    paragraph\xFE600\xFF\
+    parenleft\xFE600\xFF\
+    parenright\xFE600\xFF\
+    partialdiff\xFE600\xFF\
+    percent\xFE600\xFF\
+    period\xFE600\xFF\
+    periodcentered\xFE600\xFF\
+    perthousand\xFE600\xFF\
+    plus\xFE600\xFF\
+    plusminus\xFE600\xFF\
+    q\xFE600\xFF\
+    question\xFE600\xFF\
+    questiondown\xFE600\xFF\
+    quotedbl\xFE600\xFF\
+    quotedblbase\xFE600\xFF\
+    quotedblleft\xFE600\xFF\
+    quotedblright\xFE600\xFF\
+    quoteleft\xFE600\xFF\
+    quoteright\xFE600\xFF\
+    quotesinglbase\xFE600\xFF\
+    quotesingle\xFE600\xFF\
+    r\xFE600\xFF\
+    racute\xFE600\xFF\
+    radical\xFE600\xFF\
+    rcaron\xFE600\xFF\
+    rcommaaccent\xFE600\xFF\
+    registered\xFE600\xFF\
+    ring\xFE600\xFF\
+    s\xFE600\xFF\
+    sacute\xFE600\xFF\
+    scaron\xFE600\xFF\
+    scedilla\xFE600\xFF\
+    scommaaccent\xFE600\xFF\
+    section\xFE600\xFF\
+    semicolon\xFE600\xFF\
+    seven\xFE600\xFF\
+    six\xFE600\xFF\
+    slash\xFE600\xFF\
+    space\xFE600\xFF\
+    sterling\xFE600\xFF\
+    summation\xFE600\xFF\
+    t\xFE600\xFF\
+    tcaron\xFE600\xFF\
+    tcommaaccent\xFE600\xFF\
+    thorn\xFE600\xFF\
+    three\xFE600\xFF\
+    threequarters\xFE600\xFF\
+    threesuperior\xFE600\xFF\
+    tilde\xFE600\xFF\
+    trademark\xFE600\xFF\
+    two\xFE600\xFF\
+    twosuperior\xFE600\xFF\
+    u\xFE600\xFF\
+    uacute\xFE600\xFF\
+    ucircumflex\xFE600\xFF\
+    udieresis\xFE600\xFF\
+    ugrave\xFE600\xFF\
+    uhungarumlaut\xFE600\xFF\
+    umacron\xFE600\xFF\
+    underscore\xFE600\xFF\
+    uogonek\xFE600\xFF\
+    uring\xFE600\xFF\
+    v\xFE600\xFF\
+    w\xFE600\xFF\
+    x\xFE600\xFF\
+    y\xFE600\xFF\
+    yacute\xFE600\xFF\
+    ydieresis\xFE600\xFF\
+    yen\xFE600\xFF\
+    z\xFE600\xFF\
+    zacute\xFE600\xFF\
+    zcaron\xFE600\xFF\
+    zdotaccent\xFE600\xFF\
+    zero\xFE600\xFF";
 
-pub(crate) static COURIER_OBLIQUE: phf::Map<&'static str, f32> = phf_map! {
-    "space" => 600_f32,
-    "exclam" => 600_f32,
-    "quotedbl" => 600_f32,
-    "numbersign" => 600_f32,
-    "dollar" => 600_f32,
-    "percent" => 600_f32,
-    "ampersand" => 600_f32,
-    "quoteright" => 600_f32,
-    "parenleft" => 600_f32,
-    "parenright" => 600_f32,
-    "asterisk" => 600_f32,
-    "plus" => 600_f32,
-    "comma" => 600_f32,
-    "hyphen" => 600_f32,
-    "period" => 600_f32,
-    "slash" => 600_f32,
-    "zero" => 600_f32,
-    "one" => 600_f32,
-    "two" => 600_f32,
-    "three" => 600_f32,
-    "four" => 600_f32,
-    "five" => 600_f32,
-    "six" => 600_f32,
-    "seven" => 600_f32,
-    "eight" => 600_f32,
-    "nine" => 600_f32,
-    "colon" => 600_f32,
-    "semicolon" => 600_f32,
-    "less" => 600_f32,
-    "equal" => 600_f32,
-    "greater" => 600_f32,
-    "question" => 600_f32,
-    "at" => 600_f32,
-    "A" => 600_f32,
-    "B" => 600_f32,
-    "C" => 600_f32,
-    "D" => 600_f32,
-    "E" => 600_f32,
-    "F" => 600_f32,
-    "G" => 600_f32,
-    "H" => 600_f32,
-    "I" => 600_f32,
-    "J" => 600_f32,
-    "K" => 600_f32,
-    "L" => 600_f32,
-    "M" => 600_f32,
-    "N" => 600_f32,
-    "O" => 600_f32,
-    "P" => 600_f32,
-    "Q" => 600_f32,
-    "R" => 600_f32,
-    "S" => 600_f32,
-    "T" => 600_f32,
-    "U" => 600_f32,
-    "V" => 600_f32,
-    "W" => 600_f32,
-    "X" => 600_f32,
-    "Y" => 600_f32,
-    "Z" => 600_f32,
-    "bracketleft" => 600_f32,
-    "backslash" => 600_f32,
-    "bracketright" => 600_f32,
-    "asciicircum" => 600_f32,
-    "underscore" => 600_f32,
-    "quoteleft" => 600_f32,
-    "a" => 600_f32,
-    "b" => 600_f32,
-    "c" => 600_f32,
-    "d" => 600_f32,
-    "e" => 600_f32,
-    "f" => 600_f32,
-    "g" => 600_f32,
-    "h" => 600_f32,
-    "i" => 600_f32,
-    "j" => 600_f32,
-    "k" => 600_f32,
-    "l" => 600_f32,
-    "m" => 600_f32,
-    "n" => 600_f32,
-    "o" => 600_f32,
-    "p" => 600_f32,
-    "q" => 600_f32,
-    "r" => 600_f32,
-    "s" => 600_f32,
-    "t" => 600_f32,
-    "u" => 600_f32,
-    "v" => 600_f32,
-    "w" => 600_f32,
-    "x" => 600_f32,
-    "y" => 600_f32,
-    "z" => 600_f32,
-    "braceleft" => 600_f32,
-    "bar" => 600_f32,
-    "braceright" => 600_f32,
-    "asciitilde" => 600_f32,
-    "exclamdown" => 600_f32,
-    "cent" => 600_f32,
-    "sterling" => 600_f32,
-    "fraction" => 600_f32,
-    "yen" => 600_f32,
-    "florin" => 600_f32,
-    "section" => 600_f32,
-    "currency" => 600_f32,
-    "quotesingle" => 600_f32,
-    "quotedblleft" => 600_f32,
-    "guillemotleft" => 600_f32,
-    "guilsinglleft" => 600_f32,
-    "guilsinglright" => 600_f32,
-    "fi" => 600_f32,
-    "fl" => 600_f32,
-    "endash" => 600_f32,
-    "dagger" => 600_f32,
-    "daggerdbl" => 600_f32,
-    "periodcentered" => 600_f32,
-    "paragraph" => 600_f32,
-    "bullet" => 600_f32,
-    "quotesinglbase" => 600_f32,
-    "quotedblbase" => 600_f32,
-    "quotedblright" => 600_f32,
-    "guillemotright" => 600_f32,
-    "ellipsis" => 600_f32,
-    "perthousand" => 600_f32,
-    "questiondown" => 600_f32,
-    "grave" => 600_f32,
-    "acute" => 600_f32,
-    "circumflex" => 600_f32,
-    "tilde" => 600_f32,
-    "macron" => 600_f32,
-    "breve" => 600_f32,
-    "dotaccent" => 600_f32,
-    "dieresis" => 600_f32,
-    "ring" => 600_f32,
-    "cedilla" => 600_f32,
-    "hungarumlaut" => 600_f32,
-    "ogonek" => 600_f32,
-    "caron" => 600_f32,
-    "emdash" => 600_f32,
-    "AE" => 600_f32,
-    "ordfeminine" => 600_f32,
-    "Lslash" => 600_f32,
-    "Oslash" => 600_f32,
-    "OE" => 600_f32,
-    "ordmasculine" => 600_f32,
-    "ae" => 600_f32,
-    "dotlessi" => 600_f32,
-    "lslash" => 600_f32,
-    "oslash" => 600_f32,
-    "oe" => 600_f32,
-    "germandbls" => 600_f32,
-    "Idieresis" => 600_f32,
-    "eacute" => 600_f32,
-    "abreve" => 600_f32,
-    "uhungarumlaut" => 600_f32,
-    "ecaron" => 600_f32,
-    "Ydieresis" => 600_f32,
-    "divide" => 600_f32,
-    "Yacute" => 600_f32,
-    "Acircumflex" => 600_f32,
-    "aacute" => 600_f32,
-    "Ucircumflex" => 600_f32,
-    "yacute" => 600_f32,
-    "scommaaccent" => 600_f32,
-    "ecircumflex" => 600_f32,
-    "Uring" => 600_f32,
-    "Udieresis" => 600_f32,
-    "aogonek" => 600_f32,
-    "Uacute" => 600_f32,
-    "uogonek" => 600_f32,
-    "Edieresis" => 600_f32,
-    "Dcroat" => 600_f32,
-    "commaaccent" => 600_f32,
-    "copyright" => 600_f32,
-    "Emacron" => 600_f32,
-    "ccaron" => 600_f32,
-    "aring" => 600_f32,
-    "Ncommaaccent" => 600_f32,
-    "lacute" => 600_f32,
-    "agrave" => 600_f32,
-    "Tcommaaccent" => 600_f32,
-    "Cacute" => 600_f32,
-    "atilde" => 600_f32,
-    "Edotaccent" => 600_f32,
-    "scaron" => 600_f32,
-    "scedilla" => 600_f32,
-    "iacute" => 600_f32,
-    "lozenge" => 600_f32,
-    "Rcaron" => 600_f32,
-    "Gcommaaccent" => 600_f32,
-    "ucircumflex" => 600_f32,
-    "acircumflex" => 600_f32,
-    "Amacron" => 600_f32,
-    "rcaron" => 600_f32,
-    "ccedilla" => 600_f32,
-    "Zdotaccent" => 600_f32,
-    "Thorn" => 600_f32,
-    "Omacron" => 600_f32,
-    "Racute" => 600_f32,
-    "Sacute" => 600_f32,
-    "dcaron" => 600_f32,
-    "Umacron" => 600_f32,
-    "uring" => 600_f32,
-    "threesuperior" => 600_f32,
-    "Ograve" => 600_f32,
-    "Agrave" => 600_f32,
-    "Abreve" => 600_f32,
-    "multiply" => 600_f32,
-    "uacute" => 600_f32,
-    "Tcaron" => 600_f32,
-    "partialdiff" => 600_f32,
-    "ydieresis" => 600_f32,
-    "Nacute" => 600_f32,
-    "icircumflex" => 600_f32,
-    "Ecircumflex" => 600_f32,
-    "adieresis" => 600_f32,
-    "edieresis" => 600_f32,
-    "cacute" => 600_f32,
-    "nacute" => 600_f32,
-    "umacron" => 600_f32,
-    "Ncaron" => 600_f32,
-    "Iacute" => 600_f32,
-    "plusminus" => 600_f32,
-    "brokenbar" => 600_f32,
-    "registered" => 600_f32,
-    "Gbreve" => 600_f32,
-    "Idotaccent" => 600_f32,
-    "summation" => 600_f32,
-    "Egrave" => 600_f32,
-    "racute" => 600_f32,
-    "omacron" => 600_f32,
-    "Zacute" => 600_f32,
-    "Zcaron" => 600_f32,
-    "greaterequal" => 600_f32,
-    "Eth" => 600_f32,
-    "Ccedilla" => 600_f32,
-    "lcommaaccent" => 600_f32,
-    "tcaron" => 600_f32,
-    "eogonek" => 600_f32,
-    "Uogonek" => 600_f32,
-    "Aacute" => 600_f32,
-    "Adieresis" => 600_f32,
-    "egrave" => 600_f32,
-    "zacute" => 600_f32,
-    "iogonek" => 600_f32,
-    "Oacute" => 600_f32,
-    "oacute" => 600_f32,
-    "amacron" => 600_f32,
-    "sacute" => 600_f32,
-    "idieresis" => 600_f32,
-    "Ocircumflex" => 600_f32,
-    "Ugrave" => 600_f32,
-    "Delta" => 600_f32,
-    "thorn" => 600_f32,
-    "twosuperior" => 600_f32,
-    "Odieresis" => 600_f32,
-    "mu" => 600_f32,
-    "igrave" => 600_f32,
-    "ohungarumlaut" => 600_f32,
-    "Eogonek" => 600_f32,
-    "dcroat" => 600_f32,
-    "threequarters" => 600_f32,
-    "Scedilla" => 600_f32,
-    "lcaron" => 600_f32,
-    "Kcommaaccent" => 600_f32,
-    "Lacute" => 600_f32,
-    "trademark" => 600_f32,
-    "edotaccent" => 600_f32,
-    "Igrave" => 600_f32,
-    "Imacron" => 600_f32,
-    "Lcaron" => 600_f32,
-    "onehalf" => 600_f32,
-    "lessequal" => 600_f32,
-    "ocircumflex" => 600_f32,
-    "ntilde" => 600_f32,
-    "Uhungarumlaut" => 600_f32,
-    "Eacute" => 600_f32,
-    "emacron" => 600_f32,
-    "gbreve" => 600_f32,
-    "onequarter" => 600_f32,
-    "Scaron" => 600_f32,
-    "Scommaaccent" => 600_f32,
-    "Ohungarumlaut" => 600_f32,
-    "degree" => 600_f32,
-    "ograve" => 600_f32,
-    "Ccaron" => 600_f32,
-    "ugrave" => 600_f32,
-    "radical" => 600_f32,
-    "Dcaron" => 600_f32,
-    "rcommaaccent" => 600_f32,
-    "Ntilde" => 600_f32,
-    "otilde" => 600_f32,
-    "Rcommaaccent" => 600_f32,
-    "Lcommaaccent" => 600_f32,
-    "Atilde" => 600_f32,
-    "Aogonek" => 600_f32,
-    "Aring" => 600_f32,
-    "Otilde" => 600_f32,
-    "zdotaccent" => 600_f32,
-    "Ecaron" => 600_f32,
-    "Iogonek" => 600_f32,
-    "kcommaaccent" => 600_f32,
-    "minus" => 600_f32,
-    "Icircumflex" => 600_f32,
-    "ncaron" => 600_f32,
-    "tcommaaccent" => 600_f32,
-    "logicalnot" => 600_f32,
-    "odieresis" => 600_f32,
-    "udieresis" => 600_f32,
-    "notequal" => 600_f32,
-    "gcommaaccent" => 600_f32,
-    "eth" => 600_f32,
-    "zcaron" => 600_f32,
-    "ncommaaccent" => 600_f32,
-    "onesuperior" => 600_f32,
-    "imacron" => 600_f32,
-    "Euro" => 600_f32,
-};
+pub(crate) static HELVETICA: &[u8] = b"\
+    A\xFE667\xFF\
+    AE\xFE1000\xFF\
+    Aacute\xFE667\xFF\
+    Abreve\xFE667\xFF\
+    Acircumflex\xFE667\xFF\
+    Adieresis\xFE667\xFF\
+    Agrave\xFE667\xFF\
+    Amacron\xFE667\xFF\
+    Aogonek\xFE667\xFF\
+    Aring\xFE667\xFF\
+    Atilde\xFE667\xFF\
+    B\xFE667\xFF\
+    C\xFE722\xFF\
+    Cacute\xFE722\xFF\
+    Ccaron\xFE722\xFF\
+    Ccedilla\xFE722\xFF\
+    D\xFE722\xFF\
+    Dcaron\xFE722\xFF\
+    Dcroat\xFE722\xFF\
+    Delta\xFE612\xFF\
+    E\xFE667\xFF\
+    Eacute\xFE667\xFF\
+    Ecaron\xFE667\xFF\
+    Ecircumflex\xFE667\xFF\
+    Edieresis\xFE667\xFF\
+    Edotaccent\xFE667\xFF\
+    Egrave\xFE667\xFF\
+    Emacron\xFE667\xFF\
+    Eogonek\xFE667\xFF\
+    Eth\xFE722\xFF\
+    Euro\xFE556\xFF\
+    F\xFE611\xFF\
+    G\xFE778\xFF\
+    Gbreve\xFE778\xFF\
+    Gcommaaccent\xFE778\xFF\
+    H\xFE722\xFF\
+    I\xFE278\xFF\
+    Iacute\xFE278\xFF\
+    Icircumflex\xFE278\xFF\
+    Idieresis\xFE278\xFF\
+    Idotaccent\xFE278\xFF\
+    Igrave\xFE278\xFF\
+    Imacron\xFE278\xFF\
+    Iogonek\xFE278\xFF\
+    J\xFE500\xFF\
+    K\xFE667\xFF\
+    Kcommaaccent\xFE667\xFF\
+    L\xFE556\xFF\
+    Lacute\xFE556\xFF\
+    Lcaron\xFE556\xFF\
+    Lcommaaccent\xFE556\xFF\
+    Lslash\xFE556\xFF\
+    M\xFE833\xFF\
+    N\xFE722\xFF\
+    Nacute\xFE722\xFF\
+    Ncaron\xFE722\xFF\
+    Ncommaaccent\xFE722\xFF\
+    Ntilde\xFE722\xFF\
+    O\xFE778\xFF\
+    OE\xFE1000\xFF\
+    Oacute\xFE778\xFF\
+    Ocircumflex\xFE778\xFF\
+    Odieresis\xFE778\xFF\
+    Ograve\xFE778\xFF\
+    Ohungarumlaut\xFE778\xFF\
+    Omacron\xFE778\xFF\
+    Oslash\xFE778\xFF\
+    Otilde\xFE778\xFF\
+    P\xFE667\xFF\
+    Q\xFE778\xFF\
+    R\xFE722\xFF\
+    Racute\xFE722\xFF\
+    Rcaron\xFE722\xFF\
+    Rcommaaccent\xFE722\xFF\
+    S\xFE667\xFF\
+    Sacute\xFE667\xFF\
+    Scaron\xFE667\xFF\
+    Scedilla\xFE667\xFF\
+    Scommaaccent\xFE667\xFF\
+    T\xFE611\xFF\
+    Tcaron\xFE611\xFF\
+    Tcommaaccent\xFE611\xFF\
+    Thorn\xFE667\xFF\
+    U\xFE722\xFF\
+    Uacute\xFE722\xFF\
+    Ucircumflex\xFE722\xFF\
+    Udieresis\xFE722\xFF\
+    Ugrave\xFE722\xFF\
+    Uhungarumlaut\xFE722\xFF\
+    Umacron\xFE722\xFF\
+    Uogonek\xFE722\xFF\
+    Uring\xFE722\xFF\
+    V\xFE667\xFF\
+    W\xFE944\xFF\
+    X\xFE667\xFF\
+    Y\xFE667\xFF\
+    Yacute\xFE667\xFF\
+    Ydieresis\xFE667\xFF\
+    Z\xFE611\xFF\
+    Zacute\xFE611\xFF\
+    Zcaron\xFE611\xFF\
+    Zdotaccent\xFE611\xFF\
+    a\xFE556\xFF\
+    aacute\xFE556\xFF\
+    abreve\xFE556\xFF\
+    acircumflex\xFE556\xFF\
+    acute\xFE333\xFF\
+    adieresis\xFE556\xFF\
+    ae\xFE889\xFF\
+    agrave\xFE556\xFF\
+    amacron\xFE556\xFF\
+    ampersand\xFE667\xFF\
+    aogonek\xFE556\xFF\
+    aring\xFE556\xFF\
+    asciicircum\xFE469\xFF\
+    asciitilde\xFE584\xFF\
+    asterisk\xFE389\xFF\
+    at\xFE1015\xFF\
+    atilde\xFE556\xFF\
+    b\xFE556\xFF\
+    backslash\xFE278\xFF\
+    bar\xFE260\xFF\
+    braceleft\xFE334\xFF\
+    braceright\xFE334\xFF\
+    bracketleft\xFE278\xFF\
+    bracketright\xFE278\xFF\
+    breve\xFE333\xFF\
+    brokenbar\xFE260\xFF\
+    bullet\xFE350\xFF\
+    c\xFE500\xFF\
+    cacute\xFE500\xFF\
+    caron\xFE333\xFF\
+    ccaron\xFE500\xFF\
+    ccedilla\xFE500\xFF\
+    cedilla\xFE333\xFF\
+    cent\xFE556\xFF\
+    circumflex\xFE333\xFF\
+    colon\xFE278\xFF\
+    comma\xFE278\xFF\
+    commaaccent\xFE250\xFF\
+    copyright\xFE737\xFF\
+    currency\xFE556\xFF\
+    d\xFE556\xFF\
+    dagger\xFE556\xFF\
+    daggerdbl\xFE556\xFF\
+    dcaron\xFE643\xFF\
+    dcroat\xFE556\xFF\
+    degree\xFE400\xFF\
+    dieresis\xFE333\xFF\
+    divide\xFE584\xFF\
+    dollar\xFE556\xFF\
+    dotaccent\xFE333\xFF\
+    dotlessi\xFE278\xFF\
+    e\xFE556\xFF\
+    eacute\xFE556\xFF\
+    ecaron\xFE556\xFF\
+    ecircumflex\xFE556\xFF\
+    edieresis\xFE556\xFF\
+    edotaccent\xFE556\xFF\
+    egrave\xFE556\xFF\
+    eight\xFE556\xFF\
+    ellipsis\xFE1000\xFF\
+    emacron\xFE556\xFF\
+    emdash\xFE1000\xFF\
+    endash\xFE556\xFF\
+    eogonek\xFE556\xFF\
+    equal\xFE584\xFF\
+    eth\xFE556\xFF\
+    exclam\xFE278\xFF\
+    exclamdown\xFE333\xFF\
+    f\xFE278\xFF\
+    fi\xFE500\xFF\
+    five\xFE556\xFF\
+    fl\xFE500\xFF\
+    florin\xFE556\xFF\
+    four\xFE556\xFF\
+    fraction\xFE167\xFF\
+    g\xFE556\xFF\
+    gbreve\xFE556\xFF\
+    gcommaaccent\xFE556\xFF\
+    germandbls\xFE611\xFF\
+    grave\xFE333\xFF\
+    greater\xFE584\xFF\
+    greaterequal\xFE549\xFF\
+    guillemotleft\xFE556\xFF\
+    guillemotright\xFE556\xFF\
+    guilsinglleft\xFE333\xFF\
+    guilsinglright\xFE333\xFF\
+    h\xFE556\xFF\
+    hungarumlaut\xFE333\xFF\
+    hyphen\xFE333\xFF\
+    i\xFE222\xFF\
+    iacute\xFE278\xFF\
+    icircumflex\xFE278\xFF\
+    idieresis\xFE278\xFF\
+    igrave\xFE278\xFF\
+    imacron\xFE278\xFF\
+    iogonek\xFE222\xFF\
+    j\xFE222\xFF\
+    k\xFE500\xFF\
+    kcommaaccent\xFE500\xFF\
+    l\xFE222\xFF\
+    lacute\xFE222\xFF\
+    lcaron\xFE299\xFF\
+    lcommaaccent\xFE222\xFF\
+    less\xFE584\xFF\
+    lessequal\xFE549\xFF\
+    logicalnot\xFE584\xFF\
+    lozenge\xFE471\xFF\
+    lslash\xFE222\xFF\
+    m\xFE833\xFF\
+    macron\xFE333\xFF\
+    minus\xFE584\xFF\
+    mu\xFE556\xFF\
+    multiply\xFE584\xFF\
+    n\xFE556\xFF\
+    nacute\xFE556\xFF\
+    ncaron\xFE556\xFF\
+    ncommaaccent\xFE556\xFF\
+    nine\xFE556\xFF\
+    notequal\xFE549\xFF\
+    ntilde\xFE556\xFF\
+    numbersign\xFE556\xFF\
+    o\xFE556\xFF\
+    oacute\xFE556\xFF\
+    ocircumflex\xFE556\xFF\
+    odieresis\xFE556\xFF\
+    oe\xFE944\xFF\
+    ogonek\xFE333\xFF\
+    ograve\xFE556\xFF\
+    ohungarumlaut\xFE556\xFF\
+    omacron\xFE556\xFF\
+    one\xFE556\xFF\
+    onehalf\xFE834\xFF\
+    onequarter\xFE834\xFF\
+    onesuperior\xFE333\xFF\
+    ordfeminine\xFE370\xFF\
+    ordmasculine\xFE365\xFF\
+    oslash\xFE611\xFF\
+    otilde\xFE556\xFF\
+    p\xFE556\xFF\
+    paragraph\xFE537\xFF\
+    parenleft\xFE333\xFF\
+    parenright\xFE333\xFF\
+    partialdiff\xFE476\xFF\
+    percent\xFE889\xFF\
+    period\xFE278\xFF\
+    periodcentered\xFE278\xFF\
+    perthousand\xFE1000\xFF\
+    plus\xFE584\xFF\
+    plusminus\xFE584\xFF\
+    q\xFE556\xFF\
+    question\xFE556\xFF\
+    questiondown\xFE611\xFF\
+    quotedbl\xFE355\xFF\
+    quotedblbase\xFE333\xFF\
+    quotedblleft\xFE333\xFF\
+    quotedblright\xFE333\xFF\
+    quoteleft\xFE222\xFF\
+    quoteright\xFE222\xFF\
+    quotesinglbase\xFE222\xFF\
+    quotesingle\xFE191\xFF\
+    r\xFE333\xFF\
+    racute\xFE333\xFF\
+    radical\xFE453\xFF\
+    rcaron\xFE333\xFF\
+    rcommaaccent\xFE333\xFF\
+    registered\xFE737\xFF\
+    ring\xFE333\xFF\
+    s\xFE500\xFF\
+    sacute\xFE500\xFF\
+    scaron\xFE500\xFF\
+    scedilla\xFE500\xFF\
+    scommaaccent\xFE500\xFF\
+    section\xFE556\xFF\
+    semicolon\xFE278\xFF\
+    seven\xFE556\xFF\
+    six\xFE556\xFF\
+    slash\xFE278\xFF\
+    space\xFE278\xFF\
+    sterling\xFE556\xFF\
+    summation\xFE600\xFF\
+    t\xFE278\xFF\
+    tcaron\xFE317\xFF\
+    tcommaaccent\xFE278\xFF\
+    thorn\xFE556\xFF\
+    three\xFE556\xFF\
+    threequarters\xFE834\xFF\
+    threesuperior\xFE333\xFF\
+    tilde\xFE333\xFF\
+    trademark\xFE1000\xFF\
+    two\xFE556\xFF\
+    twosuperior\xFE333\xFF\
+    u\xFE556\xFF\
+    uacute\xFE556\xFF\
+    ucircumflex\xFE556\xFF\
+    udieresis\xFE556\xFF\
+    ugrave\xFE556\xFF\
+    uhungarumlaut\xFE556\xFF\
+    umacron\xFE556\xFF\
+    underscore\xFE556\xFF\
+    uogonek\xFE556\xFF\
+    uring\xFE556\xFF\
+    v\xFE500\xFF\
+    w\xFE722\xFF\
+    x\xFE500\xFF\
+    y\xFE500\xFF\
+    yacute\xFE500\xFF\
+    ydieresis\xFE500\xFF\
+    yen\xFE556\xFF\
+    z\xFE500\xFF\
+    zacute\xFE500\xFF\
+    zcaron\xFE500\xFF\
+    zdotaccent\xFE500\xFF\
+    zero\xFE556\xFF";
 
-pub(crate) static HELVETICA: phf::Map<&'static str, f32> = phf_map! {
-    "space" => 278_f32,
-    "exclam" => 278_f32,
-    "quotedbl" => 355_f32,
-    "numbersign" => 556_f32,
-    "dollar" => 556_f32,
-    "percent" => 889_f32,
-    "ampersand" => 667_f32,
-    "quoteright" => 222_f32,
-    "parenleft" => 333_f32,
-    "parenright" => 333_f32,
-    "asterisk" => 389_f32,
-    "plus" => 584_f32,
-    "comma" => 278_f32,
-    "hyphen" => 333_f32,
-    "period" => 278_f32,
-    "slash" => 278_f32,
-    "zero" => 556_f32,
-    "one" => 556_f32,
-    "two" => 556_f32,
-    "three" => 556_f32,
-    "four" => 556_f32,
-    "five" => 556_f32,
-    "six" => 556_f32,
-    "seven" => 556_f32,
-    "eight" => 556_f32,
-    "nine" => 556_f32,
-    "colon" => 278_f32,
-    "semicolon" => 278_f32,
-    "less" => 584_f32,
-    "equal" => 584_f32,
-    "greater" => 584_f32,
-    "question" => 556_f32,
-    "at" => 1015_f32,
-    "A" => 667_f32,
-    "B" => 667_f32,
-    "C" => 722_f32,
-    "D" => 722_f32,
-    "E" => 667_f32,
-    "F" => 611_f32,
-    "G" => 778_f32,
-    "H" => 722_f32,
-    "I" => 278_f32,
-    "J" => 500_f32,
-    "K" => 667_f32,
-    "L" => 556_f32,
-    "M" => 833_f32,
-    "N" => 722_f32,
-    "O" => 778_f32,
-    "P" => 667_f32,
-    "Q" => 778_f32,
-    "R" => 722_f32,
-    "S" => 667_f32,
-    "T" => 611_f32,
-    "U" => 722_f32,
-    "V" => 667_f32,
-    "W" => 944_f32,
-    "X" => 667_f32,
-    "Y" => 667_f32,
-    "Z" => 611_f32,
-    "bracketleft" => 278_f32,
-    "backslash" => 278_f32,
-    "bracketright" => 278_f32,
-    "asciicircum" => 469_f32,
-    "underscore" => 556_f32,
-    "quoteleft" => 222_f32,
-    "a" => 556_f32,
-    "b" => 556_f32,
-    "c" => 500_f32,
-    "d" => 556_f32,
-    "e" => 556_f32,
-    "f" => 278_f32,
-    "g" => 556_f32,
-    "h" => 556_f32,
-    "i" => 222_f32,
-    "j" => 222_f32,
-    "k" => 500_f32,
-    "l" => 222_f32,
-    "m" => 833_f32,
-    "n" => 556_f32,
-    "o" => 556_f32,
-    "p" => 556_f32,
-    "q" => 556_f32,
-    "r" => 333_f32,
-    "s" => 500_f32,
-    "t" => 278_f32,
-    "u" => 556_f32,
-    "v" => 500_f32,
-    "w" => 722_f32,
-    "x" => 500_f32,
-    "y" => 500_f32,
-    "z" => 500_f32,
-    "braceleft" => 334_f32,
-    "bar" => 260_f32,
-    "braceright" => 334_f32,
-    "asciitilde" => 584_f32,
-    "exclamdown" => 333_f32,
-    "cent" => 556_f32,
-    "sterling" => 556_f32,
-    "fraction" => 167_f32,
-    "yen" => 556_f32,
-    "florin" => 556_f32,
-    "section" => 556_f32,
-    "currency" => 556_f32,
-    "quotesingle" => 191_f32,
-    "quotedblleft" => 333_f32,
-    "guillemotleft" => 556_f32,
-    "guilsinglleft" => 333_f32,
-    "guilsinglright" => 333_f32,
-    "fi" => 500_f32,
-    "fl" => 500_f32,
-    "endash" => 556_f32,
-    "dagger" => 556_f32,
-    "daggerdbl" => 556_f32,
-    "periodcentered" => 278_f32,
-    "paragraph" => 537_f32,
-    "bullet" => 350_f32,
-    "quotesinglbase" => 222_f32,
-    "quotedblbase" => 333_f32,
-    "quotedblright" => 333_f32,
-    "guillemotright" => 556_f32,
-    "ellipsis" => 1000_f32,
-    "perthousand" => 1000_f32,
-    "questiondown" => 611_f32,
-    "grave" => 333_f32,
-    "acute" => 333_f32,
-    "circumflex" => 333_f32,
-    "tilde" => 333_f32,
-    "macron" => 333_f32,
-    "breve" => 333_f32,
-    "dotaccent" => 333_f32,
-    "dieresis" => 333_f32,
-    "ring" => 333_f32,
-    "cedilla" => 333_f32,
-    "hungarumlaut" => 333_f32,
-    "ogonek" => 333_f32,
-    "caron" => 333_f32,
-    "emdash" => 1000_f32,
-    "AE" => 1000_f32,
-    "ordfeminine" => 370_f32,
-    "Lslash" => 556_f32,
-    "Oslash" => 778_f32,
-    "OE" => 1000_f32,
-    "ordmasculine" => 365_f32,
-    "ae" => 889_f32,
-    "dotlessi" => 278_f32,
-    "lslash" => 222_f32,
-    "oslash" => 611_f32,
-    "oe" => 944_f32,
-    "germandbls" => 611_f32,
-    "Idieresis" => 278_f32,
-    "eacute" => 556_f32,
-    "abreve" => 556_f32,
-    "uhungarumlaut" => 556_f32,
-    "ecaron" => 556_f32,
-    "Ydieresis" => 667_f32,
-    "divide" => 584_f32,
-    "Yacute" => 667_f32,
-    "Acircumflex" => 667_f32,
-    "aacute" => 556_f32,
-    "Ucircumflex" => 722_f32,
-    "yacute" => 500_f32,
-    "scommaaccent" => 500_f32,
-    "ecircumflex" => 556_f32,
-    "Uring" => 722_f32,
-    "Udieresis" => 722_f32,
-    "aogonek" => 556_f32,
-    "Uacute" => 722_f32,
-    "uogonek" => 556_f32,
-    "Edieresis" => 667_f32,
-    "Dcroat" => 722_f32,
-    "commaaccent" => 250_f32,
-    "copyright" => 737_f32,
-    "Emacron" => 667_f32,
-    "ccaron" => 500_f32,
-    "aring" => 556_f32,
-    "Ncommaaccent" => 722_f32,
-    "lacute" => 222_f32,
-    "agrave" => 556_f32,
-    "Tcommaaccent" => 611_f32,
-    "Cacute" => 722_f32,
-    "atilde" => 556_f32,
-    "Edotaccent" => 667_f32,
-    "scaron" => 500_f32,
-    "scedilla" => 500_f32,
-    "iacute" => 278_f32,
-    "lozenge" => 471_f32,
-    "Rcaron" => 722_f32,
-    "Gcommaaccent" => 778_f32,
-    "ucircumflex" => 556_f32,
-    "acircumflex" => 556_f32,
-    "Amacron" => 667_f32,
-    "rcaron" => 333_f32,
-    "ccedilla" => 500_f32,
-    "Zdotaccent" => 611_f32,
-    "Thorn" => 667_f32,
-    "Omacron" => 778_f32,
-    "Racute" => 722_f32,
-    "Sacute" => 667_f32,
-    "dcaron" => 643_f32,
-    "Umacron" => 722_f32,
-    "uring" => 556_f32,
-    "threesuperior" => 333_f32,
-    "Ograve" => 778_f32,
-    "Agrave" => 667_f32,
-    "Abreve" => 667_f32,
-    "multiply" => 584_f32,
-    "uacute" => 556_f32,
-    "Tcaron" => 611_f32,
-    "partialdiff" => 476_f32,
-    "ydieresis" => 500_f32,
-    "Nacute" => 722_f32,
-    "icircumflex" => 278_f32,
-    "Ecircumflex" => 667_f32,
-    "adieresis" => 556_f32,
-    "edieresis" => 556_f32,
-    "cacute" => 500_f32,
-    "nacute" => 556_f32,
-    "umacron" => 556_f32,
-    "Ncaron" => 722_f32,
-    "Iacute" => 278_f32,
-    "plusminus" => 584_f32,
-    "brokenbar" => 260_f32,
-    "registered" => 737_f32,
-    "Gbreve" => 778_f32,
-    "Idotaccent" => 278_f32,
-    "summation" => 600_f32,
-    "Egrave" => 667_f32,
-    "racute" => 333_f32,
-    "omacron" => 556_f32,
-    "Zacute" => 611_f32,
-    "Zcaron" => 611_f32,
-    "greaterequal" => 549_f32,
-    "Eth" => 722_f32,
-    "Ccedilla" => 722_f32,
-    "lcommaaccent" => 222_f32,
-    "tcaron" => 317_f32,
-    "eogonek" => 556_f32,
-    "Uogonek" => 722_f32,
-    "Aacute" => 667_f32,
-    "Adieresis" => 667_f32,
-    "egrave" => 556_f32,
-    "zacute" => 500_f32,
-    "iogonek" => 222_f32,
-    "Oacute" => 778_f32,
-    "oacute" => 556_f32,
-    "amacron" => 556_f32,
-    "sacute" => 500_f32,
-    "idieresis" => 278_f32,
-    "Ocircumflex" => 778_f32,
-    "Ugrave" => 722_f32,
-    "Delta" => 612_f32,
-    "thorn" => 556_f32,
-    "twosuperior" => 333_f32,
-    "Odieresis" => 778_f32,
-    "mu" => 556_f32,
-    "igrave" => 278_f32,
-    "ohungarumlaut" => 556_f32,
-    "Eogonek" => 667_f32,
-    "dcroat" => 556_f32,
-    "threequarters" => 834_f32,
-    "Scedilla" => 667_f32,
-    "lcaron" => 299_f32,
-    "Kcommaaccent" => 667_f32,
-    "Lacute" => 556_f32,
-    "trademark" => 1000_f32,
-    "edotaccent" => 556_f32,
-    "Igrave" => 278_f32,
-    "Imacron" => 278_f32,
-    "Lcaron" => 556_f32,
-    "onehalf" => 834_f32,
-    "lessequal" => 549_f32,
-    "ocircumflex" => 556_f32,
-    "ntilde" => 556_f32,
-    "Uhungarumlaut" => 722_f32,
-    "Eacute" => 667_f32,
-    "emacron" => 556_f32,
-    "gbreve" => 556_f32,
-    "onequarter" => 834_f32,
-    "Scaron" => 667_f32,
-    "Scommaaccent" => 667_f32,
-    "Ohungarumlaut" => 778_f32,
-    "degree" => 400_f32,
-    "ograve" => 556_f32,
-    "Ccaron" => 722_f32,
-    "ugrave" => 556_f32,
-    "radical" => 453_f32,
-    "Dcaron" => 722_f32,
-    "rcommaaccent" => 333_f32,
-    "Ntilde" => 722_f32,
-    "otilde" => 556_f32,
-    "Rcommaaccent" => 722_f32,
-    "Lcommaaccent" => 556_f32,
-    "Atilde" => 667_f32,
-    "Aogonek" => 667_f32,
-    "Aring" => 667_f32,
-    "Otilde" => 778_f32,
-    "zdotaccent" => 500_f32,
-    "Ecaron" => 667_f32,
-    "Iogonek" => 278_f32,
-    "kcommaaccent" => 500_f32,
-    "minus" => 584_f32,
-    "Icircumflex" => 278_f32,
-    "ncaron" => 556_f32,
-    "tcommaaccent" => 278_f32,
-    "logicalnot" => 584_f32,
-    "odieresis" => 556_f32,
-    "udieresis" => 556_f32,
-    "notequal" => 549_f32,
-    "gcommaaccent" => 556_f32,
-    "eth" => 556_f32,
-    "zcaron" => 500_f32,
-    "ncommaaccent" => 556_f32,
-    "onesuperior" => 333_f32,
-    "imacron" => 278_f32,
-    "Euro" => 556_f32,
-};
+pub(crate) static HELVETICA_BOLD: &[u8] = b"\
+    A\xFE722\xFF\
+    AE\xFE1000\xFF\
+    Aacute\xFE722\xFF\
+    Abreve\xFE722\xFF\
+    Acircumflex\xFE722\xFF\
+    Adieresis\xFE722\xFF\
+    Agrave\xFE722\xFF\
+    Amacron\xFE722\xFF\
+    Aogonek\xFE722\xFF\
+    Aring\xFE722\xFF\
+    Atilde\xFE722\xFF\
+    B\xFE722\xFF\
+    C\xFE722\xFF\
+    Cacute\xFE722\xFF\
+    Ccaron\xFE722\xFF\
+    Ccedilla\xFE722\xFF\
+    D\xFE722\xFF\
+    Dcaron\xFE722\xFF\
+    Dcroat\xFE722\xFF\
+    Delta\xFE612\xFF\
+    E\xFE667\xFF\
+    Eacute\xFE667\xFF\
+    Ecaron\xFE667\xFF\
+    Ecircumflex\xFE667\xFF\
+    Edieresis\xFE667\xFF\
+    Edotaccent\xFE667\xFF\
+    Egrave\xFE667\xFF\
+    Emacron\xFE667\xFF\
+    Eogonek\xFE667\xFF\
+    Eth\xFE722\xFF\
+    Euro\xFE556\xFF\
+    F\xFE611\xFF\
+    G\xFE778\xFF\
+    Gbreve\xFE778\xFF\
+    Gcommaaccent\xFE778\xFF\
+    H\xFE722\xFF\
+    I\xFE278\xFF\
+    Iacute\xFE278\xFF\
+    Icircumflex\xFE278\xFF\
+    Idieresis\xFE278\xFF\
+    Idotaccent\xFE278\xFF\
+    Igrave\xFE278\xFF\
+    Imacron\xFE278\xFF\
+    Iogonek\xFE278\xFF\
+    J\xFE556\xFF\
+    K\xFE722\xFF\
+    Kcommaaccent\xFE722\xFF\
+    L\xFE611\xFF\
+    Lacute\xFE611\xFF\
+    Lcaron\xFE611\xFF\
+    Lcommaaccent\xFE611\xFF\
+    Lslash\xFE611\xFF\
+    M\xFE833\xFF\
+    N\xFE722\xFF\
+    Nacute\xFE722\xFF\
+    Ncaron\xFE722\xFF\
+    Ncommaaccent\xFE722\xFF\
+    Ntilde\xFE722\xFF\
+    O\xFE778\xFF\
+    OE\xFE1000\xFF\
+    Oacute\xFE778\xFF\
+    Ocircumflex\xFE778\xFF\
+    Odieresis\xFE778\xFF\
+    Ograve\xFE778\xFF\
+    Ohungarumlaut\xFE778\xFF\
+    Omacron\xFE778\xFF\
+    Oslash\xFE778\xFF\
+    Otilde\xFE778\xFF\
+    P\xFE667\xFF\
+    Q\xFE778\xFF\
+    R\xFE722\xFF\
+    Racute\xFE722\xFF\
+    Rcaron\xFE722\xFF\
+    Rcommaaccent\xFE722\xFF\
+    S\xFE667\xFF\
+    Sacute\xFE667\xFF\
+    Scaron\xFE667\xFF\
+    Scedilla\xFE667\xFF\
+    Scommaaccent\xFE667\xFF\
+    T\xFE611\xFF\
+    Tcaron\xFE611\xFF\
+    Tcommaaccent\xFE611\xFF\
+    Thorn\xFE667\xFF\
+    U\xFE722\xFF\
+    Uacute\xFE722\xFF\
+    Ucircumflex\xFE722\xFF\
+    Udieresis\xFE722\xFF\
+    Ugrave\xFE722\xFF\
+    Uhungarumlaut\xFE722\xFF\
+    Umacron\xFE722\xFF\
+    Uogonek\xFE722\xFF\
+    Uring\xFE722\xFF\
+    V\xFE667\xFF\
+    W\xFE944\xFF\
+    X\xFE667\xFF\
+    Y\xFE667\xFF\
+    Yacute\xFE667\xFF\
+    Ydieresis\xFE667\xFF\
+    Z\xFE611\xFF\
+    Zacute\xFE611\xFF\
+    Zcaron\xFE611\xFF\
+    Zdotaccent\xFE611\xFF\
+    a\xFE556\xFF\
+    aacute\xFE556\xFF\
+    abreve\xFE556\xFF\
+    acircumflex\xFE556\xFF\
+    acute\xFE333\xFF\
+    adieresis\xFE556\xFF\
+    ae\xFE889\xFF\
+    agrave\xFE556\xFF\
+    amacron\xFE556\xFF\
+    ampersand\xFE722\xFF\
+    aogonek\xFE556\xFF\
+    aring\xFE556\xFF\
+    asciicircum\xFE584\xFF\
+    asciitilde\xFE584\xFF\
+    asterisk\xFE389\xFF\
+    at\xFE975\xFF\
+    atilde\xFE556\xFF\
+    b\xFE611\xFF\
+    backslash\xFE278\xFF\
+    bar\xFE280\xFF\
+    braceleft\xFE389\xFF\
+    braceright\xFE389\xFF\
+    bracketleft\xFE333\xFF\
+    bracketright\xFE333\xFF\
+    breve\xFE333\xFF\
+    brokenbar\xFE280\xFF\
+    bullet\xFE350\xFF\
+    c\xFE556\xFF\
+    cacute\xFE556\xFF\
+    caron\xFE333\xFF\
+    ccaron\xFE556\xFF\
+    ccedilla\xFE556\xFF\
+    cedilla\xFE333\xFF\
+    cent\xFE556\xFF\
+    circumflex\xFE333\xFF\
+    colon\xFE333\xFF\
+    comma\xFE278\xFF\
+    commaaccent\xFE250\xFF\
+    copyright\xFE737\xFF\
+    currency\xFE556\xFF\
+    d\xFE611\xFF\
+    dagger\xFE556\xFF\
+    daggerdbl\xFE556\xFF\
+    dcaron\xFE743\xFF\
+    dcroat\xFE611\xFF\
+    degree\xFE400\xFF\
+    dieresis\xFE333\xFF\
+    divide\xFE584\xFF\
+    dollar\xFE556\xFF\
+    dotaccent\xFE333\xFF\
+    dotlessi\xFE278\xFF\
+    e\xFE556\xFF\
+    eacute\xFE556\xFF\
+    ecaron\xFE556\xFF\
+    ecircumflex\xFE556\xFF\
+    edieresis\xFE556\xFF\
+    edotaccent\xFE556\xFF\
+    egrave\xFE556\xFF\
+    eight\xFE556\xFF\
+    ellipsis\xFE1000\xFF\
+    emacron\xFE556\xFF\
+    emdash\xFE1000\xFF\
+    endash\xFE556\xFF\
+    eogonek\xFE556\xFF\
+    equal\xFE584\xFF\
+    eth\xFE611\xFF\
+    exclam\xFE333\xFF\
+    exclamdown\xFE333\xFF\
+    f\xFE333\xFF\
+    fi\xFE611\xFF\
+    five\xFE556\xFF\
+    fl\xFE611\xFF\
+    florin\xFE556\xFF\
+    four\xFE556\xFF\
+    fraction\xFE167\xFF\
+    g\xFE611\xFF\
+    gbreve\xFE611\xFF\
+    gcommaaccent\xFE611\xFF\
+    germandbls\xFE611\xFF\
+    grave\xFE333\xFF\
+    greater\xFE584\xFF\
+    greaterequal\xFE549\xFF\
+    guillemotleft\xFE556\xFF\
+    guillemotright\xFE556\xFF\
+    guilsinglleft\xFE333\xFF\
+    guilsinglright\xFE333\xFF\
+    h\xFE611\xFF\
+    hungarumlaut\xFE333\xFF\
+    hyphen\xFE333\xFF\
+    i\xFE278\xFF\
+    iacute\xFE278\xFF\
+    icircumflex\xFE278\xFF\
+    idieresis\xFE278\xFF\
+    igrave\xFE278\xFF\
+    imacron\xFE278\xFF\
+    iogonek\xFE278\xFF\
+    j\xFE278\xFF\
+    k\xFE556\xFF\
+    kcommaaccent\xFE556\xFF\
+    l\xFE278\xFF\
+    lacute\xFE278\xFF\
+    lcaron\xFE400\xFF\
+    lcommaaccent\xFE278\xFF\
+    less\xFE584\xFF\
+    lessequal\xFE549\xFF\
+    logicalnot\xFE584\xFF\
+    lozenge\xFE494\xFF\
+    lslash\xFE278\xFF\
+    m\xFE889\xFF\
+    macron\xFE333\xFF\
+    minus\xFE584\xFF\
+    mu\xFE611\xFF\
+    multiply\xFE584\xFF\
+    n\xFE611\xFF\
+    nacute\xFE611\xFF\
+    ncaron\xFE611\xFF\
+    ncommaaccent\xFE611\xFF\
+    nine\xFE556\xFF\
+    notequal\xFE549\xFF\
+    ntilde\xFE611\xFF\
+    numbersign\xFE556\xFF\
+    o\xFE611\xFF\
+    oacute\xFE611\xFF\
+    ocircumflex\xFE611\xFF\
+    odieresis\xFE611\xFF\
+    oe\xFE944\xFF\
+    ogonek\xFE333\xFF\
+    ograve\xFE611\xFF\
+    ohungarumlaut\xFE611\xFF\
+    omacron\xFE611\xFF\
+    one\xFE556\xFF\
+    onehalf\xFE834\xFF\
+    onequarter\xFE834\xFF\
+    onesuperior\xFE333\xFF\
+    ordfeminine\xFE370\xFF\
+    ordmasculine\xFE365\xFF\
+    oslash\xFE611\xFF\
+    otilde\xFE611\xFF\
+    p\xFE611\xFF\
+    paragraph\xFE556\xFF\
+    parenleft\xFE333\xFF\
+    parenright\xFE333\xFF\
+    partialdiff\xFE494\xFF\
+    percent\xFE889\xFF\
+    period\xFE278\xFF\
+    periodcentered\xFE278\xFF\
+    perthousand\xFE1000\xFF\
+    plus\xFE584\xFF\
+    plusminus\xFE584\xFF\
+    q\xFE611\xFF\
+    question\xFE611\xFF\
+    questiondown\xFE611\xFF\
+    quotedbl\xFE474\xFF\
+    quotedblbase\xFE500\xFF\
+    quotedblleft\xFE500\xFF\
+    quotedblright\xFE500\xFF\
+    quoteleft\xFE278\xFF\
+    quoteright\xFE278\xFF\
+    quotesinglbase\xFE278\xFF\
+    quotesingle\xFE238\xFF\
+    r\xFE389\xFF\
+    racute\xFE389\xFF\
+    radical\xFE549\xFF\
+    rcaron\xFE389\xFF\
+    rcommaaccent\xFE389\xFF\
+    registered\xFE737\xFF\
+    ring\xFE333\xFF\
+    s\xFE556\xFF\
+    sacute\xFE556\xFF\
+    scaron\xFE556\xFF\
+    scedilla\xFE556\xFF\
+    scommaaccent\xFE556\xFF\
+    section\xFE556\xFF\
+    semicolon\xFE333\xFF\
+    seven\xFE556\xFF\
+    six\xFE556\xFF\
+    slash\xFE278\xFF\
+    space\xFE278\xFF\
+    sterling\xFE556\xFF\
+    summation\xFE600\xFF\
+    t\xFE333\xFF\
+    tcaron\xFE389\xFF\
+    tcommaaccent\xFE333\xFF\
+    thorn\xFE611\xFF\
+    three\xFE556\xFF\
+    threequarters\xFE834\xFF\
+    threesuperior\xFE333\xFF\
+    tilde\xFE333\xFF\
+    trademark\xFE1000\xFF\
+    two\xFE556\xFF\
+    twosuperior\xFE333\xFF\
+    u\xFE611\xFF\
+    uacute\xFE611\xFF\
+    ucircumflex\xFE611\xFF\
+    udieresis\xFE611\xFF\
+    ugrave\xFE611\xFF\
+    uhungarumlaut\xFE611\xFF\
+    umacron\xFE611\xFF\
+    underscore\xFE556\xFF\
+    uogonek\xFE611\xFF\
+    uring\xFE611\xFF\
+    v\xFE556\xFF\
+    w\xFE778\xFF\
+    x\xFE556\xFF\
+    y\xFE556\xFF\
+    yacute\xFE556\xFF\
+    ydieresis\xFE556\xFF\
+    yen\xFE556\xFF\
+    z\xFE500\xFF\
+    zacute\xFE500\xFF\
+    zcaron\xFE500\xFF\
+    zdotaccent\xFE500\xFF\
+    zero\xFE556\xFF";
 
-pub(crate) static HELVETICA_BOLD: phf::Map<&'static str, f32> = phf_map! {
-    "space" => 278_f32,
-    "exclam" => 333_f32,
-    "quotedbl" => 474_f32,
-    "numbersign" => 556_f32,
-    "dollar" => 556_f32,
-    "percent" => 889_f32,
-    "ampersand" => 722_f32,
-    "quoteright" => 278_f32,
-    "parenleft" => 333_f32,
-    "parenright" => 333_f32,
-    "asterisk" => 389_f32,
-    "plus" => 584_f32,
-    "comma" => 278_f32,
-    "hyphen" => 333_f32,
-    "period" => 278_f32,
-    "slash" => 278_f32,
-    "zero" => 556_f32,
-    "one" => 556_f32,
-    "two" => 556_f32,
-    "three" => 556_f32,
-    "four" => 556_f32,
-    "five" => 556_f32,
-    "six" => 556_f32,
-    "seven" => 556_f32,
-    "eight" => 556_f32,
-    "nine" => 556_f32,
-    "colon" => 333_f32,
-    "semicolon" => 333_f32,
-    "less" => 584_f32,
-    "equal" => 584_f32,
-    "greater" => 584_f32,
-    "question" => 611_f32,
-    "at" => 975_f32,
-    "A" => 722_f32,
-    "B" => 722_f32,
-    "C" => 722_f32,
-    "D" => 722_f32,
-    "E" => 667_f32,
-    "F" => 611_f32,
-    "G" => 778_f32,
-    "H" => 722_f32,
-    "I" => 278_f32,
-    "J" => 556_f32,
-    "K" => 722_f32,
-    "L" => 611_f32,
-    "M" => 833_f32,
-    "N" => 722_f32,
-    "O" => 778_f32,
-    "P" => 667_f32,
-    "Q" => 778_f32,
-    "R" => 722_f32,
-    "S" => 667_f32,
-    "T" => 611_f32,
-    "U" => 722_f32,
-    "V" => 667_f32,
-    "W" => 944_f32,
-    "X" => 667_f32,
-    "Y" => 667_f32,
-    "Z" => 611_f32,
-    "bracketleft" => 333_f32,
-    "backslash" => 278_f32,
-    "bracketright" => 333_f32,
-    "asciicircum" => 584_f32,
-    "underscore" => 556_f32,
-    "quoteleft" => 278_f32,
-    "a" => 556_f32,
-    "b" => 611_f32,
-    "c" => 556_f32,
-    "d" => 611_f32,
-    "e" => 556_f32,
-    "f" => 333_f32,
-    "g" => 611_f32,
-    "h" => 611_f32,
-    "i" => 278_f32,
-    "j" => 278_f32,
-    "k" => 556_f32,
-    "l" => 278_f32,
-    "m" => 889_f32,
-    "n" => 611_f32,
-    "o" => 611_f32,
-    "p" => 611_f32,
-    "q" => 611_f32,
-    "r" => 389_f32,
-    "s" => 556_f32,
-    "t" => 333_f32,
-    "u" => 611_f32,
-    "v" => 556_f32,
-    "w" => 778_f32,
-    "x" => 556_f32,
-    "y" => 556_f32,
-    "z" => 500_f32,
-    "braceleft" => 389_f32,
-    "bar" => 280_f32,
-    "braceright" => 389_f32,
-    "asciitilde" => 584_f32,
-    "exclamdown" => 333_f32,
-    "cent" => 556_f32,
-    "sterling" => 556_f32,
-    "fraction" => 167_f32,
-    "yen" => 556_f32,
-    "florin" => 556_f32,
-    "section" => 556_f32,
-    "currency" => 556_f32,
-    "quotesingle" => 238_f32,
-    "quotedblleft" => 500_f32,
-    "guillemotleft" => 556_f32,
-    "guilsinglleft" => 333_f32,
-    "guilsinglright" => 333_f32,
-    "fi" => 611_f32,
-    "fl" => 611_f32,
-    "endash" => 556_f32,
-    "dagger" => 556_f32,
-    "daggerdbl" => 556_f32,
-    "periodcentered" => 278_f32,
-    "paragraph" => 556_f32,
-    "bullet" => 350_f32,
-    "quotesinglbase" => 278_f32,
-    "quotedblbase" => 500_f32,
-    "quotedblright" => 500_f32,
-    "guillemotright" => 556_f32,
-    "ellipsis" => 1000_f32,
-    "perthousand" => 1000_f32,
-    "questiondown" => 611_f32,
-    "grave" => 333_f32,
-    "acute" => 333_f32,
-    "circumflex" => 333_f32,
-    "tilde" => 333_f32,
-    "macron" => 333_f32,
-    "breve" => 333_f32,
-    "dotaccent" => 333_f32,
-    "dieresis" => 333_f32,
-    "ring" => 333_f32,
-    "cedilla" => 333_f32,
-    "hungarumlaut" => 333_f32,
-    "ogonek" => 333_f32,
-    "caron" => 333_f32,
-    "emdash" => 1000_f32,
-    "AE" => 1000_f32,
-    "ordfeminine" => 370_f32,
-    "Lslash" => 611_f32,
-    "Oslash" => 778_f32,
-    "OE" => 1000_f32,
-    "ordmasculine" => 365_f32,
-    "ae" => 889_f32,
-    "dotlessi" => 278_f32,
-    "lslash" => 278_f32,
-    "oslash" => 611_f32,
-    "oe" => 944_f32,
-    "germandbls" => 611_f32,
-    "Idieresis" => 278_f32,
-    "eacute" => 556_f32,
-    "abreve" => 556_f32,
-    "uhungarumlaut" => 611_f32,
-    "ecaron" => 556_f32,
-    "Ydieresis" => 667_f32,
-    "divide" => 584_f32,
-    "Yacute" => 667_f32,
-    "Acircumflex" => 722_f32,
-    "aacute" => 556_f32,
-    "Ucircumflex" => 722_f32,
-    "yacute" => 556_f32,
-    "scommaaccent" => 556_f32,
-    "ecircumflex" => 556_f32,
-    "Uring" => 722_f32,
-    "Udieresis" => 722_f32,
-    "aogonek" => 556_f32,
-    "Uacute" => 722_f32,
-    "uogonek" => 611_f32,
-    "Edieresis" => 667_f32,
-    "Dcroat" => 722_f32,
-    "commaaccent" => 250_f32,
-    "copyright" => 737_f32,
-    "Emacron" => 667_f32,
-    "ccaron" => 556_f32,
-    "aring" => 556_f32,
-    "Ncommaaccent" => 722_f32,
-    "lacute" => 278_f32,
-    "agrave" => 556_f32,
-    "Tcommaaccent" => 611_f32,
-    "Cacute" => 722_f32,
-    "atilde" => 556_f32,
-    "Edotaccent" => 667_f32,
-    "scaron" => 556_f32,
-    "scedilla" => 556_f32,
-    "iacute" => 278_f32,
-    "lozenge" => 494_f32,
-    "Rcaron" => 722_f32,
-    "Gcommaaccent" => 778_f32,
-    "ucircumflex" => 611_f32,
-    "acircumflex" => 556_f32,
-    "Amacron" => 722_f32,
-    "rcaron" => 389_f32,
-    "ccedilla" => 556_f32,
-    "Zdotaccent" => 611_f32,
-    "Thorn" => 667_f32,
-    "Omacron" => 778_f32,
-    "Racute" => 722_f32,
-    "Sacute" => 667_f32,
-    "dcaron" => 743_f32,
-    "Umacron" => 722_f32,
-    "uring" => 611_f32,
-    "threesuperior" => 333_f32,
-    "Ograve" => 778_f32,
-    "Agrave" => 722_f32,
-    "Abreve" => 722_f32,
-    "multiply" => 584_f32,
-    "uacute" => 611_f32,
-    "Tcaron" => 611_f32,
-    "partialdiff" => 494_f32,
-    "ydieresis" => 556_f32,
-    "Nacute" => 722_f32,
-    "icircumflex" => 278_f32,
-    "Ecircumflex" => 667_f32,
-    "adieresis" => 556_f32,
-    "edieresis" => 556_f32,
-    "cacute" => 556_f32,
-    "nacute" => 611_f32,
-    "umacron" => 611_f32,
-    "Ncaron" => 722_f32,
-    "Iacute" => 278_f32,
-    "plusminus" => 584_f32,
-    "brokenbar" => 280_f32,
-    "registered" => 737_f32,
-    "Gbreve" => 778_f32,
-    "Idotaccent" => 278_f32,
-    "summation" => 600_f32,
-    "Egrave" => 667_f32,
-    "racute" => 389_f32,
-    "omacron" => 611_f32,
-    "Zacute" => 611_f32,
-    "Zcaron" => 611_f32,
-    "greaterequal" => 549_f32,
-    "Eth" => 722_f32,
-    "Ccedilla" => 722_f32,
-    "lcommaaccent" => 278_f32,
-    "tcaron" => 389_f32,
-    "eogonek" => 556_f32,
-    "Uogonek" => 722_f32,
-    "Aacute" => 722_f32,
-    "Adieresis" => 722_f32,
-    "egrave" => 556_f32,
-    "zacute" => 500_f32,
-    "iogonek" => 278_f32,
-    "Oacute" => 778_f32,
-    "oacute" => 611_f32,
-    "amacron" => 556_f32,
-    "sacute" => 556_f32,
-    "idieresis" => 278_f32,
-    "Ocircumflex" => 778_f32,
-    "Ugrave" => 722_f32,
-    "Delta" => 612_f32,
-    "thorn" => 611_f32,
-    "twosuperior" => 333_f32,
-    "Odieresis" => 778_f32,
-    "mu" => 611_f32,
-    "igrave" => 278_f32,
-    "ohungarumlaut" => 611_f32,
-    "Eogonek" => 667_f32,
-    "dcroat" => 611_f32,
-    "threequarters" => 834_f32,
-    "Scedilla" => 667_f32,
-    "lcaron" => 400_f32,
-    "Kcommaaccent" => 722_f32,
-    "Lacute" => 611_f32,
-    "trademark" => 1000_f32,
-    "edotaccent" => 556_f32,
-    "Igrave" => 278_f32,
-    "Imacron" => 278_f32,
-    "Lcaron" => 611_f32,
-    "onehalf" => 834_f32,
-    "lessequal" => 549_f32,
-    "ocircumflex" => 611_f32,
-    "ntilde" => 611_f32,
-    "Uhungarumlaut" => 722_f32,
-    "Eacute" => 667_f32,
-    "emacron" => 556_f32,
-    "gbreve" => 611_f32,
-    "onequarter" => 834_f32,
-    "Scaron" => 667_f32,
-    "Scommaaccent" => 667_f32,
-    "Ohungarumlaut" => 778_f32,
-    "degree" => 400_f32,
-    "ograve" => 611_f32,
-    "Ccaron" => 722_f32,
-    "ugrave" => 611_f32,
-    "radical" => 549_f32,
-    "Dcaron" => 722_f32,
-    "rcommaaccent" => 389_f32,
-    "Ntilde" => 722_f32,
-    "otilde" => 611_f32,
-    "Rcommaaccent" => 722_f32,
-    "Lcommaaccent" => 611_f32,
-    "Atilde" => 722_f32,
-    "Aogonek" => 722_f32,
-    "Aring" => 722_f32,
-    "Otilde" => 778_f32,
-    "zdotaccent" => 500_f32,
-    "Ecaron" => 667_f32,
-    "Iogonek" => 278_f32,
-    "kcommaaccent" => 556_f32,
-    "minus" => 584_f32,
-    "Icircumflex" => 278_f32,
-    "ncaron" => 611_f32,
-    "tcommaaccent" => 333_f32,
-    "logicalnot" => 584_f32,
-    "odieresis" => 611_f32,
-    "udieresis" => 611_f32,
-    "notequal" => 549_f32,
-    "gcommaaccent" => 611_f32,
-    "eth" => 611_f32,
-    "zcaron" => 500_f32,
-    "ncommaaccent" => 611_f32,
-    "onesuperior" => 333_f32,
-    "imacron" => 278_f32,
-    "Euro" => 556_f32,
-};
+pub(crate) static HELVETICA_BOLD_OBLIQUE: &[u8] = b"\
+    A\xFE722\xFF\
+    AE\xFE1000\xFF\
+    Aacute\xFE722\xFF\
+    Abreve\xFE722\xFF\
+    Acircumflex\xFE722\xFF\
+    Adieresis\xFE722\xFF\
+    Agrave\xFE722\xFF\
+    Amacron\xFE722\xFF\
+    Aogonek\xFE722\xFF\
+    Aring\xFE722\xFF\
+    Atilde\xFE722\xFF\
+    B\xFE722\xFF\
+    C\xFE722\xFF\
+    Cacute\xFE722\xFF\
+    Ccaron\xFE722\xFF\
+    Ccedilla\xFE722\xFF\
+    D\xFE722\xFF\
+    Dcaron\xFE722\xFF\
+    Dcroat\xFE722\xFF\
+    Delta\xFE612\xFF\
+    E\xFE667\xFF\
+    Eacute\xFE667\xFF\
+    Ecaron\xFE667\xFF\
+    Ecircumflex\xFE667\xFF\
+    Edieresis\xFE667\xFF\
+    Edotaccent\xFE667\xFF\
+    Egrave\xFE667\xFF\
+    Emacron\xFE667\xFF\
+    Eogonek\xFE667\xFF\
+    Eth\xFE722\xFF\
+    Euro\xFE556\xFF\
+    F\xFE611\xFF\
+    G\xFE778\xFF\
+    Gbreve\xFE778\xFF\
+    Gcommaaccent\xFE778\xFF\
+    H\xFE722\xFF\
+    I\xFE278\xFF\
+    Iacute\xFE278\xFF\
+    Icircumflex\xFE278\xFF\
+    Idieresis\xFE278\xFF\
+    Idotaccent\xFE278\xFF\
+    Igrave\xFE278\xFF\
+    Imacron\xFE278\xFF\
+    Iogonek\xFE278\xFF\
+    J\xFE556\xFF\
+    K\xFE722\xFF\
+    Kcommaaccent\xFE722\xFF\
+    L\xFE611\xFF\
+    Lacute\xFE611\xFF\
+    Lcaron\xFE611\xFF\
+    Lcommaaccent\xFE611\xFF\
+    Lslash\xFE611\xFF\
+    M\xFE833\xFF\
+    N\xFE722\xFF\
+    Nacute\xFE722\xFF\
+    Ncaron\xFE722\xFF\
+    Ncommaaccent\xFE722\xFF\
+    Ntilde\xFE722\xFF\
+    O\xFE778\xFF\
+    OE\xFE1000\xFF\
+    Oacute\xFE778\xFF\
+    Ocircumflex\xFE778\xFF\
+    Odieresis\xFE778\xFF\
+    Ograve\xFE778\xFF\
+    Ohungarumlaut\xFE778\xFF\
+    Omacron\xFE778\xFF\
+    Oslash\xFE778\xFF\
+    Otilde\xFE778\xFF\
+    P\xFE667\xFF\
+    Q\xFE778\xFF\
+    R\xFE722\xFF\
+    Racute\xFE722\xFF\
+    Rcaron\xFE722\xFF\
+    Rcommaaccent\xFE722\xFF\
+    S\xFE667\xFF\
+    Sacute\xFE667\xFF\
+    Scaron\xFE667\xFF\
+    Scedilla\xFE667\xFF\
+    Scommaaccent\xFE667\xFF\
+    T\xFE611\xFF\
+    Tcaron\xFE611\xFF\
+    Tcommaaccent\xFE611\xFF\
+    Thorn\xFE667\xFF\
+    U\xFE722\xFF\
+    Uacute\xFE722\xFF\
+    Ucircumflex\xFE722\xFF\
+    Udieresis\xFE722\xFF\
+    Ugrave\xFE722\xFF\
+    Uhungarumlaut\xFE722\xFF\
+    Umacron\xFE722\xFF\
+    Uogonek\xFE722\xFF\
+    Uring\xFE722\xFF\
+    V\xFE667\xFF\
+    W\xFE944\xFF\
+    X\xFE667\xFF\
+    Y\xFE667\xFF\
+    Yacute\xFE667\xFF\
+    Ydieresis\xFE667\xFF\
+    Z\xFE611\xFF\
+    Zacute\xFE611\xFF\
+    Zcaron\xFE611\xFF\
+    Zdotaccent\xFE611\xFF\
+    a\xFE556\xFF\
+    aacute\xFE556\xFF\
+    abreve\xFE556\xFF\
+    acircumflex\xFE556\xFF\
+    acute\xFE333\xFF\
+    adieresis\xFE556\xFF\
+    ae\xFE889\xFF\
+    agrave\xFE556\xFF\
+    amacron\xFE556\xFF\
+    ampersand\xFE722\xFF\
+    aogonek\xFE556\xFF\
+    aring\xFE556\xFF\
+    asciicircum\xFE584\xFF\
+    asciitilde\xFE584\xFF\
+    asterisk\xFE389\xFF\
+    at\xFE975\xFF\
+    atilde\xFE556\xFF\
+    b\xFE611\xFF\
+    backslash\xFE278\xFF\
+    bar\xFE280\xFF\
+    braceleft\xFE389\xFF\
+    braceright\xFE389\xFF\
+    bracketleft\xFE333\xFF\
+    bracketright\xFE333\xFF\
+    breve\xFE333\xFF\
+    brokenbar\xFE280\xFF\
+    bullet\xFE350\xFF\
+    c\xFE556\xFF\
+    cacute\xFE556\xFF\
+    caron\xFE333\xFF\
+    ccaron\xFE556\xFF\
+    ccedilla\xFE556\xFF\
+    cedilla\xFE333\xFF\
+    cent\xFE556\xFF\
+    circumflex\xFE333\xFF\
+    colon\xFE333\xFF\
+    comma\xFE278\xFF\
+    commaaccent\xFE250\xFF\
+    copyright\xFE737\xFF\
+    currency\xFE556\xFF\
+    d\xFE611\xFF\
+    dagger\xFE556\xFF\
+    daggerdbl\xFE556\xFF\
+    dcaron\xFE743\xFF\
+    dcroat\xFE611\xFF\
+    degree\xFE400\xFF\
+    dieresis\xFE333\xFF\
+    divide\xFE584\xFF\
+    dollar\xFE556\xFF\
+    dotaccent\xFE333\xFF\
+    dotlessi\xFE278\xFF\
+    e\xFE556\xFF\
+    eacute\xFE556\xFF\
+    ecaron\xFE556\xFF\
+    ecircumflex\xFE556\xFF\
+    edieresis\xFE556\xFF\
+    edotaccent\xFE556\xFF\
+    egrave\xFE556\xFF\
+    eight\xFE556\xFF\
+    ellipsis\xFE1000\xFF\
+    emacron\xFE556\xFF\
+    emdash\xFE1000\xFF\
+    endash\xFE556\xFF\
+    eogonek\xFE556\xFF\
+    equal\xFE584\xFF\
+    eth\xFE611\xFF\
+    exclam\xFE333\xFF\
+    exclamdown\xFE333\xFF\
+    f\xFE333\xFF\
+    fi\xFE611\xFF\
+    five\xFE556\xFF\
+    fl\xFE611\xFF\
+    florin\xFE556\xFF\
+    four\xFE556\xFF\
+    fraction\xFE167\xFF\
+    g\xFE611\xFF\
+    gbreve\xFE611\xFF\
+    gcommaaccent\xFE611\xFF\
+    germandbls\xFE611\xFF\
+    grave\xFE333\xFF\
+    greater\xFE584\xFF\
+    greaterequal\xFE549\xFF\
+    guillemotleft\xFE556\xFF\
+    guillemotright\xFE556\xFF\
+    guilsinglleft\xFE333\xFF\
+    guilsinglright\xFE333\xFF\
+    h\xFE611\xFF\
+    hungarumlaut\xFE333\xFF\
+    hyphen\xFE333\xFF\
+    i\xFE278\xFF\
+    iacute\xFE278\xFF\
+    icircumflex\xFE278\xFF\
+    idieresis\xFE278\xFF\
+    igrave\xFE278\xFF\
+    imacron\xFE278\xFF\
+    iogonek\xFE278\xFF\
+    j\xFE278\xFF\
+    k\xFE556\xFF\
+    kcommaaccent\xFE556\xFF\
+    l\xFE278\xFF\
+    lacute\xFE278\xFF\
+    lcaron\xFE400\xFF\
+    lcommaaccent\xFE278\xFF\
+    less\xFE584\xFF\
+    lessequal\xFE549\xFF\
+    logicalnot\xFE584\xFF\
+    lozenge\xFE494\xFF\
+    lslash\xFE278\xFF\
+    m\xFE889\xFF\
+    macron\xFE333\xFF\
+    minus\xFE584\xFF\
+    mu\xFE611\xFF\
+    multiply\xFE584\xFF\
+    n\xFE611\xFF\
+    nacute\xFE611\xFF\
+    ncaron\xFE611\xFF\
+    ncommaaccent\xFE611\xFF\
+    nine\xFE556\xFF\
+    notequal\xFE549\xFF\
+    ntilde\xFE611\xFF\
+    numbersign\xFE556\xFF\
+    o\xFE611\xFF\
+    oacute\xFE611\xFF\
+    ocircumflex\xFE611\xFF\
+    odieresis\xFE611\xFF\
+    oe\xFE944\xFF\
+    ogonek\xFE333\xFF\
+    ograve\xFE611\xFF\
+    ohungarumlaut\xFE611\xFF\
+    omacron\xFE611\xFF\
+    one\xFE556\xFF\
+    onehalf\xFE834\xFF\
+    onequarter\xFE834\xFF\
+    onesuperior\xFE333\xFF\
+    ordfeminine\xFE370\xFF\
+    ordmasculine\xFE365\xFF\
+    oslash\xFE611\xFF\
+    otilde\xFE611\xFF\
+    p\xFE611\xFF\
+    paragraph\xFE556\xFF\
+    parenleft\xFE333\xFF\
+    parenright\xFE333\xFF\
+    partialdiff\xFE494\xFF\
+    percent\xFE889\xFF\
+    period\xFE278\xFF\
+    periodcentered\xFE278\xFF\
+    perthousand\xFE1000\xFF\
+    plus\xFE584\xFF\
+    plusminus\xFE584\xFF\
+    q\xFE611\xFF\
+    question\xFE611\xFF\
+    questiondown\xFE611\xFF\
+    quotedbl\xFE474\xFF\
+    quotedblbase\xFE500\xFF\
+    quotedblleft\xFE500\xFF\
+    quotedblright\xFE500\xFF\
+    quoteleft\xFE278\xFF\
+    quoteright\xFE278\xFF\
+    quotesinglbase\xFE278\xFF\
+    quotesingle\xFE238\xFF\
+    r\xFE389\xFF\
+    racute\xFE389\xFF\
+    radical\xFE549\xFF\
+    rcaron\xFE389\xFF\
+    rcommaaccent\xFE389\xFF\
+    registered\xFE737\xFF\
+    ring\xFE333\xFF\
+    s\xFE556\xFF\
+    sacute\xFE556\xFF\
+    scaron\xFE556\xFF\
+    scedilla\xFE556\xFF\
+    scommaaccent\xFE556\xFF\
+    section\xFE556\xFF\
+    semicolon\xFE333\xFF\
+    seven\xFE556\xFF\
+    six\xFE556\xFF\
+    slash\xFE278\xFF\
+    space\xFE278\xFF\
+    sterling\xFE556\xFF\
+    summation\xFE600\xFF\
+    t\xFE333\xFF\
+    tcaron\xFE389\xFF\
+    tcommaaccent\xFE333\xFF\
+    thorn\xFE611\xFF\
+    three\xFE556\xFF\
+    threequarters\xFE834\xFF\
+    threesuperior\xFE333\xFF\
+    tilde\xFE333\xFF\
+    trademark\xFE1000\xFF\
+    two\xFE556\xFF\
+    twosuperior\xFE333\xFF\
+    u\xFE611\xFF\
+    uacute\xFE611\xFF\
+    ucircumflex\xFE611\xFF\
+    udieresis\xFE611\xFF\
+    ugrave\xFE611\xFF\
+    uhungarumlaut\xFE611\xFF\
+    umacron\xFE611\xFF\
+    underscore\xFE556\xFF\
+    uogonek\xFE611\xFF\
+    uring\xFE611\xFF\
+    v\xFE556\xFF\
+    w\xFE778\xFF\
+    x\xFE556\xFF\
+    y\xFE556\xFF\
+    yacute\xFE556\xFF\
+    ydieresis\xFE556\xFF\
+    yen\xFE556\xFF\
+    z\xFE500\xFF\
+    zacute\xFE500\xFF\
+    zcaron\xFE500\xFF\
+    zdotaccent\xFE500\xFF\
+    zero\xFE556\xFF";
 
-pub(crate) static HELVETICA_BOLD_OBLIQUE: phf::Map<&'static str, f32> = phf_map! {
-    "space" => 278_f32,
-    "exclam" => 333_f32,
-    "quotedbl" => 474_f32,
-    "numbersign" => 556_f32,
-    "dollar" => 556_f32,
-    "percent" => 889_f32,
-    "ampersand" => 722_f32,
-    "quoteright" => 278_f32,
-    "parenleft" => 333_f32,
-    "parenright" => 333_f32,
-    "asterisk" => 389_f32,
-    "plus" => 584_f32,
-    "comma" => 278_f32,
-    "hyphen" => 333_f32,
-    "period" => 278_f32,
-    "slash" => 278_f32,
-    "zero" => 556_f32,
-    "one" => 556_f32,
-    "two" => 556_f32,
-    "three" => 556_f32,
-    "four" => 556_f32,
-    "five" => 556_f32,
-    "six" => 556_f32,
-    "seven" => 556_f32,
-    "eight" => 556_f32,
-    "nine" => 556_f32,
-    "colon" => 333_f32,
-    "semicolon" => 333_f32,
-    "less" => 584_f32,
-    "equal" => 584_f32,
-    "greater" => 584_f32,
-    "question" => 611_f32,
-    "at" => 975_f32,
-    "A" => 722_f32,
-    "B" => 722_f32,
-    "C" => 722_f32,
-    "D" => 722_f32,
-    "E" => 667_f32,
-    "F" => 611_f32,
-    "G" => 778_f32,
-    "H" => 722_f32,
-    "I" => 278_f32,
-    "J" => 556_f32,
-    "K" => 722_f32,
-    "L" => 611_f32,
-    "M" => 833_f32,
-    "N" => 722_f32,
-    "O" => 778_f32,
-    "P" => 667_f32,
-    "Q" => 778_f32,
-    "R" => 722_f32,
-    "S" => 667_f32,
-    "T" => 611_f32,
-    "U" => 722_f32,
-    "V" => 667_f32,
-    "W" => 944_f32,
-    "X" => 667_f32,
-    "Y" => 667_f32,
-    "Z" => 611_f32,
-    "bracketleft" => 333_f32,
-    "backslash" => 278_f32,
-    "bracketright" => 333_f32,
-    "asciicircum" => 584_f32,
-    "underscore" => 556_f32,
-    "quoteleft" => 278_f32,
-    "a" => 556_f32,
-    "b" => 611_f32,
-    "c" => 556_f32,
-    "d" => 611_f32,
-    "e" => 556_f32,
-    "f" => 333_f32,
-    "g" => 611_f32,
-    "h" => 611_f32,
-    "i" => 278_f32,
-    "j" => 278_f32,
-    "k" => 556_f32,
-    "l" => 278_f32,
-    "m" => 889_f32,
-    "n" => 611_f32,
-    "o" => 611_f32,
-    "p" => 611_f32,
-    "q" => 611_f32,
-    "r" => 389_f32,
-    "s" => 556_f32,
-    "t" => 333_f32,
-    "u" => 611_f32,
-    "v" => 556_f32,
-    "w" => 778_f32,
-    "x" => 556_f32,
-    "y" => 556_f32,
-    "z" => 500_f32,
-    "braceleft" => 389_f32,
-    "bar" => 280_f32,
-    "braceright" => 389_f32,
-    "asciitilde" => 584_f32,
-    "exclamdown" => 333_f32,
-    "cent" => 556_f32,
-    "sterling" => 556_f32,
-    "fraction" => 167_f32,
-    "yen" => 556_f32,
-    "florin" => 556_f32,
-    "section" => 556_f32,
-    "currency" => 556_f32,
-    "quotesingle" => 238_f32,
-    "quotedblleft" => 500_f32,
-    "guillemotleft" => 556_f32,
-    "guilsinglleft" => 333_f32,
-    "guilsinglright" => 333_f32,
-    "fi" => 611_f32,
-    "fl" => 611_f32,
-    "endash" => 556_f32,
-    "dagger" => 556_f32,
-    "daggerdbl" => 556_f32,
-    "periodcentered" => 278_f32,
-    "paragraph" => 556_f32,
-    "bullet" => 350_f32,
-    "quotesinglbase" => 278_f32,
-    "quotedblbase" => 500_f32,
-    "quotedblright" => 500_f32,
-    "guillemotright" => 556_f32,
-    "ellipsis" => 1000_f32,
-    "perthousand" => 1000_f32,
-    "questiondown" => 611_f32,
-    "grave" => 333_f32,
-    "acute" => 333_f32,
-    "circumflex" => 333_f32,
-    "tilde" => 333_f32,
-    "macron" => 333_f32,
-    "breve" => 333_f32,
-    "dotaccent" => 333_f32,
-    "dieresis" => 333_f32,
-    "ring" => 333_f32,
-    "cedilla" => 333_f32,
-    "hungarumlaut" => 333_f32,
-    "ogonek" => 333_f32,
-    "caron" => 333_f32,
-    "emdash" => 1000_f32,
-    "AE" => 1000_f32,
-    "ordfeminine" => 370_f32,
-    "Lslash" => 611_f32,
-    "Oslash" => 778_f32,
-    "OE" => 1000_f32,
-    "ordmasculine" => 365_f32,
-    "ae" => 889_f32,
-    "dotlessi" => 278_f32,
-    "lslash" => 278_f32,
-    "oslash" => 611_f32,
-    "oe" => 944_f32,
-    "germandbls" => 611_f32,
-    "Idieresis" => 278_f32,
-    "eacute" => 556_f32,
-    "abreve" => 556_f32,
-    "uhungarumlaut" => 611_f32,
-    "ecaron" => 556_f32,
-    "Ydieresis" => 667_f32,
-    "divide" => 584_f32,
-    "Yacute" => 667_f32,
-    "Acircumflex" => 722_f32,
-    "aacute" => 556_f32,
-    "Ucircumflex" => 722_f32,
-    "yacute" => 556_f32,
-    "scommaaccent" => 556_f32,
-    "ecircumflex" => 556_f32,
-    "Uring" => 722_f32,
-    "Udieresis" => 722_f32,
-    "aogonek" => 556_f32,
-    "Uacute" => 722_f32,
-    "uogonek" => 611_f32,
-    "Edieresis" => 667_f32,
-    "Dcroat" => 722_f32,
-    "commaaccent" => 250_f32,
-    "copyright" => 737_f32,
-    "Emacron" => 667_f32,
-    "ccaron" => 556_f32,
-    "aring" => 556_f32,
-    "Ncommaaccent" => 722_f32,
-    "lacute" => 278_f32,
-    "agrave" => 556_f32,
-    "Tcommaaccent" => 611_f32,
-    "Cacute" => 722_f32,
-    "atilde" => 556_f32,
-    "Edotaccent" => 667_f32,
-    "scaron" => 556_f32,
-    "scedilla" => 556_f32,
-    "iacute" => 278_f32,
-    "lozenge" => 494_f32,
-    "Rcaron" => 722_f32,
-    "Gcommaaccent" => 778_f32,
-    "ucircumflex" => 611_f32,
-    "acircumflex" => 556_f32,
-    "Amacron" => 722_f32,
-    "rcaron" => 389_f32,
-    "ccedilla" => 556_f32,
-    "Zdotaccent" => 611_f32,
-    "Thorn" => 667_f32,
-    "Omacron" => 778_f32,
-    "Racute" => 722_f32,
-    "Sacute" => 667_f32,
-    "dcaron" => 743_f32,
-    "Umacron" => 722_f32,
-    "uring" => 611_f32,
-    "threesuperior" => 333_f32,
-    "Ograve" => 778_f32,
-    "Agrave" => 722_f32,
-    "Abreve" => 722_f32,
-    "multiply" => 584_f32,
-    "uacute" => 611_f32,
-    "Tcaron" => 611_f32,
-    "partialdiff" => 494_f32,
-    "ydieresis" => 556_f32,
-    "Nacute" => 722_f32,
-    "icircumflex" => 278_f32,
-    "Ecircumflex" => 667_f32,
-    "adieresis" => 556_f32,
-    "edieresis" => 556_f32,
-    "cacute" => 556_f32,
-    "nacute" => 611_f32,
-    "umacron" => 611_f32,
-    "Ncaron" => 722_f32,
-    "Iacute" => 278_f32,
-    "plusminus" => 584_f32,
-    "brokenbar" => 280_f32,
-    "registered" => 737_f32,
-    "Gbreve" => 778_f32,
-    "Idotaccent" => 278_f32,
-    "summation" => 600_f32,
-    "Egrave" => 667_f32,
-    "racute" => 389_f32,
-    "omacron" => 611_f32,
-    "Zacute" => 611_f32,
-    "Zcaron" => 611_f32,
-    "greaterequal" => 549_f32,
-    "Eth" => 722_f32,
-    "Ccedilla" => 722_f32,
-    "lcommaaccent" => 278_f32,
-    "tcaron" => 389_f32,
-    "eogonek" => 556_f32,
-    "Uogonek" => 722_f32,
-    "Aacute" => 722_f32,
-    "Adieresis" => 722_f32,
-    "egrave" => 556_f32,
-    "zacute" => 500_f32,
-    "iogonek" => 278_f32,
-    "Oacute" => 778_f32,
-    "oacute" => 611_f32,
-    "amacron" => 556_f32,
-    "sacute" => 556_f32,
-    "idieresis" => 278_f32,
-    "Ocircumflex" => 778_f32,
-    "Ugrave" => 722_f32,
-    "Delta" => 612_f32,
-    "thorn" => 611_f32,
-    "twosuperior" => 333_f32,
-    "Odieresis" => 778_f32,
-    "mu" => 611_f32,
-    "igrave" => 278_f32,
-    "ohungarumlaut" => 611_f32,
-    "Eogonek" => 667_f32,
-    "dcroat" => 611_f32,
-    "threequarters" => 834_f32,
-    "Scedilla" => 667_f32,
-    "lcaron" => 400_f32,
-    "Kcommaaccent" => 722_f32,
-    "Lacute" => 611_f32,
-    "trademark" => 1000_f32,
-    "edotaccent" => 556_f32,
-    "Igrave" => 278_f32,
-    "Imacron" => 278_f32,
-    "Lcaron" => 611_f32,
-    "onehalf" => 834_f32,
-    "lessequal" => 549_f32,
-    "ocircumflex" => 611_f32,
-    "ntilde" => 611_f32,
-    "Uhungarumlaut" => 722_f32,
-    "Eacute" => 667_f32,
-    "emacron" => 556_f32,
-    "gbreve" => 611_f32,
-    "onequarter" => 834_f32,
-    "Scaron" => 667_f32,
-    "Scommaaccent" => 667_f32,
-    "Ohungarumlaut" => 778_f32,
-    "degree" => 400_f32,
-    "ograve" => 611_f32,
-    "Ccaron" => 722_f32,
-    "ugrave" => 611_f32,
-    "radical" => 549_f32,
-    "Dcaron" => 722_f32,
-    "rcommaaccent" => 389_f32,
-    "Ntilde" => 722_f32,
-    "otilde" => 611_f32,
-    "Rcommaaccent" => 722_f32,
-    "Lcommaaccent" => 611_f32,
-    "Atilde" => 722_f32,
-    "Aogonek" => 722_f32,
-    "Aring" => 722_f32,
-    "Otilde" => 778_f32,
-    "zdotaccent" => 500_f32,
-    "Ecaron" => 667_f32,
-    "Iogonek" => 278_f32,
-    "kcommaaccent" => 556_f32,
-    "minus" => 584_f32,
-    "Icircumflex" => 278_f32,
-    "ncaron" => 611_f32,
-    "tcommaaccent" => 333_f32,
-    "logicalnot" => 584_f32,
-    "odieresis" => 611_f32,
-    "udieresis" => 611_f32,
-    "notequal" => 549_f32,
-    "gcommaaccent" => 611_f32,
-    "eth" => 611_f32,
-    "zcaron" => 500_f32,
-    "ncommaaccent" => 611_f32,
-    "onesuperior" => 333_f32,
-    "imacron" => 278_f32,
-    "Euro" => 556_f32,
-};
+pub(crate) static HELVETICA_OBLIQUE: &[u8] = b"\
+    A\xFE667\xFF\
+    AE\xFE1000\xFF\
+    Aacute\xFE667\xFF\
+    Abreve\xFE667\xFF\
+    Acircumflex\xFE667\xFF\
+    Adieresis\xFE667\xFF\
+    Agrave\xFE667\xFF\
+    Amacron\xFE667\xFF\
+    Aogonek\xFE667\xFF\
+    Aring\xFE667\xFF\
+    Atilde\xFE667\xFF\
+    B\xFE667\xFF\
+    C\xFE722\xFF\
+    Cacute\xFE722\xFF\
+    Ccaron\xFE722\xFF\
+    Ccedilla\xFE722\xFF\
+    D\xFE722\xFF\
+    Dcaron\xFE722\xFF\
+    Dcroat\xFE722\xFF\
+    Delta\xFE612\xFF\
+    E\xFE667\xFF\
+    Eacute\xFE667\xFF\
+    Ecaron\xFE667\xFF\
+    Ecircumflex\xFE667\xFF\
+    Edieresis\xFE667\xFF\
+    Edotaccent\xFE667\xFF\
+    Egrave\xFE667\xFF\
+    Emacron\xFE667\xFF\
+    Eogonek\xFE667\xFF\
+    Eth\xFE722\xFF\
+    Euro\xFE556\xFF\
+    F\xFE611\xFF\
+    G\xFE778\xFF\
+    Gbreve\xFE778\xFF\
+    Gcommaaccent\xFE778\xFF\
+    H\xFE722\xFF\
+    I\xFE278\xFF\
+    Iacute\xFE278\xFF\
+    Icircumflex\xFE278\xFF\
+    Idieresis\xFE278\xFF\
+    Idotaccent\xFE278\xFF\
+    Igrave\xFE278\xFF\
+    Imacron\xFE278\xFF\
+    Iogonek\xFE278\xFF\
+    J\xFE500\xFF\
+    K\xFE667\xFF\
+    Kcommaaccent\xFE667\xFF\
+    L\xFE556\xFF\
+    Lacute\xFE556\xFF\
+    Lcaron\xFE556\xFF\
+    Lcommaaccent\xFE556\xFF\
+    Lslash\xFE556\xFF\
+    M\xFE833\xFF\
+    N\xFE722\xFF\
+    Nacute\xFE722\xFF\
+    Ncaron\xFE722\xFF\
+    Ncommaaccent\xFE722\xFF\
+    Ntilde\xFE722\xFF\
+    O\xFE778\xFF\
+    OE\xFE1000\xFF\
+    Oacute\xFE778\xFF\
+    Ocircumflex\xFE778\xFF\
+    Odieresis\xFE778\xFF\
+    Ograve\xFE778\xFF\
+    Ohungarumlaut\xFE778\xFF\
+    Omacron\xFE778\xFF\
+    Oslash\xFE778\xFF\
+    Otilde\xFE778\xFF\
+    P\xFE667\xFF\
+    Q\xFE778\xFF\
+    R\xFE722\xFF\
+    Racute\xFE722\xFF\
+    Rcaron\xFE722\xFF\
+    Rcommaaccent\xFE722\xFF\
+    S\xFE667\xFF\
+    Sacute\xFE667\xFF\
+    Scaron\xFE667\xFF\
+    Scedilla\xFE667\xFF\
+    Scommaaccent\xFE667\xFF\
+    T\xFE611\xFF\
+    Tcaron\xFE611\xFF\
+    Tcommaaccent\xFE611\xFF\
+    Thorn\xFE667\xFF\
+    U\xFE722\xFF\
+    Uacute\xFE722\xFF\
+    Ucircumflex\xFE722\xFF\
+    Udieresis\xFE722\xFF\
+    Ugrave\xFE722\xFF\
+    Uhungarumlaut\xFE722\xFF\
+    Umacron\xFE722\xFF\
+    Uogonek\xFE722\xFF\
+    Uring\xFE722\xFF\
+    V\xFE667\xFF\
+    W\xFE944\xFF\
+    X\xFE667\xFF\
+    Y\xFE667\xFF\
+    Yacute\xFE667\xFF\
+    Ydieresis\xFE667\xFF\
+    Z\xFE611\xFF\
+    Zacute\xFE611\xFF\
+    Zcaron\xFE611\xFF\
+    Zdotaccent\xFE611\xFF\
+    a\xFE556\xFF\
+    aacute\xFE556\xFF\
+    abreve\xFE556\xFF\
+    acircumflex\xFE556\xFF\
+    acute\xFE333\xFF\
+    adieresis\xFE556\xFF\
+    ae\xFE889\xFF\
+    agrave\xFE556\xFF\
+    amacron\xFE556\xFF\
+    ampersand\xFE667\xFF\
+    aogonek\xFE556\xFF\
+    aring\xFE556\xFF\
+    asciicircum\xFE469\xFF\
+    asciitilde\xFE584\xFF\
+    asterisk\xFE389\xFF\
+    at\xFE1015\xFF\
+    atilde\xFE556\xFF\
+    b\xFE556\xFF\
+    backslash\xFE278\xFF\
+    bar\xFE260\xFF\
+    braceleft\xFE334\xFF\
+    braceright\xFE334\xFF\
+    bracketleft\xFE278\xFF\
+    bracketright\xFE278\xFF\
+    breve\xFE333\xFF\
+    brokenbar\xFE260\xFF\
+    bullet\xFE350\xFF\
+    c\xFE500\xFF\
+    cacute\xFE500\xFF\
+    caron\xFE333\xFF\
+    ccaron\xFE500\xFF\
+    ccedilla\xFE500\xFF\
+    cedilla\xFE333\xFF\
+    cent\xFE556\xFF\
+    circumflex\xFE333\xFF\
+    colon\xFE278\xFF\
+    comma\xFE278\xFF\
+    commaaccent\xFE250\xFF\
+    copyright\xFE737\xFF\
+    currency\xFE556\xFF\
+    d\xFE556\xFF\
+    dagger\xFE556\xFF\
+    daggerdbl\xFE556\xFF\
+    dcaron\xFE643\xFF\
+    dcroat\xFE556\xFF\
+    degree\xFE400\xFF\
+    dieresis\xFE333\xFF\
+    divide\xFE584\xFF\
+    dollar\xFE556\xFF\
+    dotaccent\xFE333\xFF\
+    dotlessi\xFE278\xFF\
+    e\xFE556\xFF\
+    eacute\xFE556\xFF\
+    ecaron\xFE556\xFF\
+    ecircumflex\xFE556\xFF\
+    edieresis\xFE556\xFF\
+    edotaccent\xFE556\xFF\
+    egrave\xFE556\xFF\
+    eight\xFE556\xFF\
+    ellipsis\xFE1000\xFF\
+    emacron\xFE556\xFF\
+    emdash\xFE1000\xFF\
+    endash\xFE556\xFF\
+    eogonek\xFE556\xFF\
+    equal\xFE584\xFF\
+    eth\xFE556\xFF\
+    exclam\xFE278\xFF\
+    exclamdown\xFE333\xFF\
+    f\xFE278\xFF\
+    fi\xFE500\xFF\
+    five\xFE556\xFF\
+    fl\xFE500\xFF\
+    florin\xFE556\xFF\
+    four\xFE556\xFF\
+    fraction\xFE167\xFF\
+    g\xFE556\xFF\
+    gbreve\xFE556\xFF\
+    gcommaaccent\xFE556\xFF\
+    germandbls\xFE611\xFF\
+    grave\xFE333\xFF\
+    greater\xFE584\xFF\
+    greaterequal\xFE549\xFF\
+    guillemotleft\xFE556\xFF\
+    guillemotright\xFE556\xFF\
+    guilsinglleft\xFE333\xFF\
+    guilsinglright\xFE333\xFF\
+    h\xFE556\xFF\
+    hungarumlaut\xFE333\xFF\
+    hyphen\xFE333\xFF\
+    i\xFE222\xFF\
+    iacute\xFE278\xFF\
+    icircumflex\xFE278\xFF\
+    idieresis\xFE278\xFF\
+    igrave\xFE278\xFF\
+    imacron\xFE278\xFF\
+    iogonek\xFE222\xFF\
+    j\xFE222\xFF\
+    k\xFE500\xFF\
+    kcommaaccent\xFE500\xFF\
+    l\xFE222\xFF\
+    lacute\xFE222\xFF\
+    lcaron\xFE299\xFF\
+    lcommaaccent\xFE222\xFF\
+    less\xFE584\xFF\
+    lessequal\xFE549\xFF\
+    logicalnot\xFE584\xFF\
+    lozenge\xFE471\xFF\
+    lslash\xFE222\xFF\
+    m\xFE833\xFF\
+    macron\xFE333\xFF\
+    minus\xFE584\xFF\
+    mu\xFE556\xFF\
+    multiply\xFE584\xFF\
+    n\xFE556\xFF\
+    nacute\xFE556\xFF\
+    ncaron\xFE556\xFF\
+    ncommaaccent\xFE556\xFF\
+    nine\xFE556\xFF\
+    notequal\xFE549\xFF\
+    ntilde\xFE556\xFF\
+    numbersign\xFE556\xFF\
+    o\xFE556\xFF\
+    oacute\xFE556\xFF\
+    ocircumflex\xFE556\xFF\
+    odieresis\xFE556\xFF\
+    oe\xFE944\xFF\
+    ogonek\xFE333\xFF\
+    ograve\xFE556\xFF\
+    ohungarumlaut\xFE556\xFF\
+    omacron\xFE556\xFF\
+    one\xFE556\xFF\
+    onehalf\xFE834\xFF\
+    onequarter\xFE834\xFF\
+    onesuperior\xFE333\xFF\
+    ordfeminine\xFE370\xFF\
+    ordmasculine\xFE365\xFF\
+    oslash\xFE611\xFF\
+    otilde\xFE556\xFF\
+    p\xFE556\xFF\
+    paragraph\xFE537\xFF\
+    parenleft\xFE333\xFF\
+    parenright\xFE333\xFF\
+    partialdiff\xFE476\xFF\
+    percent\xFE889\xFF\
+    period\xFE278\xFF\
+    periodcentered\xFE278\xFF\
+    perthousand\xFE1000\xFF\
+    plus\xFE584\xFF\
+    plusminus\xFE584\xFF\
+    q\xFE556\xFF\
+    question\xFE556\xFF\
+    questiondown\xFE611\xFF\
+    quotedbl\xFE355\xFF\
+    quotedblbase\xFE333\xFF\
+    quotedblleft\xFE333\xFF\
+    quotedblright\xFE333\xFF\
+    quoteleft\xFE222\xFF\
+    quoteright\xFE222\xFF\
+    quotesinglbase\xFE222\xFF\
+    quotesingle\xFE191\xFF\
+    r\xFE333\xFF\
+    racute\xFE333\xFF\
+    radical\xFE453\xFF\
+    rcaron\xFE333\xFF\
+    rcommaaccent\xFE333\xFF\
+    registered\xFE737\xFF\
+    ring\xFE333\xFF\
+    s\xFE500\xFF\
+    sacute\xFE500\xFF\
+    scaron\xFE500\xFF\
+    scedilla\xFE500\xFF\
+    scommaaccent\xFE500\xFF\
+    section\xFE556\xFF\
+    semicolon\xFE278\xFF\
+    seven\xFE556\xFF\
+    six\xFE556\xFF\
+    slash\xFE278\xFF\
+    space\xFE278\xFF\
+    sterling\xFE556\xFF\
+    summation\xFE600\xFF\
+    t\xFE278\xFF\
+    tcaron\xFE317\xFF\
+    tcommaaccent\xFE278\xFF\
+    thorn\xFE556\xFF\
+    three\xFE556\xFF\
+    threequarters\xFE834\xFF\
+    threesuperior\xFE333\xFF\
+    tilde\xFE333\xFF\
+    trademark\xFE1000\xFF\
+    two\xFE556\xFF\
+    twosuperior\xFE333\xFF\
+    u\xFE556\xFF\
+    uacute\xFE556\xFF\
+    ucircumflex\xFE556\xFF\
+    udieresis\xFE556\xFF\
+    ugrave\xFE556\xFF\
+    uhungarumlaut\xFE556\xFF\
+    umacron\xFE556\xFF\
+    underscore\xFE556\xFF\
+    uogonek\xFE556\xFF\
+    uring\xFE556\xFF\
+    v\xFE500\xFF\
+    w\xFE722\xFF\
+    x\xFE500\xFF\
+    y\xFE500\xFF\
+    yacute\xFE500\xFF\
+    ydieresis\xFE500\xFF\
+    yen\xFE556\xFF\
+    z\xFE500\xFF\
+    zacute\xFE500\xFF\
+    zcaron\xFE500\xFF\
+    zdotaccent\xFE500\xFF\
+    zero\xFE556\xFF";
 
-pub(crate) static HELVETICA_OBLIQUE: phf::Map<&'static str, f32> = phf_map! {
-    "space" => 278_f32,
-    "exclam" => 278_f32,
-    "quotedbl" => 355_f32,
-    "numbersign" => 556_f32,
-    "dollar" => 556_f32,
-    "percent" => 889_f32,
-    "ampersand" => 667_f32,
-    "quoteright" => 222_f32,
-    "parenleft" => 333_f32,
-    "parenright" => 333_f32,
-    "asterisk" => 389_f32,
-    "plus" => 584_f32,
-    "comma" => 278_f32,
-    "hyphen" => 333_f32,
-    "period" => 278_f32,
-    "slash" => 278_f32,
-    "zero" => 556_f32,
-    "one" => 556_f32,
-    "two" => 556_f32,
-    "three" => 556_f32,
-    "four" => 556_f32,
-    "five" => 556_f32,
-    "six" => 556_f32,
-    "seven" => 556_f32,
-    "eight" => 556_f32,
-    "nine" => 556_f32,
-    "colon" => 278_f32,
-    "semicolon" => 278_f32,
-    "less" => 584_f32,
-    "equal" => 584_f32,
-    "greater" => 584_f32,
-    "question" => 556_f32,
-    "at" => 1015_f32,
-    "A" => 667_f32,
-    "B" => 667_f32,
-    "C" => 722_f32,
-    "D" => 722_f32,
-    "E" => 667_f32,
-    "F" => 611_f32,
-    "G" => 778_f32,
-    "H" => 722_f32,
-    "I" => 278_f32,
-    "J" => 500_f32,
-    "K" => 667_f32,
-    "L" => 556_f32,
-    "M" => 833_f32,
-    "N" => 722_f32,
-    "O" => 778_f32,
-    "P" => 667_f32,
-    "Q" => 778_f32,
-    "R" => 722_f32,
-    "S" => 667_f32,
-    "T" => 611_f32,
-    "U" => 722_f32,
-    "V" => 667_f32,
-    "W" => 944_f32,
-    "X" => 667_f32,
-    "Y" => 667_f32,
-    "Z" => 611_f32,
-    "bracketleft" => 278_f32,
-    "backslash" => 278_f32,
-    "bracketright" => 278_f32,
-    "asciicircum" => 469_f32,
-    "underscore" => 556_f32,
-    "quoteleft" => 222_f32,
-    "a" => 556_f32,
-    "b" => 556_f32,
-    "c" => 500_f32,
-    "d" => 556_f32,
-    "e" => 556_f32,
-    "f" => 278_f32,
-    "g" => 556_f32,
-    "h" => 556_f32,
-    "i" => 222_f32,
-    "j" => 222_f32,
-    "k" => 500_f32,
-    "l" => 222_f32,
-    "m" => 833_f32,
-    "n" => 556_f32,
-    "o" => 556_f32,
-    "p" => 556_f32,
-    "q" => 556_f32,
-    "r" => 333_f32,
-    "s" => 500_f32,
-    "t" => 278_f32,
-    "u" => 556_f32,
-    "v" => 500_f32,
-    "w" => 722_f32,
-    "x" => 500_f32,
-    "y" => 500_f32,
-    "z" => 500_f32,
-    "braceleft" => 334_f32,
-    "bar" => 260_f32,
-    "braceright" => 334_f32,
-    "asciitilde" => 584_f32,
-    "exclamdown" => 333_f32,
-    "cent" => 556_f32,
-    "sterling" => 556_f32,
-    "fraction" => 167_f32,
-    "yen" => 556_f32,
-    "florin" => 556_f32,
-    "section" => 556_f32,
-    "currency" => 556_f32,
-    "quotesingle" => 191_f32,
-    "quotedblleft" => 333_f32,
-    "guillemotleft" => 556_f32,
-    "guilsinglleft" => 333_f32,
-    "guilsinglright" => 333_f32,
-    "fi" => 500_f32,
-    "fl" => 500_f32,
-    "endash" => 556_f32,
-    "dagger" => 556_f32,
-    "daggerdbl" => 556_f32,
-    "periodcentered" => 278_f32,
-    "paragraph" => 537_f32,
-    "bullet" => 350_f32,
-    "quotesinglbase" => 222_f32,
-    "quotedblbase" => 333_f32,
-    "quotedblright" => 333_f32,
-    "guillemotright" => 556_f32,
-    "ellipsis" => 1000_f32,
-    "perthousand" => 1000_f32,
-    "questiondown" => 611_f32,
-    "grave" => 333_f32,
-    "acute" => 333_f32,
-    "circumflex" => 333_f32,
-    "tilde" => 333_f32,
-    "macron" => 333_f32,
-    "breve" => 333_f32,
-    "dotaccent" => 333_f32,
-    "dieresis" => 333_f32,
-    "ring" => 333_f32,
-    "cedilla" => 333_f32,
-    "hungarumlaut" => 333_f32,
-    "ogonek" => 333_f32,
-    "caron" => 333_f32,
-    "emdash" => 1000_f32,
-    "AE" => 1000_f32,
-    "ordfeminine" => 370_f32,
-    "Lslash" => 556_f32,
-    "Oslash" => 778_f32,
-    "OE" => 1000_f32,
-    "ordmasculine" => 365_f32,
-    "ae" => 889_f32,
-    "dotlessi" => 278_f32,
-    "lslash" => 222_f32,
-    "oslash" => 611_f32,
-    "oe" => 944_f32,
-    "germandbls" => 611_f32,
-    "Idieresis" => 278_f32,
-    "eacute" => 556_f32,
-    "abreve" => 556_f32,
-    "uhungarumlaut" => 556_f32,
-    "ecaron" => 556_f32,
-    "Ydieresis" => 667_f32,
-    "divide" => 584_f32,
-    "Yacute" => 667_f32,
-    "Acircumflex" => 667_f32,
-    "aacute" => 556_f32,
-    "Ucircumflex" => 722_f32,
-    "yacute" => 500_f32,
-    "scommaaccent" => 500_f32,
-    "ecircumflex" => 556_f32,
-    "Uring" => 722_f32,
-    "Udieresis" => 722_f32,
-    "aogonek" => 556_f32,
-    "Uacute" => 722_f32,
-    "uogonek" => 556_f32,
-    "Edieresis" => 667_f32,
-    "Dcroat" => 722_f32,
-    "commaaccent" => 250_f32,
-    "copyright" => 737_f32,
-    "Emacron" => 667_f32,
-    "ccaron" => 500_f32,
-    "aring" => 556_f32,
-    "Ncommaaccent" => 722_f32,
-    "lacute" => 222_f32,
-    "agrave" => 556_f32,
-    "Tcommaaccent" => 611_f32,
-    "Cacute" => 722_f32,
-    "atilde" => 556_f32,
-    "Edotaccent" => 667_f32,
-    "scaron" => 500_f32,
-    "scedilla" => 500_f32,
-    "iacute" => 278_f32,
-    "lozenge" => 471_f32,
-    "Rcaron" => 722_f32,
-    "Gcommaaccent" => 778_f32,
-    "ucircumflex" => 556_f32,
-    "acircumflex" => 556_f32,
-    "Amacron" => 667_f32,
-    "rcaron" => 333_f32,
-    "ccedilla" => 500_f32,
-    "Zdotaccent" => 611_f32,
-    "Thorn" => 667_f32,
-    "Omacron" => 778_f32,
-    "Racute" => 722_f32,
-    "Sacute" => 667_f32,
-    "dcaron" => 643_f32,
-    "Umacron" => 722_f32,
-    "uring" => 556_f32,
-    "threesuperior" => 333_f32,
-    "Ograve" => 778_f32,
-    "Agrave" => 667_f32,
-    "Abreve" => 667_f32,
-    "multiply" => 584_f32,
-    "uacute" => 556_f32,
-    "Tcaron" => 611_f32,
-    "partialdiff" => 476_f32,
-    "ydieresis" => 500_f32,
-    "Nacute" => 722_f32,
-    "icircumflex" => 278_f32,
-    "Ecircumflex" => 667_f32,
-    "adieresis" => 556_f32,
-    "edieresis" => 556_f32,
-    "cacute" => 500_f32,
-    "nacute" => 556_f32,
-    "umacron" => 556_f32,
-    "Ncaron" => 722_f32,
-    "Iacute" => 278_f32,
-    "plusminus" => 584_f32,
-    "brokenbar" => 260_f32,
-    "registered" => 737_f32,
-    "Gbreve" => 778_f32,
-    "Idotaccent" => 278_f32,
-    "summation" => 600_f32,
-    "Egrave" => 667_f32,
-    "racute" => 333_f32,
-    "omacron" => 556_f32,
-    "Zacute" => 611_f32,
-    "Zcaron" => 611_f32,
-    "greaterequal" => 549_f32,
-    "Eth" => 722_f32,
-    "Ccedilla" => 722_f32,
-    "lcommaaccent" => 222_f32,
-    "tcaron" => 317_f32,
-    "eogonek" => 556_f32,
-    "Uogonek" => 722_f32,
-    "Aacute" => 667_f32,
-    "Adieresis" => 667_f32,
-    "egrave" => 556_f32,
-    "zacute" => 500_f32,
-    "iogonek" => 222_f32,
-    "Oacute" => 778_f32,
-    "oacute" => 556_f32,
-    "amacron" => 556_f32,
-    "sacute" => 500_f32,
-    "idieresis" => 278_f32,
-    "Ocircumflex" => 778_f32,
-    "Ugrave" => 722_f32,
-    "Delta" => 612_f32,
-    "thorn" => 556_f32,
-    "twosuperior" => 333_f32,
-    "Odieresis" => 778_f32,
-    "mu" => 556_f32,
-    "igrave" => 278_f32,
-    "ohungarumlaut" => 556_f32,
-    "Eogonek" => 667_f32,
-    "dcroat" => 556_f32,
-    "threequarters" => 834_f32,
-    "Scedilla" => 667_f32,
-    "lcaron" => 299_f32,
-    "Kcommaaccent" => 667_f32,
-    "Lacute" => 556_f32,
-    "trademark" => 1000_f32,
-    "edotaccent" => 556_f32,
-    "Igrave" => 278_f32,
-    "Imacron" => 278_f32,
-    "Lcaron" => 556_f32,
-    "onehalf" => 834_f32,
-    "lessequal" => 549_f32,
-    "ocircumflex" => 556_f32,
-    "ntilde" => 556_f32,
-    "Uhungarumlaut" => 722_f32,
-    "Eacute" => 667_f32,
-    "emacron" => 556_f32,
-    "gbreve" => 556_f32,
-    "onequarter" => 834_f32,
-    "Scaron" => 667_f32,
-    "Scommaaccent" => 667_f32,
-    "Ohungarumlaut" => 778_f32,
-    "degree" => 400_f32,
-    "ograve" => 556_f32,
-    "Ccaron" => 722_f32,
-    "ugrave" => 556_f32,
-    "radical" => 453_f32,
-    "Dcaron" => 722_f32,
-    "rcommaaccent" => 333_f32,
-    "Ntilde" => 722_f32,
-    "otilde" => 556_f32,
-    "Rcommaaccent" => 722_f32,
-    "Lcommaaccent" => 556_f32,
-    "Atilde" => 667_f32,
-    "Aogonek" => 667_f32,
-    "Aring" => 667_f32,
-    "Otilde" => 778_f32,
-    "zdotaccent" => 500_f32,
-    "Ecaron" => 667_f32,
-    "Iogonek" => 278_f32,
-    "kcommaaccent" => 500_f32,
-    "minus" => 584_f32,
-    "Icircumflex" => 278_f32,
-    "ncaron" => 556_f32,
-    "tcommaaccent" => 278_f32,
-    "logicalnot" => 584_f32,
-    "odieresis" => 556_f32,
-    "udieresis" => 556_f32,
-    "notequal" => 549_f32,
-    "gcommaaccent" => 556_f32,
-    "eth" => 556_f32,
-    "zcaron" => 500_f32,
-    "ncommaaccent" => 556_f32,
-    "onesuperior" => 333_f32,
-    "imacron" => 278_f32,
-    "Euro" => 556_f32,
-};
+pub(crate) static SYMBOL: &[u8] = b"\
+    Alpha\xFE722\xFF\
+    Beta\xFE667\xFF\
+    Chi\xFE722\xFF\
+    Delta\xFE612\xFF\
+    Epsilon\xFE611\xFF\
+    Eta\xFE722\xFF\
+    Euro\xFE750\xFF\
+    Gamma\xFE603\xFF\
+    Ifraktur\xFE686\xFF\
+    Iota\xFE333\xFF\
+    Kappa\xFE722\xFF\
+    Lambda\xFE686\xFF\
+    Mu\xFE889\xFF\
+    Nu\xFE722\xFF\
+    Omega\xFE768\xFF\
+    Omicron\xFE722\xFF\
+    Phi\xFE763\xFF\
+    Pi\xFE768\xFF\
+    Psi\xFE795\xFF\
+    Rfraktur\xFE795\xFF\
+    Rho\xFE556\xFF\
+    Sigma\xFE592\xFF\
+    Tau\xFE611\xFF\
+    Theta\xFE741\xFF\
+    Upsilon\xFE690\xFF\
+    Upsilon1\xFE620\xFF\
+    Xi\xFE645\xFF\
+    Zeta\xFE611\xFF\
+    aleph\xFE823\xFF\
+    alpha\xFE631\xFF\
+    ampersand\xFE778\xFF\
+    angle\xFE768\xFF\
+    angleleft\xFE329\xFF\
+    angleright\xFE329\xFF\
+    apple\xFE790\xFF\
+    approxequal\xFE549\xFF\
+    arrowboth\xFE1042\xFF\
+    arrowdblboth\xFE1042\xFF\
+    arrowdbldown\xFE603\xFF\
+    arrowdblleft\xFE987\xFF\
+    arrowdblright\xFE987\xFF\
+    arrowdblup\xFE603\xFF\
+    arrowdown\xFE603\xFF\
+    arrowhorizex\xFE1000\xFF\
+    arrowleft\xFE987\xFF\
+    arrowright\xFE987\xFF\
+    arrowup\xFE603\xFF\
+    arrowvertex\xFE603\xFF\
+    asteriskmath\xFE500\xFF\
+    bar\xFE200\xFF\
+    beta\xFE549\xFF\
+    braceex\xFE494\xFF\
+    braceleft\xFE480\xFF\
+    braceleftbt\xFE494\xFF\
+    braceleftmid\xFE494\xFF\
+    bracelefttp\xFE494\xFF\
+    braceright\xFE480\xFF\
+    bracerightbt\xFE494\xFF\
+    bracerightmid\xFE494\xFF\
+    bracerighttp\xFE494\xFF\
+    bracketleft\xFE333\xFF\
+    bracketleftbt\xFE384\xFF\
+    bracketleftex\xFE384\xFF\
+    bracketlefttp\xFE384\xFF\
+    bracketright\xFE333\xFF\
+    bracketrightbt\xFE384\xFF\
+    bracketrightex\xFE384\xFF\
+    bracketrighttp\xFE384\xFF\
+    bullet\xFE460\xFF\
+    carriagereturn\xFE658\xFF\
+    chi\xFE549\xFF\
+    circlemultiply\xFE768\xFF\
+    circleplus\xFE768\xFF\
+    club\xFE753\xFF\
+    colon\xFE278\xFF\
+    comma\xFE250\xFF\
+    congruent\xFE549\xFF\
+    copyrightsans\xFE790\xFF\
+    copyrightserif\xFE790\xFF\
+    degree\xFE400\xFF\
+    delta\xFE494\xFF\
+    diamond\xFE753\xFF\
+    divide\xFE549\xFF\
+    dotmath\xFE250\xFF\
+    eight\xFE500\xFF\
+    element\xFE713\xFF\
+    ellipsis\xFE1000\xFF\
+    emptyset\xFE823\xFF\
+    epsilon\xFE439\xFF\
+    equal\xFE549\xFF\
+    equivalence\xFE549\xFF\
+    eta\xFE603\xFF\
+    exclam\xFE333\xFF\
+    existential\xFE549\xFF\
+    five\xFE500\xFF\
+    florin\xFE500\xFF\
+    four\xFE500\xFF\
+    fraction\xFE167\xFF\
+    gamma\xFE411\xFF\
+    gradient\xFE713\xFF\
+    greater\xFE549\xFF\
+    greaterequal\xFE549\xFF\
+    heart\xFE753\xFF\
+    infinity\xFE713\xFF\
+    integral\xFE274\xFF\
+    integralbt\xFE686\xFF\
+    integralex\xFE686\xFF\
+    integraltp\xFE686\xFF\
+    intersection\xFE768\xFF\
+    iota\xFE329\xFF\
+    kappa\xFE549\xFF\
+    lambda\xFE549\xFF\
+    less\xFE549\xFF\
+    lessequal\xFE549\xFF\
+    logicaland\xFE603\xFF\
+    logicalnot\xFE713\xFF\
+    logicalor\xFE603\xFF\
+    lozenge\xFE494\xFF\
+    minus\xFE549\xFF\
+    minute\xFE247\xFF\
+    mu\xFE576\xFF\
+    multiply\xFE549\xFF\
+    nine\xFE500\xFF\
+    notelement\xFE713\xFF\
+    notequal\xFE549\xFF\
+    notsubset\xFE713\xFF\
+    nu\xFE521\xFF\
+    numbersign\xFE500\xFF\
+    omega\xFE686\xFF\
+    omega1\xFE713\xFF\
+    omicron\xFE549\xFF\
+    one\xFE500\xFF\
+    parenleft\xFE333\xFF\
+    parenleftbt\xFE384\xFF\
+    parenleftex\xFE384\xFF\
+    parenlefttp\xFE384\xFF\
+    parenright\xFE333\xFF\
+    parenrightbt\xFE384\xFF\
+    parenrightex\xFE384\xFF\
+    parenrighttp\xFE384\xFF\
+    partialdiff\xFE494\xFF\
+    percent\xFE833\xFF\
+    period\xFE250\xFF\
+    perpendicular\xFE658\xFF\
+    phi\xFE521\xFF\
+    phi1\xFE603\xFF\
+    pi\xFE549\xFF\
+    plus\xFE549\xFF\
+    plusminus\xFE549\xFF\
+    product\xFE823\xFF\
+    propersubset\xFE713\xFF\
+    propersuperset\xFE713\xFF\
+    proportional\xFE713\xFF\
+    psi\xFE686\xFF\
+    question\xFE444\xFF\
+    radical\xFE549\xFF\
+    radicalex\xFE500\xFF\
+    reflexsubset\xFE713\xFF\
+    reflexsuperset\xFE713\xFF\
+    registersans\xFE790\xFF\
+    registerserif\xFE790\xFF\
+    rho\xFE549\xFF\
+    second\xFE411\xFF\
+    semicolon\xFE278\xFF\
+    seven\xFE500\xFF\
+    sigma\xFE603\xFF\
+    sigma1\xFE439\xFF\
+    similar\xFE549\xFF\
+    six\xFE500\xFF\
+    slash\xFE278\xFF\
+    space\xFE250\xFF\
+    spade\xFE753\xFF\
+    suchthat\xFE439\xFF\
+    summation\xFE713\xFF\
+    tau\xFE439\xFF\
+    therefore\xFE863\xFF\
+    theta\xFE521\xFF\
+    theta1\xFE631\xFF\
+    three\xFE500\xFF\
+    trademarksans\xFE786\xFF\
+    trademarkserif\xFE890\xFF\
+    two\xFE500\xFF\
+    underscore\xFE500\xFF\
+    union\xFE768\xFF\
+    universal\xFE713\xFF\
+    upsilon\xFE576\xFF\
+    weierstrass\xFE987\xFF\
+    xi\xFE493\xFF\
+    zero\xFE500\xFF\
+    zeta\xFE494\xFF";
 
-pub(crate) static SYMBOL: phf::Map<&'static str, f32> = phf_map! {
-    "space" => 250_f32,
-    "exclam" => 333_f32,
-    "universal" => 713_f32,
-    "numbersign" => 500_f32,
-    "existential" => 549_f32,
-    "percent" => 833_f32,
-    "ampersand" => 778_f32,
-    "suchthat" => 439_f32,
-    "parenleft" => 333_f32,
-    "parenright" => 333_f32,
-    "asteriskmath" => 500_f32,
-    "plus" => 549_f32,
-    "comma" => 250_f32,
-    "minus" => 549_f32,
-    "period" => 250_f32,
-    "slash" => 278_f32,
-    "zero" => 500_f32,
-    "one" => 500_f32,
-    "two" => 500_f32,
-    "three" => 500_f32,
-    "four" => 500_f32,
-    "five" => 500_f32,
-    "six" => 500_f32,
-    "seven" => 500_f32,
-    "eight" => 500_f32,
-    "nine" => 500_f32,
-    "colon" => 278_f32,
-    "semicolon" => 278_f32,
-    "less" => 549_f32,
-    "equal" => 549_f32,
-    "greater" => 549_f32,
-    "question" => 444_f32,
-    "congruent" => 549_f32,
-    "Alpha" => 722_f32,
-    "Beta" => 667_f32,
-    "Chi" => 722_f32,
-    "Delta" => 612_f32,
-    "Epsilon" => 611_f32,
-    "Phi" => 763_f32,
-    "Gamma" => 603_f32,
-    "Eta" => 722_f32,
-    "Iota" => 333_f32,
-    "theta1" => 631_f32,
-    "Kappa" => 722_f32,
-    "Lambda" => 686_f32,
-    "Mu" => 889_f32,
-    "Nu" => 722_f32,
-    "Omicron" => 722_f32,
-    "Pi" => 768_f32,
-    "Theta" => 741_f32,
-    "Rho" => 556_f32,
-    "Sigma" => 592_f32,
-    "Tau" => 611_f32,
-    "Upsilon" => 690_f32,
-    "sigma1" => 439_f32,
-    "Omega" => 768_f32,
-    "Xi" => 645_f32,
-    "Psi" => 795_f32,
-    "Zeta" => 611_f32,
-    "bracketleft" => 333_f32,
-    "therefore" => 863_f32,
-    "bracketright" => 333_f32,
-    "perpendicular" => 658_f32,
-    "underscore" => 500_f32,
-    "radicalex" => 500_f32,
-    "alpha" => 631_f32,
-    "beta" => 549_f32,
-    "chi" => 549_f32,
-    "delta" => 494_f32,
-    "epsilon" => 439_f32,
-    "phi" => 521_f32,
-    "gamma" => 411_f32,
-    "eta" => 603_f32,
-    "iota" => 329_f32,
-    "phi1" => 603_f32,
-    "kappa" => 549_f32,
-    "lambda" => 549_f32,
-    "mu" => 576_f32,
-    "nu" => 521_f32,
-    "omicron" => 549_f32,
-    "pi" => 549_f32,
-    "theta" => 521_f32,
-    "rho" => 549_f32,
-    "sigma" => 603_f32,
-    "tau" => 439_f32,
-    "upsilon" => 576_f32,
-    "omega1" => 713_f32,
-    "omega" => 686_f32,
-    "xi" => 493_f32,
-    "psi" => 686_f32,
-    "zeta" => 494_f32,
-    "braceleft" => 480_f32,
-    "bar" => 200_f32,
-    "braceright" => 480_f32,
-    "similar" => 549_f32,
-    "Euro" => 750_f32,
-    "Upsilon1" => 620_f32,
-    "minute" => 247_f32,
-    "lessequal" => 549_f32,
-    "fraction" => 167_f32,
-    "infinity" => 713_f32,
-    "florin" => 500_f32,
-    "club" => 753_f32,
-    "diamond" => 753_f32,
-    "heart" => 753_f32,
-    "spade" => 753_f32,
-    "arrowboth" => 1042_f32,
-    "arrowleft" => 987_f32,
-    "arrowup" => 603_f32,
-    "arrowright" => 987_f32,
-    "arrowdown" => 603_f32,
-    "degree" => 400_f32,
-    "plusminus" => 549_f32,
-    "second" => 411_f32,
-    "greaterequal" => 549_f32,
-    "multiply" => 549_f32,
-    "proportional" => 713_f32,
-    "partialdiff" => 494_f32,
-    "bullet" => 460_f32,
-    "divide" => 549_f32,
-    "notequal" => 549_f32,
-    "equivalence" => 549_f32,
-    "approxequal" => 549_f32,
-    "ellipsis" => 1000_f32,
-    "arrowvertex" => 603_f32,
-    "arrowhorizex" => 1000_f32,
-    "carriagereturn" => 658_f32,
-    "aleph" => 823_f32,
-    "Ifraktur" => 686_f32,
-    "Rfraktur" => 795_f32,
-    "weierstrass" => 987_f32,
-    "circlemultiply" => 768_f32,
-    "circleplus" => 768_f32,
-    "emptyset" => 823_f32,
-    "intersection" => 768_f32,
-    "union" => 768_f32,
-    "propersuperset" => 713_f32,
-    "reflexsuperset" => 713_f32,
-    "notsubset" => 713_f32,
-    "propersubset" => 713_f32,
-    "reflexsubset" => 713_f32,
-    "element" => 713_f32,
-    "notelement" => 713_f32,
-    "angle" => 768_f32,
-    "gradient" => 713_f32,
-    "registerserif" => 790_f32,
-    "copyrightserif" => 790_f32,
-    "trademarkserif" => 890_f32,
-    "product" => 823_f32,
-    "radical" => 549_f32,
-    "dotmath" => 250_f32,
-    "logicalnot" => 713_f32,
-    "logicaland" => 603_f32,
-    "logicalor" => 603_f32,
-    "arrowdblboth" => 1042_f32,
-    "arrowdblleft" => 987_f32,
-    "arrowdblup" => 603_f32,
-    "arrowdblright" => 987_f32,
-    "arrowdbldown" => 603_f32,
-    "lozenge" => 494_f32,
-    "angleleft" => 329_f32,
-    "registersans" => 790_f32,
-    "copyrightsans" => 790_f32,
-    "trademarksans" => 786_f32,
-    "summation" => 713_f32,
-    "parenlefttp" => 384_f32,
-    "parenleftex" => 384_f32,
-    "parenleftbt" => 384_f32,
-    "bracketlefttp" => 384_f32,
-    "bracketleftex" => 384_f32,
-    "bracketleftbt" => 384_f32,
-    "bracelefttp" => 494_f32,
-    "braceleftmid" => 494_f32,
-    "braceleftbt" => 494_f32,
-    "braceex" => 494_f32,
-    "angleright" => 329_f32,
-    "integral" => 274_f32,
-    "integraltp" => 686_f32,
-    "integralex" => 686_f32,
-    "integralbt" => 686_f32,
-    "parenrighttp" => 384_f32,
-    "parenrightex" => 384_f32,
-    "parenrightbt" => 384_f32,
-    "bracketrighttp" => 384_f32,
-    "bracketrightex" => 384_f32,
-    "bracketrightbt" => 384_f32,
-    "bracerighttp" => 494_f32,
-    "bracerightmid" => 494_f32,
-    "bracerightbt" => 494_f32,
-    "apple" => 790_f32,
-};
+pub(crate) static TIMES_BOLD: &[u8] = b"\
+    A\xFE722\xFF\
+    AE\xFE1000\xFF\
+    Aacute\xFE722\xFF\
+    Abreve\xFE722\xFF\
+    Acircumflex\xFE722\xFF\
+    Adieresis\xFE722\xFF\
+    Agrave\xFE722\xFF\
+    Amacron\xFE722\xFF\
+    Aogonek\xFE722\xFF\
+    Aring\xFE722\xFF\
+    Atilde\xFE722\xFF\
+    B\xFE667\xFF\
+    C\xFE722\xFF\
+    Cacute\xFE722\xFF\
+    Ccaron\xFE722\xFF\
+    Ccedilla\xFE722\xFF\
+    D\xFE722\xFF\
+    Dcaron\xFE722\xFF\
+    Dcroat\xFE722\xFF\
+    Delta\xFE612\xFF\
+    E\xFE667\xFF\
+    Eacute\xFE667\xFF\
+    Ecaron\xFE667\xFF\
+    Ecircumflex\xFE667\xFF\
+    Edieresis\xFE667\xFF\
+    Edotaccent\xFE667\xFF\
+    Egrave\xFE667\xFF\
+    Emacron\xFE667\xFF\
+    Eogonek\xFE667\xFF\
+    Eth\xFE722\xFF\
+    Euro\xFE500\xFF\
+    F\xFE611\xFF\
+    G\xFE778\xFF\
+    Gbreve\xFE778\xFF\
+    Gcommaaccent\xFE778\xFF\
+    H\xFE778\xFF\
+    I\xFE389\xFF\
+    Iacute\xFE389\xFF\
+    Icircumflex\xFE389\xFF\
+    Idieresis\xFE389\xFF\
+    Idotaccent\xFE389\xFF\
+    Igrave\xFE389\xFF\
+    Imacron\xFE389\xFF\
+    Iogonek\xFE389\xFF\
+    J\xFE500\xFF\
+    K\xFE778\xFF\
+    Kcommaaccent\xFE778\xFF\
+    L\xFE667\xFF\
+    Lacute\xFE667\xFF\
+    Lcaron\xFE667\xFF\
+    Lcommaaccent\xFE667\xFF\
+    Lslash\xFE667\xFF\
+    M\xFE944\xFF\
+    N\xFE722\xFF\
+    Nacute\xFE722\xFF\
+    Ncaron\xFE722\xFF\
+    Ncommaaccent\xFE722\xFF\
+    Ntilde\xFE722\xFF\
+    O\xFE778\xFF\
+    OE\xFE1000\xFF\
+    Oacute\xFE778\xFF\
+    Ocircumflex\xFE778\xFF\
+    Odieresis\xFE778\xFF\
+    Ograve\xFE778\xFF\
+    Ohungarumlaut\xFE778\xFF\
+    Omacron\xFE778\xFF\
+    Oslash\xFE778\xFF\
+    Otilde\xFE778\xFF\
+    P\xFE611\xFF\
+    Q\xFE778\xFF\
+    R\xFE722\xFF\
+    Racute\xFE722\xFF\
+    Rcaron\xFE722\xFF\
+    Rcommaaccent\xFE722\xFF\
+    S\xFE556\xFF\
+    Sacute\xFE556\xFF\
+    Scaron\xFE556\xFF\
+    Scedilla\xFE556\xFF\
+    Scommaaccent\xFE556\xFF\
+    T\xFE667\xFF\
+    Tcaron\xFE667\xFF\
+    Tcommaaccent\xFE667\xFF\
+    Thorn\xFE611\xFF\
+    U\xFE722\xFF\
+    Uacute\xFE722\xFF\
+    Ucircumflex\xFE722\xFF\
+    Udieresis\xFE722\xFF\
+    Ugrave\xFE722\xFF\
+    Uhungarumlaut\xFE722\xFF\
+    Umacron\xFE722\xFF\
+    Uogonek\xFE722\xFF\
+    Uring\xFE722\xFF\
+    V\xFE722\xFF\
+    W\xFE1000\xFF\
+    X\xFE722\xFF\
+    Y\xFE722\xFF\
+    Yacute\xFE722\xFF\
+    Ydieresis\xFE722\xFF\
+    Z\xFE667\xFF\
+    Zacute\xFE667\xFF\
+    Zcaron\xFE667\xFF\
+    Zdotaccent\xFE667\xFF\
+    a\xFE500\xFF\
+    aacute\xFE500\xFF\
+    abreve\xFE500\xFF\
+    acircumflex\xFE500\xFF\
+    acute\xFE333\xFF\
+    adieresis\xFE500\xFF\
+    ae\xFE722\xFF\
+    agrave\xFE500\xFF\
+    amacron\xFE500\xFF\
+    ampersand\xFE833\xFF\
+    aogonek\xFE500\xFF\
+    aring\xFE500\xFF\
+    asciicircum\xFE581\xFF\
+    asciitilde\xFE520\xFF\
+    asterisk\xFE500\xFF\
+    at\xFE930\xFF\
+    atilde\xFE500\xFF\
+    b\xFE556\xFF\
+    backslash\xFE278\xFF\
+    bar\xFE220\xFF\
+    braceleft\xFE394\xFF\
+    braceright\xFE394\xFF\
+    bracketleft\xFE333\xFF\
+    bracketright\xFE333\xFF\
+    breve\xFE333\xFF\
+    brokenbar\xFE220\xFF\
+    bullet\xFE350\xFF\
+    c\xFE444\xFF\
+    cacute\xFE444\xFF\
+    caron\xFE333\xFF\
+    ccaron\xFE444\xFF\
+    ccedilla\xFE444\xFF\
+    cedilla\xFE333\xFF\
+    cent\xFE500\xFF\
+    circumflex\xFE333\xFF\
+    colon\xFE333\xFF\
+    comma\xFE250\xFF\
+    commaaccent\xFE250\xFF\
+    copyright\xFE747\xFF\
+    currency\xFE500\xFF\
+    d\xFE556\xFF\
+    dagger\xFE500\xFF\
+    daggerdbl\xFE500\xFF\
+    dcaron\xFE672\xFF\
+    dcroat\xFE556\xFF\
+    degree\xFE400\xFF\
+    dieresis\xFE333\xFF\
+    divide\xFE570\xFF\
+    dollar\xFE500\xFF\
+    dotaccent\xFE333\xFF\
+    dotlessi\xFE278\xFF\
+    e\xFE444\xFF\
+    eacute\xFE444\xFF\
+    ecaron\xFE444\xFF\
+    ecircumflex\xFE444\xFF\
+    edieresis\xFE444\xFF\
+    edotaccent\xFE444\xFF\
+    egrave\xFE444\xFF\
+    eight\xFE500\xFF\
+    ellipsis\xFE1000\xFF\
+    emacron\xFE444\xFF\
+    emdash\xFE1000\xFF\
+    endash\xFE500\xFF\
+    eogonek\xFE444\xFF\
+    equal\xFE570\xFF\
+    eth\xFE500\xFF\
+    exclam\xFE333\xFF\
+    exclamdown\xFE333\xFF\
+    f\xFE333\xFF\
+    fi\xFE556\xFF\
+    five\xFE500\xFF\
+    fl\xFE556\xFF\
+    florin\xFE500\xFF\
+    four\xFE500\xFF\
+    fraction\xFE167\xFF\
+    g\xFE500\xFF\
+    gbreve\xFE500\xFF\
+    gcommaaccent\xFE500\xFF\
+    germandbls\xFE556\xFF\
+    grave\xFE333\xFF\
+    greater\xFE570\xFF\
+    greaterequal\xFE549\xFF\
+    guillemotleft\xFE500\xFF\
+    guillemotright\xFE500\xFF\
+    guilsinglleft\xFE333\xFF\
+    guilsinglright\xFE333\xFF\
+    h\xFE556\xFF\
+    hungarumlaut\xFE333\xFF\
+    hyphen\xFE333\xFF\
+    i\xFE278\xFF\
+    iacute\xFE278\xFF\
+    icircumflex\xFE278\xFF\
+    idieresis\xFE278\xFF\
+    igrave\xFE278\xFF\
+    imacron\xFE278\xFF\
+    iogonek\xFE278\xFF\
+    j\xFE333\xFF\
+    k\xFE556\xFF\
+    kcommaaccent\xFE556\xFF\
+    l\xFE278\xFF\
+    lacute\xFE278\xFF\
+    lcaron\xFE394\xFF\
+    lcommaaccent\xFE278\xFF\
+    less\xFE570\xFF\
+    lessequal\xFE549\xFF\
+    logicalnot\xFE570\xFF\
+    lozenge\xFE494\xFF\
+    lslash\xFE278\xFF\
+    m\xFE833\xFF\
+    macron\xFE333\xFF\
+    minus\xFE570\xFF\
+    mu\xFE556\xFF\
+    multiply\xFE570\xFF\
+    n\xFE556\xFF\
+    nacute\xFE556\xFF\
+    ncaron\xFE556\xFF\
+    ncommaaccent\xFE556\xFF\
+    nine\xFE500\xFF\
+    notequal\xFE549\xFF\
+    ntilde\xFE556\xFF\
+    numbersign\xFE500\xFF\
+    o\xFE500\xFF\
+    oacute\xFE500\xFF\
+    ocircumflex\xFE500\xFF\
+    odieresis\xFE500\xFF\
+    oe\xFE722\xFF\
+    ogonek\xFE333\xFF\
+    ograve\xFE500\xFF\
+    ohungarumlaut\xFE500\xFF\
+    omacron\xFE500\xFF\
+    one\xFE500\xFF\
+    onehalf\xFE750\xFF\
+    onequarter\xFE750\xFF\
+    onesuperior\xFE300\xFF\
+    ordfeminine\xFE300\xFF\
+    ordmasculine\xFE330\xFF\
+    oslash\xFE500\xFF\
+    otilde\xFE500\xFF\
+    p\xFE556\xFF\
+    paragraph\xFE540\xFF\
+    parenleft\xFE333\xFF\
+    parenright\xFE333\xFF\
+    partialdiff\xFE494\xFF\
+    percent\xFE1000\xFF\
+    period\xFE250\xFF\
+    periodcentered\xFE250\xFF\
+    perthousand\xFE1000\xFF\
+    plus\xFE570\xFF\
+    plusminus\xFE570\xFF\
+    q\xFE556\xFF\
+    question\xFE500\xFF\
+    questiondown\xFE500\xFF\
+    quotedbl\xFE555\xFF\
+    quotedblbase\xFE500\xFF\
+    quotedblleft\xFE500\xFF\
+    quotedblright\xFE500\xFF\
+    quoteleft\xFE333\xFF\
+    quoteright\xFE333\xFF\
+    quotesinglbase\xFE333\xFF\
+    quotesingle\xFE278\xFF\
+    r\xFE444\xFF\
+    racute\xFE444\xFF\
+    radical\xFE549\xFF\
+    rcaron\xFE444\xFF\
+    rcommaaccent\xFE444\xFF\
+    registered\xFE747\xFF\
+    ring\xFE333\xFF\
+    s\xFE389\xFF\
+    sacute\xFE389\xFF\
+    scaron\xFE389\xFF\
+    scedilla\xFE389\xFF\
+    scommaaccent\xFE389\xFF\
+    section\xFE500\xFF\
+    semicolon\xFE333\xFF\
+    seven\xFE500\xFF\
+    six\xFE500\xFF\
+    slash\xFE278\xFF\
+    space\xFE250\xFF\
+    sterling\xFE500\xFF\
+    summation\xFE600\xFF\
+    t\xFE333\xFF\
+    tcaron\xFE416\xFF\
+    tcommaaccent\xFE333\xFF\
+    thorn\xFE556\xFF\
+    three\xFE500\xFF\
+    threequarters\xFE750\xFF\
+    threesuperior\xFE300\xFF\
+    tilde\xFE333\xFF\
+    trademark\xFE1000\xFF\
+    two\xFE500\xFF\
+    twosuperior\xFE300\xFF\
+    u\xFE556\xFF\
+    uacute\xFE556\xFF\
+    ucircumflex\xFE556\xFF\
+    udieresis\xFE556\xFF\
+    ugrave\xFE556\xFF\
+    uhungarumlaut\xFE556\xFF\
+    umacron\xFE556\xFF\
+    underscore\xFE500\xFF\
+    uogonek\xFE556\xFF\
+    uring\xFE556\xFF\
+    v\xFE500\xFF\
+    w\xFE722\xFF\
+    x\xFE500\xFF\
+    y\xFE500\xFF\
+    yacute\xFE500\xFF\
+    ydieresis\xFE500\xFF\
+    yen\xFE500\xFF\
+    z\xFE444\xFF\
+    zacute\xFE444\xFF\
+    zcaron\xFE444\xFF\
+    zdotaccent\xFE444\xFF\
+    zero\xFE500\xFF";
 
-pub(crate) static TIMES_BOLD: phf::Map<&'static str, f32> = phf_map! {
-    "space" => 250_f32,
-    "exclam" => 333_f32,
-    "quotedbl" => 555_f32,
-    "numbersign" => 500_f32,
-    "dollar" => 500_f32,
-    "percent" => 1000_f32,
-    "ampersand" => 833_f32,
-    "quoteright" => 333_f32,
-    "parenleft" => 333_f32,
-    "parenright" => 333_f32,
-    "asterisk" => 500_f32,
-    "plus" => 570_f32,
-    "comma" => 250_f32,
-    "hyphen" => 333_f32,
-    "period" => 250_f32,
-    "slash" => 278_f32,
-    "zero" => 500_f32,
-    "one" => 500_f32,
-    "two" => 500_f32,
-    "three" => 500_f32,
-    "four" => 500_f32,
-    "five" => 500_f32,
-    "six" => 500_f32,
-    "seven" => 500_f32,
-    "eight" => 500_f32,
-    "nine" => 500_f32,
-    "colon" => 333_f32,
-    "semicolon" => 333_f32,
-    "less" => 570_f32,
-    "equal" => 570_f32,
-    "greater" => 570_f32,
-    "question" => 500_f32,
-    "at" => 930_f32,
-    "A" => 722_f32,
-    "B" => 667_f32,
-    "C" => 722_f32,
-    "D" => 722_f32,
-    "E" => 667_f32,
-    "F" => 611_f32,
-    "G" => 778_f32,
-    "H" => 778_f32,
-    "I" => 389_f32,
-    "J" => 500_f32,
-    "K" => 778_f32,
-    "L" => 667_f32,
-    "M" => 944_f32,
-    "N" => 722_f32,
-    "O" => 778_f32,
-    "P" => 611_f32,
-    "Q" => 778_f32,
-    "R" => 722_f32,
-    "S" => 556_f32,
-    "T" => 667_f32,
-    "U" => 722_f32,
-    "V" => 722_f32,
-    "W" => 1000_f32,
-    "X" => 722_f32,
-    "Y" => 722_f32,
-    "Z" => 667_f32,
-    "bracketleft" => 333_f32,
-    "backslash" => 278_f32,
-    "bracketright" => 333_f32,
-    "asciicircum" => 581_f32,
-    "underscore" => 500_f32,
-    "quoteleft" => 333_f32,
-    "a" => 500_f32,
-    "b" => 556_f32,
-    "c" => 444_f32,
-    "d" => 556_f32,
-    "e" => 444_f32,
-    "f" => 333_f32,
-    "g" => 500_f32,
-    "h" => 556_f32,
-    "i" => 278_f32,
-    "j" => 333_f32,
-    "k" => 556_f32,
-    "l" => 278_f32,
-    "m" => 833_f32,
-    "n" => 556_f32,
-    "o" => 500_f32,
-    "p" => 556_f32,
-    "q" => 556_f32,
-    "r" => 444_f32,
-    "s" => 389_f32,
-    "t" => 333_f32,
-    "u" => 556_f32,
-    "v" => 500_f32,
-    "w" => 722_f32,
-    "x" => 500_f32,
-    "y" => 500_f32,
-    "z" => 444_f32,
-    "braceleft" => 394_f32,
-    "bar" => 220_f32,
-    "braceright" => 394_f32,
-    "asciitilde" => 520_f32,
-    "exclamdown" => 333_f32,
-    "cent" => 500_f32,
-    "sterling" => 500_f32,
-    "fraction" => 167_f32,
-    "yen" => 500_f32,
-    "florin" => 500_f32,
-    "section" => 500_f32,
-    "currency" => 500_f32,
-    "quotesingle" => 278_f32,
-    "quotedblleft" => 500_f32,
-    "guillemotleft" => 500_f32,
-    "guilsinglleft" => 333_f32,
-    "guilsinglright" => 333_f32,
-    "fi" => 556_f32,
-    "fl" => 556_f32,
-    "endash" => 500_f32,
-    "dagger" => 500_f32,
-    "daggerdbl" => 500_f32,
-    "periodcentered" => 250_f32,
-    "paragraph" => 540_f32,
-    "bullet" => 350_f32,
-    "quotesinglbase" => 333_f32,
-    "quotedblbase" => 500_f32,
-    "quotedblright" => 500_f32,
-    "guillemotright" => 500_f32,
-    "ellipsis" => 1000_f32,
-    "perthousand" => 1000_f32,
-    "questiondown" => 500_f32,
-    "grave" => 333_f32,
-    "acute" => 333_f32,
-    "circumflex" => 333_f32,
-    "tilde" => 333_f32,
-    "macron" => 333_f32,
-    "breve" => 333_f32,
-    "dotaccent" => 333_f32,
-    "dieresis" => 333_f32,
-    "ring" => 333_f32,
-    "cedilla" => 333_f32,
-    "hungarumlaut" => 333_f32,
-    "ogonek" => 333_f32,
-    "caron" => 333_f32,
-    "emdash" => 1000_f32,
-    "AE" => 1000_f32,
-    "ordfeminine" => 300_f32,
-    "Lslash" => 667_f32,
-    "Oslash" => 778_f32,
-    "OE" => 1000_f32,
-    "ordmasculine" => 330_f32,
-    "ae" => 722_f32,
-    "dotlessi" => 278_f32,
-    "lslash" => 278_f32,
-    "oslash" => 500_f32,
-    "oe" => 722_f32,
-    "germandbls" => 556_f32,
-    "Idieresis" => 389_f32,
-    "eacute" => 444_f32,
-    "abreve" => 500_f32,
-    "uhungarumlaut" => 556_f32,
-    "ecaron" => 444_f32,
-    "Ydieresis" => 722_f32,
-    "divide" => 570_f32,
-    "Yacute" => 722_f32,
-    "Acircumflex" => 722_f32,
-    "aacute" => 500_f32,
-    "Ucircumflex" => 722_f32,
-    "yacute" => 500_f32,
-    "scommaaccent" => 389_f32,
-    "ecircumflex" => 444_f32,
-    "Uring" => 722_f32,
-    "Udieresis" => 722_f32,
-    "aogonek" => 500_f32,
-    "Uacute" => 722_f32,
-    "uogonek" => 556_f32,
-    "Edieresis" => 667_f32,
-    "Dcroat" => 722_f32,
-    "commaaccent" => 250_f32,
-    "copyright" => 747_f32,
-    "Emacron" => 667_f32,
-    "ccaron" => 444_f32,
-    "aring" => 500_f32,
-    "Ncommaaccent" => 722_f32,
-    "lacute" => 278_f32,
-    "agrave" => 500_f32,
-    "Tcommaaccent" => 667_f32,
-    "Cacute" => 722_f32,
-    "atilde" => 500_f32,
-    "Edotaccent" => 667_f32,
-    "scaron" => 389_f32,
-    "scedilla" => 389_f32,
-    "iacute" => 278_f32,
-    "lozenge" => 494_f32,
-    "Rcaron" => 722_f32,
-    "Gcommaaccent" => 778_f32,
-    "ucircumflex" => 556_f32,
-    "acircumflex" => 500_f32,
-    "Amacron" => 722_f32,
-    "rcaron" => 444_f32,
-    "ccedilla" => 444_f32,
-    "Zdotaccent" => 667_f32,
-    "Thorn" => 611_f32,
-    "Omacron" => 778_f32,
-    "Racute" => 722_f32,
-    "Sacute" => 556_f32,
-    "dcaron" => 672_f32,
-    "Umacron" => 722_f32,
-    "uring" => 556_f32,
-    "threesuperior" => 300_f32,
-    "Ograve" => 778_f32,
-    "Agrave" => 722_f32,
-    "Abreve" => 722_f32,
-    "multiply" => 570_f32,
-    "uacute" => 556_f32,
-    "Tcaron" => 667_f32,
-    "partialdiff" => 494_f32,
-    "ydieresis" => 500_f32,
-    "Nacute" => 722_f32,
-    "icircumflex" => 278_f32,
-    "Ecircumflex" => 667_f32,
-    "adieresis" => 500_f32,
-    "edieresis" => 444_f32,
-    "cacute" => 444_f32,
-    "nacute" => 556_f32,
-    "umacron" => 556_f32,
-    "Ncaron" => 722_f32,
-    "Iacute" => 389_f32,
-    "plusminus" => 570_f32,
-    "brokenbar" => 220_f32,
-    "registered" => 747_f32,
-    "Gbreve" => 778_f32,
-    "Idotaccent" => 389_f32,
-    "summation" => 600_f32,
-    "Egrave" => 667_f32,
-    "racute" => 444_f32,
-    "omacron" => 500_f32,
-    "Zacute" => 667_f32,
-    "Zcaron" => 667_f32,
-    "greaterequal" => 549_f32,
-    "Eth" => 722_f32,
-    "Ccedilla" => 722_f32,
-    "lcommaaccent" => 278_f32,
-    "tcaron" => 416_f32,
-    "eogonek" => 444_f32,
-    "Uogonek" => 722_f32,
-    "Aacute" => 722_f32,
-    "Adieresis" => 722_f32,
-    "egrave" => 444_f32,
-    "zacute" => 444_f32,
-    "iogonek" => 278_f32,
-    "Oacute" => 778_f32,
-    "oacute" => 500_f32,
-    "amacron" => 500_f32,
-    "sacute" => 389_f32,
-    "idieresis" => 278_f32,
-    "Ocircumflex" => 778_f32,
-    "Ugrave" => 722_f32,
-    "Delta" => 612_f32,
-    "thorn" => 556_f32,
-    "twosuperior" => 300_f32,
-    "Odieresis" => 778_f32,
-    "mu" => 556_f32,
-    "igrave" => 278_f32,
-    "ohungarumlaut" => 500_f32,
-    "Eogonek" => 667_f32,
-    "dcroat" => 556_f32,
-    "threequarters" => 750_f32,
-    "Scedilla" => 556_f32,
-    "lcaron" => 394_f32,
-    "Kcommaaccent" => 778_f32,
-    "Lacute" => 667_f32,
-    "trademark" => 1000_f32,
-    "edotaccent" => 444_f32,
-    "Igrave" => 389_f32,
-    "Imacron" => 389_f32,
-    "Lcaron" => 667_f32,
-    "onehalf" => 750_f32,
-    "lessequal" => 549_f32,
-    "ocircumflex" => 500_f32,
-    "ntilde" => 556_f32,
-    "Uhungarumlaut" => 722_f32,
-    "Eacute" => 667_f32,
-    "emacron" => 444_f32,
-    "gbreve" => 500_f32,
-    "onequarter" => 750_f32,
-    "Scaron" => 556_f32,
-    "Scommaaccent" => 556_f32,
-    "Ohungarumlaut" => 778_f32,
-    "degree" => 400_f32,
-    "ograve" => 500_f32,
-    "Ccaron" => 722_f32,
-    "ugrave" => 556_f32,
-    "radical" => 549_f32,
-    "Dcaron" => 722_f32,
-    "rcommaaccent" => 444_f32,
-    "Ntilde" => 722_f32,
-    "otilde" => 500_f32,
-    "Rcommaaccent" => 722_f32,
-    "Lcommaaccent" => 667_f32,
-    "Atilde" => 722_f32,
-    "Aogonek" => 722_f32,
-    "Aring" => 722_f32,
-    "Otilde" => 778_f32,
-    "zdotaccent" => 444_f32,
-    "Ecaron" => 667_f32,
-    "Iogonek" => 389_f32,
-    "kcommaaccent" => 556_f32,
-    "minus" => 570_f32,
-    "Icircumflex" => 389_f32,
-    "ncaron" => 556_f32,
-    "tcommaaccent" => 333_f32,
-    "logicalnot" => 570_f32,
-    "odieresis" => 500_f32,
-    "udieresis" => 556_f32,
-    "notequal" => 549_f32,
-    "gcommaaccent" => 500_f32,
-    "eth" => 500_f32,
-    "zcaron" => 444_f32,
-    "ncommaaccent" => 556_f32,
-    "onesuperior" => 300_f32,
-    "imacron" => 278_f32,
-    "Euro" => 500_f32,
-};
+pub(crate) static TIMES_BOLD_ITALIC: &[u8] = b"\
+    A\xFE667\xFF\
+    AE\xFE944\xFF\
+    Aacute\xFE667\xFF\
+    Abreve\xFE667\xFF\
+    Acircumflex\xFE667\xFF\
+    Adieresis\xFE667\xFF\
+    Agrave\xFE667\xFF\
+    Amacron\xFE667\xFF\
+    Aogonek\xFE667\xFF\
+    Aring\xFE667\xFF\
+    Atilde\xFE667\xFF\
+    B\xFE667\xFF\
+    C\xFE667\xFF\
+    Cacute\xFE667\xFF\
+    Ccaron\xFE667\xFF\
+    Ccedilla\xFE667\xFF\
+    D\xFE722\xFF\
+    Dcaron\xFE722\xFF\
+    Dcroat\xFE722\xFF\
+    Delta\xFE612\xFF\
+    E\xFE667\xFF\
+    Eacute\xFE667\xFF\
+    Ecaron\xFE667\xFF\
+    Ecircumflex\xFE667\xFF\
+    Edieresis\xFE667\xFF\
+    Edotaccent\xFE667\xFF\
+    Egrave\xFE667\xFF\
+    Emacron\xFE667\xFF\
+    Eogonek\xFE667\xFF\
+    Eth\xFE722\xFF\
+    Euro\xFE500\xFF\
+    F\xFE667\xFF\
+    G\xFE722\xFF\
+    Gbreve\xFE722\xFF\
+    Gcommaaccent\xFE722\xFF\
+    H\xFE778\xFF\
+    I\xFE389\xFF\
+    Iacute\xFE389\xFF\
+    Icircumflex\xFE389\xFF\
+    Idieresis\xFE389\xFF\
+    Idotaccent\xFE389\xFF\
+    Igrave\xFE389\xFF\
+    Imacron\xFE389\xFF\
+    Iogonek\xFE389\xFF\
+    J\xFE500\xFF\
+    K\xFE667\xFF\
+    Kcommaaccent\xFE667\xFF\
+    L\xFE611\xFF\
+    Lacute\xFE611\xFF\
+    Lcaron\xFE611\xFF\
+    Lcommaaccent\xFE611\xFF\
+    Lslash\xFE611\xFF\
+    M\xFE889\xFF\
+    N\xFE722\xFF\
+    Nacute\xFE722\xFF\
+    Ncaron\xFE722\xFF\
+    Ncommaaccent\xFE722\xFF\
+    Ntilde\xFE722\xFF\
+    O\xFE722\xFF\
+    OE\xFE944\xFF\
+    Oacute\xFE722\xFF\
+    Ocircumflex\xFE722\xFF\
+    Odieresis\xFE722\xFF\
+    Ograve\xFE722\xFF\
+    Ohungarumlaut\xFE722\xFF\
+    Omacron\xFE722\xFF\
+    Oslash\xFE722\xFF\
+    Otilde\xFE722\xFF\
+    P\xFE611\xFF\
+    Q\xFE722\xFF\
+    R\xFE667\xFF\
+    Racute\xFE667\xFF\
+    Rcaron\xFE667\xFF\
+    Rcommaaccent\xFE667\xFF\
+    S\xFE556\xFF\
+    Sacute\xFE556\xFF\
+    Scaron\xFE556\xFF\
+    Scedilla\xFE556\xFF\
+    Scommaaccent\xFE556\xFF\
+    T\xFE611\xFF\
+    Tcaron\xFE611\xFF\
+    Tcommaaccent\xFE611\xFF\
+    Thorn\xFE611\xFF\
+    U\xFE722\xFF\
+    Uacute\xFE722\xFF\
+    Ucircumflex\xFE722\xFF\
+    Udieresis\xFE722\xFF\
+    Ugrave\xFE722\xFF\
+    Uhungarumlaut\xFE722\xFF\
+    Umacron\xFE722\xFF\
+    Uogonek\xFE722\xFF\
+    Uring\xFE722\xFF\
+    V\xFE667\xFF\
+    W\xFE889\xFF\
+    X\xFE667\xFF\
+    Y\xFE611\xFF\
+    Yacute\xFE611\xFF\
+    Ydieresis\xFE611\xFF\
+    Z\xFE611\xFF\
+    Zacute\xFE611\xFF\
+    Zcaron\xFE611\xFF\
+    Zdotaccent\xFE611\xFF\
+    a\xFE500\xFF\
+    aacute\xFE500\xFF\
+    abreve\xFE500\xFF\
+    acircumflex\xFE500\xFF\
+    acute\xFE333\xFF\
+    adieresis\xFE500\xFF\
+    ae\xFE722\xFF\
+    agrave\xFE500\xFF\
+    amacron\xFE500\xFF\
+    ampersand\xFE778\xFF\
+    aogonek\xFE500\xFF\
+    aring\xFE500\xFF\
+    asciicircum\xFE570\xFF\
+    asciitilde\xFE570\xFF\
+    asterisk\xFE500\xFF\
+    at\xFE832\xFF\
+    atilde\xFE500\xFF\
+    b\xFE500\xFF\
+    backslash\xFE278\xFF\
+    bar\xFE220\xFF\
+    braceleft\xFE348\xFF\
+    braceright\xFE348\xFF\
+    bracketleft\xFE333\xFF\
+    bracketright\xFE333\xFF\
+    breve\xFE333\xFF\
+    brokenbar\xFE220\xFF\
+    bullet\xFE350\xFF\
+    c\xFE444\xFF\
+    cacute\xFE444\xFF\
+    caron\xFE333\xFF\
+    ccaron\xFE444\xFF\
+    ccedilla\xFE444\xFF\
+    cedilla\xFE333\xFF\
+    cent\xFE500\xFF\
+    circumflex\xFE333\xFF\
+    colon\xFE333\xFF\
+    comma\xFE250\xFF\
+    commaaccent\xFE250\xFF\
+    copyright\xFE747\xFF\
+    currency\xFE500\xFF\
+    d\xFE500\xFF\
+    dagger\xFE500\xFF\
+    daggerdbl\xFE500\xFF\
+    dcaron\xFE608\xFF\
+    dcroat\xFE500\xFF\
+    degree\xFE400\xFF\
+    dieresis\xFE333\xFF\
+    divide\xFE570\xFF\
+    dollar\xFE500\xFF\
+    dotaccent\xFE333\xFF\
+    dotlessi\xFE278\xFF\
+    e\xFE444\xFF\
+    eacute\xFE444\xFF\
+    ecaron\xFE444\xFF\
+    ecircumflex\xFE444\xFF\
+    edieresis\xFE444\xFF\
+    edotaccent\xFE444\xFF\
+    egrave\xFE444\xFF\
+    eight\xFE500\xFF\
+    ellipsis\xFE1000\xFF\
+    emacron\xFE444\xFF\
+    emdash\xFE1000\xFF\
+    endash\xFE500\xFF\
+    eogonek\xFE444\xFF\
+    equal\xFE570\xFF\
+    eth\xFE500\xFF\
+    exclam\xFE389\xFF\
+    exclamdown\xFE389\xFF\
+    f\xFE333\xFF\
+    fi\xFE556\xFF\
+    five\xFE500\xFF\
+    fl\xFE556\xFF\
+    florin\xFE500\xFF\
+    four\xFE500\xFF\
+    fraction\xFE167\xFF\
+    g\xFE500\xFF\
+    gbreve\xFE500\xFF\
+    gcommaaccent\xFE500\xFF\
+    germandbls\xFE500\xFF\
+    grave\xFE333\xFF\
+    greater\xFE570\xFF\
+    greaterequal\xFE549\xFF\
+    guillemotleft\xFE500\xFF\
+    guillemotright\xFE500\xFF\
+    guilsinglleft\xFE333\xFF\
+    guilsinglright\xFE333\xFF\
+    h\xFE556\xFF\
+    hungarumlaut\xFE333\xFF\
+    hyphen\xFE333\xFF\
+    i\xFE278\xFF\
+    iacute\xFE278\xFF\
+    icircumflex\xFE278\xFF\
+    idieresis\xFE278\xFF\
+    igrave\xFE278\xFF\
+    imacron\xFE278\xFF\
+    iogonek\xFE278\xFF\
+    j\xFE278\xFF\
+    k\xFE500\xFF\
+    kcommaaccent\xFE500\xFF\
+    l\xFE278\xFF\
+    lacute\xFE278\xFF\
+    lcaron\xFE382\xFF\
+    lcommaaccent\xFE278\xFF\
+    less\xFE570\xFF\
+    lessequal\xFE549\xFF\
+    logicalnot\xFE606\xFF\
+    lozenge\xFE494\xFF\
+    lslash\xFE278\xFF\
+    m\xFE778\xFF\
+    macron\xFE333\xFF\
+    minus\xFE606\xFF\
+    mu\xFE576\xFF\
+    multiply\xFE570\xFF\
+    n\xFE556\xFF\
+    nacute\xFE556\xFF\
+    ncaron\xFE556\xFF\
+    ncommaaccent\xFE556\xFF\
+    nine\xFE500\xFF\
+    notequal\xFE549\xFF\
+    ntilde\xFE556\xFF\
+    numbersign\xFE500\xFF\
+    o\xFE500\xFF\
+    oacute\xFE500\xFF\
+    ocircumflex\xFE500\xFF\
+    odieresis\xFE500\xFF\
+    oe\xFE722\xFF\
+    ogonek\xFE333\xFF\
+    ograve\xFE500\xFF\
+    ohungarumlaut\xFE500\xFF\
+    omacron\xFE500\xFF\
+    one\xFE500\xFF\
+    onehalf\xFE750\xFF\
+    onequarter\xFE750\xFF\
+    onesuperior\xFE300\xFF\
+    ordfeminine\xFE266\xFF\
+    ordmasculine\xFE300\xFF\
+    oslash\xFE500\xFF\
+    otilde\xFE500\xFF\
+    p\xFE500\xFF\
+    paragraph\xFE500\xFF\
+    parenleft\xFE333\xFF\
+    parenright\xFE333\xFF\
+    partialdiff\xFE494\xFF\
+    percent\xFE833\xFF\
+    period\xFE250\xFF\
+    periodcentered\xFE250\xFF\
+    perthousand\xFE1000\xFF\
+    plus\xFE570\xFF\
+    plusminus\xFE570\xFF\
+    q\xFE500\xFF\
+    question\xFE500\xFF\
+    questiondown\xFE500\xFF\
+    quotedbl\xFE555\xFF\
+    quotedblbase\xFE500\xFF\
+    quotedblleft\xFE500\xFF\
+    quotedblright\xFE500\xFF\
+    quoteleft\xFE333\xFF\
+    quoteright\xFE333\xFF\
+    quotesinglbase\xFE333\xFF\
+    quotesingle\xFE278\xFF\
+    r\xFE389\xFF\
+    racute\xFE389\xFF\
+    radical\xFE549\xFF\
+    rcaron\xFE389\xFF\
+    rcommaaccent\xFE389\xFF\
+    registered\xFE747\xFF\
+    ring\xFE333\xFF\
+    s\xFE389\xFF\
+    sacute\xFE389\xFF\
+    scaron\xFE389\xFF\
+    scedilla\xFE389\xFF\
+    scommaaccent\xFE389\xFF\
+    section\xFE500\xFF\
+    semicolon\xFE333\xFF\
+    seven\xFE500\xFF\
+    six\xFE500\xFF\
+    slash\xFE278\xFF\
+    space\xFE250\xFF\
+    sterling\xFE500\xFF\
+    summation\xFE600\xFF\
+    t\xFE278\xFF\
+    tcaron\xFE366\xFF\
+    tcommaaccent\xFE278\xFF\
+    thorn\xFE500\xFF\
+    three\xFE500\xFF\
+    threequarters\xFE750\xFF\
+    threesuperior\xFE300\xFF\
+    tilde\xFE333\xFF\
+    trademark\xFE1000\xFF\
+    two\xFE500\xFF\
+    twosuperior\xFE300\xFF\
+    u\xFE556\xFF\
+    uacute\xFE556\xFF\
+    ucircumflex\xFE556\xFF\
+    udieresis\xFE556\xFF\
+    ugrave\xFE556\xFF\
+    uhungarumlaut\xFE556\xFF\
+    umacron\xFE556\xFF\
+    underscore\xFE500\xFF\
+    uogonek\xFE556\xFF\
+    uring\xFE556\xFF\
+    v\xFE444\xFF\
+    w\xFE667\xFF\
+    x\xFE500\xFF\
+    y\xFE444\xFF\
+    yacute\xFE444\xFF\
+    ydieresis\xFE444\xFF\
+    yen\xFE500\xFF\
+    z\xFE389\xFF\
+    zacute\xFE389\xFF\
+    zcaron\xFE389\xFF\
+    zdotaccent\xFE389\xFF\
+    zero\xFE500\xFF";
 
-pub(crate) static TIMES_BOLD_ITALIC: phf::Map<&'static str, f32> = phf_map! {
-    "space" => 250_f32,
-    "exclam" => 389_f32,
-    "quotedbl" => 555_f32,
-    "numbersign" => 500_f32,
-    "dollar" => 500_f32,
-    "percent" => 833_f32,
-    "ampersand" => 778_f32,
-    "quoteright" => 333_f32,
-    "parenleft" => 333_f32,
-    "parenright" => 333_f32,
-    "asterisk" => 500_f32,
-    "plus" => 570_f32,
-    "comma" => 250_f32,
-    "hyphen" => 333_f32,
-    "period" => 250_f32,
-    "slash" => 278_f32,
-    "zero" => 500_f32,
-    "one" => 500_f32,
-    "two" => 500_f32,
-    "three" => 500_f32,
-    "four" => 500_f32,
-    "five" => 500_f32,
-    "six" => 500_f32,
-    "seven" => 500_f32,
-    "eight" => 500_f32,
-    "nine" => 500_f32,
-    "colon" => 333_f32,
-    "semicolon" => 333_f32,
-    "less" => 570_f32,
-    "equal" => 570_f32,
-    "greater" => 570_f32,
-    "question" => 500_f32,
-    "at" => 832_f32,
-    "A" => 667_f32,
-    "B" => 667_f32,
-    "C" => 667_f32,
-    "D" => 722_f32,
-    "E" => 667_f32,
-    "F" => 667_f32,
-    "G" => 722_f32,
-    "H" => 778_f32,
-    "I" => 389_f32,
-    "J" => 500_f32,
-    "K" => 667_f32,
-    "L" => 611_f32,
-    "M" => 889_f32,
-    "N" => 722_f32,
-    "O" => 722_f32,
-    "P" => 611_f32,
-    "Q" => 722_f32,
-    "R" => 667_f32,
-    "S" => 556_f32,
-    "T" => 611_f32,
-    "U" => 722_f32,
-    "V" => 667_f32,
-    "W" => 889_f32,
-    "X" => 667_f32,
-    "Y" => 611_f32,
-    "Z" => 611_f32,
-    "bracketleft" => 333_f32,
-    "backslash" => 278_f32,
-    "bracketright" => 333_f32,
-    "asciicircum" => 570_f32,
-    "underscore" => 500_f32,
-    "quoteleft" => 333_f32,
-    "a" => 500_f32,
-    "b" => 500_f32,
-    "c" => 444_f32,
-    "d" => 500_f32,
-    "e" => 444_f32,
-    "f" => 333_f32,
-    "g" => 500_f32,
-    "h" => 556_f32,
-    "i" => 278_f32,
-    "j" => 278_f32,
-    "k" => 500_f32,
-    "l" => 278_f32,
-    "m" => 778_f32,
-    "n" => 556_f32,
-    "o" => 500_f32,
-    "p" => 500_f32,
-    "q" => 500_f32,
-    "r" => 389_f32,
-    "s" => 389_f32,
-    "t" => 278_f32,
-    "u" => 556_f32,
-    "v" => 444_f32,
-    "w" => 667_f32,
-    "x" => 500_f32,
-    "y" => 444_f32,
-    "z" => 389_f32,
-    "braceleft" => 348_f32,
-    "bar" => 220_f32,
-    "braceright" => 348_f32,
-    "asciitilde" => 570_f32,
-    "exclamdown" => 389_f32,
-    "cent" => 500_f32,
-    "sterling" => 500_f32,
-    "fraction" => 167_f32,
-    "yen" => 500_f32,
-    "florin" => 500_f32,
-    "section" => 500_f32,
-    "currency" => 500_f32,
-    "quotesingle" => 278_f32,
-    "quotedblleft" => 500_f32,
-    "guillemotleft" => 500_f32,
-    "guilsinglleft" => 333_f32,
-    "guilsinglright" => 333_f32,
-    "fi" => 556_f32,
-    "fl" => 556_f32,
-    "endash" => 500_f32,
-    "dagger" => 500_f32,
-    "daggerdbl" => 500_f32,
-    "periodcentered" => 250_f32,
-    "paragraph" => 500_f32,
-    "bullet" => 350_f32,
-    "quotesinglbase" => 333_f32,
-    "quotedblbase" => 500_f32,
-    "quotedblright" => 500_f32,
-    "guillemotright" => 500_f32,
-    "ellipsis" => 1000_f32,
-    "perthousand" => 1000_f32,
-    "questiondown" => 500_f32,
-    "grave" => 333_f32,
-    "acute" => 333_f32,
-    "circumflex" => 333_f32,
-    "tilde" => 333_f32,
-    "macron" => 333_f32,
-    "breve" => 333_f32,
-    "dotaccent" => 333_f32,
-    "dieresis" => 333_f32,
-    "ring" => 333_f32,
-    "cedilla" => 333_f32,
-    "hungarumlaut" => 333_f32,
-    "ogonek" => 333_f32,
-    "caron" => 333_f32,
-    "emdash" => 1000_f32,
-    "AE" => 944_f32,
-    "ordfeminine" => 266_f32,
-    "Lslash" => 611_f32,
-    "Oslash" => 722_f32,
-    "OE" => 944_f32,
-    "ordmasculine" => 300_f32,
-    "ae" => 722_f32,
-    "dotlessi" => 278_f32,
-    "lslash" => 278_f32,
-    "oslash" => 500_f32,
-    "oe" => 722_f32,
-    "germandbls" => 500_f32,
-    "Idieresis" => 389_f32,
-    "eacute" => 444_f32,
-    "abreve" => 500_f32,
-    "uhungarumlaut" => 556_f32,
-    "ecaron" => 444_f32,
-    "Ydieresis" => 611_f32,
-    "divide" => 570_f32,
-    "Yacute" => 611_f32,
-    "Acircumflex" => 667_f32,
-    "aacute" => 500_f32,
-    "Ucircumflex" => 722_f32,
-    "yacute" => 444_f32,
-    "scommaaccent" => 389_f32,
-    "ecircumflex" => 444_f32,
-    "Uring" => 722_f32,
-    "Udieresis" => 722_f32,
-    "aogonek" => 500_f32,
-    "Uacute" => 722_f32,
-    "uogonek" => 556_f32,
-    "Edieresis" => 667_f32,
-    "Dcroat" => 722_f32,
-    "commaaccent" => 250_f32,
-    "copyright" => 747_f32,
-    "Emacron" => 667_f32,
-    "ccaron" => 444_f32,
-    "aring" => 500_f32,
-    "Ncommaaccent" => 722_f32,
-    "lacute" => 278_f32,
-    "agrave" => 500_f32,
-    "Tcommaaccent" => 611_f32,
-    "Cacute" => 667_f32,
-    "atilde" => 500_f32,
-    "Edotaccent" => 667_f32,
-    "scaron" => 389_f32,
-    "scedilla" => 389_f32,
-    "iacute" => 278_f32,
-    "lozenge" => 494_f32,
-    "Rcaron" => 667_f32,
-    "Gcommaaccent" => 722_f32,
-    "ucircumflex" => 556_f32,
-    "acircumflex" => 500_f32,
-    "Amacron" => 667_f32,
-    "rcaron" => 389_f32,
-    "ccedilla" => 444_f32,
-    "Zdotaccent" => 611_f32,
-    "Thorn" => 611_f32,
-    "Omacron" => 722_f32,
-    "Racute" => 667_f32,
-    "Sacute" => 556_f32,
-    "dcaron" => 608_f32,
-    "Umacron" => 722_f32,
-    "uring" => 556_f32,
-    "threesuperior" => 300_f32,
-    "Ograve" => 722_f32,
-    "Agrave" => 667_f32,
-    "Abreve" => 667_f32,
-    "multiply" => 570_f32,
-    "uacute" => 556_f32,
-    "Tcaron" => 611_f32,
-    "partialdiff" => 494_f32,
-    "ydieresis" => 444_f32,
-    "Nacute" => 722_f32,
-    "icircumflex" => 278_f32,
-    "Ecircumflex" => 667_f32,
-    "adieresis" => 500_f32,
-    "edieresis" => 444_f32,
-    "cacute" => 444_f32,
-    "nacute" => 556_f32,
-    "umacron" => 556_f32,
-    "Ncaron" => 722_f32,
-    "Iacute" => 389_f32,
-    "plusminus" => 570_f32,
-    "brokenbar" => 220_f32,
-    "registered" => 747_f32,
-    "Gbreve" => 722_f32,
-    "Idotaccent" => 389_f32,
-    "summation" => 600_f32,
-    "Egrave" => 667_f32,
-    "racute" => 389_f32,
-    "omacron" => 500_f32,
-    "Zacute" => 611_f32,
-    "Zcaron" => 611_f32,
-    "greaterequal" => 549_f32,
-    "Eth" => 722_f32,
-    "Ccedilla" => 667_f32,
-    "lcommaaccent" => 278_f32,
-    "tcaron" => 366_f32,
-    "eogonek" => 444_f32,
-    "Uogonek" => 722_f32,
-    "Aacute" => 667_f32,
-    "Adieresis" => 667_f32,
-    "egrave" => 444_f32,
-    "zacute" => 389_f32,
-    "iogonek" => 278_f32,
-    "Oacute" => 722_f32,
-    "oacute" => 500_f32,
-    "amacron" => 500_f32,
-    "sacute" => 389_f32,
-    "idieresis" => 278_f32,
-    "Ocircumflex" => 722_f32,
-    "Ugrave" => 722_f32,
-    "Delta" => 612_f32,
-    "thorn" => 500_f32,
-    "twosuperior" => 300_f32,
-    "Odieresis" => 722_f32,
-    "mu" => 576_f32,
-    "igrave" => 278_f32,
-    "ohungarumlaut" => 500_f32,
-    "Eogonek" => 667_f32,
-    "dcroat" => 500_f32,
-    "threequarters" => 750_f32,
-    "Scedilla" => 556_f32,
-    "lcaron" => 382_f32,
-    "Kcommaaccent" => 667_f32,
-    "Lacute" => 611_f32,
-    "trademark" => 1000_f32,
-    "edotaccent" => 444_f32,
-    "Igrave" => 389_f32,
-    "Imacron" => 389_f32,
-    "Lcaron" => 611_f32,
-    "onehalf" => 750_f32,
-    "lessequal" => 549_f32,
-    "ocircumflex" => 500_f32,
-    "ntilde" => 556_f32,
-    "Uhungarumlaut" => 722_f32,
-    "Eacute" => 667_f32,
-    "emacron" => 444_f32,
-    "gbreve" => 500_f32,
-    "onequarter" => 750_f32,
-    "Scaron" => 556_f32,
-    "Scommaaccent" => 556_f32,
-    "Ohungarumlaut" => 722_f32,
-    "degree" => 400_f32,
-    "ograve" => 500_f32,
-    "Ccaron" => 667_f32,
-    "ugrave" => 556_f32,
-    "radical" => 549_f32,
-    "Dcaron" => 722_f32,
-    "rcommaaccent" => 389_f32,
-    "Ntilde" => 722_f32,
-    "otilde" => 500_f32,
-    "Rcommaaccent" => 667_f32,
-    "Lcommaaccent" => 611_f32,
-    "Atilde" => 667_f32,
-    "Aogonek" => 667_f32,
-    "Aring" => 667_f32,
-    "Otilde" => 722_f32,
-    "zdotaccent" => 389_f32,
-    "Ecaron" => 667_f32,
-    "Iogonek" => 389_f32,
-    "kcommaaccent" => 500_f32,
-    "minus" => 606_f32,
-    "Icircumflex" => 389_f32,
-    "ncaron" => 556_f32,
-    "tcommaaccent" => 278_f32,
-    "logicalnot" => 606_f32,
-    "odieresis" => 500_f32,
-    "udieresis" => 556_f32,
-    "notequal" => 549_f32,
-    "gcommaaccent" => 500_f32,
-    "eth" => 500_f32,
-    "zcaron" => 389_f32,
-    "ncommaaccent" => 556_f32,
-    "onesuperior" => 300_f32,
-    "imacron" => 278_f32,
-    "Euro" => 500_f32,
-};
+pub(crate) static TIMES_ITALIC: &[u8] = b"\
+    A\xFE611\xFF\
+    AE\xFE889\xFF\
+    Aacute\xFE611\xFF\
+    Abreve\xFE611\xFF\
+    Acircumflex\xFE611\xFF\
+    Adieresis\xFE611\xFF\
+    Agrave\xFE611\xFF\
+    Amacron\xFE611\xFF\
+    Aogonek\xFE611\xFF\
+    Aring\xFE611\xFF\
+    Atilde\xFE611\xFF\
+    B\xFE611\xFF\
+    C\xFE667\xFF\
+    Cacute\xFE667\xFF\
+    Ccaron\xFE667\xFF\
+    Ccedilla\xFE667\xFF\
+    D\xFE722\xFF\
+    Dcaron\xFE722\xFF\
+    Dcroat\xFE722\xFF\
+    Delta\xFE612\xFF\
+    E\xFE611\xFF\
+    Eacute\xFE611\xFF\
+    Ecaron\xFE611\xFF\
+    Ecircumflex\xFE611\xFF\
+    Edieresis\xFE611\xFF\
+    Edotaccent\xFE611\xFF\
+    Egrave\xFE611\xFF\
+    Emacron\xFE611\xFF\
+    Eogonek\xFE611\xFF\
+    Eth\xFE722\xFF\
+    Euro\xFE500\xFF\
+    F\xFE611\xFF\
+    G\xFE722\xFF\
+    Gbreve\xFE722\xFF\
+    Gcommaaccent\xFE722\xFF\
+    H\xFE722\xFF\
+    I\xFE333\xFF\
+    Iacute\xFE333\xFF\
+    Icircumflex\xFE333\xFF\
+    Idieresis\xFE333\xFF\
+    Idotaccent\xFE333\xFF\
+    Igrave\xFE333\xFF\
+    Imacron\xFE333\xFF\
+    Iogonek\xFE333\xFF\
+    J\xFE444\xFF\
+    K\xFE667\xFF\
+    Kcommaaccent\xFE667\xFF\
+    L\xFE556\xFF\
+    Lacute\xFE556\xFF\
+    Lcaron\xFE611\xFF\
+    Lcommaaccent\xFE556\xFF\
+    Lslash\xFE556\xFF\
+    M\xFE833\xFF\
+    N\xFE667\xFF\
+    Nacute\xFE667\xFF\
+    Ncaron\xFE667\xFF\
+    Ncommaaccent\xFE667\xFF\
+    Ntilde\xFE667\xFF\
+    O\xFE722\xFF\
+    OE\xFE944\xFF\
+    Oacute\xFE722\xFF\
+    Ocircumflex\xFE722\xFF\
+    Odieresis\xFE722\xFF\
+    Ograve\xFE722\xFF\
+    Ohungarumlaut\xFE722\xFF\
+    Omacron\xFE722\xFF\
+    Oslash\xFE722\xFF\
+    Otilde\xFE722\xFF\
+    P\xFE611\xFF\
+    Q\xFE722\xFF\
+    R\xFE611\xFF\
+    Racute\xFE611\xFF\
+    Rcaron\xFE611\xFF\
+    Rcommaaccent\xFE611\xFF\
+    S\xFE500\xFF\
+    Sacute\xFE500\xFF\
+    Scaron\xFE500\xFF\
+    Scedilla\xFE500\xFF\
+    Scommaaccent\xFE500\xFF\
+    T\xFE556\xFF\
+    Tcaron\xFE556\xFF\
+    Tcommaaccent\xFE556\xFF\
+    Thorn\xFE611\xFF\
+    U\xFE722\xFF\
+    Uacute\xFE722\xFF\
+    Ucircumflex\xFE722\xFF\
+    Udieresis\xFE722\xFF\
+    Ugrave\xFE722\xFF\
+    Uhungarumlaut\xFE722\xFF\
+    Umacron\xFE722\xFF\
+    Uogonek\xFE722\xFF\
+    Uring\xFE722\xFF\
+    V\xFE611\xFF\
+    W\xFE833\xFF\
+    X\xFE611\xFF\
+    Y\xFE556\xFF\
+    Yacute\xFE556\xFF\
+    Ydieresis\xFE556\xFF\
+    Z\xFE556\xFF\
+    Zacute\xFE556\xFF\
+    Zcaron\xFE556\xFF\
+    Zdotaccent\xFE556\xFF\
+    a\xFE500\xFF\
+    aacute\xFE500\xFF\
+    abreve\xFE500\xFF\
+    acircumflex\xFE500\xFF\
+    acute\xFE333\xFF\
+    adieresis\xFE500\xFF\
+    ae\xFE667\xFF\
+    agrave\xFE500\xFF\
+    amacron\xFE500\xFF\
+    ampersand\xFE778\xFF\
+    aogonek\xFE500\xFF\
+    aring\xFE500\xFF\
+    asciicircum\xFE422\xFF\
+    asciitilde\xFE541\xFF\
+    asterisk\xFE500\xFF\
+    at\xFE920\xFF\
+    atilde\xFE500\xFF\
+    b\xFE500\xFF\
+    backslash\xFE278\xFF\
+    bar\xFE275\xFF\
+    braceleft\xFE400\xFF\
+    braceright\xFE400\xFF\
+    bracketleft\xFE389\xFF\
+    bracketright\xFE389\xFF\
+    breve\xFE333\xFF\
+    brokenbar\xFE275\xFF\
+    bullet\xFE350\xFF\
+    c\xFE444\xFF\
+    cacute\xFE444\xFF\
+    caron\xFE333\xFF\
+    ccaron\xFE444\xFF\
+    ccedilla\xFE444\xFF\
+    cedilla\xFE333\xFF\
+    cent\xFE500\xFF\
+    circumflex\xFE333\xFF\
+    colon\xFE333\xFF\
+    comma\xFE250\xFF\
+    commaaccent\xFE250\xFF\
+    copyright\xFE760\xFF\
+    currency\xFE500\xFF\
+    d\xFE500\xFF\
+    dagger\xFE500\xFF\
+    daggerdbl\xFE500\xFF\
+    dcaron\xFE544\xFF\
+    dcroat\xFE500\xFF\
+    degree\xFE400\xFF\
+    dieresis\xFE333\xFF\
+    divide\xFE675\xFF\
+    dollar\xFE500\xFF\
+    dotaccent\xFE333\xFF\
+    dotlessi\xFE278\xFF\
+    e\xFE444\xFF\
+    eacute\xFE444\xFF\
+    ecaron\xFE444\xFF\
+    ecircumflex\xFE444\xFF\
+    edieresis\xFE444\xFF\
+    edotaccent\xFE444\xFF\
+    egrave\xFE444\xFF\
+    eight\xFE500\xFF\
+    ellipsis\xFE889\xFF\
+    emacron\xFE444\xFF\
+    emdash\xFE889\xFF\
+    endash\xFE500\xFF\
+    eogonek\xFE444\xFF\
+    equal\xFE675\xFF\
+    eth\xFE500\xFF\
+    exclam\xFE333\xFF\
+    exclamdown\xFE389\xFF\
+    f\xFE278\xFF\
+    fi\xFE500\xFF\
+    five\xFE500\xFF\
+    fl\xFE500\xFF\
+    florin\xFE500\xFF\
+    four\xFE500\xFF\
+    fraction\xFE167\xFF\
+    g\xFE500\xFF\
+    gbreve\xFE500\xFF\
+    gcommaaccent\xFE500\xFF\
+    germandbls\xFE500\xFF\
+    grave\xFE333\xFF\
+    greater\xFE675\xFF\
+    greaterequal\xFE549\xFF\
+    guillemotleft\xFE500\xFF\
+    guillemotright\xFE500\xFF\
+    guilsinglleft\xFE333\xFF\
+    guilsinglright\xFE333\xFF\
+    h\xFE500\xFF\
+    hungarumlaut\xFE333\xFF\
+    hyphen\xFE333\xFF\
+    i\xFE278\xFF\
+    iacute\xFE278\xFF\
+    icircumflex\xFE278\xFF\
+    idieresis\xFE278\xFF\
+    igrave\xFE278\xFF\
+    imacron\xFE278\xFF\
+    iogonek\xFE278\xFF\
+    j\xFE278\xFF\
+    k\xFE444\xFF\
+    kcommaaccent\xFE444\xFF\
+    l\xFE278\xFF\
+    lacute\xFE278\xFF\
+    lcaron\xFE300\xFF\
+    lcommaaccent\xFE278\xFF\
+    less\xFE675\xFF\
+    lessequal\xFE549\xFF\
+    logicalnot\xFE675\xFF\
+    lozenge\xFE471\xFF\
+    lslash\xFE278\xFF\
+    m\xFE722\xFF\
+    macron\xFE333\xFF\
+    minus\xFE675\xFF\
+    mu\xFE500\xFF\
+    multiply\xFE675\xFF\
+    n\xFE500\xFF\
+    nacute\xFE500\xFF\
+    ncaron\xFE500\xFF\
+    ncommaaccent\xFE500\xFF\
+    nine\xFE500\xFF\
+    notequal\xFE549\xFF\
+    ntilde\xFE500\xFF\
+    numbersign\xFE500\xFF\
+    o\xFE500\xFF\
+    oacute\xFE500\xFF\
+    ocircumflex\xFE500\xFF\
+    odieresis\xFE500\xFF\
+    oe\xFE667\xFF\
+    ogonek\xFE333\xFF\
+    ograve\xFE500\xFF\
+    ohungarumlaut\xFE500\xFF\
+    omacron\xFE500\xFF\
+    one\xFE500\xFF\
+    onehalf\xFE750\xFF\
+    onequarter\xFE750\xFF\
+    onesuperior\xFE300\xFF\
+    ordfeminine\xFE276\xFF\
+    ordmasculine\xFE310\xFF\
+    oslash\xFE500\xFF\
+    otilde\xFE500\xFF\
+    p\xFE500\xFF\
+    paragraph\xFE523\xFF\
+    parenleft\xFE333\xFF\
+    parenright\xFE333\xFF\
+    partialdiff\xFE476\xFF\
+    percent\xFE833\xFF\
+    period\xFE250\xFF\
+    periodcentered\xFE250\xFF\
+    perthousand\xFE1000\xFF\
+    plus\xFE675\xFF\
+    plusminus\xFE675\xFF\
+    q\xFE500\xFF\
+    question\xFE500\xFF\
+    questiondown\xFE500\xFF\
+    quotedbl\xFE420\xFF\
+    quotedblbase\xFE556\xFF\
+    quotedblleft\xFE556\xFF\
+    quotedblright\xFE556\xFF\
+    quoteleft\xFE333\xFF\
+    quoteright\xFE333\xFF\
+    quotesinglbase\xFE333\xFF\
+    quotesingle\xFE214\xFF\
+    r\xFE389\xFF\
+    racute\xFE389\xFF\
+    radical\xFE453\xFF\
+    rcaron\xFE389\xFF\
+    rcommaaccent\xFE389\xFF\
+    registered\xFE760\xFF\
+    ring\xFE333\xFF\
+    s\xFE389\xFF\
+    sacute\xFE389\xFF\
+    scaron\xFE389\xFF\
+    scedilla\xFE389\xFF\
+    scommaaccent\xFE389\xFF\
+    section\xFE500\xFF\
+    semicolon\xFE333\xFF\
+    seven\xFE500\xFF\
+    six\xFE500\xFF\
+    slash\xFE278\xFF\
+    space\xFE250\xFF\
+    sterling\xFE500\xFF\
+    summation\xFE600\xFF\
+    t\xFE278\xFF\
+    tcaron\xFE300\xFF\
+    tcommaaccent\xFE278\xFF\
+    thorn\xFE500\xFF\
+    three\xFE500\xFF\
+    threequarters\xFE750\xFF\
+    threesuperior\xFE300\xFF\
+    tilde\xFE333\xFF\
+    trademark\xFE980\xFF\
+    two\xFE500\xFF\
+    twosuperior\xFE300\xFF\
+    u\xFE500\xFF\
+    uacute\xFE500\xFF\
+    ucircumflex\xFE500\xFF\
+    udieresis\xFE500\xFF\
+    ugrave\xFE500\xFF\
+    uhungarumlaut\xFE500\xFF\
+    umacron\xFE500\xFF\
+    underscore\xFE500\xFF\
+    uogonek\xFE500\xFF\
+    uring\xFE500\xFF\
+    v\xFE444\xFF\
+    w\xFE667\xFF\
+    x\xFE444\xFF\
+    y\xFE444\xFF\
+    yacute\xFE444\xFF\
+    ydieresis\xFE444\xFF\
+    yen\xFE500\xFF\
+    z\xFE389\xFF\
+    zacute\xFE389\xFF\
+    zcaron\xFE389\xFF\
+    zdotaccent\xFE389\xFF\
+    zero\xFE500\xFF";
 
-pub(crate) static TIMES_ITALIC: phf::Map<&'static str, f32> = phf_map! {
-    "space" => 250_f32,
-    "exclam" => 333_f32,
-    "quotedbl" => 420_f32,
-    "numbersign" => 500_f32,
-    "dollar" => 500_f32,
-    "percent" => 833_f32,
-    "ampersand" => 778_f32,
-    "quoteright" => 333_f32,
-    "parenleft" => 333_f32,
-    "parenright" => 333_f32,
-    "asterisk" => 500_f32,
-    "plus" => 675_f32,
-    "comma" => 250_f32,
-    "hyphen" => 333_f32,
-    "period" => 250_f32,
-    "slash" => 278_f32,
-    "zero" => 500_f32,
-    "one" => 500_f32,
-    "two" => 500_f32,
-    "three" => 500_f32,
-    "four" => 500_f32,
-    "five" => 500_f32,
-    "six" => 500_f32,
-    "seven" => 500_f32,
-    "eight" => 500_f32,
-    "nine" => 500_f32,
-    "colon" => 333_f32,
-    "semicolon" => 333_f32,
-    "less" => 675_f32,
-    "equal" => 675_f32,
-    "greater" => 675_f32,
-    "question" => 500_f32,
-    "at" => 920_f32,
-    "A" => 611_f32,
-    "B" => 611_f32,
-    "C" => 667_f32,
-    "D" => 722_f32,
-    "E" => 611_f32,
-    "F" => 611_f32,
-    "G" => 722_f32,
-    "H" => 722_f32,
-    "I" => 333_f32,
-    "J" => 444_f32,
-    "K" => 667_f32,
-    "L" => 556_f32,
-    "M" => 833_f32,
-    "N" => 667_f32,
-    "O" => 722_f32,
-    "P" => 611_f32,
-    "Q" => 722_f32,
-    "R" => 611_f32,
-    "S" => 500_f32,
-    "T" => 556_f32,
-    "U" => 722_f32,
-    "V" => 611_f32,
-    "W" => 833_f32,
-    "X" => 611_f32,
-    "Y" => 556_f32,
-    "Z" => 556_f32,
-    "bracketleft" => 389_f32,
-    "backslash" => 278_f32,
-    "bracketright" => 389_f32,
-    "asciicircum" => 422_f32,
-    "underscore" => 500_f32,
-    "quoteleft" => 333_f32,
-    "a" => 500_f32,
-    "b" => 500_f32,
-    "c" => 444_f32,
-    "d" => 500_f32,
-    "e" => 444_f32,
-    "f" => 278_f32,
-    "g" => 500_f32,
-    "h" => 500_f32,
-    "i" => 278_f32,
-    "j" => 278_f32,
-    "k" => 444_f32,
-    "l" => 278_f32,
-    "m" => 722_f32,
-    "n" => 500_f32,
-    "o" => 500_f32,
-    "p" => 500_f32,
-    "q" => 500_f32,
-    "r" => 389_f32,
-    "s" => 389_f32,
-    "t" => 278_f32,
-    "u" => 500_f32,
-    "v" => 444_f32,
-    "w" => 667_f32,
-    "x" => 444_f32,
-    "y" => 444_f32,
-    "z" => 389_f32,
-    "braceleft" => 400_f32,
-    "bar" => 275_f32,
-    "braceright" => 400_f32,
-    "asciitilde" => 541_f32,
-    "exclamdown" => 389_f32,
-    "cent" => 500_f32,
-    "sterling" => 500_f32,
-    "fraction" => 167_f32,
-    "yen" => 500_f32,
-    "florin" => 500_f32,
-    "section" => 500_f32,
-    "currency" => 500_f32,
-    "quotesingle" => 214_f32,
-    "quotedblleft" => 556_f32,
-    "guillemotleft" => 500_f32,
-    "guilsinglleft" => 333_f32,
-    "guilsinglright" => 333_f32,
-    "fi" => 500_f32,
-    "fl" => 500_f32,
-    "endash" => 500_f32,
-    "dagger" => 500_f32,
-    "daggerdbl" => 500_f32,
-    "periodcentered" => 250_f32,
-    "paragraph" => 523_f32,
-    "bullet" => 350_f32,
-    "quotesinglbase" => 333_f32,
-    "quotedblbase" => 556_f32,
-    "quotedblright" => 556_f32,
-    "guillemotright" => 500_f32,
-    "ellipsis" => 889_f32,
-    "perthousand" => 1000_f32,
-    "questiondown" => 500_f32,
-    "grave" => 333_f32,
-    "acute" => 333_f32,
-    "circumflex" => 333_f32,
-    "tilde" => 333_f32,
-    "macron" => 333_f32,
-    "breve" => 333_f32,
-    "dotaccent" => 333_f32,
-    "dieresis" => 333_f32,
-    "ring" => 333_f32,
-    "cedilla" => 333_f32,
-    "hungarumlaut" => 333_f32,
-    "ogonek" => 333_f32,
-    "caron" => 333_f32,
-    "emdash" => 889_f32,
-    "AE" => 889_f32,
-    "ordfeminine" => 276_f32,
-    "Lslash" => 556_f32,
-    "Oslash" => 722_f32,
-    "OE" => 944_f32,
-    "ordmasculine" => 310_f32,
-    "ae" => 667_f32,
-    "dotlessi" => 278_f32,
-    "lslash" => 278_f32,
-    "oslash" => 500_f32,
-    "oe" => 667_f32,
-    "germandbls" => 500_f32,
-    "Idieresis" => 333_f32,
-    "eacute" => 444_f32,
-    "abreve" => 500_f32,
-    "uhungarumlaut" => 500_f32,
-    "ecaron" => 444_f32,
-    "Ydieresis" => 556_f32,
-    "divide" => 675_f32,
-    "Yacute" => 556_f32,
-    "Acircumflex" => 611_f32,
-    "aacute" => 500_f32,
-    "Ucircumflex" => 722_f32,
-    "yacute" => 444_f32,
-    "scommaaccent" => 389_f32,
-    "ecircumflex" => 444_f32,
-    "Uring" => 722_f32,
-    "Udieresis" => 722_f32,
-    "aogonek" => 500_f32,
-    "Uacute" => 722_f32,
-    "uogonek" => 500_f32,
-    "Edieresis" => 611_f32,
-    "Dcroat" => 722_f32,
-    "commaaccent" => 250_f32,
-    "copyright" => 760_f32,
-    "Emacron" => 611_f32,
-    "ccaron" => 444_f32,
-    "aring" => 500_f32,
-    "Ncommaaccent" => 667_f32,
-    "lacute" => 278_f32,
-    "agrave" => 500_f32,
-    "Tcommaaccent" => 556_f32,
-    "Cacute" => 667_f32,
-    "atilde" => 500_f32,
-    "Edotaccent" => 611_f32,
-    "scaron" => 389_f32,
-    "scedilla" => 389_f32,
-    "iacute" => 278_f32,
-    "lozenge" => 471_f32,
-    "Rcaron" => 611_f32,
-    "Gcommaaccent" => 722_f32,
-    "ucircumflex" => 500_f32,
-    "acircumflex" => 500_f32,
-    "Amacron" => 611_f32,
-    "rcaron" => 389_f32,
-    "ccedilla" => 444_f32,
-    "Zdotaccent" => 556_f32,
-    "Thorn" => 611_f32,
-    "Omacron" => 722_f32,
-    "Racute" => 611_f32,
-    "Sacute" => 500_f32,
-    "dcaron" => 544_f32,
-    "Umacron" => 722_f32,
-    "uring" => 500_f32,
-    "threesuperior" => 300_f32,
-    "Ograve" => 722_f32,
-    "Agrave" => 611_f32,
-    "Abreve" => 611_f32,
-    "multiply" => 675_f32,
-    "uacute" => 500_f32,
-    "Tcaron" => 556_f32,
-    "partialdiff" => 476_f32,
-    "ydieresis" => 444_f32,
-    "Nacute" => 667_f32,
-    "icircumflex" => 278_f32,
-    "Ecircumflex" => 611_f32,
-    "adieresis" => 500_f32,
-    "edieresis" => 444_f32,
-    "cacute" => 444_f32,
-    "nacute" => 500_f32,
-    "umacron" => 500_f32,
-    "Ncaron" => 667_f32,
-    "Iacute" => 333_f32,
-    "plusminus" => 675_f32,
-    "brokenbar" => 275_f32,
-    "registered" => 760_f32,
-    "Gbreve" => 722_f32,
-    "Idotaccent" => 333_f32,
-    "summation" => 600_f32,
-    "Egrave" => 611_f32,
-    "racute" => 389_f32,
-    "omacron" => 500_f32,
-    "Zacute" => 556_f32,
-    "Zcaron" => 556_f32,
-    "greaterequal" => 549_f32,
-    "Eth" => 722_f32,
-    "Ccedilla" => 667_f32,
-    "lcommaaccent" => 278_f32,
-    "tcaron" => 300_f32,
-    "eogonek" => 444_f32,
-    "Uogonek" => 722_f32,
-    "Aacute" => 611_f32,
-    "Adieresis" => 611_f32,
-    "egrave" => 444_f32,
-    "zacute" => 389_f32,
-    "iogonek" => 278_f32,
-    "Oacute" => 722_f32,
-    "oacute" => 500_f32,
-    "amacron" => 500_f32,
-    "sacute" => 389_f32,
-    "idieresis" => 278_f32,
-    "Ocircumflex" => 722_f32,
-    "Ugrave" => 722_f32,
-    "Delta" => 612_f32,
-    "thorn" => 500_f32,
-    "twosuperior" => 300_f32,
-    "Odieresis" => 722_f32,
-    "mu" => 500_f32,
-    "igrave" => 278_f32,
-    "ohungarumlaut" => 500_f32,
-    "Eogonek" => 611_f32,
-    "dcroat" => 500_f32,
-    "threequarters" => 750_f32,
-    "Scedilla" => 500_f32,
-    "lcaron" => 300_f32,
-    "Kcommaaccent" => 667_f32,
-    "Lacute" => 556_f32,
-    "trademark" => 980_f32,
-    "edotaccent" => 444_f32,
-    "Igrave" => 333_f32,
-    "Imacron" => 333_f32,
-    "Lcaron" => 611_f32,
-    "onehalf" => 750_f32,
-    "lessequal" => 549_f32,
-    "ocircumflex" => 500_f32,
-    "ntilde" => 500_f32,
-    "Uhungarumlaut" => 722_f32,
-    "Eacute" => 611_f32,
-    "emacron" => 444_f32,
-    "gbreve" => 500_f32,
-    "onequarter" => 750_f32,
-    "Scaron" => 500_f32,
-    "Scommaaccent" => 500_f32,
-    "Ohungarumlaut" => 722_f32,
-    "degree" => 400_f32,
-    "ograve" => 500_f32,
-    "Ccaron" => 667_f32,
-    "ugrave" => 500_f32,
-    "radical" => 453_f32,
-    "Dcaron" => 722_f32,
-    "rcommaaccent" => 389_f32,
-    "Ntilde" => 667_f32,
-    "otilde" => 500_f32,
-    "Rcommaaccent" => 611_f32,
-    "Lcommaaccent" => 556_f32,
-    "Atilde" => 611_f32,
-    "Aogonek" => 611_f32,
-    "Aring" => 611_f32,
-    "Otilde" => 722_f32,
-    "zdotaccent" => 389_f32,
-    "Ecaron" => 611_f32,
-    "Iogonek" => 333_f32,
-    "kcommaaccent" => 444_f32,
-    "minus" => 675_f32,
-    "Icircumflex" => 333_f32,
-    "ncaron" => 500_f32,
-    "tcommaaccent" => 278_f32,
-    "logicalnot" => 675_f32,
-    "odieresis" => 500_f32,
-    "udieresis" => 500_f32,
-    "notequal" => 549_f32,
-    "gcommaaccent" => 500_f32,
-    "eth" => 500_f32,
-    "zcaron" => 389_f32,
-    "ncommaaccent" => 500_f32,
-    "onesuperior" => 300_f32,
-    "imacron" => 278_f32,
-    "Euro" => 500_f32,
-};
+pub(crate) static TIMES_ROMAN: &[u8] = b"\
+    A\xFE722\xFF\
+    AE\xFE889\xFF\
+    Aacute\xFE722\xFF\
+    Abreve\xFE722\xFF\
+    Acircumflex\xFE722\xFF\
+    Adieresis\xFE722\xFF\
+    Agrave\xFE722\xFF\
+    Amacron\xFE722\xFF\
+    Aogonek\xFE722\xFF\
+    Aring\xFE722\xFF\
+    Atilde\xFE722\xFF\
+    B\xFE667\xFF\
+    C\xFE667\xFF\
+    Cacute\xFE667\xFF\
+    Ccaron\xFE667\xFF\
+    Ccedilla\xFE667\xFF\
+    D\xFE722\xFF\
+    Dcaron\xFE722\xFF\
+    Dcroat\xFE722\xFF\
+    Delta\xFE612\xFF\
+    E\xFE611\xFF\
+    Eacute\xFE611\xFF\
+    Ecaron\xFE611\xFF\
+    Ecircumflex\xFE611\xFF\
+    Edieresis\xFE611\xFF\
+    Edotaccent\xFE611\xFF\
+    Egrave\xFE611\xFF\
+    Emacron\xFE611\xFF\
+    Eogonek\xFE611\xFF\
+    Eth\xFE722\xFF\
+    Euro\xFE500\xFF\
+    F\xFE556\xFF\
+    G\xFE722\xFF\
+    Gbreve\xFE722\xFF\
+    Gcommaaccent\xFE722\xFF\
+    H\xFE722\xFF\
+    I\xFE333\xFF\
+    Iacute\xFE333\xFF\
+    Icircumflex\xFE333\xFF\
+    Idieresis\xFE333\xFF\
+    Idotaccent\xFE333\xFF\
+    Igrave\xFE333\xFF\
+    Imacron\xFE333\xFF\
+    Iogonek\xFE333\xFF\
+    J\xFE389\xFF\
+    K\xFE722\xFF\
+    Kcommaaccent\xFE722\xFF\
+    L\xFE611\xFF\
+    Lacute\xFE611\xFF\
+    Lcaron\xFE611\xFF\
+    Lcommaaccent\xFE611\xFF\
+    Lslash\xFE611\xFF\
+    M\xFE889\xFF\
+    N\xFE722\xFF\
+    Nacute\xFE722\xFF\
+    Ncaron\xFE722\xFF\
+    Ncommaaccent\xFE722\xFF\
+    Ntilde\xFE722\xFF\
+    O\xFE722\xFF\
+    OE\xFE889\xFF\
+    Oacute\xFE722\xFF\
+    Ocircumflex\xFE722\xFF\
+    Odieresis\xFE722\xFF\
+    Ograve\xFE722\xFF\
+    Ohungarumlaut\xFE722\xFF\
+    Omacron\xFE722\xFF\
+    Oslash\xFE722\xFF\
+    Otilde\xFE722\xFF\
+    P\xFE556\xFF\
+    Q\xFE722\xFF\
+    R\xFE667\xFF\
+    Racute\xFE667\xFF\
+    Rcaron\xFE667\xFF\
+    Rcommaaccent\xFE667\xFF\
+    S\xFE556\xFF\
+    Sacute\xFE556\xFF\
+    Scaron\xFE556\xFF\
+    Scedilla\xFE556\xFF\
+    Scommaaccent\xFE556\xFF\
+    T\xFE611\xFF\
+    Tcaron\xFE611\xFF\
+    Tcommaaccent\xFE611\xFF\
+    Thorn\xFE556\xFF\
+    U\xFE722\xFF\
+    Uacute\xFE722\xFF\
+    Ucircumflex\xFE722\xFF\
+    Udieresis\xFE722\xFF\
+    Ugrave\xFE722\xFF\
+    Uhungarumlaut\xFE722\xFF\
+    Umacron\xFE722\xFF\
+    Uogonek\xFE722\xFF\
+    Uring\xFE722\xFF\
+    V\xFE722\xFF\
+    W\xFE944\xFF\
+    X\xFE722\xFF\
+    Y\xFE722\xFF\
+    Yacute\xFE722\xFF\
+    Ydieresis\xFE722\xFF\
+    Z\xFE611\xFF\
+    Zacute\xFE611\xFF\
+    Zcaron\xFE611\xFF\
+    Zdotaccent\xFE611\xFF\
+    a\xFE444\xFF\
+    aacute\xFE444\xFF\
+    abreve\xFE444\xFF\
+    acircumflex\xFE444\xFF\
+    acute\xFE333\xFF\
+    adieresis\xFE444\xFF\
+    ae\xFE667\xFF\
+    agrave\xFE444\xFF\
+    amacron\xFE444\xFF\
+    ampersand\xFE778\xFF\
+    aogonek\xFE444\xFF\
+    aring\xFE444\xFF\
+    asciicircum\xFE469\xFF\
+    asciitilde\xFE541\xFF\
+    asterisk\xFE500\xFF\
+    at\xFE921\xFF\
+    atilde\xFE444\xFF\
+    b\xFE500\xFF\
+    backslash\xFE278\xFF\
+    bar\xFE200\xFF\
+    braceleft\xFE480\xFF\
+    braceright\xFE480\xFF\
+    bracketleft\xFE333\xFF\
+    bracketright\xFE333\xFF\
+    breve\xFE333\xFF\
+    brokenbar\xFE200\xFF\
+    bullet\xFE350\xFF\
+    c\xFE444\xFF\
+    cacute\xFE444\xFF\
+    caron\xFE333\xFF\
+    ccaron\xFE444\xFF\
+    ccedilla\xFE444\xFF\
+    cedilla\xFE333\xFF\
+    cent\xFE500\xFF\
+    circumflex\xFE333\xFF\
+    colon\xFE278\xFF\
+    comma\xFE250\xFF\
+    commaaccent\xFE250\xFF\
+    copyright\xFE760\xFF\
+    currency\xFE500\xFF\
+    d\xFE500\xFF\
+    dagger\xFE500\xFF\
+    daggerdbl\xFE500\xFF\
+    dcaron\xFE588\xFF\
+    dcroat\xFE500\xFF\
+    degree\xFE400\xFF\
+    dieresis\xFE333\xFF\
+    divide\xFE564\xFF\
+    dollar\xFE500\xFF\
+    dotaccent\xFE333\xFF\
+    dotlessi\xFE278\xFF\
+    e\xFE444\xFF\
+    eacute\xFE444\xFF\
+    ecaron\xFE444\xFF\
+    ecircumflex\xFE444\xFF\
+    edieresis\xFE444\xFF\
+    edotaccent\xFE444\xFF\
+    egrave\xFE444\xFF\
+    eight\xFE500\xFF\
+    ellipsis\xFE1000\xFF\
+    emacron\xFE444\xFF\
+    emdash\xFE1000\xFF\
+    endash\xFE500\xFF\
+    eogonek\xFE444\xFF\
+    equal\xFE564\xFF\
+    eth\xFE500\xFF\
+    exclam\xFE333\xFF\
+    exclamdown\xFE333\xFF\
+    f\xFE333\xFF\
+    fi\xFE556\xFF\
+    five\xFE500\xFF\
+    fl\xFE556\xFF\
+    florin\xFE500\xFF\
+    four\xFE500\xFF\
+    fraction\xFE167\xFF\
+    g\xFE500\xFF\
+    gbreve\xFE500\xFF\
+    gcommaaccent\xFE500\xFF\
+    germandbls\xFE500\xFF\
+    grave\xFE333\xFF\
+    greater\xFE564\xFF\
+    greaterequal\xFE549\xFF\
+    guillemotleft\xFE500\xFF\
+    guillemotright\xFE500\xFF\
+    guilsinglleft\xFE333\xFF\
+    guilsinglright\xFE333\xFF\
+    h\xFE500\xFF\
+    hungarumlaut\xFE333\xFF\
+    hyphen\xFE333\xFF\
+    i\xFE278\xFF\
+    iacute\xFE278\xFF\
+    icircumflex\xFE278\xFF\
+    idieresis\xFE278\xFF\
+    igrave\xFE278\xFF\
+    imacron\xFE278\xFF\
+    iogonek\xFE278\xFF\
+    j\xFE278\xFF\
+    k\xFE500\xFF\
+    kcommaaccent\xFE500\xFF\
+    l\xFE278\xFF\
+    lacute\xFE278\xFF\
+    lcaron\xFE344\xFF\
+    lcommaaccent\xFE278\xFF\
+    less\xFE564\xFF\
+    lessequal\xFE549\xFF\
+    logicalnot\xFE564\xFF\
+    lozenge\xFE471\xFF\
+    lslash\xFE278\xFF\
+    m\xFE778\xFF\
+    macron\xFE333\xFF\
+    minus\xFE564\xFF\
+    mu\xFE500\xFF\
+    multiply\xFE564\xFF\
+    n\xFE500\xFF\
+    nacute\xFE500\xFF\
+    ncaron\xFE500\xFF\
+    ncommaaccent\xFE500\xFF\
+    nine\xFE500\xFF\
+    notequal\xFE549\xFF\
+    ntilde\xFE500\xFF\
+    numbersign\xFE500\xFF\
+    o\xFE500\xFF\
+    oacute\xFE500\xFF\
+    ocircumflex\xFE500\xFF\
+    odieresis\xFE500\xFF\
+    oe\xFE722\xFF\
+    ogonek\xFE333\xFF\
+    ograve\xFE500\xFF\
+    ohungarumlaut\xFE500\xFF\
+    omacron\xFE500\xFF\
+    one\xFE500\xFF\
+    onehalf\xFE750\xFF\
+    onequarter\xFE750\xFF\
+    onesuperior\xFE300\xFF\
+    ordfeminine\xFE276\xFF\
+    ordmasculine\xFE310\xFF\
+    oslash\xFE500\xFF\
+    otilde\xFE500\xFF\
+    p\xFE500\xFF\
+    paragraph\xFE453\xFF\
+    parenleft\xFE333\xFF\
+    parenright\xFE333\xFF\
+    partialdiff\xFE476\xFF\
+    percent\xFE833\xFF\
+    period\xFE250\xFF\
+    periodcentered\xFE250\xFF\
+    perthousand\xFE1000\xFF\
+    plus\xFE564\xFF\
+    plusminus\xFE564\xFF\
+    q\xFE500\xFF\
+    question\xFE444\xFF\
+    questiondown\xFE444\xFF\
+    quotedbl\xFE408\xFF\
+    quotedblbase\xFE444\xFF\
+    quotedblleft\xFE444\xFF\
+    quotedblright\xFE444\xFF\
+    quoteleft\xFE333\xFF\
+    quoteright\xFE333\xFF\
+    quotesinglbase\xFE333\xFF\
+    quotesingle\xFE180\xFF\
+    r\xFE333\xFF\
+    racute\xFE333\xFF\
+    radical\xFE453\xFF\
+    rcaron\xFE333\xFF\
+    rcommaaccent\xFE333\xFF\
+    registered\xFE760\xFF\
+    ring\xFE333\xFF\
+    s\xFE389\xFF\
+    sacute\xFE389\xFF\
+    scaron\xFE389\xFF\
+    scedilla\xFE389\xFF\
+    scommaaccent\xFE389\xFF\
+    section\xFE500\xFF\
+    semicolon\xFE278\xFF\
+    seven\xFE500\xFF\
+    six\xFE500\xFF\
+    slash\xFE278\xFF\
+    space\xFE250\xFF\
+    sterling\xFE500\xFF\
+    summation\xFE600\xFF\
+    t\xFE278\xFF\
+    tcaron\xFE326\xFF\
+    tcommaaccent\xFE278\xFF\
+    thorn\xFE500\xFF\
+    three\xFE500\xFF\
+    threequarters\xFE750\xFF\
+    threesuperior\xFE300\xFF\
+    tilde\xFE333\xFF\
+    trademark\xFE980\xFF\
+    two\xFE500\xFF\
+    twosuperior\xFE300\xFF\
+    u\xFE500\xFF\
+    uacute\xFE500\xFF\
+    ucircumflex\xFE500\xFF\
+    udieresis\xFE500\xFF\
+    ugrave\xFE500\xFF\
+    uhungarumlaut\xFE500\xFF\
+    umacron\xFE500\xFF\
+    underscore\xFE500\xFF\
+    uogonek\xFE500\xFF\
+    uring\xFE500\xFF\
+    v\xFE500\xFF\
+    w\xFE722\xFF\
+    x\xFE500\xFF\
+    y\xFE500\xFF\
+    yacute\xFE500\xFF\
+    ydieresis\xFE500\xFF\
+    yen\xFE500\xFF\
+    z\xFE444\xFF\
+    zacute\xFE444\xFF\
+    zcaron\xFE444\xFF\
+    zdotaccent\xFE444\xFF\
+    zero\xFE500\xFF";
 
-pub(crate) static TIMES_ROMAN: phf::Map<&'static str, f32> = phf_map! {
-    "space" => 250_f32,
-    "exclam" => 333_f32,
-    "quotedbl" => 408_f32,
-    "numbersign" => 500_f32,
-    "dollar" => 500_f32,
-    "percent" => 833_f32,
-    "ampersand" => 778_f32,
-    "quoteright" => 333_f32,
-    "parenleft" => 333_f32,
-    "parenright" => 333_f32,
-    "asterisk" => 500_f32,
-    "plus" => 564_f32,
-    "comma" => 250_f32,
-    "hyphen" => 333_f32,
-    "period" => 250_f32,
-    "slash" => 278_f32,
-    "zero" => 500_f32,
-    "one" => 500_f32,
-    "two" => 500_f32,
-    "three" => 500_f32,
-    "four" => 500_f32,
-    "five" => 500_f32,
-    "six" => 500_f32,
-    "seven" => 500_f32,
-    "eight" => 500_f32,
-    "nine" => 500_f32,
-    "colon" => 278_f32,
-    "semicolon" => 278_f32,
-    "less" => 564_f32,
-    "equal" => 564_f32,
-    "greater" => 564_f32,
-    "question" => 444_f32,
-    "at" => 921_f32,
-    "A" => 722_f32,
-    "B" => 667_f32,
-    "C" => 667_f32,
-    "D" => 722_f32,
-    "E" => 611_f32,
-    "F" => 556_f32,
-    "G" => 722_f32,
-    "H" => 722_f32,
-    "I" => 333_f32,
-    "J" => 389_f32,
-    "K" => 722_f32,
-    "L" => 611_f32,
-    "M" => 889_f32,
-    "N" => 722_f32,
-    "O" => 722_f32,
-    "P" => 556_f32,
-    "Q" => 722_f32,
-    "R" => 667_f32,
-    "S" => 556_f32,
-    "T" => 611_f32,
-    "U" => 722_f32,
-    "V" => 722_f32,
-    "W" => 944_f32,
-    "X" => 722_f32,
-    "Y" => 722_f32,
-    "Z" => 611_f32,
-    "bracketleft" => 333_f32,
-    "backslash" => 278_f32,
-    "bracketright" => 333_f32,
-    "asciicircum" => 469_f32,
-    "underscore" => 500_f32,
-    "quoteleft" => 333_f32,
-    "a" => 444_f32,
-    "b" => 500_f32,
-    "c" => 444_f32,
-    "d" => 500_f32,
-    "e" => 444_f32,
-    "f" => 333_f32,
-    "g" => 500_f32,
-    "h" => 500_f32,
-    "i" => 278_f32,
-    "j" => 278_f32,
-    "k" => 500_f32,
-    "l" => 278_f32,
-    "m" => 778_f32,
-    "n" => 500_f32,
-    "o" => 500_f32,
-    "p" => 500_f32,
-    "q" => 500_f32,
-    "r" => 333_f32,
-    "s" => 389_f32,
-    "t" => 278_f32,
-    "u" => 500_f32,
-    "v" => 500_f32,
-    "w" => 722_f32,
-    "x" => 500_f32,
-    "y" => 500_f32,
-    "z" => 444_f32,
-    "braceleft" => 480_f32,
-    "bar" => 200_f32,
-    "braceright" => 480_f32,
-    "asciitilde" => 541_f32,
-    "exclamdown" => 333_f32,
-    "cent" => 500_f32,
-    "sterling" => 500_f32,
-    "fraction" => 167_f32,
-    "yen" => 500_f32,
-    "florin" => 500_f32,
-    "section" => 500_f32,
-    "currency" => 500_f32,
-    "quotesingle" => 180_f32,
-    "quotedblleft" => 444_f32,
-    "guillemotleft" => 500_f32,
-    "guilsinglleft" => 333_f32,
-    "guilsinglright" => 333_f32,
-    "fi" => 556_f32,
-    "fl" => 556_f32,
-    "endash" => 500_f32,
-    "dagger" => 500_f32,
-    "daggerdbl" => 500_f32,
-    "periodcentered" => 250_f32,
-    "paragraph" => 453_f32,
-    "bullet" => 350_f32,
-    "quotesinglbase" => 333_f32,
-    "quotedblbase" => 444_f32,
-    "quotedblright" => 444_f32,
-    "guillemotright" => 500_f32,
-    "ellipsis" => 1000_f32,
-    "perthousand" => 1000_f32,
-    "questiondown" => 444_f32,
-    "grave" => 333_f32,
-    "acute" => 333_f32,
-    "circumflex" => 333_f32,
-    "tilde" => 333_f32,
-    "macron" => 333_f32,
-    "breve" => 333_f32,
-    "dotaccent" => 333_f32,
-    "dieresis" => 333_f32,
-    "ring" => 333_f32,
-    "cedilla" => 333_f32,
-    "hungarumlaut" => 333_f32,
-    "ogonek" => 333_f32,
-    "caron" => 333_f32,
-    "emdash" => 1000_f32,
-    "AE" => 889_f32,
-    "ordfeminine" => 276_f32,
-    "Lslash" => 611_f32,
-    "Oslash" => 722_f32,
-    "OE" => 889_f32,
-    "ordmasculine" => 310_f32,
-    "ae" => 667_f32,
-    "dotlessi" => 278_f32,
-    "lslash" => 278_f32,
-    "oslash" => 500_f32,
-    "oe" => 722_f32,
-    "germandbls" => 500_f32,
-    "Idieresis" => 333_f32,
-    "eacute" => 444_f32,
-    "abreve" => 444_f32,
-    "uhungarumlaut" => 500_f32,
-    "ecaron" => 444_f32,
-    "Ydieresis" => 722_f32,
-    "divide" => 564_f32,
-    "Yacute" => 722_f32,
-    "Acircumflex" => 722_f32,
-    "aacute" => 444_f32,
-    "Ucircumflex" => 722_f32,
-    "yacute" => 500_f32,
-    "scommaaccent" => 389_f32,
-    "ecircumflex" => 444_f32,
-    "Uring" => 722_f32,
-    "Udieresis" => 722_f32,
-    "aogonek" => 444_f32,
-    "Uacute" => 722_f32,
-    "uogonek" => 500_f32,
-    "Edieresis" => 611_f32,
-    "Dcroat" => 722_f32,
-    "commaaccent" => 250_f32,
-    "copyright" => 760_f32,
-    "Emacron" => 611_f32,
-    "ccaron" => 444_f32,
-    "aring" => 444_f32,
-    "Ncommaaccent" => 722_f32,
-    "lacute" => 278_f32,
-    "agrave" => 444_f32,
-    "Tcommaaccent" => 611_f32,
-    "Cacute" => 667_f32,
-    "atilde" => 444_f32,
-    "Edotaccent" => 611_f32,
-    "scaron" => 389_f32,
-    "scedilla" => 389_f32,
-    "iacute" => 278_f32,
-    "lozenge" => 471_f32,
-    "Rcaron" => 667_f32,
-    "Gcommaaccent" => 722_f32,
-    "ucircumflex" => 500_f32,
-    "acircumflex" => 444_f32,
-    "Amacron" => 722_f32,
-    "rcaron" => 333_f32,
-    "ccedilla" => 444_f32,
-    "Zdotaccent" => 611_f32,
-    "Thorn" => 556_f32,
-    "Omacron" => 722_f32,
-    "Racute" => 667_f32,
-    "Sacute" => 556_f32,
-    "dcaron" => 588_f32,
-    "Umacron" => 722_f32,
-    "uring" => 500_f32,
-    "threesuperior" => 300_f32,
-    "Ograve" => 722_f32,
-    "Agrave" => 722_f32,
-    "Abreve" => 722_f32,
-    "multiply" => 564_f32,
-    "uacute" => 500_f32,
-    "Tcaron" => 611_f32,
-    "partialdiff" => 476_f32,
-    "ydieresis" => 500_f32,
-    "Nacute" => 722_f32,
-    "icircumflex" => 278_f32,
-    "Ecircumflex" => 611_f32,
-    "adieresis" => 444_f32,
-    "edieresis" => 444_f32,
-    "cacute" => 444_f32,
-    "nacute" => 500_f32,
-    "umacron" => 500_f32,
-    "Ncaron" => 722_f32,
-    "Iacute" => 333_f32,
-    "plusminus" => 564_f32,
-    "brokenbar" => 200_f32,
-    "registered" => 760_f32,
-    "Gbreve" => 722_f32,
-    "Idotaccent" => 333_f32,
-    "summation" => 600_f32,
-    "Egrave" => 611_f32,
-    "racute" => 333_f32,
-    "omacron" => 500_f32,
-    "Zacute" => 611_f32,
-    "Zcaron" => 611_f32,
-    "greaterequal" => 549_f32,
-    "Eth" => 722_f32,
-    "Ccedilla" => 667_f32,
-    "lcommaaccent" => 278_f32,
-    "tcaron" => 326_f32,
-    "eogonek" => 444_f32,
-    "Uogonek" => 722_f32,
-    "Aacute" => 722_f32,
-    "Adieresis" => 722_f32,
-    "egrave" => 444_f32,
-    "zacute" => 444_f32,
-    "iogonek" => 278_f32,
-    "Oacute" => 722_f32,
-    "oacute" => 500_f32,
-    "amacron" => 444_f32,
-    "sacute" => 389_f32,
-    "idieresis" => 278_f32,
-    "Ocircumflex" => 722_f32,
-    "Ugrave" => 722_f32,
-    "Delta" => 612_f32,
-    "thorn" => 500_f32,
-    "twosuperior" => 300_f32,
-    "Odieresis" => 722_f32,
-    "mu" => 500_f32,
-    "igrave" => 278_f32,
-    "ohungarumlaut" => 500_f32,
-    "Eogonek" => 611_f32,
-    "dcroat" => 500_f32,
-    "threequarters" => 750_f32,
-    "Scedilla" => 556_f32,
-    "lcaron" => 344_f32,
-    "Kcommaaccent" => 722_f32,
-    "Lacute" => 611_f32,
-    "trademark" => 980_f32,
-    "edotaccent" => 444_f32,
-    "Igrave" => 333_f32,
-    "Imacron" => 333_f32,
-    "Lcaron" => 611_f32,
-    "onehalf" => 750_f32,
-    "lessequal" => 549_f32,
-    "ocircumflex" => 500_f32,
-    "ntilde" => 500_f32,
-    "Uhungarumlaut" => 722_f32,
-    "Eacute" => 611_f32,
-    "emacron" => 444_f32,
-    "gbreve" => 500_f32,
-    "onequarter" => 750_f32,
-    "Scaron" => 556_f32,
-    "Scommaaccent" => 556_f32,
-    "Ohungarumlaut" => 722_f32,
-    "degree" => 400_f32,
-    "ograve" => 500_f32,
-    "Ccaron" => 667_f32,
-    "ugrave" => 500_f32,
-    "radical" => 453_f32,
-    "Dcaron" => 722_f32,
-    "rcommaaccent" => 333_f32,
-    "Ntilde" => 722_f32,
-    "otilde" => 500_f32,
-    "Rcommaaccent" => 667_f32,
-    "Lcommaaccent" => 611_f32,
-    "Atilde" => 722_f32,
-    "Aogonek" => 722_f32,
-    "Aring" => 722_f32,
-    "Otilde" => 722_f32,
-    "zdotaccent" => 444_f32,
-    "Ecaron" => 611_f32,
-    "Iogonek" => 333_f32,
-    "kcommaaccent" => 500_f32,
-    "minus" => 564_f32,
-    "Icircumflex" => 333_f32,
-    "ncaron" => 500_f32,
-    "tcommaaccent" => 278_f32,
-    "logicalnot" => 564_f32,
-    "odieresis" => 500_f32,
-    "udieresis" => 500_f32,
-    "notequal" => 549_f32,
-    "gcommaaccent" => 500_f32,
-    "eth" => 500_f32,
-    "zcaron" => 444_f32,
-    "ncommaaccent" => 500_f32,
-    "onesuperior" => 300_f32,
-    "imacron" => 278_f32,
-    "Euro" => 500_f32,
-};
-
-pub(crate) static ZAPF_DING_BATS: phf::Map<&'static str, f32> = phf_map! {
-    "space" => 278_f32,
-    "a1" => 974_f32,
-    "a2" => 961_f32,
-    "a202" => 974_f32,
-    "a3" => 980_f32,
-    "a4" => 719_f32,
-    "a5" => 789_f32,
-    "a119" => 790_f32,
-    "a118" => 791_f32,
-    "a117" => 690_f32,
-    "a11" => 960_f32,
-    "a12" => 939_f32,
-    "a13" => 549_f32,
-    "a14" => 855_f32,
-    "a15" => 911_f32,
-    "a16" => 933_f32,
-    "a105" => 911_f32,
-    "a17" => 945_f32,
-    "a18" => 974_f32,
-    "a19" => 755_f32,
-    "a20" => 846_f32,
-    "a21" => 762_f32,
-    "a22" => 761_f32,
-    "a23" => 571_f32,
-    "a24" => 677_f32,
-    "a25" => 763_f32,
-    "a26" => 760_f32,
-    "a27" => 759_f32,
-    "a28" => 754_f32,
-    "a6" => 494_f32,
-    "a7" => 552_f32,
-    "a8" => 537_f32,
-    "a9" => 577_f32,
-    "a10" => 692_f32,
-    "a29" => 786_f32,
-    "a30" => 788_f32,
-    "a31" => 788_f32,
-    "a32" => 790_f32,
-    "a33" => 793_f32,
-    "a34" => 794_f32,
-    "a35" => 816_f32,
-    "a36" => 823_f32,
-    "a37" => 789_f32,
-    "a38" => 841_f32,
-    "a39" => 823_f32,
-    "a40" => 833_f32,
-    "a41" => 816_f32,
-    "a42" => 831_f32,
-    "a43" => 923_f32,
-    "a44" => 744_f32,
-    "a45" => 723_f32,
-    "a46" => 749_f32,
-    "a47" => 790_f32,
-    "a48" => 792_f32,
-    "a49" => 695_f32,
-    "a50" => 776_f32,
-    "a51" => 768_f32,
-    "a52" => 792_f32,
-    "a53" => 759_f32,
-    "a54" => 707_f32,
-    "a55" => 708_f32,
-    "a56" => 682_f32,
-    "a57" => 701_f32,
-    "a58" => 826_f32,
-    "a59" => 815_f32,
-    "a60" => 789_f32,
-    "a61" => 789_f32,
-    "a62" => 707_f32,
-    "a63" => 687_f32,
-    "a64" => 696_f32,
-    "a65" => 689_f32,
-    "a66" => 786_f32,
-    "a67" => 787_f32,
-    "a68" => 713_f32,
-    "a69" => 791_f32,
-    "a70" => 785_f32,
-    "a71" => 791_f32,
-    "a72" => 873_f32,
-    "a73" => 761_f32,
-    "a74" => 762_f32,
-    "a203" => 762_f32,
-    "a75" => 759_f32,
-    "a204" => 759_f32,
-    "a76" => 892_f32,
-    "a77" => 892_f32,
-    "a78" => 788_f32,
-    "a79" => 784_f32,
-    "a81" => 438_f32,
-    "a82" => 138_f32,
-    "a83" => 277_f32,
-    "a84" => 415_f32,
-    "a97" => 392_f32,
-    "a98" => 392_f32,
-    "a99" => 668_f32,
-    "a100" => 668_f32,
-    "a89" => 390_f32,
-    "a90" => 390_f32,
-    "a93" => 317_f32,
-    "a94" => 317_f32,
-    "a91" => 276_f32,
-    "a92" => 276_f32,
-    "a205" => 509_f32,
-    "a85" => 509_f32,
-    "a206" => 410_f32,
-    "a86" => 410_f32,
-    "a87" => 234_f32,
-    "a88" => 234_f32,
-    "a95" => 334_f32,
-    "a96" => 334_f32,
-    "a101" => 732_f32,
-    "a102" => 544_f32,
-    "a103" => 544_f32,
-    "a104" => 910_f32,
-    "a106" => 667_f32,
-    "a107" => 760_f32,
-    "a108" => 760_f32,
-    "a112" => 776_f32,
-    "a111" => 595_f32,
-    "a110" => 694_f32,
-    "a109" => 626_f32,
-    "a120" => 788_f32,
-    "a121" => 788_f32,
-    "a122" => 788_f32,
-    "a123" => 788_f32,
-    "a124" => 788_f32,
-    "a125" => 788_f32,
-    "a126" => 788_f32,
-    "a127" => 788_f32,
-    "a128" => 788_f32,
-    "a129" => 788_f32,
-    "a130" => 788_f32,
-    "a131" => 788_f32,
-    "a132" => 788_f32,
-    "a133" => 788_f32,
-    "a134" => 788_f32,
-    "a135" => 788_f32,
-    "a136" => 788_f32,
-    "a137" => 788_f32,
-    "a138" => 788_f32,
-    "a139" => 788_f32,
-    "a140" => 788_f32,
-    "a141" => 788_f32,
-    "a142" => 788_f32,
-    "a143" => 788_f32,
-    "a144" => 788_f32,
-    "a145" => 788_f32,
-    "a146" => 788_f32,
-    "a147" => 788_f32,
-    "a148" => 788_f32,
-    "a149" => 788_f32,
-    "a150" => 788_f32,
-    "a151" => 788_f32,
-    "a152" => 788_f32,
-    "a153" => 788_f32,
-    "a154" => 788_f32,
-    "a155" => 788_f32,
-    "a156" => 788_f32,
-    "a157" => 788_f32,
-    "a158" => 788_f32,
-    "a159" => 788_f32,
-    "a160" => 894_f32,
-    "a161" => 838_f32,
-    "a163" => 1016_f32,
-    "a164" => 458_f32,
-    "a196" => 748_f32,
-    "a165" => 924_f32,
-    "a192" => 748_f32,
-    "a166" => 918_f32,
-    "a167" => 927_f32,
-    "a168" => 928_f32,
-    "a169" => 928_f32,
-    "a170" => 834_f32,
-    "a171" => 873_f32,
-    "a172" => 828_f32,
-    "a173" => 924_f32,
-    "a162" => 924_f32,
-    "a174" => 917_f32,
-    "a175" => 930_f32,
-    "a176" => 931_f32,
-    "a177" => 463_f32,
-    "a178" => 883_f32,
-    "a179" => 836_f32,
-    "a193" => 836_f32,
-    "a180" => 867_f32,
-    "a199" => 867_f32,
-    "a181" => 696_f32,
-    "a200" => 696_f32,
-    "a182" => 874_f32,
-    "a201" => 874_f32,
-    "a183" => 760_f32,
-    "a184" => 946_f32,
-    "a197" => 771_f32,
-    "a185" => 865_f32,
-    "a194" => 771_f32,
-    "a198" => 888_f32,
-    "a186" => 967_f32,
-    "a195" => 888_f32,
-    "a187" => 831_f32,
-    "a188" => 873_f32,
-    "a189" => 927_f32,
-    "a190" => 970_f32,
-    "a191" => 918_f32,
-};
+pub(crate) static ZAPF_DING_BATS: &[u8] = b"\
+    a1\xFE974\xFF\
+    a10\xFE692\xFF\
+    a100\xFE668\xFF\
+    a101\xFE732\xFF\
+    a102\xFE544\xFF\
+    a103\xFE544\xFF\
+    a104\xFE910\xFF\
+    a105\xFE911\xFF\
+    a106\xFE667\xFF\
+    a107\xFE760\xFF\
+    a108\xFE760\xFF\
+    a109\xFE626\xFF\
+    a11\xFE960\xFF\
+    a110\xFE694\xFF\
+    a111\xFE595\xFF\
+    a112\xFE776\xFF\
+    a117\xFE690\xFF\
+    a118\xFE791\xFF\
+    a119\xFE790\xFF\
+    a12\xFE939\xFF\
+    a120\xFE788\xFF\
+    a121\xFE788\xFF\
+    a122\xFE788\xFF\
+    a123\xFE788\xFF\
+    a124\xFE788\xFF\
+    a125\xFE788\xFF\
+    a126\xFE788\xFF\
+    a127\xFE788\xFF\
+    a128\xFE788\xFF\
+    a129\xFE788\xFF\
+    a13\xFE549\xFF\
+    a130\xFE788\xFF\
+    a131\xFE788\xFF\
+    a132\xFE788\xFF\
+    a133\xFE788\xFF\
+    a134\xFE788\xFF\
+    a135\xFE788\xFF\
+    a136\xFE788\xFF\
+    a137\xFE788\xFF\
+    a138\xFE788\xFF\
+    a139\xFE788\xFF\
+    a14\xFE855\xFF\
+    a140\xFE788\xFF\
+    a141\xFE788\xFF\
+    a142\xFE788\xFF\
+    a143\xFE788\xFF\
+    a144\xFE788\xFF\
+    a145\xFE788\xFF\
+    a146\xFE788\xFF\
+    a147\xFE788\xFF\
+    a148\xFE788\xFF\
+    a149\xFE788\xFF\
+    a15\xFE911\xFF\
+    a150\xFE788\xFF\
+    a151\xFE788\xFF\
+    a152\xFE788\xFF\
+    a153\xFE788\xFF\
+    a154\xFE788\xFF\
+    a155\xFE788\xFF\
+    a156\xFE788\xFF\
+    a157\xFE788\xFF\
+    a158\xFE788\xFF\
+    a159\xFE788\xFF\
+    a16\xFE933\xFF\
+    a160\xFE894\xFF\
+    a161\xFE838\xFF\
+    a162\xFE924\xFF\
+    a163\xFE1016\xFF\
+    a164\xFE458\xFF\
+    a165\xFE924\xFF\
+    a166\xFE918\xFF\
+    a167\xFE927\xFF\
+    a168\xFE928\xFF\
+    a169\xFE928\xFF\
+    a17\xFE945\xFF\
+    a170\xFE834\xFF\
+    a171\xFE873\xFF\
+    a172\xFE828\xFF\
+    a173\xFE924\xFF\
+    a174\xFE917\xFF\
+    a175\xFE930\xFF\
+    a176\xFE931\xFF\
+    a177\xFE463\xFF\
+    a178\xFE883\xFF\
+    a179\xFE836\xFF\
+    a18\xFE974\xFF\
+    a180\xFE867\xFF\
+    a181\xFE696\xFF\
+    a182\xFE874\xFF\
+    a183\xFE760\xFF\
+    a184\xFE946\xFF\
+    a185\xFE865\xFF\
+    a186\xFE967\xFF\
+    a187\xFE831\xFF\
+    a188\xFE873\xFF\
+    a189\xFE927\xFF\
+    a19\xFE755\xFF\
+    a190\xFE970\xFF\
+    a191\xFE918\xFF\
+    a192\xFE748\xFF\
+    a193\xFE836\xFF\
+    a194\xFE771\xFF\
+    a195\xFE888\xFF\
+    a196\xFE748\xFF\
+    a197\xFE771\xFF\
+    a198\xFE888\xFF\
+    a199\xFE867\xFF\
+    a2\xFE961\xFF\
+    a20\xFE846\xFF\
+    a200\xFE696\xFF\
+    a201\xFE874\xFF\
+    a202\xFE974\xFF\
+    a203\xFE762\xFF\
+    a204\xFE759\xFF\
+    a205\xFE509\xFF\
+    a206\xFE410\xFF\
+    a21\xFE762\xFF\
+    a22\xFE761\xFF\
+    a23\xFE571\xFF\
+    a24\xFE677\xFF\
+    a25\xFE763\xFF\
+    a26\xFE760\xFF\
+    a27\xFE759\xFF\
+    a28\xFE754\xFF\
+    a29\xFE786\xFF\
+    a3\xFE980\xFF\
+    a30\xFE788\xFF\
+    a31\xFE788\xFF\
+    a32\xFE790\xFF\
+    a33\xFE793\xFF\
+    a34\xFE794\xFF\
+    a35\xFE816\xFF\
+    a36\xFE823\xFF\
+    a37\xFE789\xFF\
+    a38\xFE841\xFF\
+    a39\xFE823\xFF\
+    a4\xFE719\xFF\
+    a40\xFE833\xFF\
+    a41\xFE816\xFF\
+    a42\xFE831\xFF\
+    a43\xFE923\xFF\
+    a44\xFE744\xFF\
+    a45\xFE723\xFF\
+    a46\xFE749\xFF\
+    a47\xFE790\xFF\
+    a48\xFE792\xFF\
+    a49\xFE695\xFF\
+    a5\xFE789\xFF\
+    a50\xFE776\xFF\
+    a51\xFE768\xFF\
+    a52\xFE792\xFF\
+    a53\xFE759\xFF\
+    a54\xFE707\xFF\
+    a55\xFE708\xFF\
+    a56\xFE682\xFF\
+    a57\xFE701\xFF\
+    a58\xFE826\xFF\
+    a59\xFE815\xFF\
+    a6\xFE494\xFF\
+    a60\xFE789\xFF\
+    a61\xFE789\xFF\
+    a62\xFE707\xFF\
+    a63\xFE687\xFF\
+    a64\xFE696\xFF\
+    a65\xFE689\xFF\
+    a66\xFE786\xFF\
+    a67\xFE787\xFF\
+    a68\xFE713\xFF\
+    a69\xFE791\xFF\
+    a7\xFE552\xFF\
+    a70\xFE785\xFF\
+    a71\xFE791\xFF\
+    a72\xFE873\xFF\
+    a73\xFE761\xFF\
+    a74\xFE762\xFF\
+    a75\xFE759\xFF\
+    a76\xFE892\xFF\
+    a77\xFE892\xFF\
+    a78\xFE788\xFF\
+    a79\xFE784\xFF\
+    a8\xFE537\xFF\
+    a81\xFE438\xFF\
+    a82\xFE138\xFF\
+    a83\xFE277\xFF\
+    a84\xFE415\xFF\
+    a85\xFE509\xFF\
+    a86\xFE410\xFF\
+    a87\xFE234\xFF\
+    a88\xFE234\xFF\
+    a89\xFE390\xFF\
+    a9\xFE577\xFF\
+    a90\xFE390\xFF\
+    a91\xFE276\xFF\
+    a92\xFE276\xFF\
+    a93\xFE317\xFF\
+    a94\xFE317\xFF\
+    a95\xFE334\xFF\
+    a96\xFE334\xFF\
+    a97\xFE392\xFF\
+    a98\xFE392\xFF\
+    a99\xFE668\xFF\
+    space\xFE278\xFF";

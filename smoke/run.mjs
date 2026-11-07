@@ -66,7 +66,7 @@ run("npx", ["publint"], path.join(root, "js"));
 const packed = JSON.parse(run("npm", ["pack", "--ignore-scripts", "--json", "--pack-destination", dir], path.join(root, "js")))[0];
 const shipped = packed.files.map((f) => f.path);
 console.log(`${packed.filename}: ${packed.size} bytes packed, ${packed.unpackedSize} unpacked, ${shipped.length} files`);
-for (const name of ["wasm/recto.wasm", "wasm/recto-text.wasm", "wasm/recto.gen.mjs", "wasm/pins.mjs", "wasm/fonts.bin", "wasm/cjk-fallback.ttf", "wasm/cmaps.deflate", "wasm/THIRD_PARTY_NOTICES", "dist/index.js", "dist/index.d.ts", "LICENSE", "README.md"]) {
+for (const name of ["wasm/recto.wasm", "wasm/recto-render.wasm", "wasm/recto-more.wasm", "wasm/recto-rare.wasm", "wasm/recto.gen.mjs", "wasm/pins.mjs", "wasm/FoxitSans.pfb", "wasm/cjk-fallback.ttf", "wasm/cmaps.deflate", "wasm/THIRD_PARTY_NOTICES", "dist/index.js", "dist/index.d.ts", "LICENSE", "README.md"]) {
   assert.ok(shipped.includes(name), `the tarball has ${name}`);
 }
 assert.ok(!shipped.some((f) => /^(src|test)\//u.test(f)), "the tarball has no source or tests");
@@ -92,7 +92,7 @@ run("npm", ["install", "--no-audit", "--no-fund"]);
 const resolved = run("node", ["--input-type=module", "-e", 'console.log(import.meta.resolve("@2018kguo/recto"))']).trim();
 assert.ok(fs.realpathSync(new URL(resolved)).startsWith(fs.realpathSync(dir)), `resolved outside the install: ${resolved}`);
 
-/** Two pages of Helvetica, which the file does not embed: blank if fonts.bin went missing. */
+/** Two pages of Helvetica, which the file does not embed: blank if its font file went missing. */
 function samplePdf() {
   const page = (id, text) => {
     const content = `BT /F1 24 Tf 72 700 Td (${text}) Tj ET`;
@@ -194,6 +194,11 @@ const appDir = path.join(dir, "app");
 fs.cpSync(path.join(root, "smoke/app"), appDir, { recursive: true });
 fs.mkdirSync(path.join(appDir, "public"));
 fs.writeFileSync(path.join(appDir, "public/report.pdf"), sample, "latin1");
+const { bilevel, jpxPdf, meshPdf } = await import(path.join(root, "js/test/rare-pdfs.ts"));
+fs.writeFileSync(path.join(appDir, "public/jbig2.pdf"), bilevel.jbig2());
+fs.writeFileSync(path.join(appDir, "public/raw.pdf"), bilevel.raw());
+fs.writeFileSync(path.join(appDir, "public/jpx.pdf"), jpxPdf());
+fs.writeFileSync(path.join(appDir, "public/mesh.pdf"), meshPdf());
 for (const { name, code } of readmeBlocks("### In a browser")) {
   fs.writeFileSync(path.join(appDir, name), code);
 }
@@ -212,9 +217,33 @@ const serveFile = (directory) => (req, res) => {
   const type = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".wasm": "application/wasm" }[path.extname(target)];
   res.writeHead(200, type ? { "Content-Type": type } : {}).end(fs.readFileSync(target));
 };
+// The parts from a server that loses one, changes it, then has it again.
+const flaky = { name: "", state: "" };
 const pdfs = (req, res) => {
-  const [, mode, name] = new URL(req.url, "http://x").pathname.split("/");
-  const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "Range" };
+  const [, mode, name, state] = new URL(req.url, "http://x").pathname.split("/");
+  const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "Range", "Cache-Control": "no-store" };
+  // The package as a CDN has it, for a page on another origin.
+  if (mode === "pkg") {
+    const file = path.join(dir, "node_modules/@2018kguo/recto", ...new URL(req.url, "http://x").pathname.split("/").slice(2));
+    const type = /\.m?js$/u.test(file) ? "text/javascript" : "application/octet-stream";
+    res.writeHead(200, { ...cors, "Content-Type": type }).end(fs.readFileSync(file));
+    return;
+  }
+  if (mode === "flaky-set") {
+    Object.assign(flaky, { name, state });
+    res.writeHead(204, cors).end();
+    return;
+  }
+  if (mode === "flaky") {
+    const bytes = fs.readFileSync(path.join(dir, "node_modules/@2018kguo/recto/wasm", name));
+    if (name === flaky.name && flaky.state === "gone") {
+      res.writeHead(404, cors).end();
+      return;
+    }
+    if (name === flaky.name && flaky.state === "changed") bytes[bytes.length - 1] ^= 1;
+    res.writeHead(200, { ...cors, "Content-Type": "application/octet-stream" }).end(bytes);
+    return;
+  }
   // The package's wasm from a server that doesn't say what it is, and one that changed a byte.
   if (mode === "plain" || mode === "tampered") {
     const bytes = fs.readFileSync(path.join(dir, "node_modules/@2018kguo/recto/wasm", name));
@@ -292,6 +321,15 @@ async function checkPages(browserName, label, origin) {
     assert.equal(checks.mainThread.failure, undefined, checks.mainThread.failure);
     assert.match(checks.mainThread.text, /Hello from recto/u);
     assert.ok(checks.mainThread.ink > 500, `main thread ink ${checks.mainThread.ink}`);
+    assert.match(checks.mainThread.poolText, /Hello from recto/u);
+    assert.equal(checks.mainThread.poolInk, checks.mainThread.ink, "a pool thread draws what this thread drew");
+    assert.equal(checks.mainThread.poolNoWasm, "missing-asset", "recto.wasm 404s: a pool's open says so");
+    assert.equal(checks.mainThread.poolBadBase, "missing-asset", "a bad assetBase: a pool's open says so");
+    assert.equal(checks.mainThread.poolSignal, "TypeError");
+    assert.equal(checks.mainThread.poolAfterBadArgument, "fine", "a thread goes on after an argument that can't cross");
+    assert.match(checks.mainThread.cdnText, /Hello from recto/u);
+    assert.equal(checks.mainThread.cdnInk, checks.mainThread.ink, "a pool from another origin draws the same");
+    assert.equal(checks.mainThread.cdnThirdOpen, 1);
     assert.equal(checks.mainThread.ranged, "wrong-thread");
     assert.match(checks.mainThread.plainMime, /Hello from recto/u);
     assert.equal(checks.mainThread.tampered, "missing-asset");
@@ -313,6 +351,13 @@ async function checkPages(browserName, label, origin) {
     assert.equal(checks.noExpose.code, "fetch-failed");
     assert.match(checks.noExpose.message, /Content-Range/u);
     assert.equal(checks.missingAsset.code, "missing-asset");
+    assert.equal(checks.parts.failure, undefined, checks.parts.failure);
+    assert.deepEqual(checks.parts.jbig2, ["gone", "missing-asset", "changed", "missing-asset", "back", "same"]);
+    assert.deepEqual(checks.parts.render, ["gone", "missing-asset", "changed", "missing-asset", "back", "drawn"]);
+    assert.equal(checks.parts.otherDocument, true, "another document goes on after a part failed in a call");
+    assert.equal(checks.parts.jpxInk, true);
+    assert.equal(checks.parts.meshInk, true);
+    assert.equal(checks.mainThread.rareInk, true, "a main thread has every part up front");
     console.log(`${browserName}, ${label}: ok (${JSON.stringify({ wasmMs: checks.startMs, ink: checks.latin.ink })})`);
   } finally {
     await within(30_000, "closing the browser", browser.close());

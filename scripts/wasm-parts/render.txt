@@ -1,0 +1,647 @@
+<&[kurbo::bezpath::PathEl] as kurbo::shape::Shape>::bounding_box
+<&f64 as core::fmt::Display>::fmt
+<&read_fonts::model::font::tables::Tables as read_fonts::table_provider::TableProvider>::glyf
+<&read_fonts::model::font::tables::Tables as read_fonts::table_provider::TableProvider>::glyf_extended
+<&read_fonts::model::font::tables::Tables as read_fonts::table_provider::TableProvider>::gsub
+<&read_fonts::model::font::tables::Tables as read_fonts::table_provider::TableProvider>::selected_glyf_loca::<core::option::Option<bool>>
+<&str as core::fmt::Display>::fmt
+<&u8 as core::fmt::LowerHex>::fmt
+<(&[u8], &read_fonts::ps::cff::index::Index, &read_fonts::ps::cff::index::Index, &read_fonts::ps::cff::index::Index) as read_fonts::ps::charstring::CharstringContext>::global_subr
+<(&[u8], &read_fonts::ps::cff::index::Index, &read_fonts::ps::cff::index::Index, &read_fonts::ps::cff::index::Index) as read_fonts::ps::charstring::CharstringContext>::kind
+<(&[u8], &read_fonts::ps::cff::index::Index, &read_fonts::ps::cff::index::Index, &read_fonts::ps::cff::index::Index) as read_fonts::ps::charstring::CharstringContext>::subr
+<[f32; 6usize] as hayro_syntax::reader::Readable>::read
+<ab_glyph_rasterizer::raster::Rasterizer>::draw_cubic
+<ab_glyph_rasterizer::raster::Rasterizer>::draw_line
+<ab_glyph_rasterizer::raster::Rasterizer>::draw_line_scalar
+<ab_glyph_rasterizer::raster::Rasterizer>::draw_quad
+<ab_glyph_rasterizer::raster::Rasterizer>::new
+<ab_glyph_rasterizer::raster::Rasterizer>::tessellate_cubic
+<alloc::boxed::Box<hayro_interpret::pattern::Pattern> as core::clone::Clone>::clone
+<alloc::raw_vec::RawVec<alloc::vec::Vec<u8>>>::grow_one
+<alloc::raw_vec::RawVec<hayro::group::GroupFrame>>::grow_one
+<alloc::raw_vec::RawVec<hayro_interpret::gradient::SvgGradientStop>>::grow_one
+<alloc::raw_vec::RawVec<hayro_interpret::interpret::page_run::Frame>>::grow_one
+<alloc::raw_vec::RawVec<usize>>::grow_one
+<alloc::raw_vec::RawVec<vello_common::clip::ClipData>>::grow_one
+<alloc::raw_vec::RawVec<vello_common::clip::RawClip>>::grow_one
+<alloc::raw_vec::RawVec<vello_common::encode::EncodedPaint>>::grow_one
+<alloc::raw_vec::RawVec<vello_common::flatten::Line>>::grow_one
+<alloc::raw_vec::RawVec<vello_common::record::Node>>::grow_one
+<alloc::raw_vec::RawVec<vello_common::record::OpenLayer>>::grow_one
+<alloc::raw_vec::RawVec<vello_common::record::RecordedLayer>>::grow_one
+<alloc::raw_vec::RawVec<vello_common::tile::Tile>>::grow_one
+<alloc::raw_vec::RawVec<vello_cpu::coarse::bucketer::ActiveLayer>>::grow_one
+<alloc::raw_vec::RawVec<vello_cpu::coarse::cmd::DepthFill>>::grow_one
+<alloc::raw_vec::RawVec<vello_cpu::record::RecordedFill>>::grow_one
+<alloc::rc::Rc<hayro::GlobalState>>::drop_slow
+<alloc::rc::Rc<kurbo::bezpath::BezPath>>::drop_slow
+<alloc::rc::Rc<skrifa::scaler::ScalerFont>>::drop_slow
+<alloc::sync::Arc<dyn pic_scale::convolution::ColumnFilter<f32, 1usize> + core::marker::Send + core::marker::Sync>>::drop_slow
+<alloc::sync::Arc<hayro::glyph_cache::CachedGlyph>>::drop_slow
+<alloc::sync::Arc<skrifa::outline::autohint::instance::LocatedState>>::drop_slow
+<alloc::sync::Arc<skrifa::outline::autohint::style::GlyphStyleMap>>::drop_slow
+<alloc::sync::Arc<std::sync::once_lock::OnceLock<core::option::Option<alloc::boxed::Box<[u8; 256usize]>>>>>::drop_slow
+<alloc::sync::Arc<std::sync::poison::rwlock::RwLock<alloc::vec::Vec<core::option::Option<skrifa::outline::autohint::metrics::UnscaledStyleMetrics>>>>>::drop_slow
+<alloc::sync::Arc<vello_common::pixmap::Pixmap>>::drop_slow
+<alloc::vec::Vec<&str> as alloc::vec::spec_from_iter_nested::SpecFromIterNested<&str, core::str::iter::SplitAsciiWhitespace>>::from_iter
+<alloc::vec::Vec<vello_common::flatten_simd::Point32>>::resize
+<alloc::vec::Vec<vello_cpu::coarse::bucketer::RowState>>::resize_with::<&mut <vello_cpu::coarse::bucketer::RowState>::new>
+<color::dynamic::DynamicColor>::convert
+<core::cell::once::OnceCell<vello_common::encode::GradientLut<u8>>>::try_init::<<core::cell::once::OnceCell<vello_common::encode::GradientLut<u8>>>::get_or_init<<vello_common::encode::EncodedGradient>::u8_lut<fearless_simd::generated::wasm::WasmSimd128>::{closure#0}>::{closure#0}, !>
+<core::fmt::Formatter>::pad_formatted_parts
+<core::fmt::Formatter>::pad_integral
+<core::fmt::Formatter>::pad_integral::write_prefix
+<core::fmt::Formatter>::write_formatted_parts
+<core::iter::adapters::chain::Chain<core::iter::adapters::chain::Chain<core::iter::adapters::chain::Chain<core::iter::adapters::flatten::Flatten<core::option::IntoIter<core::iter::adapters::map::Map<core::slice::iter::Iter<font_types::raw::BigEndian<font_types::glyph_id::GlyphId16>>, <read_fonts::tables::layout::CoverageTable>::iter::{closure#0}>>>, core::iter::adapters::flatten::Flatten<core::option::IntoIter<core::iter::adapters::flatten::FlatMap<core::slice::iter::Iter<read_fonts::tables::layout::RangeRecord>, core::iter::adapters::map::Map<core::iter::adapters::map::Map<core::ops::range::RangeInclusive<u16>, <font_types::glyph_id::GlyphId16>::new>, <font_types::glyph_id::GlyphId as core::convert::From<font_types::glyph_id::GlyphId16>>::from>, <read_fonts::tables::layout::CoverageTable>::iter::{closure#1}>>>>, core::iter::adapters::flatten::Flatten<core::option::IntoIter<core::iter::adapters::map::Map<core::slice::iter::Iter<font_types::raw::BigEndian<font_types::glyph_id::GlyphId24>>, <read_fonts::tables::layout::CoverageTable>::iter::{closure#2}>>>>, core::iter::adapters::flatten::Flatten<core::option::IntoIter<core::iter::adapters::flatten::FlatMap<core::slice::iter::Iter<read_fonts::tables::layout::RangeRecord2>, core::iter::adapters::map::Map<core::ops::range::RangeInclusive<u32>, <font_types::glyph_id::GlyphId>::new>, <read_fonts::tables::layout::RangeRecord2>::iter>>>> as core::iter::traits::iterator::Iterator>::next
+<core::iter::adapters::chain::Chain<core::iter::adapters::flatten::Flatten<core::option::IntoIter<core::iter::sources::from_fn::FromFn<<read_fonts::offset_array::ArrayOfOffsets<read_fonts::tables::layout::ChainedSequenceContext>>::iter::{closure#0}>>>, core::iter::adapters::flatten::Flatten<core::option::IntoIter<core::iter::adapters::map::Map<core::iter::sources::from_fn::FromFn<<read_fonts::offset_array::ArrayOfOffsets<read_fonts::tables::gsub::ExtensionSubstFormat1<read_fonts::tables::layout::ChainedSequenceContext>>>::iter::{closure#0}>, <read_fonts::tables::layout::Subtables<read_fonts::tables::layout::ChainedSequenceContext, read_fonts::tables::gsub::ExtensionSubstFormat1<read_fonts::tables::layout::ChainedSequenceContext>>>::iter::{closure#0}>>>> as core::iter::traits::iterator::Iterator>::try_fold::<(), core::iter::traits::iterator::Iterator::find_map::check<core::result::Result<read_fonts::tables::layout::ChainedSequenceContext, read_fonts::read::ReadError>, read_fonts::tables::layout::ChainedSequenceContext, &mut <skrifa::outline::autohint::shape::GsubHandler>::process_lookup_inner::{closure#22}>::{closure#0}, core::ops::control_flow::ControlFlow<read_fonts::tables::layout::ChainedSequenceContext>>
+<core::iter::adapters::flatten::FlattenCompat<_, _> as core::iter::traits::iterator::Iterator>::try_fold::flatten::<core::iter::adapters::chain::Chain<core::iter::adapters::filter::Filter<core::iter::adapters::chain::Chain<core::iter::adapters::flatten::FlatMap<core::option::IntoIter<&read_fonts::model::charmap::UnicodeSubtables>, core::iter::adapters::filter_map::FilterMap<core::iter::adapters::map::Map<core::ops::range::RangeInclusive<u8>, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#0}::{closure#0}>, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#0}::{closure#1}>, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#0}>, core::iter::adapters::flatten::FlatMap<core::option::IntoIter<&read_fonts::model::charmap::UnicodeSubtables>, core::iter::adapters::flatten::FlatMap<core::option::IntoIter<&read_fonts::tables::cmap::CmapSubtable>, read_fonts::tables::cmap::CmapSubtableIter, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#1}::{closure#0}>, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#1}>>, <read_fonts::model::charmap::SfntUnicodeCharmap>::iter::{closure#0}>, core::iter::adapters::filter::Filter<core::iter::adapters::chain::Chain<core::iter::adapters::flatten::FlatMap<core::option::IntoIter<&read_fonts::model::charmap::UnicodeSubtables>, core::iter::adapters::filter_map::FilterMap<core::iter::adapters::map::Map<core::ops::range::RangeInclusive<u8>, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#0}::{closure#0}>, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#0}::{closure#1}>, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#0}>, core::iter::adapters::flatten::FlatMap<core::option::IntoIter<&read_fonts::model::charmap::UnicodeSubtables>, core::iter::adapters::flatten::FlatMap<core::option::IntoIter<&read_fonts::tables::cmap::CmapSubtable>, read_fonts::tables::cmap::CmapSubtableIter, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#1}::{closure#0}>, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#1}>>, <read_fonts::model::charmap::SfntUnicodeCharmap>::iter::{closure#1}>>, (), core::ops::control_flow::ControlFlow<(u32, font_types::glyph_id::GlyphId)>, core::iter::traits::iterator::Iterator::find::check<(u32, font_types::glyph_id::GlyphId), &mut <read_fonts::model::charmap::Charmap>::unicodes::{closure#1}>::{closure#0}>::{closure#0}
+<core::iter::adapters::flatten::FlattenCompat<_, _> as core::iter::traits::iterator::Iterator>::try_fold::flatten::<core::iter::adapters::filter_map::FilterMap<core::iter::adapters::map::Map<core::ops::range::RangeInclusive<u8>, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#0}::{closure#0}>, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#0}::{closure#1}>, (), core::ops::control_flow::ControlFlow<(u32, font_types::glyph_id::GlyphId)>, &mut core::iter::adapters::filter::filter_try_fold<(u32, font_types::glyph_id::GlyphId), (), core::ops::control_flow::ControlFlow<(u32, font_types::glyph_id::GlyphId)>, <read_fonts::model::charmap::SfntUnicodeCharmap>::iter::{closure#1}, &mut core::iter::traits::iterator::Iterator::find::check<(u32, font_types::glyph_id::GlyphId), &mut <read_fonts::model::charmap::Charmap>::unicodes::{closure#1}>::{closure#0}>::{closure#0}>::{closure#0}
+<core::iter::adapters::flatten::FlattenCompat<_, _> as core::iter::traits::iterator::Iterator>::try_fold::flatten::<core::iter::adapters::flatten::FlatMap<core::option::IntoIter<&read_fonts::tables::cmap::CmapSubtable>, read_fonts::tables::cmap::CmapSubtableIter, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#1}::{closure#0}>, (), core::ops::control_flow::ControlFlow<(u32, font_types::glyph_id::GlyphId)>, core::iter::adapters::filter::filter_try_fold<(u32, font_types::glyph_id::GlyphId), (), core::ops::control_flow::ControlFlow<(u32, font_types::glyph_id::GlyphId)>, <read_fonts::model::charmap::SfntUnicodeCharmap>::iter::{closure#0}, &mut &mut core::iter::traits::iterator::Iterator::find::check<(u32, font_types::glyph_id::GlyphId), &mut <read_fonts::model::charmap::Charmap>::unicodes::{closure#1}>::{closure#0}>::{closure#0}>::{closure#0}
+<core::iter::adapters::flatten::FlattenCompat<_, _> as core::iter::traits::iterator::Iterator>::try_fold::flatten::<core::iter::adapters::flatten::FlatMap<core::option::IntoIter<&read_fonts::tables::cmap::CmapSubtable>, read_fonts::tables::cmap::CmapSubtableIter, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#1}::{closure#0}>, (), core::ops::control_flow::ControlFlow<(u32, font_types::glyph_id::GlyphId)>, core::iter::adapters::filter::filter_try_fold<(u32, font_types::glyph_id::GlyphId), (), core::ops::control_flow::ControlFlow<(u32, font_types::glyph_id::GlyphId)>, <read_fonts::model::charmap::SfntUnicodeCharmap>::iter::{closure#1}, &mut core::iter::traits::iterator::Iterator::find::check<(u32, font_types::glyph_id::GlyphId), &mut <read_fonts::model::charmap::Charmap>::unicodes::{closure#1}>::{closure#0}>::{closure#0}>::{closure#0}
+<core::iter::adapters::take::Take<core::iter::adapters::enumerate::Enumerate<core::slice::iter::Iter<u32>>> as core::iter::traits::iterator::Iterator>::nth
+<core::str::iter::SplitInternal<char>>::next
+<f64 as core::fmt::Display>::fmt
+<f64 as core::str::traits::FromStr>::from_str
+<fearless_simd::generated::wasm::WasmSimd128 as fearless_simd::generated::simd_trait::Simd>::vectorize::<<peniko::blend::BlendMode as vello_cpu::fine::lowp::compose::ComposeExt>::compose<fearless_simd::generated::wasm::WasmSimd128>::{closure#0}, fearless_simd::generated::simd_types::u8x32<fearless_simd::generated::wasm::WasmSimd128>>
+<fearless_simd::generated::wasm::WasmSimd128 as fearless_simd::generated::simd_trait::Simd>::vectorize::<<vello_cpu::fine::lowp::U8Kernel as vello_cpu::fine::FineKernel<fearless_simd::generated::wasm::WasmSimd128>>::apply_tint::{closure#1}, ()>
+<foldhash::seed::SharedSeed>::from_u64
+<foldhash::seed::global::GlobalSeed>::init_slow
+<hashbrown::map::HashMap<(u128, u32), core::option::Option<alloc::rc::Rc<kurbo::bezpath::BezPath>>, rustc_hash::FxBuildHasher>>::insert
+<hashbrown::map::HashMap<hayro_syntax::object::ObjectIdentifier, (), std::hash::random::RandomState>>::insert
+<hashbrown::map::HashMap<hayro_syntax::object::name::Name, hayro_syntax::object::dict::Dict, rustc_hash::FxBuildHasher>>::insert
+<hashbrown::raw::RawTable<((u128, u32), core::option::Option<alloc::rc::Rc<kurbo::bezpath::BezPath>>)>>::reserve_rehash::<hashbrown::map::make_hasher<(u128, u32), core::option::Option<alloc::rc::Rc<kurbo::bezpath::BezPath>>, rustc_hash::FxBuildHasher>::{closure#0}>
+<hashbrown::raw::RawTable<((u128, u32), core::option::Option<alloc::rc::Rc<skrifa::scaler::ScalerFont>>)>>::reserve_rehash::<hashbrown::map::make_hasher<(u128, u32), core::option::Option<alloc::rc::Rc<skrifa::scaler::ScalerFont>>, rustc_hash::FxBuildHasher>::{closure#0}>
+<hashbrown::raw::RawTable<(hayro::glyph_cache::GlyphKey, core::option::Option<alloc::sync::Arc<hayro::glyph_cache::CachedGlyph>>)>>::reserve_rehash::<hashbrown::map::make_hasher<hayro::glyph_cache::GlyphKey, core::option::Option<alloc::sync::Arc<hayro::glyph_cache::CachedGlyph>>, rustc_hash::FxBuildHasher>::{closure#0}>
+<hashbrown::raw::RawTable<(hayro_syntax::object::ObjectIdentifier, ())>>::reserve_rehash::<hashbrown::map::make_hasher<hayro_syntax::object::ObjectIdentifier, (), std::hash::random::RandomState>::{closure#0}>
+<hashbrown::raw::RawTable<(u32, alloc::sync::Arc<dyn core::convert::AsRef<[u8]> + core::marker::Send + core::marker::Sync>)>>::reserve_rehash::<hashbrown::map::make_hasher<u32, alloc::sync::Arc<dyn core::convert::AsRef<[u8]> + core::marker::Send + core::marker::Sync>, std::hash::random::RandomState>::{closure#0}>
+<hayro::PageJob>::finish
+<hayro::PageJob>::new
+<hayro::PageJob>::step
+<hayro::Renderer>::apply_soft_mask
+<hayro::Renderer>::cached_outline
+<hayro::Renderer>::draw_glyph_run
+<hayro::Renderer>::draw_image::<hayro::image::RenderImageData>
+<hayro::Renderer>::draw_image::<hayro_interpret::types::ImageData>
+<hayro::Renderer>::draw_image_with_alpha_mask
+<hayro::Renderer>::draw_path
+<hayro::Renderer>::draw_pdf_image
+<hayro::Renderer>::draw_pixmap
+<hayro::Renderer>::draw_rect
+<hayro::Renderer>::fill_outline
+<hayro::Renderer>::fill_outline_run
+<hayro::Renderer>::fill_path
+<hayro::Renderer>::push_transparency_group
+<hayro::Renderer>::set_paint::<<hayro::Renderer>::begin_fill_run::{closure#0}>
+<hayro::Renderer>::set_paint::<<hayro::Renderer>::begin_stroke_run::{closure#0}>
+<hayro::Renderer>::set_stroke_properties
+<hayro::Renderer>::stroke_outline_run
+<hayro::Renderer>::stroke_path
+<hayro_font::GlyphIdentifier>::cache_key
+<hayro_font::OutlineGlyph>::hinted_outline
+<hayro_font::OutlineGlyph>::identifier
+<hayro_font::OutlineGlyph>::outline
+<hayro_font::program::pen::OutlinePath as read_fonts::model::glyph::outline::path::PathSink>::close
+<hayro_font::program::pen::OutlinePath as read_fonts::model::glyph::outline::path::PathSink>::curve_to
+<hayro_font::program::pen::OutlinePath as read_fonts::model::glyph::outline::path::PathSink>::line_to
+<hayro_font::program::pen::OutlinePath as read_fonts::model::glyph::outline::path::PathSink>::move_to
+<hayro_font::program::pen::OutlinePath as read_fonts::model::glyph::outline::path::PathSink>::quad_to
+<hayro_interpret::color::ColorSpace as hayro_interpret::color::ToLuma>::to_luma
+<hayro_interpret::color::ColorSpace as hayro_interpret::color::ToRgb>::convert_in_place
+<hayro_interpret::color::ColorSpace>::default_decode_arr
+<hayro_interpret::color::ColorSpace>::inverted_default_decode_arr
+<hayro_interpret::color::ColorSpace>::pattern
+<hayro_interpret::color::ColorSpace>::to_rgba
+<hayro_interpret::color::U8Lookup<[u8; 3usize]> as core::default::Default>::default
+<hayro_interpret::color::indexed::Indexed>::new
+<hayro_interpret::context::Context>::compositing
+<hayro_interpret::context::Context>::push_clip_path::<hayro::Renderer>
+<hayro_interpret::context::PageBudget>::annotation_points
+<hayro_interpret::context::PageBudget>::set_annotation_points
+<hayro_interpret::context::PageBudget>::tripped
+<hayro_interpret::encode::EncodedRadialAxialShading>::as_svg_gradient
+<hayro_interpret::encode::EncodedRadialAxialShading>::as_svg_gradient::{closure#0}
+<hayro_interpret::function::Function>::stitching_bounds
+<hayro_interpret::interpret::InterpreterSettings as core::default::Default>::default::{closure#1}
+<hayro_interpret::interpret::page_run::PageRun>::new
+<hayro_interpret::interpret::page_run::Slice>::tick
+<hayro_interpret::pattern::ShadingPattern>::encode
+<hayro_interpret::x_object::form::FormXObject>::draw::<hayro::Renderer>
+<hayro_interpret::x_object::form::FormXObject>::draw_contents::<hayro::Renderer>
+<hayro_interpret::x_object::image::ImageXObject as core::clone::Clone>::clone
+<hayro_interpret::x_object::image::ImageXObject>::decoded_image
+<hayro_interpret::x_object::image::ImageXObject>::draw::<hayro::Renderer>
+<hayro_interpret::x_object::image::ImageXObject>::draw::<recto::device::PageDevice>
+<hayro_interpret::x_object::image::ImageXObject>::has_mask
+<hayro_interpret::x_object::image::ImageXObject>::new::<hayro_interpret::interpret::run_ops<hayro_interpret::pattern::StencilPatternDevice<hayro::Renderer>>::{closure#11}::{closure#0}>
+<hayro_interpret::x_object::image::ImageXObject>::new::<hayro_interpret::interpret::run_ops<recto::device::PageDevice>::{closure#11}::{closure#0}>
+<hayro_interpret::x_object::image::ImageXObject>::new_mask
+<hayro_syntax::object::array::ArrayIter as core::iter::traits::iterator::Iterator>::next
+<hayro_syntax::object::dict::Dict>::get::<[f32; 6usize], &[u8]>
+<hayro_syntax::object::dict::Dict>::get::<hayro_syntax::object::stream::Stream, hayro_syntax::object::name::Name>
+<hayro_syntax::object::name::Name as core::cmp::PartialEq>::eq
+<hayro_syntax::page::Page>::typed_operations
+<hayro_syntax::page::Resources>::get_shading
+<js_sys::Date>::now
+<kurbo::bezpath::BezPath as kurbo::shape::Shape>::bounding_box
+<kurbo::bezpath::BezPath>::control_box
+<kurbo::bezpath::PathSeg as kurbo::param_curve::ParamCurve>::eval
+<kurbo::bezpath::PathSeg as kurbo::param_curve::ParamCurve>::subsegment
+<kurbo::bezpath::PathSeg as kurbo::param_curve::ParamCurveArclen>::inv_arclen
+<kurbo::bezpath::PathSeg as kurbo::param_curve::ParamCurveExtrema>::extrema
+<kurbo::bezpath::PathSeg>::tangents
+<kurbo::cubicbez::CubicBez as kurbo::param_curve::ParamCurveExtrema>::extrema::one_coord
+<kurbo::offset::CubicOffset>::apply
+<kurbo::offset::CubicOffset>::eval_err
+<kurbo::offset::CubicOffset>::offset_rec
+<kurbo::stroke::DashIterator<core::iter::adapters::cloned::Cloned<core::slice::iter::Iter<kurbo::bezpath::PathEl>>>>::get_input
+<kurbo::stroke::DashIterator<core::iter::adapters::cloned::Cloned<core::slice::iter::Iter<kurbo::bezpath::PathEl>>>>::step
+<kurbo::stroke::StrokeCtx>::do_cubic
+<kurbo::stroke::StrokeCtx>::do_join
+<kurbo::stroke::StrokeCtx>::do_line
+<kurbo::stroke::StrokeCtx>::finish
+<kurbo::stroke::StrokeCtx>::finish_closed
+<peniko::brush::Brush<peniko::image::ImageBrush<vello_common::paint::ImageSource>> as core::clone::Clone>::clone
+<peniko::gradient::Gradient as vello_common::encode::EncodeExt>::encode_into
+<peniko::image::ImageBrush<vello_common::paint::ImageSource> as vello_common::encode::EncodeExt>::encode_into
+<pic_scale::filter_weights::FilterWeights<f32>>::numerical_approximation::<i16, 15i32>
+<pic_scale::image_store::ImageStore<u8, 1usize> as pic_scale::convolution::HorizontalFilterPass<u8, f32, 1usize>>::horizontal_plan
+<pic_scale::image_store::ImageStore<u8, 1usize> as pic_scale::convolution::VerticalConvolutionPass<u8, f32, 1usize>>::vertical_plan
+<pic_scale::image_store::ImageStore<u8, 3usize> as pic_scale::convolution::HorizontalFilterPass<u8, f32, 3usize>>::horizontal_plan
+<pic_scale::image_store::ImageStore<u8, 3usize> as pic_scale::convolution::VerticalConvolutionPass<u8, f32, 3usize>>::vertical_plan
+<pic_scale::plan::default_planner::DefaultPlanner>::plan_generic_resize::<u8, f32, 1usize>
+<pic_scale::plan::default_planner::DefaultPlanner>::plan_generic_resize::<u8, f32, 3usize>
+<pic_scale::plan::horizontal_filtering::HorizontalFiltering<f32, f64, 1usize> as pic_scale::convolution::RowFilter<f32, 1usize>>::can_do_4_rows
+<pic_scale::plan::horizontal_filtering::HorizontalFiltering<u8, i16, 1usize> as pic_scale::convolution::RowFilter<u8, 1usize>>::run_on_4_rows
+<pic_scale::plan::horizontal_filtering::HorizontalFiltering<u8, i16, 1usize> as pic_scale::convolution::RowFilter<u8, 1usize>>::run_on_row
+<pic_scale::plan::non_alpha_plan::BothAxesConvolvePlan<f32, 3usize> as pic_scale::plan::planner::ResamplingPlan<f32, 3usize>>::scratch_size
+<pic_scale::plan::non_alpha_plan::BothAxesConvolvePlan<u8, 1usize> as pic_scale::plan::planner::ResamplingPlan<u8, 1usize>>::resample
+<pic_scale::plan::non_alpha_plan::BothAxesConvolvePlan<u8, 1usize> as pic_scale::plan::planner::ResamplingPlan<u8, 1usize>>::resample_with_scratch
+<pic_scale::plan::non_alpha_plan::BothAxesConvolvePlan<u8, 3usize> as pic_scale::plan::planner::ResamplingPlan<u8, 3usize>>::resample
+<pic_scale::plan::non_alpha_plan::BothAxesConvolvePlan<u8, 3usize> as pic_scale::plan::planner::ResamplingPlan<u8, 3usize>>::resample_with_scratch
+<pic_scale::plan::trampoline_filtering::TrampolineFiltering<f32, 1usize> as pic_scale::convolution::TrampolineFilter<f32, 1usize>>::scratch_size
+<pic_scale::plan::trampoline_filtering::TrampolineFiltering<f32, 3usize> as pic_scale::convolution::TrampolineFilter<f32, 3usize>>::scratch_size
+<pic_scale::plan::trampoline_filtering::TrampolineFiltering<u8, 1usize> as pic_scale::convolution::TrampolineFilter<u8, 1usize>>::filter
+<pic_scale::plan::trampoline_filtering::TrampolineFiltering<u8, 3usize> as pic_scale::convolution::TrampolineFilter<u8, 3usize>>::filter
+<pic_scale::plan::vertical_filtering::VerticalFiltering<u8, i16, 1usize> as pic_scale::convolution::ColumnFilter<u8, 1usize>>::run_on_row
+<pic_scale::plan::vertical_filtering::VerticalFiltering<u8, i16, 3usize> as pic_scale::convolution::ColumnFilter<u8, 3usize>>::run_on_row
+<pic_scale::scaler::Scaler>::build_single_step_plan::<u8, f32, 1usize>
+<pic_scale::scaler::Scaler>::build_single_step_plan::<u8, f32, 3usize>
+<pic_scale::scaler::Scaler>::plan_planar_resampling
+<pic_scale::scaler::Scaler>::plan_rgb_resampling
+<read_fonts::model::charmap::Charmap>::unicode_is_symbol
+<read_fonts::model::charmap::Charmap>::unicodes
+<read_fonts::model::charmap::SfntUnicodeCharmap>::iter
+<read_fonts::model::charmap::UnicodeSubtables>::map
+<read_fonts::model::font::Font>::cff_subfont
+<read_fonts::model::font::Font>::outline_glyphs
+<read_fonts::model::font::tables::Tables>::gsub_state
+<read_fonts::model::font::tables::Tables>::vmtx_state
+<read_fonts::model::glyph::outline::cff::CffGlyph>::draw
+<read_fonts::model::glyph::outline::glyf::GlyfContext as read_fonts::tables::glyf::outline::context::OutlineContext>::coords
+<read_fonts::model::glyph::outline::glyf::GlyfContext as read_fonts::tables::glyf::outline::context::OutlineContext>::glyph
+<read_fonts::model::glyph::outline::glyf::GlyfContext as read_fonts::tables::glyf::outline::context::OutlineContext>::gvar_scalars
+<read_fonts::model::glyph::outline::glyf::GlyfContext as read_fonts::tables::glyf::outline::context::OutlineContext>::h_line_metrics
+<read_fonts::model::glyph::outline::glyf::GlyfContext as read_fonts::tables::glyf::outline::context::OutlineContext>::h_metrics
+<read_fonts::model::glyph::outline::glyf::GlyfContext as read_fonts::tables::glyf::outline::context::OutlineContext>::has_hvar
+<read_fonts::model::glyph::outline::glyf::GlyfContext as read_fonts::tables::glyf::outline::context::OutlineContext>::units_per_em
+<read_fonts::model::glyph::outline::glyf::GlyfContext as read_fonts::tables::glyf::outline::context::OutlineContext>::v_metrics
+<read_fonts::model::glyph::outline::glyf::GlyfGlyph>::draw_unscaled
+<read_fonts::model::glyph::outline::glyphs::OutlineGlyph>::draw
+<read_fonts::model::glyph::outline::glyphs::OutlineGlyph>::draw_dyn
+<read_fonts::model::glyph::outline::glyphs::OutlineGlyph>::draw_unscaled
+<read_fonts::model::glyph::outline::glyphs::OutlineGlyphs>::get
+<read_fonts::model::glyph::outline::glyphs::OutlineGlyphs>::len
+<read_fonts::model::metrics::glyph::GlyphMetrics>::h_advance_batched::<font_types::fixed::F48Dot16, <read_fonts::model::metrics::glyph::GlyphMetrics>::h_advance_exact::{closure#0}, core::iter::sources::once::Once<(font_types::glyph_id::GlyphId, &mut font_types::fixed::F48Dot16)>>
+<read_fonts::ps::cff::font::CffFontRef>::blend_state
+<read_fonts::ps::cff::font::CffFontRef>::evaluate_charstring::<read_fonts::ps::charstring::TransformSink<read_fonts::ps::charstring::NopFilterSink<&mut dyn read_fonts::model::glyph::outline::path::PathSink>>>
+<read_fonts::ps::cff::font::CffFontRef>::subfont_hinted
+<read_fonts::ps::cff::font::CffFontRef>::transform
+<read_fonts::ps::cff::font::Subfont>::new_hinted
+<read_fonts::ps::cff::index::Index>::get
+<read_fonts::ps::cff::index::Index>::new
+<read_fonts::ps::cff::stack::Stack>::apply_delta_prefix_sum
+<read_fonts::ps::cff::stack::Stack>::fixed_array::<2usize>
+<read_fonts::ps::cff::v1::FdSelect>::font_index
+<read_fonts::ps::charstring::Evaluator>::emit_curves::<3usize>
+<read_fonts::ps::charstring::Evaluator>::evaluate
+<read_fonts::ps::charstring::Evaluator>::evaluate_impl
+<read_fonts::ps::charstring::Evaluator>::evaluate_operator
+<read_fonts::ps::charstring::Evaluator>::new
+<read_fonts::ps::charstring::NopFilterSink<&mut dyn read_fonts::model::glyph::outline::path::PathSink>>::flush_pending
+<read_fonts::ps::charstring::TransformSink<read_fonts::ps::charstring::NopFilterSink<&mut dyn read_fonts::model::glyph::outline::path::PathSink>> as read_fonts::ps::charstring::CommandSink>::close
+<read_fonts::ps::charstring::TransformSink<read_fonts::ps::charstring::NopFilterSink<&mut dyn read_fonts::model::glyph::outline::path::PathSink>> as read_fonts::ps::charstring::CommandSink>::curve_to
+<read_fonts::ps::charstring::TransformSink<read_fonts::ps::charstring::NopFilterSink<&mut dyn read_fonts::model::glyph::outline::path::PathSink>> as read_fonts::ps::charstring::CommandSink>::line_to
+<read_fonts::ps::charstring::TransformSink<read_fonts::ps::charstring::NopFilterSink<read_fonts::ps::charstring::ControlBoundsSink>> as read_fonts::ps::charstring::CommandSink>::counter_mask
+<read_fonts::ps::charstring::TransformSink<read_fonts::ps::charstring::NopFilterSink<read_fonts::ps::charstring::ControlBoundsSink>> as read_fonts::ps::charstring::CommandSink>::hstem
+<read_fonts::ps::charstring::TransformSink<read_fonts::ps::charstring::NopFilterSink<read_fonts::ps::charstring::ControlBoundsSink>> as read_fonts::ps::charstring::CommandSink>::move_to
+<read_fonts::ps::charstring::TransformSink<read_fonts::ps::charstring::NopFilterSink<read_fonts::ps::charstring::ControlBoundsSink>>>::transform
+<read_fonts::ps::charstring::TransformSink<read_fonts::ps::charstring::NopFilterSink<skrifa::outline::cff::PenSink<skrifa::outline::unscaled::PointsFromPath<skrifa::outline::unscaled::UnscaledOutlineBuf<256usize>>>>> as read_fonts::ps::charstring::CommandSink>::hstem
+<read_fonts::ps::hinting::Blues>::new::<core::iter::adapters::map::Map<core::iter::adapters::zip::Zip<core::slice::iter::Iter<i32>, core::slice::iter::Iter<bool>>, <read_fonts::ps::cff::stack::Stack>::fixed_values::{closure#0}>>
+<read_fonts::ps::hinting::Blues>::values
+<read_fonts::ps::hinting::StemSnaps>::new::<core::iter::adapters::map::Map<core::iter::adapters::zip::Zip<core::slice::iter::Iter<i32>, core::slice::iter::Iter<bool>>, <read_fonts::ps::cff::stack::Stack>::fixed_values::{closure#0}>>
+<read_fonts::tables::aat::Lookup8>::value_array
+<read_fonts::tables::cmap::Cmap12Iter as core::iter::traits::iterator::Iterator>::next
+<read_fonts::tables::cmap::Cmap4Iter as core::iter::traits::iterator::Iterator>::next
+<read_fonts::tables::cmap::Cmap>::best_subtable
+<read_fonts::tables::cmap::Cmap>::uvs_subtable
+<read_fonts::tables::cmap::CmapSubtable>::iter_with_limits
+<read_fonts::tables::cmap::CmapSubtableIter as core::iter::traits::iterator::Iterator>::next
+<read_fonts::tables::glyf::ComponentIter as core::iter::traits::iterator::Iterator>::next
+<read_fonts::tables::glyf::CompositeGlyph>::count_and_instructions
+<read_fonts::tables::glyf::outline::load::Pass<read_fonts::tables::glyf::outline::scale::Scale26Dot6>>::load
+<read_fonts::tables::glyf::outline::load::Pass<read_fonts::tables::glyf::outline::scale::Unscaled>>::load
+<read_fonts::tables::glyf::outline::plan::OutlinePlan>::load::<read_fonts::tables::glyf::outline::scale::Scale26Dot6>
+<read_fonts::tables::glyf::outline::plan::OutlinePlan>::load::<read_fonts::tables::glyf::outline::scale::Unscaled>
+<read_fonts::tables::glyf::outline::plan::OutlinePlan>::walk
+<read_fonts::tables::glyf::outline::scale::Scale26Dot6 as read_fonts::tables::glyf::outline::scale::Scale>::load_empty_phantom
+<read_fonts::tables::glyf::outline::scale::Scale26Dot6 as read_fonts::tables::glyf::outline::scale::Scale>::load_simple_points
+<read_fonts::tables::glyf::outline::scale::Unscaled as read_fonts::tables::glyf::outline::scale::Scale>::load_simple_points
+<read_fonts::tables::gpos::Gpos>::feature_list
+<read_fonts::tables::gpos::Gpos>::lookup_list
+<read_fonts::tables::gpos::Gpos>::script_list
+<read_fonts::tables::gpos::SinglePosFormat1>::coverage
+<read_fonts::tables::gsub::Gsub>::feature_variations
+<read_fonts::tables::gsub::SubstitutionLookup as read_fonts::read::FontRead>::read_with_args
+<read_fonts::tables::gsub::SubstitutionLookup>::subtables
+<read_fonts::tables::layout::ChainedSequenceContextFormat3>::seq_lookup_records
+<read_fonts::tables::layout::ChainedSequenceContextFormat3>::seq_lookup_records_byte_range
+<read_fonts::tables::layout::ClassDefFormat2>::class_range_records
+<read_fonts::tables::layout::CoverageFormat1>::glyph_array
+<read_fonts::tables::layout::CoverageTable>::iter
+<read_fonts::tables::layout::Feature>::lookup_list_indices
+<read_fonts::tables::layout::FeatureList>::feature_records
+<read_fonts::tables::layout::FeatureList>::get
+<read_fonts::tables::layout::LangSysRecord>::lang_sys
+<read_fonts::tables::layout::ScriptList>::index_for_tag
+<read_fonts::tables::layout::ScriptRecord>::script
+<read_fonts::tables::layout::SequenceContextFormat1>::seq_rule_sets
+<read_fonts::tables::layout::SequenceRuleSet>::seq_rule_offsets
+<read_fonts::tables::layout::SequenceRuleSet>::seq_rules
+<read_fonts::tables::layout::script::ScriptTags as core::ops::deref::Deref>::deref
+<read_fonts::tables::layout::script::ScriptTags>::from_unicode
+<read_fonts::tables::loca::Loca>::read
+<read_fonts::tables::math::MathGlyphConstruction>::glyph_assembly
+<read_fonts::tables::name::MacRomanMapping>::decode
+<read_fonts::tables::name::MacRomanMapping>::encode
+<recto::Document>::pixmap_settings
+<recto::Document>::render
+<recto::RenderTask>::new
+<recto::assets::resolve as core::ops::function::Fn<(&hayro_font::FontQuery,)>>::call
+<recto::device::PageDevice as hayro_interpret::device::Device>::draw_image
+<recto::wasm::Document>::objects
+<recto::wasm::RenderTask>::step::{closure#0}
+<skrifa::outline::autohint::context::FontContext as skrifa::outline::autohint::context::AutohintContext>::advance_width
+<skrifa::outline::autohint::context::FontContext as skrifa::outline::autohint::context::AutohintContext>::coords
+<skrifa::outline::autohint::context::FontContext as skrifa::outline::autohint::context::AutohintContext>::draw_unscaled
+<skrifa::outline::autohint::context::FontContext as skrifa::outline::autohint::context::AutohintContext>::fill_outline
+<skrifa::outline::autohint::context::FontContext as skrifa::outline::autohint::context::AutohintContext>::for_each_mapping
+<skrifa::outline::autohint::context::FontContext as skrifa::outline::autohint::context::AutohintContext>::glyph_count
+<skrifa::outline::autohint::context::FontContext as skrifa::outline::autohint::context::AutohintContext>::gsub
+<skrifa::outline::autohint::context::FontContext as skrifa::outline::autohint::context::AutohintContext>::is_fixed_pitch
+<skrifa::outline::autohint::context::FontContext as skrifa::outline::autohint::context::AutohintContext>::is_symbol
+<skrifa::outline::autohint::context::FontContext as skrifa::outline::autohint::context::AutohintContext>::map
+<skrifa::outline::autohint::context::FontContext as skrifa::outline::autohint::context::AutohintContext>::style
+<skrifa::outline::autohint::context::FontContext as skrifa::outline::autohint::context::AutohintContext>::units_per_em
+<skrifa::outline::autohint::instance::GlyphStyles>::from_context
+<skrifa::outline::autohint::instance::Instance>::draw::<&mut dyn read_fonts::model::glyph::outline::path::PathSink>::{closure#0}
+<skrifa::outline::autohint::instance::LocatedState>::new
+<skrifa::outline::autohint::instance::LocatedState>::of_outlines
+<skrifa::outline::autohint::instance::LocatedState>::of_outlines::{closure#0}
+<skrifa::outline::autohint::instance::ScalingData as core::any::Any>::type_id
+<skrifa::outline::autohint::outline::Outline as read_fonts::model::glyph::outline::unscaled::UnscaledOutlineSink>::end_contour
+<skrifa::outline::autohint::outline::Outline as read_fonts::model::glyph::outline::unscaled::UnscaledOutlineSink>::point
+<skrifa::outline::autohint::outline::Outline as read_fonts::model::glyph::outline::unscaled::UnscaledOutlineSink>::start_contour
+<skrifa::outline::autohint::outline::Outline>::analyze_and_validate
+<skrifa::outline::autohint::shape::ClusterShaper>::shape
+<skrifa::outline::autohint::shape::GsubHandler>::check_blue_coverage
+<skrifa::outline::autohint::shape::GsubHandler>::process_lookup
+<skrifa::outline::autohint::shape::Shaper>::cluster_shaper
+<skrifa::outline::autohint::shape::Shaper>::compute_coverage
+<skrifa::outline::autohint::shape::Shaper>::lookup_indices
+<skrifa::outline::autohint::style::GlyphStyleMap>::new_inner
+<skrifa::outline::autohint::style::GlyphStyleMap>::new_inner::{closure#0}
+<skrifa::outline::cff::hint::HintMap>::adjust
+<skrifa::outline::cff::hint::HintMap>::build
+<skrifa::outline::cff::hint::HintMap>::insert
+<skrifa::outline::cff::hint::HintMap>::transform
+<skrifa::outline::cff::hint::HintState>::new
+<skrifa::outline::cff::hint::HintingSink<read_fonts::ps::charstring::NopFilterSink<&mut dyn read_fonts::model::glyph::outline::path::PathSink>> as read_fonts::ps::charstring::CommandSink>::curve_to
+<skrifa::outline::cff::hint::HintingSink<read_fonts::ps::charstring::NopFilterSink<&mut dyn read_fonts::model::glyph::outline::path::PathSink>> as read_fonts::ps::charstring::CommandSink>::line_to
+<skrifa::outline::cff::hint::HintingSink<read_fonts::ps::charstring::NopFilterSink<&mut dyn read_fonts::model::glyph::outline::path::PathSink>> as read_fonts::ps::charstring::CommandSink>::move_to
+<skrifa::outline::cff::hint::HintingSink<read_fonts::ps::charstring::NopFilterSink<&mut dyn read_fonts::model::glyph::outline::path::PathSink>>>::maybe_close_subpath
+<skrifa::outline::cff::hint::HintingSink<skrifa::outline::cff::HintedTransformingSink<read_fonts::ps::charstring::NopFilterSink<skrifa::outline::cff::PenSink<skrifa::outline::ErasedPen>>>> as read_fonts::ps::charstring::CommandSink>::close
+<skrifa::outline::cff::hint::HintingSink<skrifa::outline::cff::HintedTransformingSink<read_fonts::ps::charstring::NopFilterSink<skrifa::outline::cff::PenSink<skrifa::outline::ErasedPen>>>> as read_fonts::ps::charstring::CommandSink>::counter_mask
+<skrifa::outline::cff::hint::HintingSink<skrifa::outline::cff::HintedTransformingSink<read_fonts::ps::charstring::NopFilterSink<skrifa::outline::cff::PenSink<skrifa::outline::ErasedPen>>>> as read_fonts::ps::charstring::CommandSink>::hint_mask
+<skrifa::outline::cff::hint::HintingSink<skrifa::outline::cff::HintedTransformingSink<read_fonts::ps::charstring::NopFilterSink<skrifa::outline::cff::PenSink<skrifa::outline::ErasedPen>>>> as read_fonts::ps::charstring::CommandSink>::hstem
+<skrifa::outline::unscaled::UnscaledOutlineBuf<256usize> as read_fonts::model::glyph::outline::unscaled::UnscaledOutlineSink>::end_contour
+<skrifa::outline::unscaled::UnscaledOutlineBuf<256usize> as read_fonts::model::glyph::outline::unscaled::UnscaledOutlineSink>::point
+<skrifa::outline::unscaled::UnscaledOutlineBuf<256usize> as read_fonts::model::glyph::outline::unscaled::UnscaledOutlineSink>::start_contour
+<skrifa::scaler::ScalerFont>::draw_unhinted
+<skrifa::scaler::ScalerFont>::outline
+<skrifa::scaler::ScalerOutline>::draw_dyn
+<skrifa::scaler::postscript::HintedSubfont>::new
+<smallvec::SmallVec<[kurbo::affine::Affine; 3usize]>>::reserve_one_unchecked
+<smallvec::SmallVec<[peniko::gradient::ColorStop; 4usize]>>::reserve_one_unchecked
+<smallvec::SmallVec<[peniko::gradient::ColorStop; 4usize]>>::try_grow
+<smallvec::SmallVec<[skrifa::outline::autohint::outline::Contour; 8usize]>>::reserve_one_unchecked
+<smallvec::SmallVec<[skrifa::outline::autohint::outline::Point; 96usize]>>::reserve_one_unchecked
+<smallvec::SmallVec<[skrifa::outline::autohint::topo::Edge; 12usize]>>::reserve_one_unchecked
+<smallvec::SmallVec<[skrifa::outline::autohint::topo::Edge; 12usize]>>::try_grow
+<smallvec::SmallVec<[skrifa::outline::autohint::topo::Segment; 18usize]>>::reserve_one_unchecked
+<smallvec::SmallVec<[skrifa::outline::autohint::topo::Segment; 18usize]>>::try_grow
+<std::hash::random::DefaultHasher as core::hash::Hasher>::write_u32
+<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&hayro_syntax::object::ObjectIdentifier>
+<std::sync::once_lock::OnceLock<alloc::boxed::Box<[std::sync::once_lock::OnceLock<core::option::Option<read_fonts::ps::cff::font::Subfont>>]>>>::initialize::<<std::sync::once_lock::OnceLock<alloc::boxed::Box<[std::sync::once_lock::OnceLock<core::option::Option<read_fonts::ps::cff::font::Subfont>>]>>>::get_or_init<<read_fonts::model::font::Font>::cff_subfont::{closure#0}>::{closure#0}, !>
+<std::sync::once_lock::OnceLock<alloc::boxed::Box<dyn core::any::Any + core::marker::Send + core::marker::Sync>>>::initialize::<<std::sync::once_lock::OnceLock<alloc::boxed::Box<dyn core::any::Any + core::marker::Send + core::marker::Sync>>>::get_or_init<read_fonts::model::font::interop::_get_or_init_scaling_data<<skrifa::outline::autohint::instance::LocatedState>::of_outlines::{closure#1}>::{closure#0}>::{closure#0}, !>
+<std::sync::once_lock::OnceLock<alloc::sync::Arc<skrifa::outline::autohint::instance::LocatedState>>>::initialize::<<std::sync::once_lock::OnceLock<alloc::sync::Arc<skrifa::outline::autohint::instance::LocatedState>>>::get_or_init<<skrifa::outline::autohint::instance::LocatedState>::of_outlines::{closure#0}>::{closure#0}, !>
+<std::sync::once_lock::OnceLock<core::option::Option<alloc::boxed::Box<[[u8; 3usize]; 256usize]>>>>::initialize::<<std::sync::once_lock::OnceLock<core::option::Option<alloc::boxed::Box<[[u8; 3usize]; 256usize]>>>>::get_or_init<<hayro_interpret::color::U8Lookup<[u8; 3usize]>>::get_or_init_with<<hayro_interpret::color::U8Lookup<[u8; 3usize]>>::get_or_init<<hayro_interpret::color::indexed::Indexed>::u8_lookup::{closure#0}>::{closure#0}>::{closure#0}>::{closure#0}, !>
+<std::sync::once_lock::OnceLock<core::option::Option<alloc::boxed::Box<[u8; 256usize]>>>>::initialize::<<std::sync::once_lock::OnceLock<core::option::Option<alloc::boxed::Box<[u8; 256usize]>>>>::get_or_init<<hayro_interpret::color::U8Lookup<u8>>::get_or_init_with<<hayro_interpret::color::indexed::Indexed>::u8_luma_lookup::{closure#0}>::{closure#0}>::{closure#0}, !>
+<std::sync::once_lock::OnceLock<core::option::Option<read_fonts::ps::cff::font::Subfont>>>::initialize::<<std::sync::once_lock::OnceLock<core::option::Option<read_fonts::ps::cff::font::Subfont>>>::get_or_init<<read_fonts::model::font::Font>::cff_subfont::{closure#1}>::{closure#0}, !>
+<u8 as core::fmt::LowerHex>::fmt
+<vello_common::clip::ClipContext>::push_generated_clip::<<vello_common::clip::ClipContext>::push_clip_path<core::iter::adapters::copied::Copied<core::slice::iter::Iter<kurbo::bezpath::PathEl>>>::{closure#0}>
+<vello_common::clip::ClipContext>::push_generated_clip::<<vello_common::clip::ClipContext>::push_clip_rect::{closure#0}>
+<vello_common::clip::ClipState>::get
+<vello_common::clip::ClipState>::push_clip_path
+<vello_common::clip::ClipState>::push_clip_rect
+<vello_common::encode::FocalData>::create
+<vello_common::paint::Paint as core::convert::From<color::color::AlphaColor<color::colorspace::Srgb>>>::from
+<vello_common::paint::PremulColor>::from_alpha_color
+<vello_common::pixmap::Pixmap>::from_parts
+<vello_common::pixmap::Pixmap>::new
+<vello_common::pixmap::Pixmap>::take_rgba8
+<vello_common::pixmap::PixmapMut as core::convert::From<&mut vello_common::pixmap::Pixmap>>::from
+<vello_common::record::CommandRecorder<vello_cpu::record::RecordedFill>>::push_node
+<vello_common::record::CommandRecorder<vello_cpu::record::RecordedFill>>::push_recorded_layer
+<vello_common::record::RecordedLayer>::regular
+<vello_common::render_state::RenderState as core::default::Default>::default
+<vello_common::strip::Strip>::emit_culled_background::<vello_common::strip::render_impl<fearless_simd::generated::wasm::WasmSimd128>::{closure#1}>::{closure#0}
+<vello_common::strip_generator::StripGenerator>::generate_filled_rect_fast
+<vello_common::strip_generator::StripGenerator>::generate_with_clip
+<vello_common::tile::CulledWindings>::new
+<vello_common::tile::CulledWindings>::reset
+<vello_common::tile::Tiles>::make_tiles_analytic_aa
+<vello_common::transforms::RootTransforms as core::default::Default>::default
+<vello_common::transforms::RootTransforms>::effective_paint_transform
+<vello_common::transforms::RootTransforms>::effective_path_transform
+<vello_common::transforms::RootTransforms>::pop_root
+<vello_common::transforms::RootTransforms>::push_root
+<vello_common::viewport::ViewportState>::new
+<vello_common::viewport::ViewportState>::pop_clip
+<vello_common::viewport::ViewportState>::push_clip_path
+<vello_common::viewport::ViewportState>::push_clip_rect
+<vello_cpu::coarse::bucketer::CommandBucketer>::bbox_span
+<vello_cpu::coarse::bucketer::CommandBucketer>::bucket_commands
+<vello_cpu::coarse::bucketer::CommandBucketer>::pop_layer
+<vello_cpu::coarse::bucketer::CommandBucketer>::push_fill
+<vello_cpu::coarse::bucketer::CommandBucketer>::push_fill::{closure#1}
+<vello_cpu::coarse::bucketer::CommandBucketer>::push_layer
+<vello_cpu::coarse::depth::DepthBuffer>::next_unset_run
+<vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher as vello_cpu::dispatch::Dispatcher>::fill_path
+<vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher as vello_cpu::dispatch::Dispatcher>::fill_rect_fast
+<vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher as vello_cpu::dispatch::Dispatcher>::flush
+<vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher as vello_cpu::dispatch::Dispatcher>::has_layers
+<vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher as vello_cpu::dispatch::Dispatcher>::pop_clip
+<vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher as vello_cpu::dispatch::Dispatcher>::pop_layer
+<vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher as vello_cpu::dispatch::Dispatcher>::push_clip_path
+<vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher as vello_cpu::dispatch::Dispatcher>::push_clip_rect
+<vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher as vello_cpu::dispatch::Dispatcher>::push_layer
+<vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher as vello_cpu::dispatch::Dispatcher>::rasterize
+<vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher as vello_cpu::dispatch::Dispatcher>::stroke_path
+<vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher>::bucket_and_rasterize::<fearless_simd::generated::wasm::WasmSimd128, vello_cpu::fine::lowp::U8Kernel>
+<vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher>::record_fill
+<vello_cpu::fine::Fine<fearless_simd::generated::wasm::WasmSimd128, vello_cpu::fine::lowp::U8Kernel>>::indexed_fill
+<vello_cpu::fine::Fine<fearless_simd::generated::wasm::WasmSimd128, vello_cpu::fine::lowp::U8Kernel>>::init_uncovered_range
+<vello_cpu::fine::Fine<fearless_simd::generated::wasm::WasmSimd128, vello_cpu::fine::lowp::U8Kernel>>::layer_fill
+<vello_cpu::fine::Fine<fearless_simd::generated::wasm::WasmSimd128, vello_cpu::fine::lowp::U8Kernel>>::paint_fill
+<vello_cpu::fine::common::image::PlainNNImagePainter<fearless_simd::generated::wasm::WasmSimd128> as vello_cpu::fine::Painter>::paint_u8
+<vello_cpu::fine::lowp::U8Kernel as vello_cpu::fine::FineKernel<fearless_simd::generated::wasm::WasmSimd128>>::alpha_composite_buffer
+<vello_cpu::fine::lowp::U8Kernel as vello_cpu::fine::FineKernel<fearless_simd::generated::wasm::WasmSimd128>>::plain_medium_quality_image_painter
+<vello_cpu::fine::lowp::U8Kernel as vello_cpu::fine::FineKernel<fearless_simd::generated::wasm::WasmSimd128>>::plain_nn_image_painter
+<vello_cpu::fine::lowp::gradient::GradientPainter<fearless_simd::generated::wasm::WasmSimd128> as vello_cpu::fine::Painter>::paint_u8
+<vello_cpu::fine::lowp::image::PlainBilinearImagePainter<fearless_simd::generated::wasm::WasmSimd128> as vello_cpu::fine::Painter>::paint_u8
+<vello_cpu::region::Region>::from_rows
+<vello_cpu::render::RenderContext>::encode_current_paint
+<vello_cpu::render::RenderContext>::fill_path
+<vello_cpu::render::RenderContext>::fill_rect
+<vello_cpu::render::RenderContext>::fill_rect::{closure#0}
+<vello_cpu::render::RenderContext>::flush
+<vello_cpu::render::RenderContext>::new
+<vello_cpu::render::RenderContext>::new_with
+<vello_cpu::render::RenderContext>::pop_clip
+<vello_cpu::render::RenderContext>::pop_layer
+<vello_cpu::render::RenderContext>::push_clip_path
+<vello_cpu::render::RenderContext>::push_clip_rect
+<vello_cpu::render::RenderContext>::push_layer
+<vello_cpu::render::RenderContext>::render_with::<&mut vello_common::pixmap::Pixmap>
+<vello_cpu::render::RenderContext>::reset_filter_effect
+<vello_cpu::render::RenderContext>::reset_mask
+<vello_cpu::render::RenderContext>::set_stroke
+<vello_cpu::render::RenderContext>::stroke_path
+<vello_cpu::render::RenderContext>::take_current_state
+<zune_core::bytestream::reader::ZReader<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>::peek_at
+<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]> as std::io::Read>::read
+<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]> as std::io::Seek>::seek
+<zune_jpeg::bitstream::BitStream>::decode_mcu_ac_refine::<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>
+<zune_jpeg::bitstream::BitStream>::decode_mcu_block::<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>
+<zune_jpeg::bitstream::BitStream>::decode_prog_dc_refine::<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>
+<zune_jpeg::components::Components>::from
+<zune_jpeg::components::Components>::setup_upsample_scanline
+<zune_jpeg::decoder::JpegDecoder<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>::check_stream_marker_after_mcu_width
+<zune_jpeg::decoder::JpegDecoder<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>::decode_headers_internal
+<zune_jpeg::decoder::JpegDecoder<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>::decode_mcu_ycbcr_baseline
+<zune_jpeg::decoder::JpegDecoder<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>::decode_mcu_ycbcr_progressive
+<zune_jpeg::decoder::JpegDecoder<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>::finish_progressive_decoding
+<zune_jpeg::decoder::JpegDecoder<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>::handle_rst
+<zune_jpeg::decoder::JpegDecoder<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>::handle_rst_main
+<zune_jpeg::decoder::JpegDecoder<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>::parse_entropy_coded_data
+<zune_jpeg::decoder::JpegDecoder<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>::parse_marker_inner
+<zune_jpeg::decoder::JpegDecoder<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>::post_process
+<zune_jpeg::decoder::JpegDecoder<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>::post_process::{closure#1}
+<zune_jpeg::decoder::JpegDecoder<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>::set_upsampling
+<zune_jpeg::huffman::HuffmanTable>::new
+<zune_jpeg::marker::Marker>::from_u8
+__wbg_get_renderedpage_height
+__wbg_get_renderedpage_truncated
+__wbg_get_renderedpage_width
+__wbg_pageobjects_free
+__wbg_renderedpage_free
+__wbg_rendertask_free
+compiler_builtins::math::libm_math::cos::cos
+compiler_builtins::math::libm_math::fmod::fmod
+compiler_builtins::math::libm_math::powf::powf
+compiler_builtins::math::libm_math::rem_pio2::rem_pio2
+compiler_builtins::math::libm_math::sin::sin
+core::array::try_from_trusted_iterator::<skrifa::outline::autohint::metrics::UnscaledAxisMetrics, core::ops::try_trait::NeverShortCircuit<skrifa::outline::autohint::metrics::UnscaledAxisMetrics>, 2usize, core::iter::adapters::map::Map<core::iter::adapters::cloned::Cloned<core::slice::iter::Iter<skrifa::outline::autohint::metrics::UnscaledAxisMetrics>>, core::ops::try_trait::NeverShortCircuit<skrifa::outline::autohint::metrics::UnscaledAxisMetrics>>>
+core::fmt::float::float_to_decimal_common_shortest::<f64>
+core::num::imp::dec2flt::parse::parse_number
+core::num::imp::flt2dec::digits_to_dec_str
+core::num::imp::flt2dec::strategy::grisu::format_shortest_opt
+core::ptr::drop_in_place::<[alloc::vec::Vec<i16>; 4usize]>
+core::ptr::drop_in_place::<alloc::vec::Vec<hayro::group::Capture>>
+core::ptr::drop_in_place::<alloc::vec::Vec<vello_common::record::RecordedLayer>>
+core::ptr::drop_in_place::<alloc::vec::Vec<vello_cpu::coarse::bucketer::RowState>>
+core::ptr::drop_in_place::<alloc::vec::Vec<zune_jpeg::components::Components>>
+core::ptr::drop_in_place::<core::cell::RefCell<vello_cpu::coarse::bucketer::CommandBucketer>>
+core::ptr::drop_in_place::<core::option::Option<skrifa::outline::autohint::metrics::UnscaledStyleMetrics>>
+core::ptr::drop_in_place::<core::result::Result<[u8; 4usize], zune_core::bytestream::reader::ZByteIoError>>
+core::ptr::drop_in_place::<core::result::Result<usize, std::io::error::Error>>
+core::ptr::drop_in_place::<hayro::Kept>
+core::ptr::drop_in_place::<hayro::Renderer>
+core::ptr::drop_in_place::<hayro::group::PageReplay>
+core::ptr::drop_in_place::<hayro_interpret::encode::EncodedShadingPattern>
+core::ptr::drop_in_place::<hayro_interpret::interpret::state::PaintState>
+core::ptr::drop_in_place::<hayro_interpret::types::Paint>
+core::ptr::drop_in_place::<hayro_interpret::x_object::XObject>
+core::ptr::drop_in_place::<hayro_interpret::x_object::image::ImageXObject>
+core::ptr::drop_in_place::<pic_scale::plan::horizontal_filtering::HorizontalFiltering<u8, i16, 1usize>>
+core::ptr::drop_in_place::<pic_scale::plan::non_alpha_plan::BothAxesConvolvePlan<f32, 1usize>>
+core::ptr::drop_in_place::<pic_scale::plan::trampoline_filtering::TrampolineFiltering<f32, 1usize>>
+core::ptr::drop_in_place::<pic_scale::plan::vertical_filtering::VerticalFiltering<u8, i16, 1usize>>
+core::ptr::drop_in_place::<recto::wasm::RenderTask>
+core::ptr::drop_in_place::<skrifa::outline::autohint::instance::ScalingData>
+core::ptr::drop_in_place::<std::collections::hash::map::HashMap<hayro_syntax::object::name::Name, hayro_syntax::object::dict::Dict, rustc_hash::FxBuildHasher>>
+core::ptr::drop_in_place::<std::sync::poison::rwlock::RwLockWriteGuard<alloc::vec::Vec<core::option::Option<skrifa::outline::autohint::metrics::UnscaledStyleMetrics>>>>
+core::ptr::drop_in_place::<vello_common::clip::ClipContext>
+core::ptr::drop_in_place::<vello_common::clip::ClipState>
+core::ptr::drop_in_place::<vello_common::record::CommandRecorder<vello_cpu::record::RecordedFill>>
+core::ptr::drop_in_place::<vello_common::strip_generator::StripGenerator>
+core::ptr::drop_in_place::<vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher>
+core::ptr::drop_in_place::<vello_cpu::render::RenderContext>
+core::ptr::drop_in_place::<zune_jpeg::decoder::ImageInfo>
+core::ptr::drop_in_place::<zune_jpeg::decoder::JpegDecoder<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>
+core::ptr::drop_in_place::<zune_jpeg::errors::DecodeErrors>
+core::slice::sort::shared::pivot::median3_rec::<vello_common::tile::Tile, <vello_common::tile::Tile as core::cmp::PartialOrd>::lt>
+core::slice::sort::shared::smallsort::insertion_sort_shift_left::<f64, <[f64]>::sort_by<<kurbo::cubicbez::CubicBez as kurbo::param_curve::ParamCurveExtrema>::extrema::{closure#0}>::{closure#0}>
+core::slice::sort::shared::smallsort::insertion_sort_shift_left::<i32, <i32 as core::cmp::PartialOrd>::lt>
+core::slice::sort::shared::smallsort::insertion_sort_shift_left::<usize, <[usize]>::sort_unstable_by<pic_scale::filter_weights::quantize_kernel::{closure#0}>::{closure#0}>
+core::slice::sort::shared::smallsort::insertion_sort_shift_left::<vello_common::tile::Tile, <vello_common::tile::Tile as core::cmp::PartialOrd>::lt>
+core::slice::sort::unstable::ipnsort::<i32, <i32 as core::cmp::PartialOrd>::lt>
+core::slice::sort::unstable::ipnsort::<usize, <[usize]>::sort_unstable_by<pic_scale::filter_weights::quantize_kernel::{closure#0}>::{closure#0}>
+core::slice::sort::unstable::ipnsort::<vello_common::tile::Tile, <vello_common::tile::Tile as core::cmp::PartialOrd>::lt>
+core::slice::sort::unstable::quicksort::quicksort::<i32, <i32 as core::cmp::PartialOrd>::lt>
+core::slice::sort::unstable::quicksort::quicksort::<usize, <[usize]>::sort_unstable_by<pic_scale::filter_weights::quantize_kernel::{closure#0}>::{closure#0}>
+core::slice::sort::unstable::quicksort::quicksort::<vello_common::tile::Tile, <vello_common::tile::Tile as core::cmp::PartialOrd>::lt>
+cos
+document_objects
+document_objects multivalue shim
+document_render
+document_render multivalue shim
+document_renderTask
+document_renderTask multivalue shim
+document_scan
+document_scan multivalue shim
+exp2f
+fmax
+fmod
+foldhash::seed::gen_per_hasher_seed
+hayro::draw_page
+hayro::image::downscale_with_alpha::<3usize>
+hayro::image::resize_image_data
+hayro::render
+hayro::render_into
+hayro_interpret::gradient::approximate_gradient_interval::<<hayro_interpret::encode::EncodedRadialAxialShading>::as_svg_gradient::{closure#0}>
+hayro_interpret::interpret::annot_fallback::appearance
+hayro_interpret::interpret::annot_fallback::border
+hayro_interpret::interpret::annot_fallback::default_appearance_of
+hayro_interpret::interpret::annot_fallback::free_text
+hayro_interpret::interpret::annot_fallback::in_form
+hayro_interpret::interpret::annot_fallback::own_resources
+hayro_interpret::interpret::annot_fallback::owner
+hayro_interpret::interpret::annot_fallback::text_line
+hayro_interpret::interpret::annot_fallback::text_lines
+hayro_interpret::interpret::annot_fallback::widget
+hayro_interpret::interpret::annot_fallback::widget::{closure#0}
+hayro_interpret::interpret::appearance_stream
+hayro_interpret::interpret::interpret::<hayro::Renderer>
+hayro_interpret::interpret::interpret_annotation::<hayro::Renderer>
+hayro_interpret::interpret::interpret_page::<hayro::Renderer>
+hayro_interpret::interpret::path::end_path::<hayro::Renderer>
+hayro_interpret::interpret::path::fill_path_impl::<hayro::Renderer>::{closure#0}
+hayro_interpret::interpret::path::stroke_path_impl::<hayro::Renderer>
+hayro_interpret::interpret::run_ops::<hayro::Renderer>
+hayro_interpret::interpret::text::apply_glyph_run_adjustment
+hayro_interpret::interpret::text::show_glyph_run::<hayro::Renderer>
+hayro_interpret::x_object::decode::decode_context
+hayro_interpret::x_object::decode::mask::decode_mask
+hayro_syntax::content::ops::parse_named_color
+kurbo::offset::offset_cubic
+kurbo::stroke::extend_reversed
+kurbo::stroke::square_cap
+pageobjects_imageBoxes
+pageobjects_imageBoxes multivalue shim
+pageobjects_imagePixels
+pageobjects_imagePixels multivalue shim
+pageobjects_pathBoxes
+pageobjects_pathBoxes multivalue shim
+pageobjects_pathFlags
+pageobjects_pathFlags multivalue shim
+pageobjects_pathStart
+pageobjects_pathStart multivalue shim
+pageobjects_segmentKinds
+pageobjects_segmentKinds multivalue shim
+pageobjects_segmentPoints
+pageobjects_segmentPoints multivalue shim
+pageobjects_textObjects
+pageobjects_truncated
+pagescan_takeObjects
+pic_scale::filter_weights::quantize_kernel
+pic_scale::handler_provider::handle_fixed_row_u8::<1usize>
+pic_scale::handler_provider::handle_fixed_rows_4_u8::<1usize>
+pic_scale::math::bc_spline::hermite_spline::<f32>
+pic_scale::math::weights::generate_weights::<f32, f64>
+pic_scale::wasm32::rgb_u8::convolve_horizontal_rgb_wasm_row_one
+pic_scale::wasm32::rgb_u8::convolve_horizontal_rgb_wasm_rows_4
+pic_scale::wasm32::vertical_u8::wasm_vertical_neon_row
+powf
+read_fonts::mem::with_scratch::<core::result::Result<read_fonts::model::glyph::outline::DrawnMetrics, read_fonts::model::error::Error>, <read_fonts::model::glyph::outline::glyphs::OutlineGlyph>::draw_dyn::{closure#1}>::{closure#0}
+read_fonts::mem::with_scratch::<core::result::Result<read_fonts::model::glyph::outline::DrawnMetrics, read_fonts::model::error::Error>, <read_fonts::model::glyph::outline::glyphs::OutlineGlyph>::draw_unscaled_dyn::{closure#0}>::{closure#0}
+read_fonts::mem::with_scratch::<skrifa::outline::autohint::style::GlyphStyleMap, <skrifa::outline::autohint::style::GlyphStyleMap>::new::{closure#0}>::{closure#0}
+read_fonts::mem::with_scratch_dyn
+read_fonts::mem::with_scratch_dyn::on_stack::<1024usize>
+read_fonts::mem::with_scratch_dyn::on_stack::<2048usize>
+read_fonts::mem::with_scratch_dyn::on_stack::<512usize>
+read_fonts::model::glyph::outline::glyf::draw_plan
+read_fonts::tables::glyf::outline::scale::read_points_and_phantom::<i32>
+recto::assets::resolve
+recto::device::path_box
+renderedpage_takeRgba
+renderedpage_takeRgba multivalue shim
+rendertask_finish
+rendertask_step
+round
+sin
+skrifa::outline::autohint::hint::edges::align_linked_edge
+skrifa::outline::autohint::hint::edges::stem_width
+skrifa::outline::autohint::hint::hint_outline
+skrifa::outline::autohint::hint::hint_outline_impl
+skrifa::outline::autohint::hint::outline::iup_interpolate
+skrifa::outline::autohint::metrics::scale::compute_unscaled_style_metrics
+skrifa::outline::autohint::metrics::scale::scale_cjk_axis_metrics
+skrifa::outline::autohint::metrics::scale::scale_default_axis_metrics
+skrifa::outline::autohint::metrics::scale::scale_style_metrics
+skrifa::outline::autohint::shape::sort_and_dedup
+skrifa::outline::autohint::topo::segments::compute_segments
+skrifa::outline::autohint::topo::segments::link_segments
+vello_common::clip::intersect
+vello_common::encode::invert_paint_transform
+vello_common::flatten::fill::<&kurbo::bezpath::BezPath>
+vello_common::record::snapped_scene_size
+vello_common::rect::render
+vello_common::strip::render
+vello_common::util::strip_bbox
+zune_jpeg::color_convert::scalar::ycbcr_to_rgb_inner_16_scalar::<false>
+zune_jpeg::headers::parse_app13::<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>
+zune_jpeg::headers::parse_app14::<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>
+zune_jpeg::headers::parse_app1::<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>
+zune_jpeg::headers::parse_sos::<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>
+zune_jpeg::idct::scalar::idct4x4
+zune_jpeg::idct::scalar::idct_int
+zune_jpeg::idct::scalar::idct_int_1x1
+zune_jpeg::mcu_prog::get_marker::<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>
+zune_jpeg::misc::setup_component_params::<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>
+zune_jpeg::upsampler::scalar::upsample_horizontal
+zune_jpeg::upsampler::scalar::upsample_hv
+zune_jpeg::upsampler::scalar::upsample_vertical
+zune_jpeg::worker::color_convert
+zune_jpeg::worker::color_convert_ycbcr
+zune_jpeg::worker::upsample

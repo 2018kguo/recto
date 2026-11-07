@@ -27,14 +27,12 @@ open of bytes, so you can reuse a pooled `Buffer`, change the buffer, or transfe
 away, without waiting. `open` then holds the file in WebAssembly memory for as long as the
 document is open, in memory that comes back only when the instance is replaced.
 
-**Two engines, one API.** A document starts on `recto-text.wasm` (1.7 MB, 0.50 MB with brotli),
-which reads everything but can't draw, and the first `render`, `renderAsync`, `objects` or `scan`
-moves it to `recto.wasm` (3.8 MB, 0.98 MB with brotli): loaded and checked once per thread, then the
-file is reopened there, with no fetch of the PDF. There's nothing to call. If the load fails, the call
-throws `missing-asset` and the document stays usable. The move costs memory: while it runs the file is
-in both instances' memory, on top of any copy you hold, so a 400 MiB file you still hold peaks at 1.36 GB
-resident in Node where one that started on the full engine peaks at 0.94 GB. A thread that will draw, or a large file, should
-start on the full engine with `preloadAssets: ["recto.wasm"]`, which skips the move.
+**One engine, in parts.** The wasm comes in four files, loaded by what a call runs: reading text takes
+`recto.wasm` (1.5 MB, 0.43 MB with brotli); the first `render` adds `recto-render.wasm` (0.77 MB, 0.23 MB);
+functions most files never run are in `recto-more.wasm` (0.86 MB, 0.21 MB) and `recto-rare.wasm` (0.79 MB,
+0.17 MB). There's nothing to call. If a part can't be loaded, the call throws `missing-asset`, every open
+document stays usable, and the next call tries again. A thread that will draw can save the first `render` that
+wait with `preloadAssets: ["recto.wasm"]`, which fetches and compiles what drawing needs now.
 
 ## A document
 
@@ -99,6 +97,37 @@ Helpers over those columns: `textItems(page, info)` makes pdf.js-style text item
 `readingOrder(page, info)` gives the reading order and breaks (it re-lays out rotated pages),
 `annotationTextItems` does the same for annotation text, and `rasterMeasures`,
 `vectorMeasures`, `showsGlyphs` measure what a page paints.
+
+## A pool of threads
+
+```ts
+createPdfPool(options?: { threads?: number; assetBase?: string }): Promise<PdfPool>
+
+pool.open(bytes, { password? }): Promise<PdfPoolDocument>
+pool.stats(): { threads: number; queued: number }
+pool.close()      // or `using`: stops every thread; what's unfinished fails with `closed`
+
+doc.pageCount
+doc.text(i)  doc.render(i, { width, maxHeight? })  doc.objects(i)
+doc.annotations(i)  doc.pageInfo(i)  doc.outline()     // each a promise
+doc.close()       // or `await using`: frees it on every thread
+```
+
+Each call goes to a free thread, and results are what a `PdfDocument` returns. `threads` is a limit,
+by default one less than the machine's cores and at most 8. A thread starts only when a call has to
+wait and none is free, so calls awaited one at a time stay on one thread. Each thread that gets a
+page of a document holds its own copy of the file, and the pool holds one more until `doc.close()`.
+
+It needs no COOP or COEP headers; with them, threads share one copy of the file. `threads` goes up to 64. Loaded
+from another origin, such as a CDN, threads start through a one-line blob that imports `dist/pool-worker.js`, so
+the CDN must send CORS headers for `dist/` as it does for the wasm, and a Content-Security-Policy must allow
+`worker-src blob:`. A thread with no way to start workers (a service worker) gets `wrong-thread`.
+
+A thread that can't start fails what's waiting with its reason, usually `missing-asset`, and the next call tries again; one
+that says nothing for 90 seconds counts as stopped. A thread that stops fails its call with `crash`, and another takes its
+place. An argument or result that can't cross between threads fails that call alone. `render` takes `width` and
+`maxHeight`, and refuses `signal` with a `TypeError`: a call can't be stopped once it runs, only `pool.close()` ends all of them.
+The synchronous API doesn't change, and the pool's code loads only when `createPdfPool` is called.
 
 ## Errors
 
@@ -196,9 +225,9 @@ The wasm and assets are found with `new URL("../wasm/…", import.meta.url)`.
 - **A Content-Security-Policy** must allow `wasm-unsafe-eval`, and `connect-src` for the assets.
 - **A page's main thread and service workers** can't read a file synchronously, so where that's
   so, the assets are fetched while the engine is created: all of them by default, 9.5 MB, or only
-  what `preloadAssets` names (`fonts.bin` 0.26 MB, `cmaps.deflate` 0.36 MB, `cjk-fallback.ttf` 5.1 MB),
-  and a call that needs one you left out fails with `missing-asset`. `recto.wasm` (3.8 MB) comes
-  whatever you name, so it can always draw. It works, tested
+  what `preloadAssets` names (a font such as `FoxitSans.pfb`, 15–30 KB, or `fonts.bin` for all 14, 0.26 MB;
+  `cmaps.deflate` 0.36 MB; `cjk-fallback.ttf` 5.1 MB), and a call that needs one you left out fails with
+  `missing-asset`. The wasm's four parts (3.8 MB) come whatever you name, so it can always draw. It works, tested
   in Chromium, Firefox and WebKit, but **every call blocks that thread**: on a main thread the page
   freezes for the length of each call, so prefer a dedicated worker, where nothing is fetched
   until a document needs it. A ranged read still needs a thread that may block: `wrong-thread`.

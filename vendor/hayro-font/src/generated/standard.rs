@@ -1,157 +1,156 @@
-use phf::phf_map;
-
+// recto: a sorted table rather than a phf map; see `by_name` in mod.rs.
 pub(crate) fn get(code: u8) -> Option<&'static str> {
-    STANDARD.get(&code).copied()
+    static CODES: super::Codes = super::Codes::new();
+    CODES.get(STANDARD, code)
 }
 
-static STANDARD: phf::Map<u8, &'static str> = phf_map! {
-    32_u8 => "space",
-    33_u8 => "exclam",
-    34_u8 => "quotedbl",
-    35_u8 => "numbersign",
-    36_u8 => "dollar",
-    37_u8 => "percent",
-    38_u8 => "ampersand",
-    39_u8 => "quoteright",
-    40_u8 => "parenleft",
-    41_u8 => "parenright",
-    42_u8 => "asterisk",
-    43_u8 => "plus",
-    44_u8 => "comma",
-    45_u8 => "hyphen",
-    46_u8 => "period",
-    47_u8 => "slash",
-    48_u8 => "zero",
-    49_u8 => "one",
-    50_u8 => "two",
-    51_u8 => "three",
-    52_u8 => "four",
-    53_u8 => "five",
-    54_u8 => "six",
-    55_u8 => "seven",
-    56_u8 => "eight",
-    57_u8 => "nine",
-    58_u8 => "colon",
-    59_u8 => "semicolon",
-    60_u8 => "less",
-    61_u8 => "equal",
-    62_u8 => "greater",
-    63_u8 => "question",
-    64_u8 => "at",
-    65_u8 => "A",
-    66_u8 => "B",
-    67_u8 => "C",
-    68_u8 => "D",
-    69_u8 => "E",
-    70_u8 => "F",
-    71_u8 => "G",
-    72_u8 => "H",
-    73_u8 => "I",
-    74_u8 => "J",
-    75_u8 => "K",
-    76_u8 => "L",
-    77_u8 => "M",
-    78_u8 => "N",
-    79_u8 => "O",
-    80_u8 => "P",
-    81_u8 => "Q",
-    82_u8 => "R",
-    83_u8 => "S",
-    84_u8 => "T",
-    85_u8 => "U",
-    86_u8 => "V",
-    87_u8 => "W",
-    88_u8 => "X",
-    89_u8 => "Y",
-    90_u8 => "Z",
-    91_u8 => "bracketleft",
-    92_u8 => "backslash",
-    93_u8 => "bracketright",
-    94_u8 => "asciicircum",
-    95_u8 => "underscore",
-    96_u8 => "quoteleft",
-    97_u8 => "a",
-    98_u8 => "b",
-    99_u8 => "c",
-    100_u8 => "d",
-    101_u8 => "e",
-    102_u8 => "f",
-    103_u8 => "g",
-    104_u8 => "h",
-    105_u8 => "i",
-    106_u8 => "j",
-    107_u8 => "k",
-    108_u8 => "l",
-    109_u8 => "m",
-    110_u8 => "n",
-    111_u8 => "o",
-    112_u8 => "p",
-    113_u8 => "q",
-    114_u8 => "r",
-    115_u8 => "s",
-    116_u8 => "t",
-    117_u8 => "u",
-    118_u8 => "v",
-    119_u8 => "w",
-    120_u8 => "x",
-    121_u8 => "y",
-    122_u8 => "z",
-    123_u8 => "braceleft",
-    124_u8 => "bar",
-    125_u8 => "braceright",
-    126_u8 => "asciitilde",
-    161_u8 => "exclamdown",
-    162_u8 => "cent",
-    163_u8 => "sterling",
-    164_u8 => "fraction",
-    165_u8 => "yen",
-    166_u8 => "florin",
-    167_u8 => "section",
-    168_u8 => "currency",
-    169_u8 => "quotesingle",
-    170_u8 => "quotedblleft",
-    171_u8 => "guillemotleft",
-    172_u8 => "guilsinglleft",
-    173_u8 => "guilsinglright",
-    174_u8 => "fi",
-    175_u8 => "fl",
-    177_u8 => "endash",
-    178_u8 => "dagger",
-    179_u8 => "daggerdbl",
-    180_u8 => "periodcentered",
-    182_u8 => "paragraph",
-    183_u8 => "bullet",
-    184_u8 => "quotesinglbase",
-    185_u8 => "quotedblbase",
-    186_u8 => "quotedblright",
-    187_u8 => "guillemotright",
-    188_u8 => "ellipsis",
-    189_u8 => "perthousand",
-    191_u8 => "questiondown",
-    193_u8 => "grave",
-    194_u8 => "acute",
-    195_u8 => "circumflex",
-    196_u8 => "tilde",
-    197_u8 => "macron",
-    198_u8 => "breve",
-    199_u8 => "dotaccent",
-    200_u8 => "dieresis",
-    202_u8 => "ring",
-    203_u8 => "cedilla",
-    205_u8 => "hungarumlaut",
-    206_u8 => "ogonek",
-    207_u8 => "caron",
-    208_u8 => "emdash",
-    225_u8 => "AE",
-    227_u8 => "ordfeminine",
-    232_u8 => "Lslash",
-    233_u8 => "Oslash",
-    234_u8 => "OE",
-    235_u8 => "ordmasculine",
-    241_u8 => "ae",
-    245_u8 => "dotlessi",
-    248_u8 => "lslash",
-    249_u8 => "oslash",
-    250_u8 => "oe",
-    251_u8 => "germandbls",
-};
+pub(super) static STANDARD: &[u8] = b"\
+    20\xFEspace\xFF\
+    21\xFEexclam\xFF\
+    22\xFEquotedbl\xFF\
+    23\xFEnumbersign\xFF\
+    24\xFEdollar\xFF\
+    25\xFEpercent\xFF\
+    26\xFEampersand\xFF\
+    27\xFEquoteright\xFF\
+    28\xFEparenleft\xFF\
+    29\xFEparenright\xFF\
+    2A\xFEasterisk\xFF\
+    2B\xFEplus\xFF\
+    2C\xFEcomma\xFF\
+    2D\xFEhyphen\xFF\
+    2E\xFEperiod\xFF\
+    2F\xFEslash\xFF\
+    30\xFEzero\xFF\
+    31\xFEone\xFF\
+    32\xFEtwo\xFF\
+    33\xFEthree\xFF\
+    34\xFEfour\xFF\
+    35\xFEfive\xFF\
+    36\xFEsix\xFF\
+    37\xFEseven\xFF\
+    38\xFEeight\xFF\
+    39\xFEnine\xFF\
+    3A\xFEcolon\xFF\
+    3B\xFEsemicolon\xFF\
+    3C\xFEless\xFF\
+    3D\xFEequal\xFF\
+    3E\xFEgreater\xFF\
+    3F\xFEquestion\xFF\
+    40\xFEat\xFF\
+    41\xFEA\xFF\
+    42\xFEB\xFF\
+    43\xFEC\xFF\
+    44\xFED\xFF\
+    45\xFEE\xFF\
+    46\xFEF\xFF\
+    47\xFEG\xFF\
+    48\xFEH\xFF\
+    49\xFEI\xFF\
+    4A\xFEJ\xFF\
+    4B\xFEK\xFF\
+    4C\xFEL\xFF\
+    4D\xFEM\xFF\
+    4E\xFEN\xFF\
+    4F\xFEO\xFF\
+    50\xFEP\xFF\
+    51\xFEQ\xFF\
+    52\xFER\xFF\
+    53\xFES\xFF\
+    54\xFET\xFF\
+    55\xFEU\xFF\
+    56\xFEV\xFF\
+    57\xFEW\xFF\
+    58\xFEX\xFF\
+    59\xFEY\xFF\
+    5A\xFEZ\xFF\
+    5B\xFEbracketleft\xFF\
+    5C\xFEbackslash\xFF\
+    5D\xFEbracketright\xFF\
+    5E\xFEasciicircum\xFF\
+    5F\xFEunderscore\xFF\
+    60\xFEquoteleft\xFF\
+    61\xFEa\xFF\
+    62\xFEb\xFF\
+    63\xFEc\xFF\
+    64\xFEd\xFF\
+    65\xFEe\xFF\
+    66\xFEf\xFF\
+    67\xFEg\xFF\
+    68\xFEh\xFF\
+    69\xFEi\xFF\
+    6A\xFEj\xFF\
+    6B\xFEk\xFF\
+    6C\xFEl\xFF\
+    6D\xFEm\xFF\
+    6E\xFEn\xFF\
+    6F\xFEo\xFF\
+    70\xFEp\xFF\
+    71\xFEq\xFF\
+    72\xFEr\xFF\
+    73\xFEs\xFF\
+    74\xFEt\xFF\
+    75\xFEu\xFF\
+    76\xFEv\xFF\
+    77\xFEw\xFF\
+    78\xFEx\xFF\
+    79\xFEy\xFF\
+    7A\xFEz\xFF\
+    7B\xFEbraceleft\xFF\
+    7C\xFEbar\xFF\
+    7D\xFEbraceright\xFF\
+    7E\xFEasciitilde\xFF\
+    A1\xFEexclamdown\xFF\
+    A2\xFEcent\xFF\
+    A3\xFEsterling\xFF\
+    A4\xFEfraction\xFF\
+    A5\xFEyen\xFF\
+    A6\xFEflorin\xFF\
+    A7\xFEsection\xFF\
+    A8\xFEcurrency\xFF\
+    A9\xFEquotesingle\xFF\
+    AA\xFEquotedblleft\xFF\
+    AB\xFEguillemotleft\xFF\
+    AC\xFEguilsinglleft\xFF\
+    AD\xFEguilsinglright\xFF\
+    AE\xFEfi\xFF\
+    AF\xFEfl\xFF\
+    B1\xFEendash\xFF\
+    B2\xFEdagger\xFF\
+    B3\xFEdaggerdbl\xFF\
+    B4\xFEperiodcentered\xFF\
+    B6\xFEparagraph\xFF\
+    B7\xFEbullet\xFF\
+    B8\xFEquotesinglbase\xFF\
+    B9\xFEquotedblbase\xFF\
+    BA\xFEquotedblright\xFF\
+    BB\xFEguillemotright\xFF\
+    BC\xFEellipsis\xFF\
+    BD\xFEperthousand\xFF\
+    BF\xFEquestiondown\xFF\
+    C1\xFEgrave\xFF\
+    C2\xFEacute\xFF\
+    C3\xFEcircumflex\xFF\
+    C4\xFEtilde\xFF\
+    C5\xFEmacron\xFF\
+    C6\xFEbreve\xFF\
+    C7\xFEdotaccent\xFF\
+    C8\xFEdieresis\xFF\
+    CA\xFEring\xFF\
+    CB\xFEcedilla\xFF\
+    CD\xFEhungarumlaut\xFF\
+    CE\xFEogonek\xFF\
+    CF\xFEcaron\xFF\
+    D0\xFEemdash\xFF\
+    E1\xFEAE\xFF\
+    E3\xFEordfeminine\xFF\
+    E8\xFELslash\xFF\
+    E9\xFEOslash\xFF\
+    EA\xFEOE\xFF\
+    EB\xFEordmasculine\xFF\
+    F1\xFEae\xFF\
+    F5\xFEdotlessi\xFF\
+    F8\xFElslash\xFF\
+    F9\xFEoslash\xFF\
+    FA\xFEoe\xFF\
+    FB\xFEgermandbls\xFF";

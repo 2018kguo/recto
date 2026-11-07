@@ -52,11 +52,6 @@ default-features = false
 [dependencies.kurbo]
 version = "0.13.0"
 
-[dependencies.phf]
-version = "0.13.1"
-features = ["macros"]
-default-features = false
-
 [dependencies.rustc-hash]
 version = "2"
 
