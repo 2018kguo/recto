@@ -246,6 +246,8 @@ export interface PdfDocument {
   readonly pageCount: number;
   /** The document's bookmarks; empty if it has none. */
   outline(): PdfOutlineItem[];
+  /** What each page is called, one string per page ("iv", "A-5"), or null if the file doesn't say. */
+  pageLabels(): string[] | null;
   pageInfo(index: number): PdfPageInfo;
   text(index: number): PdfPageText;
   /** `text`, `objects` and `annotations` from one interpretation of the page. */
@@ -533,6 +535,13 @@ export class RectoDocument implements PdfDocument {
     this.#check(index);
     this.#needsFull();
     return this.#call(() => toObjects(this.#doc.objects(index)));
+  }
+
+  pageLabels(): string[] | null {
+    if (this.#closed) {
+      throw new PdfError("closed", "this document is closed");
+    }
+    return this.#call(() => this.#doc.pageLabels() as string[] | null);
   }
 
   outline(): PdfOutlineItem[] {

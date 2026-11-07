@@ -58,10 +58,12 @@ async function child() {
           }
           outcome.drawn++;
         }
-        try {
-          doc.outline?.();
-        } catch (error) {
-          note(error);
+        for (const call of [() => doc.outline(), () => doc.pageLabels()]) {
+          try {
+            call();
+          } catch (error) {
+            note(error);
+          }
         }
         doc.close();
       } catch (error) {
@@ -260,7 +262,7 @@ async function compareRepair(ids, recto, mutants, jobs, timeout, out) {
     }),
   );
   fs.rmSync(scratch, { recursive: true, force: true });
-  return { files: ids.length, rectoOpens, rectoOpenedWithNoPages: rectoEmpty, opens, openedByTwoOthersNotRecto: openedOnlyByOthers.length, examples: openedOnlyByOthers.slice(0, 40) };
+  return { files: ids.length, rectoOpens, rectoOpenedWithNoPages: rectoEmpty, opens, openedByTwoOthersNotRecto: openedOnlyByOthers.length, mutations: openedOnlyByOthers.map((e) => e.mutation) };
 }
 
 if (process.argv[2] === "--child") await child();

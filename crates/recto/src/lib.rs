@@ -6,6 +6,7 @@
 //! loose font boxes (advance × em), not glyph ink.
 
 mod annots;
+mod labels;
 mod outline;
 mod assets;
 mod ctext;
@@ -297,6 +298,12 @@ impl Document {
     /// The file as it was opened, in place.
     pub fn file_bytes(&self) -> &[u8] {
         self.0.borrow_owner().data().as_ref()
+    }
+
+    /// What each page is called, if the file says: "iv", "A-5".
+    pub fn page_labels(&self) -> Option<Vec<String>> {
+        let pages = self.page_count();
+        self.0.with_dependent(|pdf, _| labels::read(pdf, pages))
     }
 
     /// The document's outline, in order; each item's children follow it, one level deeper.

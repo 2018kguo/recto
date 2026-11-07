@@ -25,6 +25,8 @@ for (let i = 0; i < count && performance.now() - started < budgetMs; i++) {
   };
   try {
     const doc = await engine.open(bytes);
+    check(() => doc.pageLabels());
+    check(() => doc.outline());
     for (let page = 0; page < Math.min(doc.pageCount, 2); page++) {
       check(() => doc.text(page));
       check(() => doc.objects(page));

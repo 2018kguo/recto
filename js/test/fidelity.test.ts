@@ -349,3 +349,26 @@ test("a page the xref has lost is found by scanning the file", async () => {
   assert.deepEqual([...rgba.subarray(0, 3)], RED);
   doc.close();
 });
+
+test("page labels follow the catalog's number tree", async () => {
+  const pages = (n: number) => Array.from({ length: n }, (_, i) => `${5 + i} 0 R`).join(" ");
+  let out = "%PDF-1.7\n";
+  const offsets: number[] = [];
+  const bodies = [
+    "<</Type /Catalog /Pages 2 0 R /PageLabels <</Nums [0 <</S /r>> 2 <</P (A-) /S /D /St 5>> 3 <</S /a /St 27>> 4 <</P (cover)>>]>>>>",
+    `<</Type /Pages /Count 5 /Kids [${pages(5).replaceAll("5 0 R", "3 0 R").replaceAll("6 0 R", "4 0 R").replaceAll("7 0 R", "5 0 R").replaceAll("8 0 R", "6 0 R").replaceAll("9 0 R", "7 0 R")}]>>`,
+    ...Array.from({ length: 5 }, () => "<</Type /Page /Parent 2 0 R /MediaBox [0 0 10 10]>>"),
+  ];
+  bodies.forEach((body, i) => {
+    offsets.push(out.length);
+    out += `${i + 1} 0 obj\n${body}\nendobj\n`;
+  });
+  const xref = out.length;
+  out += `xref\n0 ${bodies.length + 1}\n0000000000 65535 f \n${offsets.map((o) => `${String(o).padStart(10, "0")} 00000 n \n`).join("")}trailer\n<</Size ${bodies.length + 1} /Root 1 0 R>>\nstartxref\n${xref}\n%%EOF\n`;
+  const doc = await engine.open(latin1(out));
+  assert.deepEqual(doc.pageLabels(), ["i", "ii", "A-5", "aa", "cover"]);
+  doc.close();
+  const plain = await engine.open(pdfOf({ content: "" }));
+  assert.equal(plain.pageLabels(), null);
+  plain.close();
+});

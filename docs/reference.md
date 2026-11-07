@@ -42,7 +42,8 @@ start on the full engine with `preloadAssets: ["recto.wasm"]`, which skips the m
 |---|---|
 | `pageCount` | The number of pages |
 | `outline()` | The bookmarks: `PdfOutlineItem[]` of `{ title, page, url, children }`. `page` is -1 if it goes nowhere in this file; `url` is set if it links out. Empty if there are none |
-| `pageInfo(i)` | `{ width, height, rotation }` |
+| `pageLabels()` | What each page is called, one string per page: `"iv"`, `"A-5"`. `null` if the file doesn't say |
+| `pageInfo(i)` | `{ width, height, rotation }`, in the page's own units: `/UserUnit` doesn't scale them. Rendering by `width` doesn't depend on it |
 | `text(i)` | `PdfPageText`: the page's `text`, and columns per char: `codepoints`, `boxes`, `fontSizes`, `tfSizes`, `angles`, `fills`, `fontIds`, `flags`, `runIds`; plus `fonts`, `words`, `runs`, `truncated` |
 | `objects(i)` | `PdfPageObjects`: image boxes and pixel sizes, path boxes and flags, path segments, `truncated` |
 | `annotations(i)` | `PdfAnnotation[]`: subtype, box, contents, form field, appearance text |

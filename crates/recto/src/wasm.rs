@@ -456,6 +456,14 @@ impl Document {
         Ok(s.objects.into())
     }
 
+    /// One string per page, or null if the file gives no labels.
+    #[wasm_bindgen(js_name = pageLabels)]
+    pub fn page_labels(&self) -> JsValue {
+        self.0.page_labels().map_or(JsValue::NULL, |labels| {
+            JsValue::from(labels.into_iter().map(|label| JsValue::from_str(&label)).collect::<js_sys::Array>())
+        })
+    }
+
     /// Flat, in order: `[title, url or "", level, page]` per item.
     pub fn outline(&self) -> js_sys::Array {
         self.0
