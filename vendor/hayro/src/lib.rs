@@ -44,7 +44,7 @@ use hayro_interpret::hayro_syntax::Pdf;
 use hayro_interpret::hayro_syntax::page::Page;
 use hayro_interpret::util::{RectExt, TransformExt};
 use hayro_interpret::{BlendMode, Context, DrawMode, DrawProps, ImageDrawProps, SoftMask};
-use hayro_interpret::{ClipPath, interpret_page};
+use hayro_interpret::{ClipPath, PageRun, interpret_page};
 use kurbo::{Affine, BezPath, Rect};
 use pic_scale::Scaler;
 use rustc_hash::FxHashMap;
@@ -387,6 +387,153 @@ pub fn render<'a>(
     pixmap
 }
 
+/// recto: a page being drawn a slice at a time: the same result as [`render`], with the thread
+/// given back between slices. Between them nothing here is borrowed from the caches.
+pub struct PageJob<'a, 'c> {
+    ctx: RenderContext,
+    state: Context<'a>,
+    run: Option<PageRun<'a>>,
+    replay: group::PageReplay<'a, 'c>,
+    global: Rc<GlobalState>,
+    kept: Kept,
+    clip_crop_box: bool,
+    background: AlphaColor<Srgb>,
+    degraded: Rc<std::cell::Cell<bool>>,
+}
+
+/// What a [`Renderer`] holds that outlives a slice.
+#[derive(Default)]
+struct Kept {
+    soft_mask_cache: FxHashMap<u128, Mask>,
+    groups: Vec<group::GroupFrame>,
+    captures: Vec<group::Capture>,
+    captures_seen: u32,
+    events: u32,
+}
+
+impl<'a, 'c> PageJob<'a, 'c> {
+    /// Takes what [`render`] takes.
+    pub fn new(
+        page: &'a Page<'a>,
+        cache: &'c RenderCache<'a>,
+        interpreter_settings: &InterpreterSettings,
+        render_settings: &RenderSettings,
+        pixmap_settings: &PixmapSettings,
+    ) -> Self {
+        let (width, height) = page.render_dimensions();
+        let mut ctx = RenderContext::new(
+            (width * pixmap_settings.x_scale) as u16,
+            (height * pixmap_settings.y_scale) as u16,
+        );
+        let transform = Affine::scale_non_uniform(
+            pixmap_settings.x_scale as f64,
+            pixmap_settings.y_scale as f64,
+        ) * page.initial_transform(true).to_kurbo();
+        let render_settings = RenderSettings {
+            background: pixmap_settings.bg_color,
+            ..*render_settings
+        };
+        let degraded = Rc::new(std::cell::Cell::new(false));
+        let mut global = GlobalState::new(cache, &render_settings);
+        // Its own, so a synchronous render between two slices can't take this job's.
+        global.degraded = degraded.clone();
+        let global = Rc::new(global);
+        let replay = group::PageReplay::new(
+            page,
+            cache,
+            interpreter_settings,
+            global.clone(),
+            transform,
+            &ctx,
+            render_settings.background,
+        );
+
+        let target = Rect::new(0.0, 0.0, ctx.width() as f64, ctx.height() as f64);
+        let mut state = Context::new(
+            transform,
+            target,
+            &cache.interpreter_cache,
+            page.xref(),
+            interpreter_settings.clone(),
+        );
+        ctx.take_current_state();
+        ctx.reset_mask();
+        ctx.reset_filter_effect();
+        ctx.set_aliasing_threshold(render_settings.aliasing_threshold);
+
+        let crop_box = page.intersected_crop_box().to_kurbo();
+        let [a, b, c, d, _, _] = transform.as_coeffs();
+        let axis_aligned = (b == 0.0 && c == 0.0) || (a == 0.0 && d == 0.0);
+        let mapped_crop_box = transform
+            .transform_rect_bbox(crop_box)
+            .inflate(1.0 / 256.0, 1.0 / 256.0);
+        let clip_crop_box = !axis_aligned || !mapped_crop_box.contains_rect(target);
+        if clip_crop_box {
+            ctx.set_transform(transform);
+            ctx.push_clip_rect(&crop_box);
+        }
+
+        let run = PageRun::new(page, &mut state);
+        Self {
+            ctx,
+            state,
+            run: Some(run),
+            replay,
+            global,
+            kept: Kept::default(),
+            clip_crop_box,
+            background: pixmap_settings.bg_color,
+            degraded,
+        }
+    }
+
+    /// Runs until `expired` says so, and says whether the page's content is done. Rasterizing
+    /// what it drew is [`Self::finish`]: one call, and a large share of the page's time.
+    pub fn step(&mut self, expired: &dyn Fn() -> bool) -> bool {
+        let Some(run) = self.run.as_mut() else {
+            return true;
+        };
+        let kept = std::mem::take(&mut self.kept);
+        let mut device = Renderer::new(&mut self.ctx, &self.global);
+        device.soft_mask_cache = kept.soft_mask_cache;
+        device.groups = kept.groups;
+        device.captures = kept.captures;
+        device.captures_seen = kept.captures_seen;
+        device.events = kept.events;
+        device.replay = Some(&self.replay);
+        let done = run.step(&mut self.state, &mut device, expired);
+        if done && self.clip_crop_box {
+            device.pop_clip();
+        }
+        self.kept = Kept {
+            soft_mask_cache: device.soft_mask_cache,
+            groups: device.groups,
+            captures: device.captures,
+            captures_seen: device.captures_seen,
+            events: device.events,
+        };
+        if done {
+            self.run = None;
+        }
+        done
+    }
+
+    /// The finished page, and whether it passed a limit. Only after `step` said it's done.
+    pub fn finish(&mut self) -> (Pixmap, bool) {
+        self.ctx.flush();
+        let mut pixmap = Pixmap::new(self.ctx.width(), self.ctx.height());
+        self.ctx.render_with(
+            &mut pixmap,
+            &mut vello_cpu::Resources::default(),
+            vello_cpu::RasterizerSettings {
+                target_init: vello_cpu::TargetInit::Clear(self.background),
+                ..Default::default()
+            },
+        );
+        (pixmap, self.degraded.replace(false))
+    }
+}
+
 /// Render a page into the given [`RenderContext`] with the
 /// given transform.
 ///
@@ -400,12 +547,12 @@ pub fn render_into<'a>(
     ctx: &mut RenderContext,
     transform: Affine,
 ) {
-    let global = GlobalState::new(cache, render_settings);
+    let global = Rc::new(GlobalState::new(cache, render_settings));
     let replay = group::PageReplay::new(
         page,
         cache,
         interpreter_settings,
-        &global,
+        global.clone(),
         transform,
         ctx,
         render_settings.background,

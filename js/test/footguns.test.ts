@@ -16,7 +16,7 @@ import { startRangeServer } from "./range-server.ts";
 import { syntheticPdf } from "./synthetic-pdf.ts";
 import { PINS } from "../wasm/pins.mjs";
 
-const ASSETS = ["recto.wasm", "fonts.bin", "cjk-fallback.ttf", "cmaps.brotli"] as const;
+const ASSETS = ["recto.wasm", "recto-text.wasm", "fonts.bin", "cjk-fallback.ttf", "cmaps.deflate"] as const;
 const packaged = (name: string) => new URL(`../wasm/${name}`, import.meta.url);
 
 /** A copy of the package's assets, to break. */
@@ -55,19 +55,19 @@ test("the pins are the shipped files' hashes", () => {
 
 test("a missing or wrong wasm fails the engine's creation; the refusal is not cached", async () => {
   const dir = assetDir();
-  rmSync(join(dir, "recto.wasm"));
-  await assert.rejects(createPdfEngine({ assetBase: dir }), (error: PdfError) => {
+  rmSync(join(dir, "recto-text.wasm"));
+  await assert.rejects(createPdfEngine({ assetBase: dir, preloadAssets: [] }), (error: PdfError) => {
     hasCode("missing-asset")(error);
-    assert.match(error.message, /recto\.wasm/u);
+    assert.match(error.message, /recto-text\.wasm/u);
     assert.match(error.message, /assetBase/u);
     return true;
   });
-  const wrong = readFileSync(packaged("recto.wasm"));
+  const wrong = readFileSync(packaged("recto-text.wasm"));
   wrong[wrong.length - 1] = (wrong.at(-1) ?? 0) ^ 1;
-  writeFileSync(join(dir, "recto.wasm"), wrong);
-  await assert.rejects(createPdfEngine({ assetBase: dir }), hasCode("missing-asset"));
-  copyFileSync(packaged("recto.wasm"), join(dir, "recto.wasm"));
-  const engine = await createPdfEngine({ assetBase: pathToFileURL(dir) });
+  writeFileSync(join(dir, "recto-text.wasm"), wrong);
+  await assert.rejects(createPdfEngine({ assetBase: dir, preloadAssets: [] }), hasCode("missing-asset"));
+  copyFileSync(packaged("recto-text.wasm"), join(dir, "recto-text.wasm"));
+  const engine = await createPdfEngine({ assetBase: pathToFileURL(dir), preloadAssets: [] });
   (await engine.open(pdf())).close();
 });
 
@@ -81,18 +81,18 @@ for (const [label, damage] of [
     damage(join(dir, "fonts.bin"));
     const engine = await createPdfEngine({ assetBase: dir });
     const doc = await engine.open(pdf());
-    assert.throws(() => doc.text(0), (error: PdfError) => {
+    // Text has what it needs from the wasm's own tables.
+    assert.ok(doc.text(0).text.length > 100);
+    assert.throws(() => doc.render(0, { width: 64 }), (error: PdfError) => {
       hasCode("missing-asset")(error);
       assert.match(error.message, /fonts\.bin/u);
       return true;
     });
-    assert.throws(() => doc.render(0, { width: 64 }), hasCode("missing-asset"));
     doc.close();
     // Repaired, the next open reads on a fresh instance.
     copyFileSync(packaged("fonts.bin"), join(dir, "fonts.bin"));
     await using after = await engine.open(pdf());
-    assert.ok(after.text(0).text.length > 100);
-    assert.equal(engine.stats().generation, 1);
+    assert.ok(after.render(0, { width: 100 }).rgba.some((v) => v !== 255));
   });
 }
 
@@ -116,11 +116,17 @@ test("somewhere without synchronous reads, assets are fetched up front and the e
   // @ts-expect-error
   globalThis.document = {};
   try {
-    const engine = await createPdfEngine({ assetBase: pathToFileURL(`${assetDir()}/`), preloadAssets: ["fonts.bin"] });
+    const engine = await createPdfEngine({ assetBase: pathToFileURL(`${assetDir()}/`), preloadAssets: ["recto.wasm", "fonts.bin"] });
     using doc = await engine.open(pdf());
     assert.ok(doc.text(0).count > 0);
     assert.ok(doc.render(0, { width: 100 }).rgba.some((v) => v !== 255), "the page has ink, so the font was there");
     assert.ok(asked.includes("fonts.bin") && !asked.includes("cjk-fallback.ttf"), `fetched ${asked}`);
+    assert.ok(!asked.includes("recto-text.wasm"), "with the full engine fetched, the text one isn't too");
+
+    const textOnly = await createPdfEngine({ assetBase: pathToFileURL(`${assetDir()}/`), preloadAssets: [] });
+    using light = await textOnly.open(pdf());
+    assert.ok(light.text(0).count > 0);
+    assert.throws(() => light.render(0, { width: 100 }), hasCode("missing-asset"));
     await assert.rejects(engine.openRanged("https://example.com/a.pdf"), hasCode("wrong-thread"));
   } finally {
     process.getBuiltinModule = getBuiltinModule;
@@ -442,6 +448,48 @@ test("each failure has a code to branch on", async () => {
   );
   await assert.rejects(engine.openRanged(pdf(), { signal: controller.signal }), hasCode("aborted"));
   assert.ok(new PdfError("failed", "x") instanceof Error);
+});
+
+test("a render paused when the instance traps rejects with crash, and steps no further", async () => {
+  const content = "0 0 1 1 re f\n".repeat(400_000);
+  const objects = [
+    "<</Type/Catalog/Pages 2 0 R>>",
+    "<</Type/Pages/Count 1/Kids[3 0 R]>>",
+    "<</Type/Page/MediaBox[0 0 100 100]/Contents 4 0 R>>",
+    `<</Length ${content.length}>>\nstream\n${content}\nendstream`,
+  ];
+  let file = "%PDF-1.7\n";
+  const offsets = objects.map((body, i) => {
+    const at = file.length;
+    file += `${i + 1} 0 obj\n${body}\nendobj\n`;
+    return at;
+  });
+  const xref = file.length;
+  file += `xref\n0 5\n0000000000 65535 f \n${offsets.map((at) => `${String(at).padStart(10, "0")} 00000 n \n`).join("")}`;
+  file += `trailer\n<</Size 5/Root 1 0 R>>\nstartxref\n${xref}\n%%EOF\n`;
+
+  const engine = await createPdfEngine({ recycleAboveBytes: Number.POSITIVE_INFINITY });
+  const doc = await engine.open(new TextEncoder().encode(file));
+  const paused = doc.renderAsync(0, { width: 100, sliceMs: 0 }).then(
+    () => "finished",
+    (error: PdfError) => error.code
+  );
+  const server = await startRangeServer(new Uint8Array(1));
+  server.setMode("huge");
+  let crash: unknown;
+  try {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      await engine.openRanged(server.url, { maxBytes: 1024 * 1024 }).catch((error: PdfError) => error);
+    }
+    await engine.open(new Uint8Array(512 * 1024 * 1024)).catch((error: PdfError) => {
+      crash = error.code === "crash" ? error : undefined;
+    });
+  } finally {
+    await server.close();
+  }
+  assert.ok(crash instanceof PdfError, "the instance trapped");
+  assert.equal(await paused, "crash");
+  doc.close();
 });
 
 test("a real trap retires the instance: open documents say so, the next open recovers", async () => {

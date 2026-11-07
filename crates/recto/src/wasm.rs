@@ -31,8 +31,14 @@ pub fn set_asset_loader(loader: js_sys::Function) {
     crate::assets::set_loader(loader);
 }
 
+/// SHA-256, for the JavaScript side's checks on large assets it read synchronously.
 #[wasm_bindgen]
-pub struct Document(crate::Document);
+pub fn sha256(bytes: &[u8]) -> Vec<u8> {
+    hayro::hayro_syntax::sha256(bytes).to_vec()
+}
+
+#[wasm_bindgen]
+pub struct Document(std::rc::Rc<crate::Document>);
 
 macro_rules! getters {
     ($ty:ident { $($field:ident : $t:ty => $js:literal),* $(,)? }) => {
@@ -356,7 +362,7 @@ impl Document {
     #[wasm_bindgen(constructor)]
     pub fn open(bytes: Vec<u8>, password: Option<String>) -> Result<Document, JsValue> {
         crate::Document::open(bytes, password.as_deref().unwrap_or(""))
-            .map(Document)
+            .map(|document| Document(document.into()))
             .map_err(js_error)
     }
 
@@ -398,8 +404,19 @@ impl Document {
             Box::new(fill),
             password.as_deref().unwrap_or(""),
         )
-        .map(Document)
+        .map(|document| Document(document.into()))
         .map_err(js_error)
+    }
+
+    /// Where the file is in this instance's memory, to reopen it on the full engine without a copy.
+    #[wasm_bindgen(js_name = filePointer)]
+    pub fn file_pointer(&self) -> usize {
+        self.0.file_bytes().as_ptr() as usize
+    }
+
+    #[wasm_bindgen(js_name = fileLength)]
+    pub fn file_length(&self) -> usize {
+        self.0.file_bytes().len()
     }
 
     #[wasm_bindgen(getter, js_name = pageCount)]
@@ -422,6 +439,7 @@ impl Document {
     }
 
     /// Text, objects and annotations from one interpretation of the page.
+    #[cfg(feature = "render")]
     pub fn scan(&self, index: usize) -> Result<PageScan, JsValue> {
         self.scan_parts(index, true, true)
     }
@@ -432,6 +450,7 @@ impl Document {
         self.scan_parts(index, false, true)
     }
 
+    #[cfg(feature = "render")]
     pub fn objects(&self, index: usize) -> Result<PageObjects, JsValue> {
         let s = self.0.scan(index, true, false).map_err(js_error)?;
         Ok(s.objects.into())
@@ -458,6 +477,21 @@ impl Document {
         Ok(a.into())
     }
 
+    /// A render that returns to its caller between slices, for as long as it's asked to run.
+    #[cfg(feature = "render")]
+    #[wasm_bindgen(js_name = renderTask)]
+    pub fn render_task(
+        &self,
+        index: usize,
+        width: f32,
+        max_height: f32,
+    ) -> Result<RenderTask, JsValue> {
+        crate::RenderTask::new(self.0.clone(), index, width, max_height)
+            .map(RenderTask)
+            .map_err(js_error)
+    }
+
+    #[cfg(feature = "render")]
     pub fn render(
         &self,
         index: usize,
@@ -471,5 +505,30 @@ impl Document {
             truncated: b.truncated,
             rgba: b.rgba,
         })
+    }
+}
+
+#[cfg(feature = "render")]
+#[wasm_bindgen]
+pub struct RenderTask(crate::RenderTask);
+
+#[cfg(feature = "render")]
+#[wasm_bindgen]
+impl RenderTask {
+    /// Runs for about `budget_ms`; true once the page's content is done.
+    pub fn step(&mut self, budget_ms: f64) -> bool {
+        let deadline = js_sys::Date::now() + budget_ms;
+        self.0.step(&|| js_sys::Date::now() >= deadline)
+    }
+
+    /// Rasterizes what `step` drew: the rest of the page, in one call.
+    pub fn finish(&mut self) -> RenderedPage {
+        let b = self.0.finish();
+        RenderedPage {
+            width: b.width,
+            height: b.height,
+            truncated: b.truncated,
+            rgba: b.rgba,
+        }
     }
 }

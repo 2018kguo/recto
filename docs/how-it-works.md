@@ -29,12 +29,20 @@ to fill that bitmap. Sizes are capped because hayro sizes pixmaps in `u16`.
 ## Assets
 
 The wasm leaves out what most files never read: the 14 standard fonts (`fonts.bin`, 0.26 MB), the
-CJK fallback (`cjk-fallback.ttf`, 5 MB) and the predefined CMaps (`cmaps.brotli`, 0.25 MB). The
+CJK fallback (`cjk-fallback.ttf`, 5 MB) and the predefined CMaps (`cmaps.deflate`, 0.36 MB). The
 engine asks for each synchronously from inside a call, the first time a document needs it, so
 reading it has to be synchronous as well: `fs` in Node, a synchronous `XMLHttpRequest` in a Web
 Worker. A main thread and a service worker have neither, so there the files are fetched while the
-engine is created. A text pass gives a CID font the document does not embed a font holding only `.notdef`
-instead of the 5 MB fallback, since its Unicode comes from `ToUnicode` and its widths from `/W`.
+engine is created. A text pass reads no font file it isn't given: a font the document doesn't embed
+gets one holding only `.notdef`, since its Unicode comes from `ToUnicode` or the glyph tables and its
+widths from `/W` or the metrics in the wasm.
+
+The wasm comes in two builds from one crate. `recto-text.wasm` is built with no `render` feature and
+for size, except for the crates text speed depends on (`profile.text` in `Cargo.toml`), and has no
+rasterizer, outline code or image decoders. Both share one glue file, and the build checks that the
+text build imports nothing the full one doesn't. A document moves by opening its bytes again on the
+other instance, so a call needs no second path through the engine, and the text instance is dropped
+with its last document. Its results are the same as the full build's, which the tests hold it to.
 
 ## Transparency groups
 
@@ -68,7 +76,7 @@ memory follows the bytes fetched, not the file's length. The allocator's zeroing
 all of it. Measured in Node, reading one page by range from a generated file, memory grew 42 MiB
 at 0.5 GiB, 43 MiB at 1.9 GiB and 40 MiB at 3.49 GiB. So the limit is address space, not memory:
 wasm32 has 4 GiB, a ranged file is capped at 3.5 GiB, and an instance past its recycle mark goes
-when its last document closes.
+soon after its last document closes.
 
 There is no sparse page map. The parser's objects are zero-copy slices of one buffer, addressed by
 file offset, so it would be a change through the whole parser, not this layer; it would save no
@@ -78,6 +86,37 @@ The loader (`js/src/ranged.ts`) keeps chunks in a flat array, so a read costs wh
 miss that continues the last fetch doubles the read-ahead, so a sequential scan of n chunks costs
 O(log n) round trips.
 
+## Opening and slices
+
+A whole file's pages come from walking the tree in order, depth first. A kid that's a `/Pages` node
+is entered, and dropped if it has no `/Kids`. Any other dictionary is a page, whatever its `/Type` says.
+`/Count` plays no part. A node that's its own ancestor is skipped. Any other repeat counts again, as it does in
+pdfium, pdf.js and poppler, so a tree can multiply: the walk stops after the file's objects plus 2^18
+kids, which a tree with no repeats can't reach. It uses its own stack, so a deep chain is fine. `open`
+does the walk and keeps each page's dictionary, and a page is built the first time it's asked for.
+
+A ranged file can't afford that: the walk fetches every page's dictionary before the one you want. It
+descends by `/Count` instead, reading a node's kids in order only as far as the page. Past 32 kids, a
+node with as many kids as its `/Count` is taken to hold a page per kid, so kid `i` is read directly.
+pdf.js fetches every leaf kid before a page and pdfium walks in order, so that shortcut is recto's alone.
+It's what lets a jump in a 2,000-page flat file fetch 0.41 MB where pdf.js fetches all 14.9 MB. On the way
+down, a kid that's missing or a node under that shortcut, a node without `/Kids` or `/Count`, a node in
+its own path, or running out of kids all switch that document to the walk, for this page and the ones
+after, within `maxBytes`. A ranged file's `pageCount` is the root's `/Count`, if that's no more than the
+file's objects and the nodes add up to it (a node with as many kids as its `/Count` passes unread);
+otherwise it's walked at open.
+
+What's off that path can't be seen. With true counts a ranged read gives what the walk gives, tested on
+generated trees including ones with pages deleted, with one exception: a node of over 32 kids, as many as
+its `/Count`, where a kid jumped over isn't a page. With a false `/Count`, it can give a different page of
+the file, which depends on what was read first, or promise a page that isn't there, which fails with
+`failed`, or hide pages at the end. It always ends. `js/test/page-tree.test.ts` pins these cases.
+
+`renderAsync` runs the same interpreter with a stack of frames in place of the recursion into forms
+(`hayro-interpret/src/interpret/page_run.rs`), checks the clock every 64 operators and returns when
+it's out of time, and the device is rebuilt from what it kept for the next slice. Rasterizing is one
+call into vello_cpu; slicing that by row would mean vendoring it.
+
 ## Instances
 
 The wasm is compiled once per thread and per location. Each instance gets its own wasm-bindgen
@@ -86,6 +125,8 @@ scope, and one module record per instance would pin every retired instance's mem
 retires the instance: `panic = abort` on wasm32, so a panic or a failed allocation arrives as a
 `WebAssembly.RuntimeError`, and its state is unknown after that.
 
-WebAssembly memory never shrinks, so the only way to give it back is to drop the instance. Past the
-recycle mark, the engine drops it when its last document closes, and the next open builds a new one;
-compiling is cached, so that costs only instantiation.
+WebAssembly memory never shrinks, so the only way to give it back is to drop the instance. Past 64 MiB
+the engine drops it once nothing has been open on it for a second, or at the close past 512 MiB. An open
+within that second reuses it: dropping it at every close made a repeated 70 MiB file 2.1 times slower
+for 1.2 times the peak memory (`bench/results/recycle.json`). An explicit `recycleAboveBytes` drops
+it at the close past that mark. Compiling is cached, so a new instance costs only instantiation.

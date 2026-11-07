@@ -24,7 +24,8 @@ const width = Number(params.get("width") ?? 800);
 const pageCount = await client.open(await bytesOf(params.get("doc")));
 await client.text(0);
 const coldText = performance.now();
-grid.append(await client.render(0, width));
+// `?textOnly`: for what a page that never draws downloads.
+if (!params.has("textOnly")) grid.append(await client.render(0, width));
 const coldRender = performance.now();
 await client.close();
 await new Promise(requestAnimationFrame);
@@ -110,6 +111,13 @@ window.bench = {
     await new Promise(requestAnimationFrame);
     await new Promise((resolve) => setTimeout(resolve, 200));
     return { done, pages: count, stutter, longTasks, longestTask: longest };
+  },
+  /** recto's renderAsync, on the page that `load` holds a worker for the whole of. */
+  async sliced(url) {
+    const bytes = await bytesOf(url);
+    const started = performance.now();
+    await client.sliced(bytes, width);
+    return { done: performance.now() - started };
   },
   /** The page can't be asked to stop in a synchronous engine; pdf.js's render task can. */
   async abort(url) {

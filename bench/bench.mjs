@@ -219,6 +219,22 @@ const jobs = {
       await again.destroy();
       return { whole, stopped: first.stopped, how: "renderTask.cancel(), on the same thread" };
     }
+    if (name === "recto") {
+      const { openPdf } = await import("../js/dist/index.js");
+      const doc = await openPdf(bytes);
+      const started = performance.now();
+      await doc.renderAsync(0, { width: WIDTH });
+      const whole = performance.now() - started;
+      const controller = new AbortController();
+      const render = doc.renderAsync(0, { width: WIDTH, signal: controller.signal }).catch(() => {});
+      await new Promise((resolve) => setTimeout(resolve, AFTER));
+      const asked = performance.now();
+      controller.abort();
+      await render;
+      const stopped = performance.now() - asked;
+      doc.close();
+      return { whole, stopped, how: "renderAsync's signal, on the same thread; the document stays open" };
+    }
     // A synchronous call can't be asked to stop: the thread hosting it can only be ended.
     const worker = new Worker(import.meta.filename, { workerData: { engine: name, heavy } });
     const whole = await new Promise((resolve, reject) => {

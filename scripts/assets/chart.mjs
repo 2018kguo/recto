@@ -13,10 +13,10 @@ const ms = (v) => (v >= 1000 ? `${(v / 1000).toFixed(1)} s` : `${Math.round(v)} 
 const mb = (v) => `${Math.round(v / 1e6)} MB`;
 const pick = (group, key) => ["recto", "pdf.js", "pdfium"].map((e) => group.summary[key][e].median);
 const PANELS = [
-  { title: "Read text", note: "Node, 60 PDFs", values: pick(node, "text"), format: ms },
-  { title: "Render", note: "Node, 60 PDFs", values: pick(node, "render"), format: ms },
-  { title: "Open a report in a page", note: "Chromium slowed 3.3×, 40 pages, all drawn", values: pick(browser, "loadDone"), format: ms },
-  { title: "Peak memory", note: "Node, the process, same 60 PDFs", values: pick(node, "rss"), format: mb },
+  { title: "Read text", note: `Node, ${node.documents.used} PDFs`, values: pick(node, "text"), format: ms },
+  { title: "Render", note: `Node, ${node.documents.used} PDFs`, values: pick(node, "render"), format: ms },
+  { title: "Open a report in a page", note: `Chromium slowed ${browser.slowdown.factor}×, 40 pages, all drawn`, values: pick(browser, "loadDone"), format: ms },
+  { title: "Peak memory", note: `Node, the process, same ${node.documents.used} PDFs`, values: pick(node, "rss"), format: mb },
 ];
 const NAMES = ["recto", "pdf.js", "pdfium"];
 const WIDTH = 880;

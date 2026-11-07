@@ -21,6 +21,24 @@ try {
     () => "opened",
     (error) => error.code
   );
+  const pdfs = new URLSearchParams(location.search).get("pdfs");
+  const base = new URL(pdfs, location.href);
+  const plain = await createPdfEngine({ assetBase: new URL("/plain/", base), preloadAssets: [] });
+  const plainDoc = await plain.open(report);
+  mainThread.plainMime = plainDoc.text(0).text;
+  plainDoc.close();
+  mainThread.tampered = await createPdfEngine({ assetBase: new URL("/tampered/", base), preloadAssets: [] }).then(
+    () => "opened",
+    (error) => error.code
+  );
+  // A fetch wrapper that passes on only the URL has to make no difference.
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = (input) => realFetch(input);
+  mainThread.tamperedThroughWrapper = await createPdfEngine({ assetBase: new URL("/tampered/", base), preloadAssets: [] }).then(
+    () => "opened",
+    (error) => error.code
+  );
+  globalThis.fetch = realFetch;
 } catch (error) {
   mainThread.failure = String(error);
 }

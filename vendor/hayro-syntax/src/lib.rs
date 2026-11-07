@@ -90,6 +90,10 @@ pub(crate) mod util;
 
 pub mod content;
 mod crypto;
+/// recto: SHA-256, for the bindings' asset checks.
+pub fn sha256(data: &[u8]) -> [u8; 32] {
+    crypto::sha256::calculate(data)
+}
 pub mod metadata;
 pub mod object;
 pub mod page;

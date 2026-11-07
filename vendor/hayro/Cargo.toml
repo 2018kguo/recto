@@ -31,8 +31,10 @@ resolver = "2"
 default = [
     "embed-fonts",
     "embed-cmaps",
+    "raster",
 ]
 embed-cmaps = ["hayro-interpret/embed-cmaps"]
+raster = ["hayro-interpret/raster"]
 embed-fonts = ["hayro-interpret/embed-fonts"]
 
 [lib]

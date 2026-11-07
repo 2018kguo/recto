@@ -17,6 +17,7 @@ use hayro_interpret::hayro_syntax::page::Page;
 use hayro_interpret::{BlendMode, FillRule, InterpreterSettings, SoftMask};
 use kurbo::{Affine, BezPath, Rect};
 use rustc_hash::FxHashMap;
+use std::rc::Rc;
 use std::cell::RefCell;
 use std::sync::Arc;
 use vello_cpu::color::palette::css::TRANSPARENT;
@@ -58,8 +59,8 @@ pub(crate) trait Backdrop {
 pub(crate) struct PageReplay<'a, 'c> {
     page: &'a Page<'a>,
     cache: &'c RenderCache<'a>,
-    settings: &'c InterpreterSettings,
-    global: &'c GlobalState,
+    settings: InterpreterSettings,
+    global: Rc<GlobalState>,
     transform: Affine,
     width: u16,
     height: u16,
@@ -72,8 +73,8 @@ impl<'a, 'c> PageReplay<'a, 'c> {
     pub(crate) fn new(
         page: &'a Page<'a>,
         cache: &'c RenderCache<'a>,
-        settings: &'c InterpreterSettings,
-        global: &'c GlobalState,
+        settings: &InterpreterSettings,
+        global: Rc<GlobalState>,
         transform: Affine,
         ctx: &RenderContext,
         background: AlphaColor<Srgb>,
@@ -81,7 +82,7 @@ impl<'a, 'c> PageReplay<'a, 'c> {
         Self {
             page,
             cache,
-            settings,
+            settings: settings.clone(),
             global,
             transform,
             width: ctx.width(),
@@ -102,11 +103,11 @@ impl Backdrop for PageReplay<'_, '_> {
         draw_page(
             self.page,
             self.cache,
-            self.settings,
+            &self.settings,
             self.global.aliasing_threshold,
             &mut ctx,
             self.transform,
-            self.global,
+            &self.global,
             self,
             (from, to),
         );

@@ -8,6 +8,22 @@ opt-level = 3
 lto = true
 codegen-units = 1
 
+# The text-only wasm: what the text pass doesn't spend its time in is built for size.
+[profile.text]
+inherits = "release"
+[profile.text.package."*"]
+opt-level = "z"
+[profile.text.package.recto]
+opt-level = 3
+[profile.text.package.hayro-interpret]
+opt-level = 3
+[profile.text.package.hayro-syntax]
+opt-level = "s"
+[profile.text.package.hayro-font]
+opt-level = "s"
+[profile.text.package.zlib-rs]
+opt-level = 3
+
 # Vendored hayro crates (MIT/Apache-2.0, licences in each): hot-path changes for
 # text extraction, ranged reads and transparency groups that upstream does not have. Each change
 # is marked `recto:` in the source; see vendor/README.md.

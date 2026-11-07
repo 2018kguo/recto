@@ -591,6 +591,44 @@ impl XRef {
     where
         T: ObjectLike<'a>,
     {
+        // recto: where the object is doesn't depend on T, and this is called for dozens of Ts:
+        // it's 10% of the wasm with all of it in here.
+        match self.locate(id, ctx)? {
+            Located::File {
+                offset,
+                ctx: inner,
+                was_repaired,
+            } => {
+                let Inner::Some(repr) = &self.0 else {
+                    return None;
+                };
+                let mut r = Reader::new(repr.data.get().as_ref());
+                r.jump(offset);
+
+                if let Some(object) = r.read_with_context::<IndirectObject<T>>(&inner) {
+                    if object.id() == &id {
+                        return Some(object.get());
+                    }
+                } else {
+                    // There is a valid object at the offset, it's just not of the type the caller
+                    // expected, which is fine.
+                    if r.skip::<IndirectObject<Object<'_>>>(false).is_some() {
+                        return None;
+                    }
+                };
+
+                self.repair_and_get(id, ctx, was_repaired)
+            }
+            Located::InStream {
+                stream,
+                index,
+                ctx: inner,
+            } => stream.get(index, &inner),
+            Located::Repair { was_repaired } => self.repair_and_get(id, ctx, was_repaired),
+        }
+    }
+
+    fn locate<'a>(&'a self, id: ObjectIdentifier, ctx: &ReaderContext<'a>) -> Option<Located<'a>> {
         let Inner::Some(repr) = &self.0 else {
             return None;
         };
@@ -602,7 +640,6 @@ impl XRef {
             (*locked.xref_map.get(&id)?, locked.repaired)
         };
 
-        let caller_ctx = ctx;
         let mut ctx = ctx.clone();
         ctx.set_obj_number(id);
         ctx.set_in_content_stream(false);
@@ -636,26 +673,15 @@ impl XRef {
                 }
             }
         }
-        let mut r = Reader::new(repr.data.get().as_ref());
 
         match entry {
             EntryType::Normal(offset) => {
                 ctx.set_in_object_stream(false);
-                r.jump(offset);
-
-                if let Some(object) = r.read_with_context::<IndirectObject<T>>(&ctx) {
-                    if object.id() == &id {
-                        return Some(object.get());
-                    }
-                } else {
-                    // There is a valid object at the offset, it's just not of the type the caller
-                    // expected, which is fine.
-                    if r.skip::<IndirectObject<Object<'_>>>(false).is_some() {
-                        return None;
-                    }
-                };
-
-                self.repair_and_get(id, caller_ctx, was_repaired)
+                Some(Located::File {
+                    offset,
+                    ctx,
+                    was_repaired,
+                })
             }
             EntryType::ObjStream(obj_stram_gen_num, index) => {
                 // Generation number is implicitly 0.
@@ -676,13 +702,13 @@ impl XRef {
 
                 ctx.parent_chain_push(id);
 
-                let object_stream = repr.data.object_stream(obj_stream_id, &ctx)?;
+                let stream = repr.data.object_stream(obj_stream_id, &ctx)?;
 
-                if object_stream.obj_number(index) == Some(id.obj_number) {
-                    return object_stream.get(index, &ctx);
+                if stream.obj_number(index) == Some(id.obj_number) {
+                    return Some(Located::InStream { stream, index, ctx });
                 }
 
-                self.repair_and_get(id, caller_ctx, was_repaired)
+                Some(Located::Repair { was_repaired })
             }
         }
     }
@@ -706,6 +732,22 @@ impl XRef {
             self.get_with::<T>(id, ctx)
         }
     }
+}
+
+enum Located<'a> {
+    File {
+        offset: usize,
+        ctx: ReaderContext<'a>,
+        was_repaired: bool,
+    },
+    InStream {
+        stream: &'a ObjectStream,
+        index: u32,
+        ctx: ReaderContext<'a>,
+    },
+    Repair {
+        was_repaired: bool,
+    },
 }
 
 /// An input that is passed to the xref constructor so that we can fully resolve

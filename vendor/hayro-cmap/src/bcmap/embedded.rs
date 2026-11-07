@@ -5,9 +5,10 @@ use super::huffman::{self, HuffmanTable};
 use super::reader::Reader;
 use crate::CMapName;
 
-// recto: with `host-cmaps` the host hands over `assets/cmaps.brotli` on
+// recto: with `host-cmaps` the host hands over the bundle, as raw deflate, on
 // first use instead of the binary embedding it (the WASM build ships it as a
-// separate file: a fifth of its download, and only CJK files read it).
+// separate file, and only CJK files read it). Deflate because the wasm has an
+// inflate already, and brotli's decoder and dictionary are 15% of a text-only wasm.
 // A host with no bundle yet is asked again the next time a file needs one.
 #[cfg(feature = "host-cmaps")]
 static SOURCE: OnceLock<fn() -> Option<Vec<u8>>> = OnceLock::new();
@@ -32,16 +33,23 @@ fn load() -> Option<Bundle> {
     // We already know the bundle is valid, so we can skip validation and just
     // unwrap everywhere.
 
-    #[cfg(feature = "host-cmaps")]
-    let compressed = SOURCE.get()?()?;
-    #[cfg(not(feature = "host-cmaps"))]
-    let compressed = include_bytes!("../../assets/cmaps.brotli");
     let mut decompressed = Vec::new();
-    let mut reader = compressed.as_slice();
-
-    brotli::BrotliDecompress(&mut reader, &mut decompressed)
-        .ok()
-        .unwrap();
+    #[cfg(feature = "host-cmaps")]
+    {
+        use std::io::Read;
+        let compressed = SOURCE.get()?()?;
+        flate2::read::DeflateDecoder::new(compressed.as_slice())
+            .read_to_end(&mut decompressed)
+            .ok()
+            .unwrap();
+    }
+    #[cfg(not(feature = "host-cmaps"))]
+    {
+        let mut reader: &[u8] = include_bytes!("../../assets/cmaps.brotli");
+        brotli::BrotliDecompress(&mut reader, &mut decompressed)
+            .ok()
+            .unwrap();
+    }
 
     let mut reader = Reader::new(&decompressed);
     let huff_size = reader.read_u32().unwrap() as usize;

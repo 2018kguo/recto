@@ -22,7 +22,7 @@ use core::ops::Deref;
 mod aes;
 mod md5;
 mod rc4;
-mod sha256;
+pub(crate) mod sha256;
 mod sha384;
 mod sha512;
 

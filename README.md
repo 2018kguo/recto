@@ -7,10 +7,10 @@
   <a href="docs/how-it-works.md">How it works</a>
 </p>
 
-![pdf.js and recto each opening a 240-page report in Chromium with the CPU slowed 3.3×: recto finishes in 3.4 s, pdf.js in 7.4 s](docs/recto-film.gif)
+![pdf.js and recto each opening a 240-page report in Chromium with the CPU slowed 4.5×: recto finishes in 3.2 s, pdf.js in 7.1 s](docs/recto-film.gif)
 
 *A real recording of 240 generated report pages drawn at 800 px, each engine alone, side by side
-afterwards, in Chromium with the CPU slowed 3.3×. The counters are measured in the page.*
+afterwards, in Chromium with the CPU slowed 4.5×. The counters are measured in the page.*
 
 ## Use it
 
@@ -37,8 +37,9 @@ That is all the setup: fonts and CMaps load from the package when a document fir
 `using` closes the document; so does `doc.close()`. The bytes are copied, so you can reuse the
 buffer as soon as `openPdf` returns.
 
-**Every call is synchronous CPU work.** It blocks the thread it runs on, so a server should not
-run it on its main loop. Put it on a worker thread:
+**Every call is synchronous CPU work**, except `await doc.renderAsync(0, { width, signal })`, which
+gives the thread back between slices and can be stopped. The others block the thread they run on, so
+a server should not run them on its main loop. Put them on a worker thread:
 
 ```js
 // pdf-thread.js
@@ -145,23 +146,23 @@ A page of the generated report, with what the API returned drawn over it: `text(
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/benchmarks-dark.svg">
-  <img src="docs/benchmarks-light.svg" alt="Bar charts. Read text in Node: recto 275 ms, pdf.js 1.3 s, pdfium 693 ms. Render in Node: recto 649 ms, pdf.js 2.9 s, pdfium 1.2 s. A 40-page report in Chromium slowed 3.3×: recto 430 ms, pdf.js 993 ms, pdfium 598 ms. Peak memory in Node: recto 313 MB, pdf.js 826 MB, pdfium 346 MB.">
+  <img src="docs/benchmarks-light.svg" alt="Bar charts. Read text in Node: recto 311 ms, pdf.js 1.2 s, pdfium 723 ms. Render in Node: recto 229 ms, pdf.js 1.2 s, pdfium 980 ms. A 40-page report in Chromium slowed 4.8×: recto 445 ms, pdf.js 1.2 s, pdfium 631 ms. Peak memory in Node: recto 300 MB, pdf.js 703 MB, pdfium 312 MB.">
 </picture>
 
-Medians of 5 alternating runs on an Apple M5 Pro, with 60 public PDFs in Node and 8 in Chromium, against
+Medians of 3 alternating runs on an Apple M5 Pro, with 37 public and generated PDFs in Node and 8 of them in Chromium, against
 pdf.js 6.5.438 and stock pdfium. How much faster recto is than each:
 
 | | pdf.js | pdfium |
 |---|---:|---:|
-| Text in Node | 4.7× | 2.5× |
-| Render in Node | 4.5× | 1.8× |
-| Text in Chromium | 2.7× | 2.1× |
-| Render in Chromium | 3.3× | 2.0× |
+| Text in Node | 3.8× | 2.3× |
+| Render in Node | 5.2× | 4.3× |
+| Text in Chromium | 3.3× | 2.6× |
+| Render in Chromium | 3.6× | 1.5× |
 
-It isn't ahead everywhere. In a browser it's the slowest of the three to a fresh page's first text
-(107 ms, against 62 ms and 44 ms), and it downloads about three times what pdf.js does (1.26 MB
-against 0.42 MB with brotli). pdfium opens a large file faster. pdf.js holds less memory in a page,
-and its renders can be cancelled, where recto's call can only have its worker terminated. On text
+It isn't ahead everywhere. In a browser pdfium reaches a fresh page's first pixels sooner (66 ms against
+54 ms), though recto is first to text (32 ms against 55 ms and 43 ms). pdf.js downloads less: 0.42 MB with
+brotli, against recto's 0.53 MB for text and 1.72 MB for text and pixels (1.22 MB if the thread asks for the
+full engine up front). pdfium opens a large file a little faster. pdf.js holds less memory in a page. On text
 quality against poppler the three tie. [benchmarks.md](docs/benchmarks.md) has all of it, what each
 number means and how it's measured. To rerun it on PDFs of your own (it commits none):
 
@@ -201,19 +202,24 @@ on anything a user might upload, use one of those two.
 
 | File | Size | When it loads |
 |---|---:|---|
-| `wasm/recto.wasm` | 4.1 MB (1.0 MB brotli) | Creating an engine |
+| `wasm/recto-text.wasm` | 1.7 MB (0.50 MB brotli) | Creating an engine |
+| `wasm/recto.wasm` | 3.8 MB (0.98 MB brotli) | The first `render` or `objects`, or a main thread's engine unless you leave it out |
 | `wasm/recto.gen.mjs`, `dist/` | 32 KB, 73 KB of JavaScript | Importing the package |
 | `wasm/fonts.bin` | 0.26 MB | A document names a standard font it doesn't embed |
-| `wasm/cmaps.brotli` | 0.25 MB | A document uses a predefined CJK CMap |
+| `wasm/cmaps.deflate` | 0.36 MB | A document uses a predefined CJK CMap |
 | `wasm/cjk-fallback.ttf` | 5.1 MB | Rendering CJK from a font the document doesn't embed |
 
 ## Limits
 
-- **Threads:** every call blocks its thread, and a call can't be interrupted, only its worker
-  terminated. A ranged read needs a worker. An edge runtime without synchronous requests should work
+- **Threads:** every call but `renderAsync` blocks its thread and can't be interrupted, only its worker
+  terminated. `renderAsync` still holds the thread for the last, rasterizing step of a render. A
+  ranged read needs a worker. An edge runtime without synchronous requests should work
   the way a service worker does, but none has been run.
 - **Memory:** `open` copies the file into WebAssembly memory, which only comes back when an instance is
-  dropped (at the last close, past 512 MiB by default). A ranged file can be up to 3.5 GiB.
+  dropped (a second after the last close, past 64 MiB by default). A ranged file can be up to 3.5 GiB.
+- **Ranged reads trust `/Count`:** a false `/Count` where the path to a page doesn't look, or a node of over
+  32 kids, as many as its `/Count`, with a non-page before the page, can return a different page than a
+  whole-file read. Open the whole file if you need the guarantee. See [ranged reads](docs/reference.md#ranged-reads).
 - **Char boxes** are loose font boxes, not glyph ink. A font that states no ascent and descent gets 0.8
   and −0.2 em. A fill colour reads as the stroke colour for stroke-only text, and as opaque black for a
   pattern.

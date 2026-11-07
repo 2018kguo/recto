@@ -470,19 +470,14 @@ test("memory is recycled once it grows past the mark; open documents keep workin
   const recycling = await createPdfEngine({
     recycleAboveBytes: 48 * 1024 * 1024,
   });
-  const before = recycling.stats().heapBytes;
   const old = await recycling.open(truth.bytes);
-  old.render(0, { width: 4000 }); // 4000x3000 RGBA: 48 MB inside WASM
+  old.render(0, { width: 6000 }); // 6000x4500 RGBA: 108 MB inside WASM
   assert.ok(recycling.stats().heapBytes > 48 * 1024 * 1024);
   const fresh = await recycling.open(truth.bytes);
   const { heapBytes, ...rest } = recycling.stats();
-  assert.deepEqual(rest, { generation: 1, openDocuments: 1 });
-  // A fresh instance: the file copied into WASM memory, at most a page (64 KiB) past the
-  // bytes themselves.
-  assert.ok(
-    heapBytes <= before + truth.bytes.byteLength + 65_536,
-    `fresh heap ${heapBytes}, first ${before}`
-  );
+  // 0 the engine that drew, 1 the replacement.
+  assert.deepEqual(rest, { generation: 1, openDocuments: 2 });
+  assert.ok(heapBytes < 16 * 1024 * 1024, `a fresh heap, not the old one's: ${heapBytes}`);
   assert.match(
     old.text(0).text,
     /Alpha/,
@@ -490,6 +485,19 @@ test("memory is recycled once it grows past the mark; open documents keep workin
   );
   old.close();
   fresh.close();
+});
+
+test("by default a page drawn past 64 MiB gives its memory back a second after the document closes", async () => {
+  const engine = await createPdfEngine();
+  const doc = await engine.open(truth.bytes);
+  doc.render(0, { width: 6000 });
+  assert.ok(engine.stats().heapBytes > 64 * 1024 * 1024);
+  doc.close();
+  await new Promise((resolve) => setTimeout(resolve, 1200));
+  assert.equal(engine.stats().heapBytes, 0);
+  const again = await engine.open(truth.bytes);
+  assert.equal(again.pageCount, 5);
+  again.close();
 });
 
 test("a recycled instance's memory is released, not kept per generation", async () => {

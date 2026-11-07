@@ -16,16 +16,25 @@ engine.stats(): { heapBytes: number; generation: number; openDocuments: number }
 
 `openPdf` uses one shared engine per thread, created on first use. Create your own to set
 options, or to keep a job's memory apart. WebAssembly memory never shrinks, so memory comes back
-by dropping the instance: when memory is past `recycleAboveBytes` (512 MiB by default) and the
-last document on it closes, it goes then, and `stats().heapBytes` reads 0 until the next open. If
-a document is still open, the next open gets a fresh instance and the old one goes when its
-documents close. A crashed instance is replaced at the next open.
+by dropping the instance. By default, an instance past 64 MiB goes a second after its last document
+closes, unless an open reuses it first, and one past 512 MiB goes at the close. With
+`recycleAboveBytes` set, an instance past it goes at the close. Then `stats().heapBytes` reads 0 until
+the next open. If a document is still open past the mark, the next open gets a fresh instance and the
+old one goes when its documents close. A crashed instance is replaced at the next open.
 
 **The bytes are copied** before the call returns its promise, whether by `open` or by a ranged
 open of bytes, so you can reuse a pooled `Buffer`, change the buffer, or transfer it straight
 away, without waiting. `open` then holds the file in WebAssembly memory for as long as the
-document is open, in memory that comes back only when the instance is replaced, and briefly
-twice during the open.
+document is open, in memory that comes back only when the instance is replaced.
+
+**Two engines, one API.** A document starts on `recto-text.wasm` (1.7 MB, 0.50 MB with brotli),
+which reads everything but can't draw, and the first `render`, `renderAsync`, `objects` or `scan`
+moves it to `recto.wasm` (3.8 MB, 0.98 MB with brotli): loaded and checked once per thread, then the
+file is reopened there, with no fetch of the PDF. There's nothing to call. If the load fails, the call
+throws `missing-asset` and the document stays usable. The move costs memory: while it runs the file is
+in both instances' memory, on top of any copy you hold, so a 400 MiB file you still hold peaks at 1.36 GB
+resident in Node where one that started on the full engine peaks at 0.94 GB. A thread that will draw, or a large file, should
+start on the full engine with `preloadAssets: ["recto.wasm"]`, which skips the move.
 
 ## A document
 
@@ -40,6 +49,7 @@ twice during the open.
 | `scan(i)` | `text`, `objects` and `annotations` from one interpretation of the page |
 | `textAndAnnotations(i)` | `text` and `annotations` from one interpretation of the page |
 | `render(i, { width, maxHeight? })` | `{ width, height, rgba, truncated }`: opaque RGBA, four bytes a pixel, on white |
+| `renderAsync(i, { width, maxHeight?, signal?, sliceMs? })` | A promise of the same bitmap, the same pixels, with the thread given back every `sliceMs` (8 by default). A `signal` stops it at the next pause, with `aborted` |
 | `close()`, `[Symbol.dispose]()` | Frees the document. Closing twice does nothing |
 
 Columns are typed arrays, so a page crosses a thread boundary by transfer. Char `i` is entry
@@ -67,6 +77,13 @@ true. Real pages stay far below all of these.
 
 A render is capped at 16,384 px a side and 64 Mpx, and shrinks to fit. `maxHeight` defaults to
 4096; pass `Infinity` to fit the width alone.
+
+**`renderAsync`** pauses between a page's drawing operators, including inside forms. Three things
+run whole: the final rasterizing (about a quarter of a render, the longest hold on a heavy page),
+and a pattern, soft mask or Type 3 glyph, or a knockout or backdrop group. Other calls may run
+between slices, on the same document too, and `close` stops the render with `closed`. `text` and
+`open` have no such version: on the 300,000-shape page `text` takes 40 ms, and `open` takes about
+1 ms for 2,000 pages.
 
 Helpers over those columns: `textItems(page, info)` makes pdf.js-style text items,
 `readingOrder(page, info)` gives the reading order and breaks (it re-lays out rotated pages),
@@ -123,6 +140,15 @@ server on the same thread cannot answer, and the read fails with `timeout` and s
 | `signal` | | Checked before the open and each fetch. It cannot interrupt a fetch, because the thread is blocked; `timeoutMs` bounds that |
 | `password` | | |
 
+**A ranged read trusts `/Count`.** It finds a page by each node's `/Count`, so that it fetches only
+the nodes on the way there, and checks what it reads on that path. If something doesn't add up it walks
+the tree in order instead, within `maxBytes`. It can still return a different page than a whole-file read,
+and which one can depend on what was read first, in two cases: a file whose `/Count` values are false
+where that path doesn't look; and, with true counts, a node of over 32 kids, as many as its `/Count`,
+where a kid before the page is an empty node or holds more than one page. `pageCount` can be wrong in the
+first case, so a page can fail with `failed`, or pages at the end can go unseen. If you need the
+guarantee, open the whole file: there `/Count` plays no part.
+
 What a server gets wrong:
 
 - **It ignores Range** (a 200 with the whole file): the file is used, as long as it fits
@@ -159,17 +185,20 @@ The wasm and assets are found with `new URL("../wasm/…", import.meta.url)`.
 
 - **A Content-Security-Policy** must allow `wasm-unsafe-eval`, and `connect-src` for the assets.
 - **A page's main thread and service workers** can't read a file synchronously, so where that's
-  so, the assets are fetched while the engine is created: all of them by default, 5.6 MB, or only
-  what `preloadAssets` names (`fonts.bin` 0.26 MB, `cmaps.brotli` 0.25 MB, `cjk-fallback.ttf`
-  5.1 MB), and a document that needs one you left out fails with `missing-asset`. It works, tested
+  so, the assets are fetched while the engine is created: all of them by default, 9.5 MB, or only
+  what `preloadAssets` names (`fonts.bin` 0.26 MB, `cmaps.deflate` 0.36 MB, `cjk-fallback.ttf` 5.1 MB),
+  and a call that needs one you left out fails with `missing-asset`. `recto.wasm` (3.8 MB) comes
+  whatever you name, so it can always draw. It works, tested
   in Chromium, Firefox and WebKit, but **every call blocks that thread**: on a main thread the page
   freezes for the length of each call, so prefer a dedicated worker, where nothing is fetched
   until a document needs it. A ranged read still needs a thread that may block: `wrong-thread`.
 - **Edge runtimes** without `XMLHttpRequest` take the same path in principle. None has been run.
 - No headers (COOP, COEP) are needed anywhere.
 
-Every file is pinned by SHA-256, checked when it is first read, so a dev server's HTML fallback
-page cannot read as a font. A missing asset throws from the call that needed it; it never reads
+Every file is pinned by SHA-256, and every byte is hashed before it's used, so a dev server's HTML
+fallback page cannot read as a font, and a changed wasm is never compiled. A wasm is fetched whole and
+hashed with `crypto.subtle`, or in JavaScript where there is none (a page on plain http), then
+compiled. A missing asset throws from the call that needed it; it never reads
 as blank text.
 
 ## The Rust crate

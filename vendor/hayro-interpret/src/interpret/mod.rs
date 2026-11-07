@@ -29,6 +29,7 @@ pub(crate) mod path;
 pub(crate) mod stack;
 pub(crate) mod state;
 pub(crate) mod text;
+pub(crate) mod page_run;
 pub(crate) mod text_only;
 
 const ANNOTATION_HIDDEN: u32 = 1 << 1;
@@ -258,6 +259,8 @@ fn appearance_stream<'a>(annot: &Dict<'a>) -> Option<Stream<'a>> {
     }
 }
 
+pub use page_run::PageRun;
+
 /// Interpret the instructions from `ops` and render them into the device.
 pub fn interpret<'a>(
     mut ops: TypedIter<'_>,
@@ -269,7 +272,7 @@ pub fn interpret<'a>(
 
     context.save_state();
 
-    run_ops(&mut ops, resources, context, device);
+    run_ops(&mut ops, resources, context, device, None);
 
     // A path object, including a pending `W` or `W*`, can't continue beyond the content
     // stream it starts in.
@@ -288,10 +291,19 @@ pub(crate) fn run_ops<'a>(
     resources: &Resources<'a>,
     context: &mut Context<'a>,
     device: &mut impl Device<'a>,
-) {
+    mut slice: Option<&mut page_run::Slice<'_>>,
+) -> page_run::Step<'a> {
     let mut font_dict_cache = FxHashMap::<Name<'a>, Dict<'a>>::default();
 
-    while let Some(op) = ops.next() {
+    loop {
+        if let Some(slice) = slice.as_mut()
+            && slice.tick()
+        {
+            return page_run::Step::Paused;
+        }
+        let Some(op) = ops.next() else {
+            return page_run::Step::Done;
+        };
         match op {
             TypedInstruction::SaveState(_) => context.save_state(),
             TypedInstruction::StrokeColorDeviceRgb(s) => {
@@ -710,7 +722,17 @@ pub(crate) fn run_ops<'a>(
                         transfer_function.clone(),
                     )
                 }) {
-                    x_object.draw(resources, context, device);
+                    if slice.is_some() {
+                        match x_object {
+                            XObject::FormXObject(form) => return page_run::Step::Enter(form),
+                            other => other.draw(resources, context, device),
+                        }
+                    } else {
+                        x_object.draw(resources, context, device);
+                    }
+                    if let Some(slice) = slice.as_mut() {
+                        slice.check_next();
+                    }
                 }
             }
             TypedInstruction::InlineImage(i) => {

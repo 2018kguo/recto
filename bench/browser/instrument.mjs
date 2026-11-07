@@ -1,10 +1,11 @@
-// Runs first in a worker or page: counts WebAssembly memory and watches how long the thread goes
-// without taking a timer. Read over DevTools as `self.__bench`.
+// Runs first in a worker or page: counts the WebAssembly memory still alive and watches how long
+// the thread goes without taking a timer. Read over DevTools as `self.__bench`.
 const memories = new Set();
 const remember = (result) => {
   const instance = result?.instance ?? result;
   for (const value of Object.values(instance?.exports ?? {})) {
-    if (value instanceof WebAssembly.Memory) memories.add(value);
+    // Weak, so an instance its engine has dropped is neither kept alive by this nor counted.
+    if (value instanceof WebAssembly.Memory) memories.add(new WeakRef(value));
   }
   return result;
 };
@@ -20,7 +21,7 @@ WebAssembly.Instance.prototype = OriginalInstance.prototype;
 
 const bench = {
   longestGap: 0,
-  wasmBytes: () => [...memories].reduce((sum, memory) => sum + memory.buffer.byteLength, 0),
+  wasmBytes: () => [...memories].reduce((sum, ref) => sum + (ref.deref()?.buffer.byteLength ?? 0), 0),
   reset() {
     bench.longestGap = 0;
     last = performance.now();

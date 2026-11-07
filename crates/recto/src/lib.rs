@@ -22,7 +22,9 @@ use hayro::hayro_interpret::{
 };
 use hayro::hayro_syntax::{LoadPdfError, Pdf};
 use hayro::kurbo::Rect;
+#[cfg(feature = "render")]
 use hayro::vello_cpu::color::palette::css::WHITE;
+#[cfg(feature = "render")]
 use hayro::{PixmapSettings, RenderCache, RenderSettings, render};
 
 pub use annots::{Annotation, Field};
@@ -109,6 +111,7 @@ pub struct Bitmap {
 /// Limit: unbounded for the document's life.
 struct Caches<'a> {
     text: InterpreterCache<'a>,
+    #[cfg(feature = "render")]
     render: RenderCache<'a>,
     /// The last page's glyph buffer, emptied: the next page fills it without
     /// regrowing (and recopying) it from nothing.
@@ -178,6 +181,7 @@ impl Document {
             .map(|pdf| {
                 Self(Inner::new(pdf, |_| Caches {
                     text: InterpreterCache::new(),
+                    #[cfg(feature = "render")]
                     render: RenderCache::new(),
                     glyphs: Default::default(),
                 }))
@@ -290,6 +294,11 @@ impl Document {
         }))
     }
 
+    /// The file as it was opened, in place.
+    pub fn file_bytes(&self) -> &[u8] {
+        self.0.borrow_owner().data().as_ref()
+    }
+
     /// The document's outline, in order; each item's children follow it, one level deeper.
     pub fn outline(&self) -> Vec<outline::OutlineItem> {
         self.0.with_dependent(|pdf, _| outline::read(pdf))
@@ -306,12 +315,13 @@ impl Document {
         }))
     }
 
-    fn pixmap(
+    #[cfg(feature = "render")]
+    fn pixmap_settings(
         &self,
         index: usize,
         width: f32,
         max_height: f32,
-    ) -> Result<(hayro::vello_cpu::Pixmap, bool), EngineError> {
+    ) -> Result<PixmapSettings, EngineError> {
         let info = self.page_info(index)?;
         let scale = render_scale(info.width, info.height, width, max_height)?;
         // Each side rounds up, and the page stretches to
@@ -326,7 +336,21 @@ impl Document {
                 exact.next_up()
             }
         };
-        let (x_scale, y_scale) = (fit(info.width), fit(info.height));
+        Ok(PixmapSettings {
+            x_scale: fit(info.width),
+            y_scale: fit(info.height),
+            bg_color: WHITE,
+        })
+    }
+
+    #[cfg(feature = "render")]
+    fn pixmap(
+        &self,
+        index: usize,
+        width: f32,
+        max_height: f32,
+    ) -> Result<(hayro::vello_cpu::Pixmap, bool), EngineError> {
+        let settings = self.pixmap_settings(index, width, max_height)?;
         Ok(self.0.with_dependent(|pdf, caches| {
             let Some(page) = pdf.pages().get(index) else {
                 unreachable!("self.page(index) found it")
@@ -336,26 +360,103 @@ impl Document {
                 &caches.render,
                 &crate::assets::settings(),
                 &RenderSettings::default(),
-                &PixmapSettings {
-                    x_scale,
-                    y_scale,
-                    bg_color: WHITE,
-                },
+                &settings,
             );
             (pixmap, caches.render.take_degraded())
         }))
     }
 
     /// Scale is `min(width / pageWidth, maxHeight / pageHeight)`.
+    #[cfg(feature = "render")]
     pub fn render(&self, index: usize, width: f32, max_height: f32) -> Result<Bitmap, EngineError> {
         let (pixmap, truncated) = self.pixmap(index, width, max_height)?;
-        let (width, height) = (u32::from(pixmap.width()), u32::from(pixmap.height()));
-        Ok(Bitmap {
-            width,
-            height,
-            rgba: pixmap.data_as_u8_slice().to_vec(),
-            truncated,
+        Ok(bitmap_of(pixmap, truncated))
+    }
+}
+
+/// A page being drawn a slice at a time, the same pixels as `Document::render`.
+#[cfg(feature = "render")]
+pub struct RenderTask {
+    // Before the document it borrows from, so it's dropped first.
+    job: hayro::PageJob<'static, 'static>,
+    _document: std::rc::Rc<Document>,
+}
+
+#[cfg(feature = "render")]
+impl RenderTask {
+    pub fn new(
+        document: std::rc::Rc<Document>,
+        index: usize,
+        width: f32,
+        max_height: f32,
+    ) -> Result<Self, EngineError> {
+        let settings = document.pixmap_settings(index, width, max_height)?;
+        let job = document.0.with_dependent(|pdf, caches| {
+            let Some(page) = pdf.pages().get(index) else {
+                unreachable!("pixmap_settings found it")
+            };
+            let job = hayro::PageJob::new(
+                page,
+                &caches.render,
+                &crate::assets::settings(),
+                &RenderSettings::default(),
+                &settings,
+            );
+            // SAFETY: the job borrows only from the document's self-cell, whose owner and
+            // dependent live on the heap at a fixed address. `_document` keeps that alive for as
+            // long as the job, and the job goes first. Nothing mutable is borrowed across a return:
+            // the caches it shares with other calls are behind RefCells held only inside a call.
+            unsafe {
+                std::mem::transmute::<hayro::PageJob<'_, '_>, hayro::PageJob<'static, 'static>>(job)
+            }
+        });
+        Ok(Self {
+            job,
+            _document: document,
         })
+    }
+
+    /// Runs until `expired` says so; true once the page's content is done.
+    pub fn step(&mut self, expired: &dyn Fn() -> bool) -> bool {
+        self.job.step(expired)
+    }
+
+    /// Rasterizes what `step` drew. One call, after `step` returned true.
+    pub fn finish(&mut self) -> Bitmap {
+        let (pixmap, truncated) = self.job.finish();
+        bitmap_of(pixmap, truncated)
+    }
+}
+
+/// The pixmap's own buffer, with no second page-sized allocation at the render's peak.
+#[cfg(feature = "render")]
+fn bitmap_of(pixmap: hayro::vello_cpu::Pixmap, truncated: bool) -> Bitmap {
+    Bitmap {
+        width: u32::from(pixmap.width()),
+        height: u32::from(pixmap.height()),
+        rgba: pixmap.take_rgba8(hayro::vello_cpu::peniko::ImageAlphaType::AlphaPremultiplied),
+        truncated,
+    }
+}
+
+#[cfg(test)]
+mod sha256_tests {
+    fn hex(data: &[u8]) -> String {
+        hayro::hayro_syntax::sha256(data).iter().map(|b| format!("{b:02x}")).collect()
+    }
+
+    #[test]
+    fn known_answers_at_the_padding_boundaries() {
+        assert_eq!(hex(b""), "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+        assert_eq!(hex(b"abc"), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+        // 56 bytes: the length no longer fits in the block it would end.
+        assert_eq!(
+            hex(b"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"),
+            "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1"
+        );
+        assert_eq!(hex(&[b'a'; 55]), "9f4390f8d30c2dd92ec9f095b65e2b9ae9b0a925a5258e241c9f1e910f734318");
+        assert_eq!(hex(&[b'a'; 64]), "ffe054fe7ae0cb6dc65c3af9b61d5209f439851db43d0ba5997337df154668eb");
+        assert_eq!(hex(&[b'a'; 119]), "31eba51c313a5c08226adf18d4a359cfdfd8d2e816b13f4af952f7ea6584dcfb");
     }
 }
 
