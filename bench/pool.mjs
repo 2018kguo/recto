@@ -19,11 +19,15 @@ const { values } = parseArgs({
     runs: { type: "string", default: "3" },
     out: { type: "string" },
     child: { type: "string" },
+    file: { type: "string" },
   },
 });
 const RENDERED = 200;
 const median = (list) => list.toSorted((a, b) => a - b)[Math.floor(list.length / 2)];
-const bytes = reportPdf({ pages: Number(values.pages), imageEvery: 10, imageSize: 240 });
+// Made once and read from a file: making it takes more memory than some of what's measured.
+const file = values.file ?? path.join(fs.mkdtempSync(path.join(os.tmpdir(), "recto-pool-")), "report.pdf");
+if (!values.file) fs.writeFileSync(file, reportPdf({ pages: Number(values.pages), imageEvery: 10, imageSize: 240 }));
+const bytes = new Uint8Array(fs.readFileSync(file));
 
 async function timed(work) {
   const started = performance.now();
@@ -64,7 +68,7 @@ const runs = Number(values.runs);
 const sample = (child) => {
   const list = [];
   for (let i = 0; i < runs; i++) {
-    list.push(JSON.parse(execFileSync(process.execPath, [import.meta.filename, "--child", child, "--pages", values.pages], { encoding: "utf8", maxBuffer: 1 << 24 })));
+    list.push(JSON.parse(execFileSync(process.execPath, [import.meta.filename, "--child", child, "--file", file, "--pages", values.pages], { encoding: "utf8", maxBuffer: 1 << 24 })));
   }
   return Object.fromEntries(["start", "text", "render", "rss"].map((key) => [key, Math.round(median(list.map((s) => s[key])) * 10) / 10]));
 };

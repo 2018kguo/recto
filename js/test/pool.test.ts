@@ -102,3 +102,32 @@ test("an idle pool lets Node exit, and a call under way keeps it alive until it 
   });
   assert.match(out, /count true/u);
 });
+
+test("every thread is told about one copy of the file, which the caller can't then change", async () => {
+  const { Worker } = await import("node:worker_threads");
+  const post = Worker.prototype.postMessage;
+  const sent: unknown[] = [];
+  Worker.prototype.postMessage = function (this: InstanceType<typeof Worker>, message: { open?: { bytes: Uint8Array } }) {
+    if (message.open) sent.push(message.open.bytes.buffer);
+    return post.call(this, message);
+  };
+  try {
+    using pool = await createPdfPool({ threads: 3 });
+    const bytes = syntheticPdf({ pages: 30, charsPerPage: 50 });
+    const expected = (await (await pool.open(bytes)).text(0)).text;
+    const again = bytes.slice();
+    const doc = await pool.open(again);
+    again.fill(0);
+    let pages: { text: string }[] = [];
+    while (pool.stats().threads < 3) {
+      pages = await Promise.all(Array.from({ length: 30 }, (_, i) => doc.text(i)));
+    }
+    pages = await Promise.all(Array.from({ length: 30 }, (_, i) => doc.text(i)));
+    assert.equal(pages[0]!.text, expected);
+    const last = sent.at(-1);
+    assert.ok(last instanceof SharedArrayBuffer);
+    assert.ok(sent.filter((buffer) => buffer === last).length >= 2, "at least two threads were told");
+  } finally {
+    Worker.prototype.postMessage = post;
+  }
+});

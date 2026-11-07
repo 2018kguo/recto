@@ -54,6 +54,19 @@ type Task = {
   reject(reason: unknown): void;
 };
 
+/**
+ * The pool's copy of a file. Shared memory where it's allowed (Node, or a page with COOP and COEP), so that
+ * telling each thread about the file doesn't copy it again before the thread copies it into its wasm.
+ */
+function privateCopy(view: Uint8Array): Uint8Array {
+  if (typeof SharedArrayBuffer !== "function") {
+    return view.slice();
+  }
+  const copy = new Uint8Array(new SharedArrayBuffer(view.byteLength));
+  copy.set(view);
+  return copy as unknown as Uint8Array;
+}
+
 type OpenFile = { id: number; bytes: Uint8Array; password: string | undefined; closed: boolean; on: Set<Thread> };
 
 type Thread = {
@@ -206,7 +219,7 @@ class Pool implements PdfPool {
     const view = ArrayBuffer.isView(input) ? input : new Uint8Array(input);
     const file: OpenFile = {
       id: this.#nextFile++,
-      bytes: view.slice(),
+      bytes: privateCopy(view),
       password: options.password,
       closed: false,
       on: new Set(),
