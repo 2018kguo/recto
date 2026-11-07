@@ -219,7 +219,7 @@ on anything a user might upload, use one of those two.
 | `wasm/recto.wasm` | 1.4 MB (0.42 MB brotli) | Creating an engine |
 | `wasm/recto-render.wasm` | 0.79 MB (0.24 MB brotli) | The first `render` or `objects` |
 | `wasm/recto-more.wasm`, `recto-rare.wasm` | 0.90, 0.79 MB (0.21, 0.17 MB brotli) | A file that runs a function the first two left out; on a main thread, up front |
-| `wasm/recto.gen.mjs`, `dist/` | 32 KB, 73 KB of JavaScript | Importing the package |
+| `wasm/recto.gen.mjs`, `dist/` | 38 KB, 105 KB of JavaScript | Importing the package |
 | `wasm/Foxit*.pfb` | 14 files, 15–30 KB each | Drawing a standard font the document doesn't embed |
 | `wasm/cmaps.deflate` | 0.36 MB | A document uses a predefined CJK CMap |
 | `wasm/cjk-fallback.ttf` | 5.1 MB | Rendering CJK from a font the document doesn't embed |

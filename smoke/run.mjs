@@ -222,6 +222,13 @@ const flaky = { name: "", state: "" };
 const pdfs = (req, res) => {
   const [, mode, name, state] = new URL(req.url, "http://x").pathname.split("/");
   const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "Range", "Cache-Control": "no-store" };
+  // The package as a CDN has it, for a page on another origin.
+  if (mode === "pkg") {
+    const file = path.join(dir, "node_modules/@2018kguo/recto", ...new URL(req.url, "http://x").pathname.split("/").slice(2));
+    const type = /\.m?js$/u.test(file) ? "text/javascript" : "application/octet-stream";
+    res.writeHead(200, { ...cors, "Content-Type": type }).end(fs.readFileSync(file));
+    return;
+  }
   if (mode === "flaky-set") {
     Object.assign(flaky, { name, state });
     res.writeHead(204, cors).end();
@@ -316,6 +323,13 @@ async function checkPages(browserName, label, origin) {
     assert.ok(checks.mainThread.ink > 500, `main thread ink ${checks.mainThread.ink}`);
     assert.match(checks.mainThread.poolText, /Hello from recto/u);
     assert.equal(checks.mainThread.poolInk, checks.mainThread.ink, "a pool thread draws what this thread drew");
+    assert.equal(checks.mainThread.poolNoWasm, "missing-asset", "recto.wasm 404s: a pool's open says so");
+    assert.equal(checks.mainThread.poolBadBase, "missing-asset", "a bad assetBase: a pool's open says so");
+    assert.equal(checks.mainThread.poolSignal, "TypeError");
+    assert.equal(checks.mainThread.poolAfterBadArgument, "fine", "a thread goes on after an argument that can't cross");
+    assert.match(checks.mainThread.cdnText, /Hello from recto/u);
+    assert.equal(checks.mainThread.cdnInk, checks.mainThread.ink, "a pool from another origin draws the same");
+    assert.equal(checks.mainThread.cdnThirdOpen, 1);
     assert.equal(checks.mainThread.ranged, "wrong-thread");
     assert.match(checks.mainThread.plainMime, /Hello from recto/u);
     assert.equal(checks.mainThread.tampered, "missing-asset");

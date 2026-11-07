@@ -198,16 +198,17 @@ class Pool implements PdfPool {
         worker.on("exit", onDeath);
         thread.worker = worker;
       } else {
-        const script = new URL("./pool-worker.js", import.meta.url);
+        // Not `new URL("…", import.meta.url)`: a bundler would emit the file as it stands for that.
+        const here = import.meta.url;
         const worker =
-          script.origin === location.origin
+          new URL(here).origin === location.origin
             ? // Written out in full: this is the form bundlers recognise, and they emit the worker for it.
               new Worker(new URL("./pool-worker.js", import.meta.url), { type: "module" })
             : // A worker's script has to be of this page's origin, so from a CDN it's one line that imports the
               // real one, which the CDN has to allow with CORS, as it does the wasm.
               // ponytail: the blob's URL lives as long as the page; one per thread started.
               new Worker(
-                URL.createObjectURL(new Blob([`import ${JSON.stringify(script.href)};`], { type: "text/javascript" })),
+                URL.createObjectURL(new Blob([`import ${JSON.stringify(new URL("./pool-worker.js", here).href)};`], { type: "text/javascript" })),
                 { type: "module" }
               );
         worker.onmessage = ({ data }) => onMessage(data);

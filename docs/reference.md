@@ -118,9 +118,15 @@ by default one less than the machine's cores and at most 8. A thread starts only
 wait and none is free, so calls awaited one at a time stay on one thread. Each thread that gets a
 page of a document holds its own copy of the file, and the pool holds one more until `doc.close()`.
 
-It needs nothing else: no `SharedArrayBuffer`, so no COOP or COEP headers. A thread with no way to
-start workers (a service worker) gets `wrong-thread`. A thread that stops fails its call with `crash`
-and another takes its place. A call can't be stopped once it runs; `pool.close()` ends all of them.
+It needs no COOP or COEP headers; with them, threads share one copy of the file. `threads` goes up to 64. Loaded
+from another origin, such as a CDN, threads start through a one-line blob that imports `dist/pool-worker.js`, so
+the CDN must send CORS headers for `dist/` as it does for the wasm, and a Content-Security-Policy must allow
+`worker-src blob:`. A thread with no way to start workers (a service worker) gets `wrong-thread`.
+
+A thread that can't start fails what's waiting with its reason, usually `missing-asset`, and the next call tries again; one
+that says nothing for 90 seconds counts as stopped. A thread that stops fails its call with `crash`, and another takes its
+place. An argument or result that can't cross between threads fails that call alone. `render` takes `width` and
+`maxHeight`, and refuses `signal` with a `TypeError`: a call can't be stopped once it runs, only `pool.close()` ends all of them.
 The synchronous API doesn't change, and the pool's code loads only when `createPdfPool` is called.
 
 ## Errors
