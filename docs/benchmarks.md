@@ -264,18 +264,30 @@ node bench/recycle.mjs
 
 `createPdfPool` on a generated 2,000-page report (13.9 MB) in Node 25, every page's text and then 200 pages drawn at
 800 px, with each result dropped as it arrives. Threads are warm: starting them and giving each the file is
-apart, 40 to 50 ms for up to 8. Medians of 3, each in its own process, on the same loaded machine (load average
-about 8), so read these as rough.
+apart, about 60 ms for 8. Medians of 5, each in its own process, on a loaded machine (load average about 9), so
+read these as rough.
 
 | | Text | Render | Peak memory |
 |---:|---:|---:|---:|
-| No pool, on the calling thread | 576 ms | 253 ms | 367 MB |
-| 1 thread | 634 ms | 257 ms | 408 MB |
-| 4 threads | 213 ms (2.7×) | 108 ms (2.3×) | 554 MB |
-| 8 threads | 117 ms (4.9×) | 77 ms (3.3×) | 730 MB |
+| No pool, on the calling thread | 647 ms | 260 ms | 345 MB |
+| 1 thread | 704 ms | 289 ms | 399 MB |
+| 2 threads | 434 ms (1.5×) | 197 ms (1.3×) | 428 MB |
+| 4 threads | 246 ms (2.6×) | 121 ms (2.2×) | 533 MB |
+| 8 threads | 134 ms (4.8×) | 91 ms (2.9×) | 734 MB |
+| 16 threads | 114 ms (5.7×) | 80 ms (3.2×) | 1,014 MB |
 
-Each thread costs about 45 MB here, its own engine and copy of the file. Past 8 it stopped paying on this machine,
-which is why that's the default's limit. In a browser it was checked for working, in Chromium, not timed.
+A pool of one costs about 10% over calling directly: the message each way. Each thread adds about 50 MB here, its
+own engine and copy of the file. Past 8 the gain is small for the memory, so that's the default's limit.
+Drawing scales less than text because each thread decodes the images and fonts it meets for itself.
+
+In Chromium, one run of a 500-page report, from a page's main thread, medians of 3 fresh pages:
+
+| | Text, 500 pages | Render, 100 pages |
+|---:|---:|---:|
+| 1 thread | 166 ms | 160 ms |
+| 2 threads | 84 ms | 102 ms |
+| 4 threads | 47 ms | 74 ms |
+| 8 threads | 30 ms | 64 ms |
 
 ```sh
 npm run build
