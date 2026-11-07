@@ -48,14 +48,20 @@ impl Pdf {
         let password = password.as_bytes();
         // recto: a ranged file's header (`find_version` reads 2000 bytes) and
         // `startxref`.
-        data.ensure(0, 2048);
+        // A failed read ends the open here: searching and repairing the file's length of zeros
+        // would only take time before the host throws the failure.
+        if !data.ensure(0, 2048) {
+            return Err(LoadPdfError::Invalid);
+        }
         // Grow the tail until it holds a `startxref` itself: the backward
         // search must not find an older revision's in an earlier fetched chunk.
         if data.is_ranged() {
             let len = data.as_ref().len();
             let mut tail: usize = 1024;
             loop {
-                data.ensure(len.saturating_sub(tail), usize::MAX);
+                if !data.ensure(len.saturating_sub(tail), usize::MAX) {
+                    return Err(LoadPdfError::Invalid);
+                }
                 let from = len.saturating_sub(tail);
                 if crate::util::findr_needle(&data.as_ref()[from..], b"startxref").is_some()
                     || from == 0

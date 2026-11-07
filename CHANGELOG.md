@@ -13,9 +13,17 @@ and the threshold can hide a missing line. See
   special headers. See [the numbers](docs/benchmarks.md#across-threads).
 - `doc.structureTruncated()`: whether a limit cut the page tree, labels or outline short, or a damaged tree left no pages.
 - `doc.pageLabels()`: what each page is called. The same as pdf.js on all 16 suite files that have any.
+- `totalTimeoutMs` on `openRanged`: wall time for the whole read. A stalled fetch is cut at what's left. It bounds the network
+  waits, not the parsing between them: on a stalled 255 MB file the call threw about 15 ms past the limit. In WebKit, a
+  response that keeps trickling is cut by neither this nor `timeoutMs`; a full stall is, about a second after a 500 ms limit.
+- `error.status` on `fetch-failed`: the HTTP status when one is known, undefined when none is (a refused connection, a
+  redirect loop, a response cut mid-stream).
+- `@2018kguo/recto/wasm/*` in `exports`: the files, and `wasm/pins.mjs` for the list of them.
 - `bench/scorecard.mjs`, `bench/fuzz.mjs`, `bench/fuzz-structures.mjs`, `bench/api-cases.mjs`, `examples/budgets.rs`, and a bounded fuzz test in CI.
 
 ### Fixed
+
+A ranged read that failed went on to repair the file: a scan of its length of zeros, 0.7 s on a 255 MB file, before the call threw. It stops at the failed read now.
 
 Rendering:
 
@@ -64,17 +72,18 @@ Opening:
 
 ### Changed
 
-- **One wasm in four parts**, in place of the two builds: `recto.wasm` for text (0.43 MB with brotli),
+- **One wasm in four parts**: `recto.wasm` for text (0.43 MB with brotli),
   `recto-render.wasm` for drawing (0.23 MB), `recto-more.wasm` and `recto-rare.wasm` for functions few files run (0.21
-  and 0.17 MB). A part loads inside the call that needs it, onto the same instance, so a document no longer moves
-  between engines. Text then pixels in a browser downloads 0.71 MB where it was 1.72 MB, text alone 0.46 MB where it was
-  0.53 MB, and a fresh page's first pixels go from 66 ms to 52 ms; its first text from 32 ms to 34 ms. Output is byte for byte
+  and 0.17 MB). A part loads inside the call that needs it, onto the same instance. Text then pixels in a browser
+  downloads 0.71 MB and text alone 0.46 MB, where 0.1.0 downloaded 1.26 MB for either, and a fresh page's first pixels go from
+  108 ms to 52 ms; its first text from 99 ms to 34 ms. Output is byte for byte
   the same on 2,170 PDFs, whole and ranged. Drawing costs 2% more in Node, calls across the boundary, and text 2% less. The build is the same bytes on any machine.
   If a part fails to load mid-call, the call throws `missing-asset`, open documents stay usable and the next call retries.
 - **The standard fonts are a file each**, not `fonts.bin`: a page that draws one fetches 13–25 KB where it fetched
   213 KB. `preloadAssets` still takes `fonts.bin`, meaning all 14; an `assetBase` directory needs the new files.
 - **`createPdfPool` can't wait for ever**: a thread that can't start fails what's waiting, typed, and a pool from a CDN starts its threads through a blob.
-- `preloadAssets: ["recto.wasm"]` no longer picks an engine: it fetches and compiles what drawing needs now.
+- `preloadAssets` means one thing everywhere: what's named is fetched and verified while the engine is created. Name
+  `recto-render.wasm` to save the first `render` the wait, or all three parts to find a missing one at startup.
 - **Glyph and metric tables** are sorted bytes, not `phf` maps, and the table from a character to its
   glyph name is built on first use: 40 KB less to download with brotli. Reading text costs about 2% more, since
   opening a font bisects where it hashed.
@@ -85,8 +94,8 @@ Opening:
 
 ## 0.2.0
 
-The API is unchanged, with one addition. Numbers are from `docs/benchmarks.md`, measured on the same
-set of PDFs before and after, in `bench/results`.
+Never published: everything here reached npm in 0.3.0, read from 0.1.0. The API is unchanged, with one addition.
+Numbers are from `docs/benchmarks.md`, measured on the same set of PDFs before and after, in `bench/results`.
 
 ### Added
 
@@ -97,14 +106,6 @@ set of PDFs before and after, in `bench/results`.
 
 ### Changed
 
-- **Two wasm builds.** In a browser a document starts on `recto-text.wasm` (0.50 MB with brotli,
-  1.26 MB of download before, 0.53 MB now) and moves to `recto.wasm` on the first `render`,
-  `renderAsync`, `objects` or `scan`, with no call to make. A page that does both now downloads both:
-  1.72 MB where it was 1.26 MB, or about 1.22 MB with `preloadAssets: ["recto.wasm"]`. Node starts on
-  the full engine, having no download to save; `preloadAssets: []` starts it on the text one.
-- **A fresh page's first text** went from 99 ms to 32 ms, and first pixels from 108 ms to 66 ms: the
-  smaller text wasm, and a wasm fetched up front is hashed by `crypto.subtle`, not in JavaScript. Every
-  byte is still hashed before it compiles.
 - **Opening** a whole file walks the page tree and builds each page the first time it's asked for.
   `/Count` no longer decides which page is which there. 2,000 pages in Node: 6.9 ms to 4.3 ms. A ranged file still finds a page by `/Count`,
   fetching what it did for wide nodes, and takes the walk when something on the way doesn't add up. Nodes
@@ -118,9 +119,9 @@ set of PDFs before and after, in `bench/results`.
   cycles on a 70 MiB file take 2.0 s and peak at 329 MB, with no WebAssembly memory held at rest (`recycle.json`). An
   explicit `recycleAboveBytes` still works as it did.
 - A text pass reads no font file. The CMaps asset is now `cmaps.deflate` (0.36 MB, was
-  `cmaps.brotli`, 0.25 MB), so neither wasm carries a brotli decoder. `preloadAssets` still takes the
+  `cmaps.brotli`, 0.25 MB), so the wasm carries no brotli decoder. `preloadAssets` still takes the
   old name. A setup that copies the package's files by name to `assetBase` also needs
-  `recto-text.wasm` and `cmaps.deflate`; copying `wasm/*`, as the docs say, needs nothing new.
+  `cmaps.deflate`; copying `wasm/*`, as the docs say, needs nothing new.
 
 ### Fixed
 

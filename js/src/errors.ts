@@ -26,7 +26,7 @@ export type PdfErrorCode =
   | "wrong-thread"
   /** A ranged read failed: the network, an HTTP error, or a server's bad Range answer. */
   | "fetch-failed"
-  /** A ranged read waited longer than `timeoutMs`. */
+  /** A ranged read waited longer than `timeoutMs`, or passed `totalTimeoutMs`. */
   | "timeout"
   /** A ranged read would pass `maxBytes`, or the file is past what a ranged read can hold. */
   | "too-large"
@@ -35,10 +35,13 @@ export type PdfErrorCode =
 
 export class PdfError extends Error {
   readonly code: PdfErrorCode;
+  /** On `fetch-failed`, the HTTP status of the answer it objects to. Undefined if the server never answered. */
+  readonly status: number | undefined;
 
-  constructor(code: PdfErrorCode, message: string, cause?: unknown) {
+  constructor(code: PdfErrorCode, message: string, cause?: unknown, status?: number) {
     super(message, cause === undefined ? undefined : { cause });
     this.name = "PdfError";
     this.code = code;
+    this.status = status;
   }
 }

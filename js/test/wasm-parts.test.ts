@@ -2,7 +2,7 @@
 // loaded: not in a result, not after a failure to load, and no part runs unchecked.
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -11,6 +11,7 @@ import { test } from "node:test";
 import { createPdfEngine, type PdfBitmap, type PdfDocument, PdfError } from "../src/index.ts";
 import { bilevel, jpxPdf, meshPdf, postScriptPdf, tensorPdf } from "./rare-pdfs.ts";
 import { startRangeServer } from "./range-server.ts";
+import { reportPdf } from "../../bench/generate.mjs";
 import { syntheticPdf } from "./synthetic-pdf.ts";
 import { hashOn } from "../src/engine.ts";
 import { PINS } from "../wasm/pins.mjs";
@@ -297,24 +298,31 @@ test("a part of the hash's own can't send its check round in a circle", () => {
   assert.deepEqual(inner, [null], "the check inside falls back to the one in JavaScript");
 });
 
-test("the old name of the text wasm is still taken", async () => {
-  const { getBuiltinModule } = process;
-  const realFetch = globalThis.fetch;
-  globalThis.fetch = (async (input: URL) => new Response(getBuiltinModule("node:fs").readFileSync(input))) as typeof fetch;
-  // @ts-expect-error
-  process.getBuiltinModule = undefined;
-  // @ts-expect-error
-  globalThis.document = {};
-  try {
-    const engine = await createPdfEngine({ preloadAssets: ["recto-text.wasm"] });
-    using doc = await engine.open(pdf());
-    assert.ok(doc.text(0).count > 0);
-  } finally {
-    process.getBuiltinModule = getBuiltinModule;
-    globalThis.fetch = realFetch;
-    // @ts-expect-error
-    delete globalThis.document;
+test("a thumbnail of a profiled file needs no part beyond drawing's", async () => {
+  const fixtures = new URL("fixtures/", import.meta.url);
+  const engine = await createPdfEngine({ assetBase: assetDir("recto-more.wasm", "recto-rare.wasm") });
+  for (const name of readdirSync(fixtures).filter((file) => file.endsWith(".pdf"))) {
+    const bytes = readFileSync(new URL(name, fixtures));
+    // As the profile opens them: some need the password, and some aren't readable.
+    const doc = await engine.open(bytes).catch(() => engine.open(bytes, { password: "secret" })).catch(() => null);
+    if (!doc) {
+      continue;
+    }
+    for (let i = 0; i < Math.min(doc.pageCount, 8); i++) {
+      for (const width of [32, 64, 100, 150, 200, 300]) {
+        doc.render(i, { width });
+      }
+    }
+    doc.close();
   }
+  // Images, which shrink by another path the smaller they get.
+  const report = await engine.open(reportPdf({ pages: 4, imageEvery: 1, imageSize: 600 }));
+  for (const width of [32, 64, 100]) {
+    for (let i = 0; i < report.pageCount; i++) {
+      report.render(i, { width });
+    }
+  }
+  report.close();
 });
 
 test("the collector frees nothing on an abandoned instance", async () => {

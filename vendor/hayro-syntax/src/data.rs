@@ -19,12 +19,14 @@ pub struct PdfData {
     ensure: Option<Ensure>,
 }
 
-/// Makes `[start, end)` of a ranged file's bytes present (clamped to its length).
+/// Makes `[start, end)` of a ranged file's bytes present (clamped to its length). False if a read
+/// failed: the rest of the range is still zeros, and nothing should scan them.
 #[cfg(feature = "std")]
-pub type Ensure = Arc<dyn Fn(usize, usize) + Send + Sync>;
-/// Makes `[start, end)` of a ranged file's bytes present (clamped to its length).
+pub type Ensure = Arc<dyn Fn(usize, usize) -> bool + Send + Sync>;
+/// Makes `[start, end)` of a ranged file's bytes present (clamped to its length). False if a read
+/// failed: the rest of the range is still zeros, and nothing should scan them.
 #[cfg(not(feature = "std"))]
-pub type Ensure = Arc<dyn Fn(usize, usize)>;
+pub type Ensure = Arc<dyn Fn(usize, usize) -> bool>;
 
 impl PdfData {
     /// recto: a file whose bytes are fetched on first use. `data` is the whole
@@ -45,9 +47,10 @@ impl PdfData {
     }
 
     #[inline]
-    pub(crate) fn ensure(&self, start: usize, end: usize) {
-        if let Some(ensure) = &self.ensure {
-            ensure(start, end.min(self.as_ref().len()));
+    pub(crate) fn ensure(&self, start: usize, end: usize) -> bool {
+        match &self.ensure {
+            Some(ensure) => ensure(start, end.min(self.as_ref().len())),
+            None => true,
         }
     }
 }
