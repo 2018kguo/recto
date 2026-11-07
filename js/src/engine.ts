@@ -169,11 +169,25 @@ function instantiate(
     );
   // Each instance gets its own glue closure (scripts/package-wasm.mjs), so a retired
   // instance and its memory are collected with it.
-  const glue = createGlue({
-    "part.recto-render": placeholders("recto-render.wasm"),
-    "part.recto-more": placeholders("recto-more.wasm"),
-    "part.recto-rare": placeholders("recto-rare.wasm"),
-  });
+  const glue = createGlue(
+    {
+      "part.recto-render": placeholders("recto-render.wasm"),
+      "part.recto-more": placeholders("recto-more.wasm"),
+      "part.recto-rare": placeholders("recto-rare.wasm"),
+    },
+    // Something never closed, freed by the collector. Nothing can run on an abandoned instance, which goes
+    // whole; and a free that needs a part it can't get has nobody to tell, and mustn't be an uncaught error.
+    (free) => {
+      if (instance.abandoned || instance.dead) {
+        return;
+      }
+      try {
+        free();
+      } catch {
+        instance.abandoned = true;
+      }
+    }
+  );
   const exports = glue.initSync({ module });
   const instance: Instance = {
     glue,

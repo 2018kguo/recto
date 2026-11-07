@@ -316,3 +316,25 @@ test("the old name of the text wasm is still taken", async () => {
     delete globalThis.document;
   }
 });
+
+test("the collector frees nothing on an abandoned instance", async () => {
+  const Real = globalThis.FinalizationRegistry;
+  const finalizers: ((pointer: number) => void)[] = [];
+  globalThis.FinalizationRegistry = class<T> extends Real<T> {
+    constructor(finalize: (value: T) => void) {
+      super(finalize);
+      finalizers.push(finalize as unknown as (pointer: number) => void);
+    }
+  };
+  try {
+    const dir = assetDir("recto-rare.wasm");
+    const engine = await createPdfEngine({ assetBase: dir });
+    using doc = await engine.open(bilevel.jbig2());
+    assert.throws(() => doc.render(0, { width: 64 }), missing("recto-rare.wasm"));
+    // On this instance a real free could run anything, or ask for a part and throw with nobody to catch it.
+    assert.ok(finalizers.length > 0);
+    for (const finalize of finalizers) assert.doesNotThrow(() => finalize(0x7fff_fff0), "a pointer past memory would trap if it ran");
+  } finally {
+    globalThis.FinalizationRegistry = Real;
+  }
+});
