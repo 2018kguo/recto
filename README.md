@@ -163,7 +163,8 @@ It isn't ahead everywhere. In a browser pdfium reaches a fresh page's first pixe
 54 ms), though recto is first to text (32 ms against 55 ms and 43 ms). pdf.js downloads less: 0.42 MB with
 brotli, against recto's 0.53 MB for text and 1.72 MB for text and pixels (1.22 MB if the thread asks for the
 full engine up front). pdfium opens a large file a little faster. pdf.js holds less memory in a page. On text
-quality against poppler the three tie. [benchmarks.md](docs/benchmarks.md) has all of it, what each
+quality against poppler recto leads narrowly (F1 98.7%, pdf.js 97.8%, pdfium 97.0%, on 87 documents), and it
+agrees with the other engines' pixels on 95.8% of the pages two of them agree on. [benchmarks.md](docs/benchmarks.md) has all of it, what each
 number means and how it's measured. To rerun it on PDFs of your own (it commits none):
 
 ```sh
@@ -172,7 +173,7 @@ npm run bench -- path/to/pdfs
 npm run bench:browser -- path/to/pdfs
 ```
 
-These numbers say how fast, not how good: they don't compare rendered pixels.
+These charts say how fast. How good is in [the scorecard](docs/benchmarks.md#the-scorecard).
 
 ## Why not pdf.js or pdfium
 
@@ -229,7 +230,13 @@ on anything a user might upload, use one of those two.
   disagrees with poppler and pdfium on knockout, where they don't follow it. Still approximate: a
   non-isolated group that needs its backdrop inside another such group stays isolated, and so does any
   past the 32nd on a page (`truncated` says so), and a subgroup inside a non-isolated blended knockout
-  group is close but not exact. Rendered pixels haven't been compared at scale with other engines.
+  group is close but not exact. [The scorecard](docs/benchmarks.md#the-scorecard) compares pixels with pdfium,
+  pdf.js and poppler on 539 small files, not at scale. A blend mode against bare paper blends with the white (pdfium
+  does too; the spec says the paper isn't there yet). Lab's dark colours and some mask edges differ a little. An annotation with no
+  appearance is drawn from its dictionary, with free text and field values in Helvetica, one line each, unwrapped;
+  a stale appearance isn't redrawn under `NeedAppearances`.
+- **Page sizes:** `/UserUnit` doesn't scale `pageInfo` or the boxes, where pdf.js scales them.
+- **Damaged files:** a file can open with no pages, where another engine would find one by scanning.
 - **Encryption:** the Standard security handler only, so a public-key file fails with `unsupported`. An
   encrypted file before revision 6 that lost its trailer fails with `invalid-file`, since its key needs
   the trailer's ID. Revision 6 is repaired.

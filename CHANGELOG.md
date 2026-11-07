@@ -1,5 +1,48 @@
 # Changelog
 
+## 0.3.0
+
+Rendered pixels are now compared with pdfium, pdf.js and poppler, with `bench/scorecard.mjs`: on 539
+small files recto agrees on 95.8% of the pages two of the others agree on, from 93.8%. See
+`docs/benchmarks.md`.
+
+### Added
+
+- `doc.pageLabels()`: what each page is called. The same as pdf.js on all 16 suite files that have any.
+- `bench/scorecard.mjs`, `bench/fuzz.mjs`, `bench/api-cases.mjs`, and a bounded fuzz test in CI.
+
+### Fixed
+
+Rendering:
+
+- An annotation with no appearance stream was left out. Highlights, underlines, squiggles, strikeouts,
+  squares, circles, lines, polylines, polygons, ink, free text and form fields are drawn from their
+  dictionaries.
+- A TrueType font whose `loca` runs backwards lost those glyphs.
+- A hybrid file's `XRefStm` with the table's own `Prev` lost the xref, and the repair took old objects.
+- A visibility expression (`/VE`) was ignored, and so was `/OC` on an annotation.
+- A `Q` with no `q` in a form undid its caller's state.
+- A form's `BBox` with its corners the other way round.
+- From upstream hayro since 0.9.0: sub-pixel dashes drawn solid, a lone sign read as zero, streams only as an indirect
+  object's value, xref streams not decrypted, nesting bounds on colour spaces and functions.
+
+Text:
+
+- CJK text in an embedded font with no `ToUnicode`, `Identity-H` included, was garbage. It now reads through the
+  font's character collection.
+- A `ToUnicode` map written with cidranges, and one with empty destinations (from upstream).
+
+Damaged files, each a `crash`, a hang or all of memory before:
+
+- A predictor with no columns or colours, or more than fit a byte.
+- A short dash along a very long path. Past 65,536 dashes it's drawn solid.
+- A huge dash offset.
+
+Opening:
+
+- A file whose password protects only its attachments opens without one.
+- An xref that gives no pages is repaired by scanning the file.
+
 ## 0.2.0
 
 The API is unchanged, with one addition. Numbers are from `docs/benchmarks.md`, measured on the same
