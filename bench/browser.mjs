@@ -227,3 +227,4 @@ const results = {
 };
 fs.writeFileSync(values.out, `${JSON.stringify(results, null, 1)}\n`);
 console.log(JSON.stringify({ bundle: Object.fromEntries(ENGINES.map((e) => [e, { text: [bundle[e].text.raw, bundle[e].text.brotli], cjk: [bundle[e].cjk.raw, bundle[e].cjk.brotli], textOnly: [bundle[e].textOnly.raw, bundle[e].textOnly.brotli] }])), slowdown: results.slowdown, pdfjsCancel: results.pdfjsCancel, medians: Object.fromEntries(Object.entries(summary).map(([k, v]) => [k, ENGINES.map((e) => v[e].median)])) }, null, 0));
+process.exit(0);

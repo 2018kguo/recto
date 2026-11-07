@@ -1,0 +1,619 @@
+{
+ "date": "2026-11-07T03:20:51.313Z",
+ "node": "v24.22.1",
+ "machine": "Apple M5 Pro, 18 cores, 64 GB",
+ "loadAverage": 2.08154296875,
+ "versions": {
+  "pdfjs-dist": "6.5.438",
+  "@embedpdf/pdfium": "2.15.1"
+ },
+ "documents": {
+  "used": 37,
+  "of": 37,
+  "refused": {
+   "recto": 0,
+   "pdf.js": 0,
+   "pdfium": 0
+  },
+  "bytes": 25396134,
+  "largePages": 2000,
+  "largeRendered": 5
+ },
+ "widths": {
+  "render": 1024,
+  "textPages": 20,
+  "renderPages": 2
+ },
+ "pagesRead": 348,
+ "pagesRendered": 64,
+ "chars": {
+  "recto": 976693,
+  "pdf.js": 967399,
+  "pdfium": 976704
+ },
+ "how": {
+  "abort": {
+   "recto": "worker.terminate(); the call itself can't be stopped",
+   "pdf.js": "renderTask.cancel(), on the same thread",
+   "pdfium": "worker.terminate(); the call itself can't be stopped"
+  }
+ },
+ "summary": {
+  "text": {
+   "recto": {
+    "median": 312.6,
+    "runs": [
+     312.6,
+     313,
+     312.3
+    ]
+   },
+   "pdf.js": {
+    "median": 1235.8,
+    "runs": [
+     1235.8,
+     1235,
+     1267.5
+    ],
+    "ratio": 3.95,
+    "interval": [
+     3.95,
+     4.06
+    ]
+   },
+   "pdfium": {
+    "median": 722,
+    "runs": [
+     730.5,
+     722,
+     720.1
+    ],
+    "ratio": 2.31,
+    "interval": [
+     2.3,
+     2.34
+    ]
+   }
+  },
+  "render": {
+   "recto": {
+    "median": 236,
+    "runs": [
+     237.7,
+     234.7,
+     236
+    ]
+   },
+   "pdf.js": {
+    "median": 1207.3,
+    "runs": [
+     1207.3,
+     1189.1,
+     1227.2
+    ],
+    "ratio": 5.12,
+    "interval": [
+     5,
+     5.23
+    ]
+   },
+   "pdfium": {
+    "median": 983.1,
+    "runs": [
+     983.1,
+     991.6,
+     981.4
+    ],
+    "ratio": 4.17,
+    "interval": [
+     4.13,
+     4.22
+    ]
+   }
+  },
+  "coldText": {
+   "recto": {
+    "median": 31.5,
+    "runs": [
+     32.5,
+     31.5,
+     31.2
+    ]
+   },
+   "pdf.js": {
+    "median": 134.9,
+    "runs": [
+     134.5,
+     134.9,
+     139.6
+    ],
+    "ratio": 4.29,
+    "interval": [
+     4.14,
+     4.48
+    ]
+   },
+   "pdfium": {
+    "median": 33.7,
+    "runs": [
+     33.7,
+     34.7,
+     33.1
+    ],
+    "ratio": 1.07,
+    "interval": [
+     1.02,
+     1.11
+    ]
+   }
+  },
+  "coldRender": {
+   "recto": {
+    "median": 41.5,
+    "runs": [
+     42.4,
+     41.5,
+     40.9
+    ]
+   },
+   "pdf.js": {
+    "median": 167.3,
+    "runs": [
+     166.6,
+     167.3,
+     172.5
+    ],
+    "ratio": 4.03,
+    "interval": [
+     3.93,
+     4.22
+    ]
+   },
+   "pdfium": {
+    "median": 46.6,
+    "runs": [
+     46.6,
+     47.4,
+     45.8
+    ],
+    "ratio": 1.12,
+    "interval": [
+     1.08,
+     1.16
+    ]
+   }
+  },
+  "firstText": {
+   "recto": {
+    "median": 0.5,
+    "runs": [
+     0.6,
+     0.5,
+     0.5
+    ]
+   },
+   "pdf.js": {
+    "median": 3.9,
+    "runs": [
+     3.6,
+     3.9,
+     4.7
+    ],
+    "ratio": 7.13,
+    "interval": [
+     6.33,
+     8.67
+    ]
+   },
+   "pdfium": {
+    "median": 1,
+    "runs": [
+     0.9,
+     1,
+     1
+    ],
+    "ratio": 1.78,
+    "interval": [
+     1.54,
+     1.85
+    ]
+   }
+  },
+  "firstRender": {
+   "recto": {
+    "median": 2.7,
+    "runs": [
+     2.7,
+     2.7,
+     2.7
+    ]
+   },
+   "pdf.js": {
+    "median": 12,
+    "runs": [
+     11.7,
+     13,
+     12
+    ],
+    "ratio": 4.38,
+    "interval": [
+     4.26,
+     4.79
+    ]
+   },
+   "pdfium": {
+    "median": 3.6,
+    "runs": [
+     3.5,
+     3.6,
+     3.7
+    ],
+    "ratio": 1.3,
+    "interval": [
+     1.29,
+     1.35
+    ]
+   }
+  },
+  "largeOpen": {
+   "recto": {
+    "median": 6.9,
+    "runs": [
+     6.9,
+     6.9,
+     7
+    ]
+   },
+   "pdf.js": {
+    "median": 36.3,
+    "runs": [
+     36.3,
+     36.2,
+     36.4
+    ],
+    "ratio": 5.27,
+    "interval": [
+     5.2,
+     5.3
+    ]
+   },
+   "pdfium": {
+    "median": 2.9,
+    "runs": [
+     2.9,
+     2.8,
+     2.9
+    ],
+    "ratio": 0.42,
+    "interval": [
+     0.41,
+     0.42
+    ]
+   }
+  },
+  "largeText": {
+   "recto": {
+    "median": 613,
+    "runs": [
+     607.3,
+     620,
+     613
+    ]
+   },
+   "pdf.js": {
+    "median": 1691.4,
+    "runs": [
+     1691.4,
+     1702.5,
+     1670.8
+    ],
+    "ratio": 2.76,
+    "interval": [
+     2.69,
+     2.8
+    ]
+   },
+   "pdfium": {
+    "median": 914,
+    "runs": [
+     909.2,
+     914,
+     925.1
+    ],
+    "ratio": 1.49,
+    "interval": [
+     1.47,
+     1.52
+    ]
+   }
+  },
+  "largeRender": {
+   "recto": {
+    "median": 25.9,
+    "runs": [
+     25.8,
+     26,
+     25.9
+    ]
+   },
+   "pdf.js": {
+    "median": 79.2,
+    "runs": [
+     79.6,
+     79.2,
+     74.5
+    ],
+    "ratio": 3.06,
+    "interval": [
+     2.86,
+     3.09
+    ]
+   },
+   "pdfium": {
+    "median": 29.5,
+    "runs": [
+     29.5,
+     29.7,
+     29.5
+    ],
+    "ratio": 1.14,
+    "interval": [
+     1.13,
+     1.15
+    ]
+   }
+  },
+  "rss": {
+   "recto": {
+    "median": 319078400,
+    "runs": [
+     320126976,
+     318914560,
+     319078400
+    ]
+   },
+   "pdf.js": {
+    "median": 688308224,
+    "runs": [
+     687095808,
+     710672384,
+     688308224
+    ],
+    "ratio": 2.16,
+    "interval": [
+     2.15,
+     2.23
+    ]
+   },
+   "pdfium": {
+    "median": 300351488,
+    "runs": [
+     300187648,
+     305610752,
+     300351488
+    ],
+    "ratio": 0.94,
+    "interval": [
+     0.94,
+     0.96
+    ]
+   }
+  },
+  "largeRss": {
+   "recto": {
+    "median": 233439232,
+    "runs": [
+     233439232,
+     234110976,
+     228753408
+    ]
+   },
+   "pdf.js": {
+    "median": 468353024,
+    "runs": [
+     450691072,
+     468353024,
+     469123072
+    ],
+    "ratio": 2.01,
+    "interval": [
+     1.93,
+     2.05
+    ]
+   },
+   "pdfium": {
+    "median": 196345856,
+    "runs": [
+     196231168,
+     196345856,
+     196395008
+    ],
+    "ratio": 0.84,
+    "interval": [
+     0.84,
+     0.86
+    ]
+   }
+  },
+  "maxMedian": {
+   "recto": {
+    "median": 3.2,
+    "runs": [
+     3.3,
+     3.2,
+     3.1
+    ]
+   },
+   "pdf.js": {
+    "median": 12.1,
+    "runs": [
+     12.1,
+     12.1,
+     11.2
+    ],
+    "ratio": 3.83,
+    "interval": [
+     3.44,
+     3.86
+    ]
+   },
+   "pdfium": {
+    "median": 3.9,
+    "runs": [
+     3.9,
+     3.7,
+     4
+    ],
+    "ratio": 1.25,
+    "interval": [
+     1.13,
+     1.26
+    ]
+   }
+  },
+  "maxWorst": {
+   "recto": {
+    "median": 16,
+    "runs": [
+     16,
+     16.2,
+     16
+    ]
+   },
+   "pdf.js": {
+    "median": 53.4,
+    "runs": [
+     52.9,
+     54.3,
+     53.4
+    ],
+    "ratio": 3.34,
+    "interval": [
+     3.26,
+     3.4
+    ]
+   },
+   "pdfium": {
+    "median": 263.3,
+    "runs": [
+     263.5,
+     263.3,
+     262.7
+    ],
+    "ratio": 16.47,
+    "interval": [
+     16.19,
+     16.5
+    ]
+   }
+  },
+  "p99Median": {
+   "recto": {
+    "median": 3.2,
+    "runs": [
+     3.3,
+     3.2,
+     3.1
+    ]
+   },
+   "pdf.js": {
+    "median": 11,
+    "runs": [
+     10.7,
+     11,
+     11.2
+    ],
+    "ratio": 3.49,
+    "interval": [
+     3.3,
+     3.56
+    ]
+   },
+   "pdfium": {
+    "median": 3.9,
+    "runs": [
+     3.9,
+     3.7,
+     4
+    ],
+    "ratio": 1.25,
+    "interval": [
+     1.13,
+     1.26
+    ]
+   }
+  },
+  "abortWhole": {
+   "recto": {
+    "median": 321.8,
+    "runs": [
+     321.8,
+     324,
+     321.6
+    ]
+   },
+   "pdf.js": {
+    "median": 1567.9,
+    "runs": [
+     1567.9,
+     1600.4,
+     1555
+    ],
+    "ratio": 4.87,
+    "interval": [
+     4.8,
+     4.98
+    ]
+   },
+   "pdfium": {
+    "median": 664.5,
+    "runs": [
+     664.5,
+     660.9,
+     665.5
+    ],
+    "ratio": 2.06,
+    "interval": [
+     2.04,
+     2.07
+    ]
+   }
+  },
+  "abortStopped": {
+   "recto": {
+    "median": 1.9,
+    "runs": [
+     1.9,
+     1.9,
+     3
+    ]
+   },
+   "pdf.js": {
+    "median": 1481.2,
+    "runs": [
+     1481.2,
+     1507.4,
+     1476.6
+    ],
+    "ratio": 777.52,
+    "interval": [
+     494.35,
+     804.96
+    ]
+   },
+   "pdfium": {
+    "median": 2.2,
+    "runs": [
+     2.2,
+     2.3,
+     2.2
+    ],
+    "ratio": 1.14,
+    "interval": [
+     0.72,
+     1.21
+    ]
+   }
+  }
+ }
+}

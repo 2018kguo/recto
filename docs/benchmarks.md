@@ -10,27 +10,27 @@ run. The brackets are 95% confidence intervals on the ratio to recto, bootstrapp
 the runs to see how much the ratio could move, and with 3 runs they're rough. Above 1× recto is faster;
 below it, the other engine is. The PDFs are 37 public and generated documents
 (25 MB) that all three engines open, plus generated ones; none is committed, so bring your
-own. [Text quality](#text-quality), [Ranged reads](#ranged-reads) and [Rendering](#rendering) were
+own. [Text quality](#text-quality) and [Rendering](#rendering) were
 measured earlier on a different set of 60 and aren't comparable with the tables here; recto's output
 on this set is byte for byte what it was before 0.2.0.
 
 ## In Node
 
-Node 25.9.0, load average 5.2. Every engine runs on the calling thread: pdf.js with its fake
+Node 24.22.1, load average 2.1. Every engine runs on the calling thread: pdf.js with its fake
 worker, drawing through `@napi-rs/canvas`, and pdfium through its `FPDF_` functions. All three end
 with the same thing, a page's text or its RGBA bytes.
 
 | | recto | pdf.js | pdfium |
 |---|---:|---:|---:|
-| Text, first 20 pages of each (348 pages) | 296 ms | 1,184 ms (4.0× [3.9–4.1]) | 679 ms (2.3× [2.3–2.3]) |
-| Render at 1024 px, first 2 pages of each (64 pages) | 227 ms | 1,238 ms (5.5× [5.4–5.9]) | 921 ms (4.1× [4.0–4.1]) |
-| A fresh process to the first page's text | 53.9 ms | 178 ms (3.3× [3.1–3.4]) | 57.4 ms (1.1× [1.0–1.1]) |
-| A fresh process to the first page's pixels | 65.2 ms | 213 ms (3.3× [3.1–3.3]) | 71.0 ms (1.1× [1.1–1.1]) |
-| Warm: open, first page's text, close | 0.5 ms | 4.7 ms (9.4× [7.6–10.7]) | 0.9 ms (1.8× [1.6–2.0]) |
-| Warm: open, first page's pixels, close | 2.6 ms | 12.7 ms (4.9× [4.5–5.5]) | 3.4 ms (1.3× [1.3–1.4]) |
-| 2,000-page report: open | 4.9 ms | 38.3 ms (7.9× [7.5–8.5]) | 3.2 ms (0.7× [0.6–0.7]) |
-| 2,000-page report: every page's text | 573 ms | 1,536 ms (2.7× [2.6–2.7]) | 792 ms (1.4× [1.4–1.4]) |
-| 2,000-page report: render 5 pages | 26.4 ms | 78.7 ms (3.0× [2.9–3.1]) | 29.0 ms (1.1× [1.1–1.1]) |
+| Text, first 20 pages of each (348 pages) | 311 ms | 1,166 ms (3.8× [3.6–4.0]) | 723 ms (2.3× [2.3–2.4]) |
+| Render at 1024 px, first 2 pages of each (64 pages) | 229 ms | 1,192 ms (5.2× [5.1–5.3]) | 980 ms (4.3× [4.3–4.3]) |
+| A fresh process to the first page's text | 31.1 ms | 136 ms (4.4× [4.3–4.8]) | 32.7 ms (1.1× [1.0–1.1]) |
+| A fresh process to the first page's pixels | 40.9 ms | 168 ms (4.1× [4.0–4.4]) | 45.4 ms (1.1× [1.1–1.1]) |
+| Warm: open, first page's text, close | 0.5 ms | 4.1 ms (8.5× [7.5–8.6]) | 1.0 ms (2.0× [1.8–2.0]) |
+| Warm: open, first page's pixels, close | 2.6 ms | 12.3 ms (4.8× [4.6–5.0]) | 3.6 ms (1.4× [1.3–1.6]) |
+| 2,000-page report: open | 4.3 ms | 36.3 ms (8.5× [8.4–8.6]) | 2.9 ms (0.7× [0.7–0.7]) |
+| 2,000-page report: every page's text | 610 ms | 1,659 ms (2.7× [2.7–2.8]) | 910 ms (1.5× [1.5–1.5]) |
+| 2,000-page report: render 5 pages | 24.6 ms | 76.2 ms (3.1× [3.0–3.2]) | 29.4 ms (1.2× [1.2–1.2]) |
 
 - **Totals**, not per-file medians, so a slow file counts for what it costs. A warm-up pass comes
   first, and the buffer copies are outside the clock.
@@ -40,9 +40,8 @@ with the same thing, a page's text or its RGBA bytes.
 - **The characters** agree: 976,693 in recto, 967,399 in pdf.js, 976,704 in pdfium, not
   counting whitespace, over the same pages. That's a count. [Text quality](#text-quality) compares
   the words.
-- **pdfium still opens a large file faster** (0.7×): 3.2 ms against 4.9 ms, first open in a fresh process. Warm it's about
-  0.6 ms against 1.1 ms. recto reads every kid of the page tree on open, so a wrong `/Count` can't change
-  the page count, and that's what's left between them. A fresh process is about even.
+- **pdfium still opens a large file faster** (0.7×): 2.9 ms against 4.3 ms, first open in a fresh process. recto walks
+  the whole page tree on open, reading every kid, so `/Count` can't change the page count or which page is which. A fresh process is about even.
 
 ### Peak memory
 
@@ -50,8 +49,8 @@ The peak resident size of a process of its own, doing what the table above did.
 
 | | recto | pdf.js | pdfium |
 |---|---:|---:|---:|
-| The 37 documents, text and render | 308 MB | 696 MB (2.3× [2.2–2.4]) | 297 MB (1.0× [0.9–1.0]) |
-| The 2,000-page report | 237 MB | 453 MB (1.9× [1.9–2.0]) | 194 MB (0.8× [0.8–0.8]) |
+| The 37 documents, text and render | 300 MB | 703 MB (2.3× [2.2–2.4]) | 312 MB (1.0× [1.0–1.0]) |
+| The 2,000-page report | 215 MB | 456 MB (2.1× [2.1–2.2]) | 196 MB (0.9× [0.9–0.9]) |
 
 pdf.js's includes its canvas package. pdfium uses less on the large file.
 
@@ -64,8 +63,8 @@ so only the maximum is here.
 
 | | recto | pdf.js | pdfium |
 |---|---:|---:|---:|
-| A typical document: its longest stall (median) | 3.1 ms | 12.4 ms | 3.6 ms |
-| The worst document: its longest stall | 15.9 ms | 53.7 ms | 260 ms |
+| A typical document: its longest stall (median) | 3.1 ms | 11.3 ms | 3.7 ms |
+| The worst document: its longest stall | 16.0 ms | 53.2 ms | 262 ms |
 
 A stall that short comes from small calls. A page that's slow to draw stalls for as long as it
 takes with `render`: use `renderAsync`, or put the work on a worker thread.
@@ -76,27 +75,27 @@ One generated page of 300,000 small shapes, rendered at 1024 px.
 
 | | recto | pdf.js | pdfium |
 |---|---:|---:|---:|
-| Rendering it to the end | 328 ms | 1,891 ms | 630 ms |
-| Asked to stop 100 ms in: the time until the thread is free | 0.3 ms | 1,794 ms | 3.2 ms |
+| Rendering it to the end | 315 ms | 1,568 ms | 664 ms |
+| Asked to stop 100 ms in: the time until the thread is free | 0.3 ms | 1,472 ms | 2.2 ms |
 
 recto's is `renderAsync` with a `signal`, on the same thread, and the document stays open. pdf.js has a
 real `cancel()`, but in Node the fake worker and the canvas share the thread, so the request waits for
 most of the draw. pdfium has no way to stop a call: all you can do is `worker.terminate()`, which is
 immediate and takes the engine and its open documents with it, as it does for recto's `render`.
 
-What slicing costs and gives, from `bench/sliced.mjs`, on the same page: `render` takes 239 ms and holds
+What slicing costs and gives, from `bench/sliced.mjs`, on the same page: `render` takes 246 ms and holds
 the thread for all of it.
 
 | `sliceMs` | Whole render | Longest the thread is held |
 |---:|---:|---:|
-| 2 | 244 ms | 66.2 ms |
-| 4 | 242 ms | 65.6 ms |
-| 8 | 244 ms | 66.5 ms |
-| 16 | 242 ms | 65.8 ms |
+| 2 | 249 ms | 66.2 ms |
+| 4 | 250 ms | 67.8 ms |
+| 8 | 248 ms | 67.0 ms |
+| 16 | 249 ms | 67.6 ms |
 
 The whole render costs about the same, within this machine's noise. The longest hold is the last step, rasterizing, which runs as
-one call whatever `sliceMs` says; every other slice keeps to it. On a 4.2 s page of 4 million shapes, stopped
-200 ms in, the stop took 0.3 ms, and the document rendered in full afterwards.
+one call whatever `sliceMs` says; every other slice keeps to it. On a 4.0 s page of 4 million shapes, stopped
+200 ms in, the stop took 0.2 ms, and the document rendered in full afterwards.
 
 ```sh
 npm run build
@@ -106,43 +105,43 @@ node bench/sliced.mjs
 
 ## In a browser
 
-Chromium, at full speed (load average 5.7) and slowed to 4.5× (load average 7.5), at
+Chromium, at full speed (load average 3.1) and slowed to 4.8× (load average 1.5), at
 800 px. Each engine in the arrangement its documentation gives: pdf.js with its parser in a worker
 and drawing on the main thread, recto and pdfium doing both in a dedicated worker and posting the
 bitmap. Each page is a fresh browser context, with no cache.
 
 **The slowdown** stops the browser's whole process tree and resumes it, 2 ms on and 6 ms off, the way
-`cpulimit` does. A fixed loop, timed in the page, measures what that comes to: 4.5× here, with the 4× it's set to. Two others were tried and rejected. DevTools CPU throttling can't reach workers,
+`cpulimit` does. A fixed loop, timed in the page, measures what that comes to: 4.8× here, with the 4× it's set to. Two others were tried and rejected. DevTools CPU throttling can't reach workers,
 so it would slow pdf.js's drawing and not recto's. macOS background QoS slowed everything, but it
 also made every timer and frame take 200 ms, which charged pdf.js 20× for the frames it waits on.
 
 | | recto | pdf.js | pdfium |
 |---|---:|---:|---:|
-| Text, first 20 pages of each (52 pages) | 57.9 ms | 185 ms (3.2× [3.2–3.2]) | 146 ms (2.5× [2.5–2.5]) |
-| at 4.5× | 260 ms | 848 ms (3.3× [3.2–3.5]) | 700 ms (2.7× [2.5–2.8]) |
-| Render at 800 px, first 2 of each (13 pages) | 59.1 ms | 214 ms (3.6× [3.4–3.6]) | 89.7 ms (1.5× [1.4–1.5]) |
-| at 4.5× | 271 ms | 408 ms (1.5× [1.4–1.5]) | 429 ms (1.6× [1.4–1.6]) |
-| A fresh page to the first page's text | 31.2 ms | 52.2 ms (1.7× [1.5–1.8]) | 38.6 ms (1.2× [1.1–1.3]) |
-| at 4.5× | 184 ms | 253 ms (1.4× [1.2–1.8]) | 198 ms (1.1× [0.9–1.3]) |
-| A fresh page to the first page's pixels | 64.8 ms | 87.8 ms (1.4× [1.2–1.5]) | 50.2 ms (0.8× [0.7–0.8]) |
-| at 4.5× | 326 ms | 388 ms (1.2× [1.1–1.3]) | 245 ms (0.8× [0.7–0.8]) |
-| Warm: open, first page's text, close | 0.5 ms | 1.4 ms (2.8× [2.0–2.8]) | 0.8 ms (1.6× [1.3–1.6]) |
-| at 4.5× | 0.6 ms | 1.5 ms (2.5× [0.2–14.8]) | 1.0 ms (1.7× [0.1–1.8]) |
-| Warm: open, first page's pixels, close | 2.4 ms | 15.1 ms (6.3× [5.4–6.3]) | 4.3 ms (1.8× [1.6–1.8]) |
-| at 4.5× | 10.3 ms | 19.5 ms (1.9× [1.6–2.6]) | 20.1 ms (1.9× [1.7–2.0]) |
-| A 40-page report, every page read and drawn in a grid | 101 ms | 668 ms (6.6× [6.5–6.7]) | 139 ms (1.4× [1.4–1.4]) |
-| at 4.5× | 454 ms | 1,190 ms (2.6× [2.6–2.7]) | 629 ms (1.4× [1.3–1.4]) |
-| A 500-page report: open | 0.4 ms | 2.1 ms (5.2× [4.0–7.3]) | 0.2 ms (0.5× [0.4–1.0]) |
-| at 4.5× | 1.5 ms | 9.4 ms (6.3× [1.1–19.4]) | 0.3 ms (0.2× [0.0–0.6]) |
-| A 500-page report: every page's text | 130 ms | 306 ms (2.4× [2.3–2.4]) | 208 ms (1.6× [1.6–1.6]) |
-| at 4.5× | 599 ms | 1,397 ms (2.3× [2.2–2.6]) | 1,003 ms (1.7× [1.6–1.9]) |
-| A 500-page report: render 5 pages | 9.8 ms | 88.9 ms (9.1× [7.4–9.2]) | 15.3 ms (1.6× [1.4–1.6]) |
-| at 4.5× | 47.2 ms | 110 ms (2.3× [2.2–3.1]) | 67.4 ms (1.4× [1.3–1.8]) |
+| Text, first 20 pages of each (52 pages) | 56.7 ms | 185 ms (3.3× [3.1–3.4]) | 149 ms (2.6× [2.5–2.6]) |
+| at 4.8× | 255 ms | 844 ms (3.3× [3.1–3.7]) | 698 ms (2.7× [2.5–3.0]) |
+| Render at 800 px, first 2 of each (13 pages) | 60.6 ms | 216 ms (3.6× [3.5–3.6]) | 89.0 ms (1.5× [1.4–1.6]) |
+| at 4.8× | 274 ms | 438 ms (1.6× [1.6–1.8]) | 434 ms (1.6× [1.5–1.7]) |
+| A fresh page to the first page's text | 32.4 ms | 55.2 ms (1.7× [1.5–1.8]) | 43.1 ms (1.3× [1.1–1.4]) |
+| at 4.8× | 178 ms | 277 ms (1.6× [1.4–1.7]) | 199 ms (1.1× [1.0–1.4]) |
+| A fresh page to the first page's pixels | 65.9 ms | 84.6 ms (1.3× [1.2–1.5]) | 54.2 ms (0.8× [0.7–0.8]) |
+| at 4.8× | 341 ms | 415 ms (1.2× [1.2–1.3]) | 251 ms (0.7× [0.7–0.9]) |
+| Warm: open, first page's text, close | 0.5 ms | 1.3 ms (2.6× [2.2–2.8]) | 0.8 ms (1.6× [1.3–1.6]) |
+| at 4.8× | 7.2 ms | 1.4 ms (0.2× [0.2–2.3]) | 1.2 ms (0.2× [0.1–2.0]) |
+| Warm: open, first page's pixels, close | 2.5 ms | 15.1 ms (6.0× [4.8–6.4]) | 4.4 ms (1.8× [1.7–1.8]) |
+| at 4.8× | 9.9 ms | 20.8 ms (2.1× [1.7–3.0]) | 20.3 ms (2.0× [1.8–2.2]) |
+| A 40-page report, every page read and drawn in a grid | 102 ms | 663 ms (6.5× [6.4–6.6]) | 141 ms (1.4× [1.4–1.4]) |
+| at 4.8× | 445 ms | 1,177 ms (2.6× [2.5–2.7]) | 631 ms (1.4× [1.4–1.4]) |
+| A 500-page report: open | 0.4 ms | 2.0 ms (5.0× [5.0–7.3]) | 0.3 ms (0.8× [0.5–1.0]) |
+| at 4.8× | 1.1 ms | 9.6 ms (8.7× [7.9–25.2]) | 0.3 ms (0.3× [0.2–1.0]) |
+| A 500-page report: every page's text | 131 ms | 306 ms (2.3× [2.2–2.4]) | 205 ms (1.6× [1.5–1.6]) |
+| at 4.8× | 603 ms | 1,387 ms (2.3× [2.3–2.3]) | 986 ms (1.6× [1.6–1.7]) |
+| A 500-page report: render 5 pages | 9.7 ms | 87.3 ms (9.0× [7.9–9.1]) | 15.0 ms (1.6× [1.4–1.6]) |
+| at 4.8× | 48.9 ms | 107 ms (2.2× [2.0–2.9]) | 60.3 ms (1.2× [1.2–1.3]) |
 
-- **A fresh page**: recto is first to text (31.2 ms against 52.2 ms and 38.6 ms), on the 0.5 MB text engine, its wasm hashed by
-  `crypto.subtle` before it compiles. **pdfium is first to pixels** (50.2 ms against 64.8 ms):
+- **A fresh page**: recto is first to text (32.4 ms against 55.2 ms and 43.1 ms), on the 0.5 MB text engine, its wasm hashed by
+  `crypto.subtle` before it compiles. **pdfium is first to pixels** (54.2 ms against 65.9 ms):
   a render pays once for loading the full engine and reopening the file on it.
-- **pdfium opens faster** here too: 0.2 ms against 0.4 ms on 500 pages at full speed. At the slowdown both are
+- **pdfium opens faster** here too: 0.3 ms against 0.4 ms on 500 pages at full speed. At the slowdown both are
   close to a cycle's length.
 - **pdf.js waits for a frame** as it draws, so that it won't hold the main thread. At full speed
   that's about 16 ms a page whatever the page costs, and it's most of the 40-page report's 6× and
@@ -159,9 +158,9 @@ brackets.
 
 | | recto | pdf.js | pdfium |
 |---|---:|---:|---:|
-| A report, first page's text, never drawn | 1.84 MB (0.53 MB) | 1.75 MB (0.42 MB) | 4.94 MB (1.70 MB) |
+| A report, first page's text, never drawn | 1.85 MB (0.53 MB) | 1.75 MB (0.42 MB) | 4.94 MB (1.70 MB) |
 | A report, first page's text and pixels | 5.95 MB (1.72 MB) | 1.75 MB (0.42 MB) | 4.94 MB (1.70 MB) |
-| A CJK document without embedded fonts, first page | 11.11 MB (3.73 MB) | 1.82 MB (0.48 MB) | 4.94 MB (1.70 MB) |
+| A CJK document without embedded fonts, first page | 11.12 MB (3.73 MB) | 1.82 MB (0.48 MB) | 4.94 MB (1.70 MB) |
 
 **pdf.js is still the smallest.** recto without drawing is 0.53 MB, of which the wasm is 0.50 MB, 334 KB of code and
 160 KB of tables. What a text call needs keeps it there: the colour conversion behind `fills`, the glyph-name
@@ -198,13 +197,13 @@ about 20 ms.
 | | recto | pdf.js | pdfium |
 |---|---:|---:|---:|
 | 40-page report: main-thread stutter | 0.0 ms / 0.0 ms | 0.0 ms / 0.0 ms | 0.0 ms / 0.0 ms |
-| 40-page report: longest stretch in a worker | 8.7 ms / 22.3 ms | 6.5 ms / 11.6 ms | 7.2 ms / 25.2 ms |
-| Heavy page: all of it | 307 ms / 1,374 ms | 978 ms / 4,510 ms | 756 ms / 3,572 ms |
-| Heavy page: main-thread stutter | 0.0 ms / 0.0 ms | 0.0 ms / 469 ms | 0.0 ms / 0.0 ms |
-| Heavy page: longest main-thread task | 0.0 ms / 0.0 ms | 0.0 ms / 150 ms | 0.0 ms / 0.0 ms |
-| Heavy page: longest stretch in a worker | 232 ms / 1,040 ms | 204 ms / 882 ms | 521 ms / 2,491 ms |
-| Heavy page with `renderAsync`: all of it | 258 ms / 1,166 ms | | |
-| Heavy page with `renderAsync`: longest stretch in a worker | 60.9 ms / 261 ms | | |
+| 40-page report: longest stretch in a worker | 6.4 ms / 22.0 ms | 6.9 ms / 11.5 ms | 7.2 ms / 20.5 ms |
+| Heavy page: all of it | 305 ms / 1,396 ms | 953 ms / 4,632 ms | 749 ms / 3,511 ms |
+| Heavy page: main-thread stutter | 0.0 ms / 0.0 ms | 0.0 ms / 458 ms | 0.0 ms / 0.0 ms |
+| Heavy page: longest main-thread task | 0.0 ms / 0.0 ms | 0.0 ms / 148 ms | 0.0 ms / 0.0 ms |
+| Heavy page: longest stretch in a worker | 230 ms / 1,042 ms | 204 ms / 911 ms | 520 ms / 2,465 ms |
+| Heavy page with `renderAsync`: all of it | 256 ms / 1,190 ms | | |
+| Heavy page with `renderAsync`: longest stretch in a worker | 58.6 ms / 273 ms | | |
 
 The heavy page is the same 300,000 shapes.
 
@@ -212,13 +211,51 @@ The heavy page is the same 300,000 shapes.
   drawing and yields.
 - **On the heavy page**, pdf.js's slices stop being short once slowed. recto and pdfium keep the
   main thread free, as a worker does for any engine, and that holds for a page of any weight.
-- **Both can be stopped in a browser now.** pdf.js's render task: 0.5 ms at full speed and 0.6 ms slowed, from the moment it's
+- **Both can be stopped in a browser now.** pdf.js's render task: 0.5 ms at full speed and 0.7 ms slowed, from the moment it's
   asked. recto's `renderAsync` stops at the next pause. pdfium can only have its worker terminated, about 3 ms in Node.
 - **With `renderAsync`** the longest stretch falls by about 4×, and that stretch is its one rasterizing call. It's
   under a third of pdf.js's.
 
 ```sh
 npm run bench:browser -- path/to/pdfs   # add --slowdown 1 for full speed
+```
+
+## Before and after 0.2.0
+
+The same 37 PDFs and the same machine, 0.1 from its own build, in `bench/results/before/`.
+
+| | 0.1 | 0.2 |
+|---|---:|---:|
+| A fresh page to the first text | 99.2 ms | 32.4 ms |
+| A fresh page to the first pixels | 108 ms | 65.9 ms |
+| Slowed: first text | 453 ms | 178 ms |
+| Slowed: first pixels | 492 ms | 341 ms |
+| Node: open a 2,000-page report | 6.9 ms | 4.3 ms |
+| Node: text of the 37 documents | 313 ms | 311 ms |
+| Node: render of the 37 documents | 236 ms | 229 ms |
+| Heavy page in a worker, longest stretch (`render`, then `renderAsync`) | 237 ms | 58.6 ms |
+| WebAssembly memory, 40-page report | 15.9 MB | 12.3 MB |
+| Download with brotli, first text, never drawn | 1.26 MB | 0.53 MB |
+| Download with brotli, first text and pixels | 1.26 MB | 1.72 MB |
+
+## Giving memory back
+
+300 cycles of open, text, render and close on a 70 MiB file. At rest is 2.5 s later, after a collection, in a
+process that still holds the file. The default is a second idle past 64 MiB, and the close past 512 MiB.
+
+| Policy | Time | Peak resident | WebAssembly memory at rest | Resident at rest |
+|---|---:|---:|---:|---:|
+| default | 2.0 s | 329 MB | 0 MB | 248 MB |
+| at close past 64 MiB | 4.2 s | 409 MB | 0 MB | 252 MB |
+| at close past 128 MiB | 2.0 s | 334 MB | 82 MB | 334 MB |
+| at close past 256 MiB | 2.0 s | 334 MB | 82 MB | 334 MB |
+| at close past 512 MiB | 2.0 s | 329 MB | 82 MB | 329 MB |
+
+Retiring at every close past 64 MiB builds a heap per cycle. Not retiring below 512 MiB is as fast as the default, and
+holds the memory for as long as the engine lives.
+
+```sh
+node bench/recycle.mjs
 ```
 
 ## The film
@@ -249,20 +286,23 @@ node bench/text-compare.mjs path/to/pdfs
 
 ## Ranged reads
 
-Reading the page count and the last page's text of a 22.8 MB public PDF from a local server that
-honours `Range`, in Node.
+Reading the page count and the last page's text of a generated 14.1 MB report of 2,000 pages, in one
+flat `/Kids`, from a local server that honours `Range`, in Node.
 
 | | Bytes | Requests |
 |---|---:|---:|
-| recto | 1.30 MB | 8 |
-| pdf.js with `disableAutoFetch` and `disableStream` | 1.50 MB | 9 |
-| pdf.js by default | 23.2 MB | 7 |
+| recto | 0.41 MB | 4 |
+| pdf.js with `disableAutoFetch` and `disableStream` | 14.90 MB | 216 |
+| pdf.js by default | 14.26 MB | 4 |
 
-With those two options pdf.js does about as well. Its default streams the whole file. Stock pdfium
-wasn't measured.
+recto takes the last kid at its word, since a node with as many kids as its `/Count` is read as one page
+each. pdf.js fetches every kid before it, which is why this file costs it all its bytes, and why it gets the
+right page where the `/Count` lies and recto may not (see [the limit](reference.md#ranged-reads)). On a file
+whose page tree has more levels the gap is smaller. Stock pdfium wasn't measured.
 
 ```sh
-node bench/ranged-compare.mjs path/to/large.pdf
+node -e 'import("./bench/generate.mjs").then((g) => require("fs").writeFileSync("report.pdf", g.reportPdf({ pages: 2000, imageEvery: 10, imageSize: 240 })))'
+node bench/ranged-compare.mjs report.pdf
 ```
 
 ## Rendering

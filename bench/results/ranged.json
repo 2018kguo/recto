@@ -1,22 +1,22 @@
 {
- "fileBytes": 22800003,
+ "fileBytes": 14108952,
  "recto": {
-  "pages": 179,
-  "chars": 2277,
-  "rounds": 8,
-  "bytes": 1304195,
-  "requests": 8
+  "pages": 2000,
+  "chars": 2206,
+  "rounds": 4,
+  "bytes": 411928,
+  "requests": 4
  },
  "pdfjs": {
-  "pages": 179,
-  "chars": 2251,
-  "bytes": 1500803,
-  "requests": 9
+  "pages": 2000,
+  "chars": 2169,
+  "bytes": 14895384,
+  "requests": 216
  },
  "pdfjsDefaults": {
-  "pages": 179,
-  "chars": 2251,
-  "bytes": 23186694,
-  "requests": 7
+  "pages": 2000,
+  "chars": 2169,
+  "bytes": 14258736,
+  "requests": 4
  }
 }

@@ -3,7 +3,7 @@
   "fileMiB": 70,
   "policies": {
     "default": {
-      "seconds": 2.2,
+      "seconds": 2.02,
       "peakRssMB": 329,
       "generations": 0,
       "heapAtEndMB": 82,
@@ -11,36 +11,36 @@
       "restRssMB": 248
     },
     "at close past 64 MiB": {
-      "seconds": 5.93,
-      "peakRssMB": 561,
+      "seconds": 4.21,
+      "peakRssMB": 409,
       "generations": 299,
       "heapAtEndMB": 0,
       "restHeapMB": 0,
-      "restRssMB": 329
+      "restRssMB": 252
     },
     "at close past 128 MiB": {
-      "seconds": 2.73,
-      "peakRssMB": 327,
+      "seconds": 2.03,
+      "peakRssMB": 334,
       "generations": 0,
       "heapAtEndMB": 82,
       "restHeapMB": 82,
-      "restRssMB": 327
+      "restRssMB": 334
     },
     "at close past 256 MiB": {
-      "seconds": 2.72,
-      "peakRssMB": 325,
+      "seconds": 2.02,
+      "peakRssMB": 334,
       "generations": 0,
       "heapAtEndMB": 82,
       "restHeapMB": 82,
-      "restRssMB": 325
+      "restRssMB": 334
     },
     "at close past 512 MiB": {
-      "seconds": 2.51,
-      "peakRssMB": 325,
+      "seconds": 2.03,
+      "peakRssMB": 329,
       "generations": 0,
       "heapAtEndMB": 82,
       "restHeapMB": 82,
-      "restRssMB": 325
+      "restRssMB": 329
     }
   }
 }

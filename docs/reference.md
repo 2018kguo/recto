@@ -83,7 +83,7 @@ run whole: the final rasterizing (about a quarter of a render, the longest hold 
 and a pattern, soft mask or Type 3 glyph, or a knockout or backdrop group. Other calls may run
 between slices, on the same document too, and `close` stops the render with `closed`. `text` and
 `open` have no such version: on the 300,000-shape page `text` takes 40 ms, and `open` takes about
-1.5 ms for 2,000 pages.
+1 ms for 2,000 pages.
 
 Helpers over those columns: `textItems(page, info)` makes pdf.js-style text items,
 `readingOrder(page, info)` gives the reading order and breaks (it re-lays out rotated pages),

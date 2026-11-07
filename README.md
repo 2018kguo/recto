@@ -146,21 +146,21 @@ A page of the generated report, with what the API returned drawn over it: `text(
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/benchmarks-dark.svg">
-  <img src="docs/benchmarks-light.svg" alt="Bar charts. Read text in Node: recto 296 ms, pdf.js 1.2 s, pdfium 679 ms. Render in Node: recto 227 ms, pdf.js 1.2 s, pdfium 921 ms. A 40-page report in Chromium slowed 4.5×: recto 454 ms, pdf.js 1.2 s, pdfium 629 ms. Peak memory in Node: recto 308 MB, pdf.js 696 MB, pdfium 297 MB.">
+  <img src="docs/benchmarks-light.svg" alt="Bar charts. Read text in Node: recto 311 ms, pdf.js 1.2 s, pdfium 723 ms. Render in Node: recto 229 ms, pdf.js 1.2 s, pdfium 980 ms. A 40-page report in Chromium slowed 4.8×: recto 445 ms, pdf.js 1.2 s, pdfium 631 ms. Peak memory in Node: recto 300 MB, pdf.js 703 MB, pdfium 312 MB.">
 </picture>
 
-Medians of 3 alternating runs on an Apple M5 Pro, with 37 public and generated PDFs in Node and 8 in Chromium, against
+Medians of 3 alternating runs on an Apple M5 Pro, with 37 public and generated PDFs in Node and 8 of them in Chromium, against
 pdf.js 6.5.438 and stock pdfium. How much faster recto is than each:
 
 | | pdf.js | pdfium |
 |---|---:|---:|
-| Text in Node | 4.0× | 2.3× |
-| Render in Node | 5.5× | 4.1× |
-| Text in Chromium | 3.2× | 2.5× |
+| Text in Node | 3.8× | 2.3× |
+| Render in Node | 5.2× | 4.3× |
+| Text in Chromium | 3.3× | 2.6× |
 | Render in Chromium | 3.6× | 1.5× |
 
-It isn't ahead everywhere. In a browser pdfium reaches a fresh page's first pixels sooner (65 ms against
-50 ms), though recto is first to text (31 ms against 52 ms and 39 ms). pdf.js downloads less: 0.42 MB with
+It isn't ahead everywhere. In a browser pdfium reaches a fresh page's first pixels sooner (66 ms against
+54 ms), though recto is first to text (32 ms against 55 ms and 43 ms). pdf.js downloads less: 0.42 MB with
 brotli, against recto's 0.53 MB for text and 1.72 MB for text and pixels (1.22 MB if the thread asks for the
 full engine up front). pdfium opens a large file a little faster. pdf.js holds less memory in a page. On text
 quality against poppler the three tie. [benchmarks.md](docs/benchmarks.md) has all of it, what each

@@ -125,6 +125,6 @@ retires the instance: `panic = abort` on wasm32, so a panic or a failed allocati
 
 WebAssembly memory never shrinks, so the only way to give it back is to drop the instance. Past 64 MiB
 the engine drops it once nothing has been open on it for a second, or at the close past 512 MiB. An open
-within that second reuses it: dropping it at every close made a repeated 70 MiB file 2.3 times slower
-for 1.5 times the peak memory (`bench/results/recycle.json`). An explicit `recycleAboveBytes` drops
+within that second reuses it: dropping it at every close made a repeated 70 MiB file 2.1 times slower
+for 1.2 times the peak memory (`bench/results/recycle.json`). An explicit `recycleAboveBytes` drops
 it at the close past that mark. Compiling is cached, so a new instance costs only instantiation.
