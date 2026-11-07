@@ -28,7 +28,7 @@ to fill that bitmap. Sizes are capped because hayro sizes pixmaps in `u16`.
 
 ## Assets
 
-The wasm leaves out what most files never read: the 14 standard fonts (`fonts.bin`, 0.26 MB), the
+The wasm leaves out what most files never read: the 14 standard fonts (a file each, 13–25 KB with brotli), the
 CJK fallback (`cjk-fallback.ttf`, 5 MB) and the predefined CMaps (`cmaps.deflate`, 0.36 MB). The
 engine asks for each synchronously from inside a call, the first time a document needs it, so
 reading it has to be synchronous as well: `fs` in Node, a synchronous `XMLHttpRequest` in a Web
@@ -37,12 +37,23 @@ engine is created. A text pass reads no font file it isn't given: a font the doc
 gets one holding only `.notdef`, since its Unicode comes from `ToUnicode` or the glyph tables and its
 widths from `/W` or the metrics in the wasm.
 
-The wasm comes in two builds from one crate. `recto-text.wasm` is built with no `render` feature and
-for size, except for the crates text speed depends on (`profile.text` in `Cargo.toml`), and has no
-rasterizer, outline code or image decoders. Both share one glue file, and the build checks that the
-text build imports nothing the full one doesn't. A document moves by opening its bytes again on the
-other instance, so a call needs no second path through the engine, and the text instance is dropped
-with its last document. Its results are the same as the full build's, which the tests hold it to.
+The wasm is one build cut in four by `wasm-split`, by what a call runs. `recto.wasm` holds what reading
+text runs; `recto-render.wasm` what drawing an ordinary page adds; `recto-more.wasm` the functions no
+profiled file ran; `recto-rare.wasm` the same for image codecs, meshes and the rasterizer's own rare
+paths. The lists in `scripts/wasm-parts/` say which is which, and nothing changes what a function does: a
+part's functions start as placeholders in the instance's table, and the first call to one
+reads the part, checks it against its pin, instantiates it on the same memory and table, and carries
+on, from inside the call that needed it. That's why every thread that can read synchronously can
+load a part mid-call, and every thread that can't gets all three up front. Each part is pinned to this
+build, so a stale CDN's mixture is refused before it compiles.
+
+If a part fails to load in the middle of a call, the throw has gone through wasm frames, whose state
+is then unknown. That instance is left alone from then on, and the call throws `missing-asset`. The
+next call on any document open on it reopens that document on a new instance, copying the file from the
+old instance's memory, so nothing is fetched twice, and tries again.
+
+Crossing a part's boundary is a call through a table or an import, which costs drawing about 3%
+(see [the benchmarks](benchmarks.md)) and reading text nothing.
 
 ## Transparency groups
 

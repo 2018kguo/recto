@@ -62,10 +62,23 @@ Opening:
 
 ### Changed
 
+- **One wasm in four parts**, in place of the two builds: `recto.wasm` for text (0.42 MB with brotli),
+  `recto-render.wasm` for drawing (0.22 MB), `recto-more.wasm` and `recto-rare.wasm` for functions few files run (0.21
+  and 0.17 MB). A part loads inside the call that needs it, onto the same instance, so a document no longer moves
+  between engines. Text then pixels in a browser downloads 0.70 MB where it was 1.72 MB, text alone 0.45 MB where it was
+  0.53 MB, and a fresh page's first pixels go from 66 ms to 54 ms. Output is byte for byte the same. Drawing costs
+  3% more in Node, the calls across the boundary. If a part fails to load mid-call, the call throws
+  `missing-asset`, open documents stay usable and the next call retries.
+- **The standard fonts are a file each**, not `fonts.bin`: a page that draws one fetches 13–25 KB where it fetched
+  213 KB. `preloadAssets` still takes `fonts.bin`, meaning all 14; an `assetBase` directory needs the new files.
+- `preloadAssets: ["recto.wasm"]` no longer picks an engine: it fetches and compiles what drawing needs now.
 - **Glyph and metric tables** are sorted bytes, not `phf` maps, and the table from a character to its
-  glyph name is built on first use: 40 KB less to download with brotli on either wasm (the text
-  one goes from 500 KB to 460 KB). Reading text costs about 2% more, since opening a font bisects where
-  it hashed.
+  glyph name is built on first use: 40 KB less to download with brotli. Reading text costs about 2% more, since
+  opening a font bisects where it hashed.
+
+### Building
+
+- Building recto from source needs `wasm-split` from binaryen version_133. Installing the package doesn't.
 
 ## 0.2.0
 

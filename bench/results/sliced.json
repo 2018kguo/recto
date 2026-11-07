@@ -1,27 +1,27 @@
 {
- "date": "2026-11-07T03:21:18.289Z",
+ "date": "2026-11-07T04:37:38.243Z",
  "width": 1024,
- "sync": 245.9,
+ "sync": 250.1,
  "slices": {
   "2": {
-   "whole": 249.1,
-   "longestHeld": 66.2
+   "whole": 256.3,
+   "longestHeld": 69.4
   },
   "4": {
-   "whole": 249.6,
-   "longestHeld": 67.8
+   "whole": 252.8,
+   "longestHeld": 68.2
   },
   "8": {
-   "whole": 248.4,
-   "longestHeld": 67
+   "whole": 258.5,
+   "longestHeld": 71.1
   },
   "16": {
-   "whole": 249,
-   "longestHeld": 67.6
+   "whole": 256.3,
+   "longestHeld": 70.5
   }
  },
  "stop": {
-  "pageTakes": 4011.4,
+  "pageTakes": 4590.9,
   "stopped": 0.2
  }
 }
