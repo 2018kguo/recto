@@ -652,7 +652,10 @@ test("page tree: first reads are linear and take little memory beyond the open's
   }
   const readMs = threadCpuMs() - reading;
   assert.ok(readMs < openMs, `first read of every page ${readMs} ms, open ${openMs} ms`);
-  assert.ok(engine.stats().heapBytes < heapAtOpen * 1.15, `heap ${heapAtOpen} to ${engine.stats().heapBytes}`);
+  // The open indexes each page's dictionary only when the page is first read, so a read keeps that
+  // page's own dictionary (about 550 bytes here) and nothing for the nodes above it.
+  const perPage = (engine.stats().heapBytes - heapAtOpen) / doc.pageCount;
+  assert.ok(perPage < 768, `reads kept ${perPage} bytes a page`);
   doc.close();
 });
 

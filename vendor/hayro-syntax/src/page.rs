@@ -3,6 +3,7 @@
 use crate::content::{TypedIter, UntypedIter};
 use crate::object::Array;
 use crate::object::Dict;
+use crate::object::dict::DictHead;
 use crate::object::Name;
 use crate::object::Rect;
 use crate::object::Stream;
@@ -62,11 +63,11 @@ struct Walked<'a> {
     descent: Option<Descent<'a>>,
     walk: PageWalk<'a>,
     /// Pages found so far, and which entry of `walk.contexts` each inherits from.
-    found: Vec<(Dict<'a>, u32)>,
+    found: Vec<(DictHead<'a>, u32)>,
 }
 
 impl<'a> Walked<'a> {
-    fn walk_to(&mut self, index: usize, reader: &ReaderContext<'a>) -> Option<&(Dict<'a>, u32)> {
+    fn walk_to(&mut self, index: usize, reader: &ReaderContext<'a>) -> Option<&(DictHead<'a>, u32)> {
         while self.found.len() <= index {
             let page = self.walk.next(reader)?;
             self.found.push(page);
@@ -188,7 +189,7 @@ struct PageWalk<'a> {
     contexts: Vec<PagesContext<'a>>,
     kids_left: usize,
     /// recto: read once each, or a large page repeated in `/Kids` is parsed every time: 2^18 times.
-    read: FxHashMap<ObjectIdentifier, Option<Dict<'a>>>,
+    read: FxHashMap<ObjectIdentifier, Option<DictHead<'a>>>,
     /// A kid was missing or broken, so the tree isn't all the file's pages.
     lost_kid: bool,
     /// recto: the kids ran out, so pages may be missing.
@@ -242,7 +243,7 @@ impl<'a> PageWalk<'a> {
         Some(())
     }
 
-    fn next(&mut self, reader: &ReaderContext<'a>) -> Option<(Dict<'a>, u32)> {
+    fn next(&mut self, reader: &ReaderContext<'a>) -> Option<(DictHead<'a>, u32)> {
         loop {
             let frame = self.stack.last_mut()?;
             let context = frame.context;
@@ -266,22 +267,24 @@ impl<'a> PageWalk<'a> {
                     if self.path.contains(&id) {
                         continue;
                     }
+                    // recto: a page's dictionary is checked here and indexed when the page is built.
                     let dict = self
                         .read
                         .entry(id)
-                        .or_insert_with(|| reader.xref().get_with::<Dict<'a>>(id, reader))
+                        .or_insert_with(|| reader.xref().get_with::<DictHead<'a>>(id, reader))
                         .clone();
                     (Some(id), dict)
                 }
-                MaybeRef::NotRef(object) => (None, object.into_dict()),
+                MaybeRef::NotRef(object) => (None, object.into_dict().map(DictHead::Dict)),
             };
             let Some(dict) = dict else {
                 self.lost_kid = true;
                 continue;
             };
-            match dict.get::<Name<'_>>(TYPE).as_deref() {
+            match dict.type_name().as_deref() {
                 Some(PAGES) => {
-                    self.lost_kid |= self.enter(&dict, id, context).is_none();
+                    let entered = dict.dict().and_then(|node| self.enter(&node, id, context));
+                    self.lost_kid |= entered.is_none();
                 }
                 // Let's be lenient and assume it's a `Page` in case it's `None` or something else
                 // (see corpus test case 0083781).
@@ -421,7 +424,7 @@ impl<'a> Pages<'a> {
                     walked.descent = None;
                 }
                 let (dict, context) = walked.walk_to(index, &lazy.reader)?.clone();
-                Page::new(&dict, &walked.walk.contexts[context as usize], &lazy.reader, false)
+                Page::new(&dict.dict()?, &walked.walk.contexts[context as usize], &lazy.reader, false)
             })
             .as_ref()
     }
@@ -471,7 +474,7 @@ impl<'a> Deref for Pages<'a> {
                     .found
                     .iter()
                     .filter_map(|(dict, context)| {
-                        Page::new(dict, &walked.walk.contexts[*context as usize], &lazy.reader, false)
+                        Page::new(&dict.dict()?, &walked.walk.contexts[*context as usize], &lazy.reader, false)
                     })
                     .collect()
             }),
