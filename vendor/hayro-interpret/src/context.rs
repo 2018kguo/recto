@@ -69,6 +69,8 @@ pub struct Context<'a> {
     pub(crate) ocg_state: OcgState,
     nesting_depth: u32,
     pub(crate) glyph_scratch: Vec<PositionedGlyph<'a>>,
+    /// recto: what's left of the page's budget for annotations with no appearance.
+    pub(crate) annot_points: usize,
 }
 
 impl<'a> Context<'a> {
@@ -116,6 +118,7 @@ impl<'a> Context<'a> {
             ocg_state,
             nesting_depth,
             glyph_scratch: Vec::new(),
+            annot_points: crate::interpret::annot_fallback::PAGE_POINTS,
         }
     }
 

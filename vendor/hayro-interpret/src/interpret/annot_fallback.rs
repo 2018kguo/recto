@@ -6,6 +6,7 @@ use crate::context::Context;
 use crate::device::Device;
 use crate::interpret::interpret;
 use crate::types::BlendMode;
+use core::cell::Cell;
 use core::fmt::Write;
 use hayro_syntax::content::TypedIter;
 use hayro_syntax::object::dict::keys::{RECT, SUBTYPE};
@@ -13,11 +14,19 @@ use hayro_syntax::object::{Array, Dict, Name, Rect};
 use hayro_syntax::page::Resources;
 use hayro_syntax::reader::{Reader, ReaderContext, ReaderExt};
 
-/// Far more than any real annotation; a hostile one could otherwise ask for a huge stream.
-const MAX_POINTS: usize = 1 << 16;
+/// How many points and lines all of a page's annotations with no appearance may draw. Far more than
+/// a real page has; each of a list's items can ask for thousands, and the same one can be listed
+/// thousands of times, so a cap on one list leaves gigabytes of stream.
+pub(crate) const PAGE_POINTS: usize = 1 << 19;
 
-fn numbers(array: &Array<'_>) -> Vec<f64> {
-    array.iter::<f64>().take(MAX_POINTS * 2).collect()
+fn spend(left: &Cell<usize>, amount: usize) {
+    left.set(left.get().saturating_sub(amount));
+}
+
+fn numbers(array: &Array<'_>, left: &Cell<usize>) -> Vec<f64> {
+    let out: Vec<f64> = array.iter::<f64>().take(left.get().saturating_mul(2)).collect();
+    spend(left, out.len().div_ceil(2));
+    out
 }
 
 /// A colour-setting operator from `/C` or `/IC`: None for none, or an empty array, which is
@@ -41,12 +50,12 @@ fn colour_op(values: &[f64], stroke: bool) -> Option<String> {
 }
 
 /// The width and dash `/BS`, or else `/Border`, gives a stroke.
-fn border(annot: &Dict<'_>) -> (f64, String) {
+fn border(annot: &Dict<'_>, left: &Cell<usize>) -> (f64, String) {
     if let Some(style) = annot.get::<Dict<'_>>(&b"BS"[..]) {
         let width = style.get::<f64>(&b"W"[..]).unwrap_or(1.0);
         let dashed = style.get::<Name<'_>>(&b"S"[..]).is_some_and(|s| s.as_ref() == b"D");
         let dash = if dashed {
-            let values = style.get::<Array<'_>>(&b"D"[..]).map(|d| numbers(&d)).unwrap_or_else(|| vec![3.0]);
+            let values = style.get::<Array<'_>>(&b"D"[..]).map(|d| numbers(&d, left)).unwrap_or_else(|| vec![3.0]);
             dash_op(&values)
         } else {
             String::new()
@@ -55,7 +64,7 @@ fn border(annot: &Dict<'_>) -> (f64, String) {
     }
     if let Some(array) = annot.get::<Array<'_>>(&b"Border"[..]) {
         let width = array.iter::<f64>().nth(2).unwrap_or(1.0);
-        let dash = array.iter::<Array<'_>>().next().map(|d| dash_op(&numbers(&d))).unwrap_or_default();
+        let dash = array.iter::<Array<'_>>().next().map(|d| dash_op(&numbers(&d, left))).unwrap_or_default();
         return (width, dash);
     }
     (1.0, String::new())
@@ -150,10 +159,10 @@ fn default_appearance_of(da: &[u8]) -> (f64, String) {
     (size, colour)
 }
 
-fn free_text(annot: &Dict<'_>, rect: &Rect, content: &mut String) {
-    let (width, dash) = border(annot);
+fn free_text(annot: &Dict<'_>, rect: &Rect, content: &mut String, left: &Cell<usize>) {
+    let (width, dash) = border(annot, left);
     let (x0, y0, x1, y1) = (rect.x0, rect.y0, rect.x1, rect.y1);
-    let interior = annot.get::<Array<'_>>(&b"C"[..]).map(|c| numbers(&c)).and_then(|c| colour_op(&c, false));
+    let interior = annot.get::<Array<'_>>(&b"C"[..]).map(|c| numbers(&c, left)).and_then(|c| colour_op(&c, false));
     if let Some(fill) = &interior {
         let _ = write!(content, "{fill}{x0} {y0} {} {} re f\n", x1 - x0, y1 - y0);
     }
@@ -164,7 +173,10 @@ fn free_text(annot: &Dict<'_>, rect: &Rect, content: &mut String) {
     let _ = write!(content, "q {x0} {y0} {} {} re W n BT {colour}/Helv {size} Tf\n", x1 - x0, y1 - y0);
     let mut y = y1 - width - size;
     for line in contents_lines(annot) {
-        text_line(content, x0 + width + 2.0, y, &line);
+        if left.get() == 0 {
+            break;
+        }
+        text_line(content, x0 + width + 2.0, y, &line, left);
         y -= size * 1.2;
     }
     content.push_str("ET Q\n");
@@ -183,7 +195,8 @@ fn owner<'a>(annot: &Dict<'a>, key: &[u8]) -> Option<Dict<'a>> {
 }
 
 /// Writes a line of text, as a hex string, starting at `x`.
-fn text_line(out: &mut String, x: f64, y: f64, line: &[u8]) {
+fn text_line(out: &mut String, x: f64, y: f64, line: &[u8], left: &Cell<usize>) {
+    spend(left, 1 + line.len() / 32);
     let _ = write!(out, "1 0 0 1 {x} {y} Tm <");
     for byte in line {
         let _ = write!(out, "{byte:02x}");
@@ -193,7 +206,7 @@ fn text_line(out: &mut String, x: f64, y: f64, line: &[u8]) {
 
 /// A form field with no appearance: its `/MK` background and border, a text field's value and a push
 /// button's caption. Helvetica's letters average about half an em, which is close enough to centre by.
-fn widget(annot: &Dict<'_>, rect: &Rect, out: &mut String) -> Option<()> {
+fn widget(annot: &Dict<'_>, rect: &Rect, out: &mut String, left: &Cell<usize>) -> Option<()> {
     const PUSH_BUTTON: u32 = 1 << 16;
     const MULTILINE: u32 = 1 << 12;
     const PASSWORD: u32 = 1 << 13;
@@ -202,9 +215,9 @@ fn widget(annot: &Dict<'_>, rect: &Rect, out: &mut String) -> Option<()> {
     let characteristics = annot.get::<Dict<'_>>(&b"MK"[..]);
     let colour_of = |key: &[u8], stroke| {
         let values = characteristics.as_ref()?.get::<Array<'_>>(key)?;
-        colour_op(&numbers(&values), stroke)
+        colour_op(&numbers(&values, left), stroke)
     };
-    let (mut line_width, dash) = border(annot);
+    let (mut line_width, dash) = border(annot, left);
     if let Some(fill) = colour_of(b"BG", false) {
         let _ = writeln!(out, "{fill}{x0} {y0} {width} {height} re f");
     }
@@ -243,9 +256,9 @@ fn widget(annot: &Dict<'_>, rect: &Rect, out: &mut String) -> Option<()> {
     let mut y = if multiline { y1 - padding - size } else { y0 + (height - size) / 2.0 + size * 0.15 };
     for line in lines {
         let x = if centred { x0 + (width - line.len() as f64 * size * 0.5) / 2.0 } else { x0 + padding };
-        text_line(out, x, y, &line);
+        text_line(out, x, y, &line, left);
         y -= size * 1.2;
-        if !multiline {
+        if !multiline || left.get() == 0 {
             break;
         }
     }
@@ -254,14 +267,14 @@ fn widget(annot: &Dict<'_>, rect: &Rect, out: &mut String) -> Option<()> {
 }
 
 /// The stream, and whether it multiplies, as a highlight does.
-fn appearance(annot: &Dict<'_>) -> Option<(String, bool)> {
+fn appearance(annot: &Dict<'_>, left: &Cell<usize>) -> Option<(String, bool)> {
     let subtype = annot.get::<Name<'_>>(SUBTYPE)?;
     let rect = annot.get::<Rect>(RECT);
-    let colour = annot.get::<Array<'_>>(&b"C"[..]).map(|c| numbers(&c));
+    let colour = annot.get::<Array<'_>>(&b"C"[..]).map(|c| numbers(&c, left));
     let stroke_op = |default: &[f64]| colour_op(colour.as_deref().unwrap_or(default), true);
     let fill_op = |default: &[f64]| colour_op(colour.as_deref().unwrap_or(default), false);
     let quads = || -> Vec<f64> {
-        annot.get::<Array<'_>>(&b"QuadPoints"[..]).map(|q| numbers(&q)).unwrap_or_default()
+        annot.get::<Array<'_>>(&b"QuadPoints"[..]).map(|q| numbers(&q, left)).unwrap_or_default()
     };
     let mut out = String::new();
     let mut multiply = false;
@@ -286,7 +299,8 @@ fn appearance(annot: &Dict<'_>) -> Option<(String, bool)> {
                 };
                 if subtype.as_ref() == b"Squiggly" {
                     let length = (bx - ax).hypot(by - ay);
-                    let steps = ((length / 2.0).ceil() as usize).clamp(1, 4096);
+                    let steps = ((length / 2.0).ceil() as usize).clamp(1, 4096).min(left.get().max(1));
+                    spend(left, steps);
                     let (ux, uy) = (q[0] - q[4], q[1] - q[5]);
                     let norm = ux.hypot(uy).max(1e-6);
                     let _ = writeln!(out, "{ax} {ay} m");
@@ -303,13 +317,13 @@ fn appearance(annot: &Dict<'_>) -> Option<(String, bool)> {
         }
         b"Square" | b"Circle" => {
             let rect = rect?;
-            let (width, dash) = border(annot);
-            let differences = annot.get::<Array<'_>>(&b"RD"[..]).map(|d| numbers(&d)).filter(|d| d.len() == 4).unwrap_or_else(|| vec![0.0; 4]);
+            let (width, dash) = border(annot, left);
+            let differences = annot.get::<Array<'_>>(&b"RD"[..]).map(|d| numbers(&d, left)).filter(|d| d.len() == 4).unwrap_or_else(|| vec![0.0; 4]);
             let x0 = rect.x0 + differences[0] + width / 2.0;
             let y0 = rect.y0 + differences[1] + width / 2.0;
             let x1 = rect.x1 - differences[2] - width / 2.0;
             let y1 = rect.y1 - differences[3] - width / 2.0;
-            let interior = annot.get::<Array<'_>>(&b"IC"[..]).map(|c| numbers(&c)).and_then(|c| colour_op(&c, false));
+            let interior = annot.get::<Array<'_>>(&b"IC"[..]).map(|c| numbers(&c, left)).and_then(|c| colour_op(&c, false));
             let stroke = if width > 0.0 { stroke_op(&[0.0, 0.0, 0.0]) } else { None };
             let op = match (interior.is_some(), stroke.is_some()) {
                 (true, true) => "B",
@@ -329,8 +343,8 @@ fn appearance(annot: &Dict<'_>) -> Option<(String, bool)> {
         }
         b"Line" | b"PolyLine" | b"Polygon" => {
             let key: &[u8] = if subtype.as_ref() == b"Line" { b"L" } else { b"Vertices" };
-            let points = numbers(&annot.get::<Array<'_>>(key)?);
-            let (width, dash) = border(annot);
+            let points = numbers(&annot.get::<Array<'_>>(key)?, left);
+            let (width, dash) = border(annot, left);
             if width <= 0.0 {
                 return None;
             }
@@ -338,7 +352,7 @@ fn appearance(annot: &Dict<'_>) -> Option<(String, bool)> {
             let _ = write!(out, "{width} w {dash}");
             polyline(&mut out, &points);
             let closed = subtype.as_ref() == b"Polygon";
-            let interior = annot.get::<Array<'_>>(&b"IC"[..]).map(|c| numbers(&c)).and_then(|c| colour_op(&c, false));
+            let interior = annot.get::<Array<'_>>(&b"IC"[..]).map(|c| numbers(&c, left)).and_then(|c| colour_op(&c, false));
             match (closed, interior) {
                 (true, Some(fill)) => {
                     out.insert_str(0, &fill);
@@ -349,14 +363,18 @@ fn appearance(annot: &Dict<'_>) -> Option<(String, bool)> {
             }
         }
         b"Ink" => {
-            let (width, dash) = border(annot);
+            let (width, dash) = border(annot, left);
             if width <= 0.0 {
                 return None;
             }
             out.push_str(&stroke_op(&[0.0, 0.0, 0.0])?);
             let _ = write!(out, "{width} w 1 J 1 j {dash}");
-            for stroke in annot.get::<Array<'_>>(&b"InkList"[..])?.iter::<Array<'_>>().take(MAX_POINTS) {
-                let points = numbers(&stroke);
+            for stroke in annot.get::<Array<'_>>(&b"InkList"[..])?.iter::<Array<'_>>() {
+                if left.get() == 0 {
+                    break;
+                }
+                spend(left, 1);
+                let points = numbers(&stroke, left);
                 // An odd count isn't a list of points; the references leave it out too.
                 if points.len() % 2 == 0 {
                     polyline(&mut out, &points);
@@ -364,9 +382,9 @@ fn appearance(annot: &Dict<'_>) -> Option<(String, bool)> {
                 }
             }
         }
-        b"FreeText" => free_text(annot, &rect?, &mut out),
+        b"FreeText" => free_text(annot, &rect?, &mut out, left),
         b"Widget" => {
-            let _ = widget(annot, &rect?, &mut out);
+            let _ = widget(annot, &rect?, &mut out, left);
         }
         _ => return None,
     }
@@ -386,7 +404,14 @@ pub(super) fn draw<'a>(
     context: &mut Context<'a>,
     device: &mut impl Device<'a>,
 ) {
-    let Some((content, multiply)) = appearance(annot) else {
+    if context.annot_points == 0 {
+        return;
+    }
+    // Each costs something, drawing or not: the same one can be listed thousands of times.
+    let left = Cell::new(context.annot_points - 1);
+    let drawn = appearance(annot, &left);
+    context.annot_points = left.get();
+    let Some((content, multiply)) = drawn else {
         return;
     };
     let opacity = annot.get::<f32>(&b"CA"[..]).unwrap_or(1.0);

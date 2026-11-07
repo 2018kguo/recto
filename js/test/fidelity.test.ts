@@ -417,3 +417,14 @@ test("a one-row image under a TIFF predictor is drawn", async () => {
   );
   assert.deepEqual(page.at(50, 50), RED);
 });
+
+test("what a page's annotations with no appearance can draw is bounded in total", async () => {
+  // A squiggle of 4,096 steps from 8 numbers, in a list too short for a cap per list to catch.
+  const quad = "0 10 9000 10 0 0 9000 0";
+  const annot = `<</Subtype/Squiggly/Rect[0 0 100 100]/QuadPoints[${Array(40_000).fill(quad).join(" ")}]>>`;
+  const doc = await engine.open(pdfOf({ content: "", pageExtra: `/Annots[${annot}]` }));
+  const before = process.memoryUsage().rss;
+  doc.render(0, { width: 100 });
+  doc.close();
+  assert.ok(process.memoryUsage().rss - before < 1e9, "stays under a gigabyte");
+});
