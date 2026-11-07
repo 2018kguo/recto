@@ -274,7 +274,8 @@ async function checkPages(browserName, label, origin) {
     const page = await browser.newPage();
     page.setDefaultTimeout(60_000);
     const errors = [];
-    page.on("pageerror", (error) => errors.push(String(error)));
+    // WebKit reports a failed integrity check as an uncaught error too; the tampered check is the test of it.
+    page.on("pageerror", (error) => /\/tampered\//u.test(String(error)) || errors.push(String(error)));
     const logged = [];
     page.on("console", (message) => logged.push(message.text()));
 
