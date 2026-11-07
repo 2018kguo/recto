@@ -295,10 +295,10 @@ flat `/Kids`, from a local server that honours `Range`, in Node.
 | pdf.js with `disableAutoFetch` and `disableStream` | 14.90 MB | 216 |
 | pdf.js by default | 14.26 MB | 4 |
 
-recto takes the last kid at its word, since a node with as many kids as its `/Count` is read as one page
-each. pdf.js fetches every kid before it, which is why this file costs it all its bytes, and why it gets the
-right page where the `/Count` lies and recto may not (see [the limit](reference.md#ranged-reads)). On a file
-whose page tree has more levels the gap is smaller. Stock pdfium wasn't measured.
+recto takes the last kid at its word, since a node of over 32 kids, as many as its `/Count`, is read as one
+page each. pdf.js fetches every kid before it, which is why this file costs it all its bytes, and why it gets the
+right page in the cases where recto may not (see [the limit](reference.md#ranged-reads)). On a file whose page
+tree has more levels the gap is smaller. Stock pdfium wasn't measured.
 
 ```sh
 node -e 'import("./bench/generate.mjs").then((g) => require("fs").writeFileSync("report.pdf", g.reportPdf({ pages: 2000, imageEvery: 10, imageSize: 240 })))'

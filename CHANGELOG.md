@@ -24,7 +24,9 @@ set of PDFs before and after, in `bench/results`.
   byte is still hashed before it compiles.
 - **Opening** a whole file walks the page tree and builds each page the first time it's asked for.
   `/Count` no longer decides which page is which there. 2,000 pages in Node: 6.9 ms to 4.3 ms. A ranged file still finds a page by `/Count`,
-  fetching what it did, and takes the walk when something on the way doesn't add up.
+  fetching what it did for wide nodes, and takes the walk when something on the way doesn't add up. Nodes
+  of up to 32 kids are read in order, so a tree with pages deleted reads right: over 475 PDFs, reading the
+  last page fetches 15% more in all, on 23 files, and at most 3 MB more on one.
 - **`open` no longer copies the file in JavaScript** on top of copying it into WebAssembly memory,
   when an instance is ready.
 - **Memory:** a render holds its pixels once. WebAssembly memory with a 40-page report open went from

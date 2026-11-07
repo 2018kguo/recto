@@ -142,11 +142,12 @@ server on the same thread cannot answer, and the read fails with `timeout` and s
 
 **A ranged read trusts `/Count`.** It finds a page by each node's `/Count`, so that it fetches only
 the nodes on the way there, and checks what it reads on that path. If something doesn't add up it walks
-the tree in order instead, within `maxBytes`. But a file whose `/Count` values lie where that path
-doesn't look can return a different page than a whole-file read, and which one can depend on what was
-read first. A node with as many kids as its `/Count`, one of them an empty node, is such a file even
-though its counts are true. `pageCount` can be wrong the same way, so a page can fail with `failed`, or
-pages at the end can go unseen. If you need the guarantee, open the whole file: there `/Count` plays no part.
+the tree in order instead, within `maxBytes`. It can still return a different page than a whole-file read,
+and which one can depend on what was read first, in two cases: a file whose `/Count` values are false
+where that path doesn't look; and, with true counts, a node of over 32 kids, as many as its `/Count`,
+where a kid before the page is an empty node or holds more than one page. `pageCount` can be wrong in the
+first case, so a page can fail with `failed`, or pages at the end can go unseen. If you need the
+guarantee, open the whole file: there `/Count` plays no part.
 
 What a server gets wrong:
 

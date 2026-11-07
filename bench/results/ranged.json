@@ -10,7 +10,7 @@
  "pdfjs": {
   "pages": 2000,
   "chars": 2169,
-  "bytes": 14895384,
+  "bytes": 14960920,
   "requests": 216
  },
  "pdfjsDefaults": {

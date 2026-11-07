@@ -89,26 +89,28 @@ O(log n) round trips.
 ## Opening and slices
 
 A whole file's pages come from walking the tree in order, depth first. A kid that's a `/Pages` node
-with `/Kids` is entered, and any other dictionary is a page, whatever its `/Type` says. `/Count` plays
-no part. A node that's its own ancestor is skipped. Any other repeat counts again, as it does in
+is entered, and dropped if it has no `/Kids`. Any other dictionary is a page, whatever its `/Type` says.
+`/Count` plays no part. A node that's its own ancestor is skipped. Any other repeat counts again, as it does in
 pdfium, pdf.js and poppler, so a tree can multiply: the walk stops after the file's objects plus 2^18
 kids, which a tree with no repeats can't reach. It uses its own stack, so a deep chain is fine. `open`
 does the walk and keeps each page's dictionary, and a page is built the first time it's asked for.
 
 A ranged file can't afford that: the walk fetches every page's dictionary before the one you want. It
-descends by `/Count` instead, like pdf.js (pdfium's page lookup walks in order). A node with as many
-kids as its `/Count` is taken to hold a page per kid, so kid `i` is read directly; any other has its
-kids read in order, as far as needed. On the way down, a kid that's missing, a node without `/Kids` or
-`/Count`, a node in its own path, a kid of a one-page-per-kid node holding more or fewer than one page,
-or running out of kids all switch that document to the walk, for this page and the ones after, within
-`maxBytes`. A ranged file's `pageCount` is the root's `/Count`, if that's no more than the file's
-objects and the nodes add up to it (a one-page-per-kid node passes unread); otherwise it's walked at open.
+descends by `/Count` instead, reading a node's kids in order only as far as the page. Past 32 kids, a
+node with as many kids as its `/Count` is taken to hold a page per kid, so kid `i` is read directly.
+pdf.js fetches every leaf kid before a page and pdfium walks in order, so that shortcut is recto's alone.
+It's what lets a jump in a 2,000-page flat file fetch 0.41 MB where pdf.js fetches all 14.9 MB. On the way
+down, a kid that's missing or a node under that shortcut, a node without `/Kids` or `/Count`, a node in
+its own path, or running out of kids all switch that document to the walk, for this page and the ones
+after, within `maxBytes`. A ranged file's `pageCount` is the root's `/Count`, if that's no more than the
+file's objects and the nodes add up to it (a node with as many kids as its `/Count` passes unread);
+otherwise it's walked at open.
 
-What's off that path can't be seen. If every `/Count` is true and no node with as many kids as its
-`/Count` holds an empty node, a ranged read gives what the walk gives, and a test holds it to that on
-generated trees. Otherwise it can give a different page of the file, which depends on what was read
-first, or promise a page that isn't there, which fails with `failed`, or hide pages at the end. It
-always ends. `js/test/page-tree.test.ts` pins these cases.
+What's off that path can't be seen. With true counts a ranged read gives what the walk gives, tested on
+generated trees including ones with pages deleted, with one exception: a node of over 32 kids, as many as
+its `/Count`, where a kid jumped over isn't a page. With a false `/Count`, it can give a different page of
+the file, which depends on what was read first, or promise a page that isn't there, which fails with
+`failed`, or hide pages at the end. It always ends. `js/test/page-tree.test.ts` pins these cases.
 
 `renderAsync` runs the same interpreter with a stack of frames in place of the recursion into forms
 (`hayro-interpret/src/interpret/page_run.rs`), checks the clock every 64 operators and returns when

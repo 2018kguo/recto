@@ -325,19 +325,16 @@ function truthfulTree(seed: number): { file: Uint8Array; expected: number[]; sha
     // Node n's kids are pages or later nodes, so there are no cycles and every count is known.
     const held: number[][] = [];
     const kidsOf: number[][] = [];
-    let coincidence = false;
     const nodeId = (n: number) => (n === 0 ? 2 : firstNode + n - 1);
     for (let n = nodeCount; n >= 0; n--) {
       const kids: number[] = [];
       const pages: number[] = [];
       const length = random(6) + (n === 0 ? 1 : 0);
-      let emptyKid = false;
       for (let k = 0; k < length; k++) {
         const later = n + 1 + random(Math.max(1, nodeCount - n));
         if (later <= nodeCount && random(2) === 0) {
           kids.push(nodeId(later));
           pages.push(...held[later]!);
-          emptyKid ||= held[later]!.length === 0;
         } else {
           const page = random(pageCount);
           kids.push(firstPage + 2 * page);
@@ -346,11 +343,9 @@ function truthfulTree(seed: number): { file: Uint8Array; expected: number[]; sha
       }
       held[n] = pages;
       kidsOf[n] = kids;
-      // As many kids as pages, one of them empty: the pinned case below, not this test's.
-      coincidence ||= emptyKid && kids.length === pages.length;
     }
     const total = held[0]!.length;
-    if (coincidence || total === 0 || total > 2000) {
+    if (total === 0 || total > 2000) {
       continue;
     }
     const nodeText = (n: number) => `<</Type/Pages/Count ${held[n]!.length}/Kids[${kidsOf[n]!.map((kid) => `${kid} 0 R`).join(" ")}]>>`;
@@ -405,32 +400,107 @@ test("page tree: whatever the counts say, a ranged read ends, with a page of the
   }
 });
 
-// What a ranged read gives where it can't see the lie. reference.md states this limit. These are
+/** A fan-out tree with pages deleted the way an editor does: counts fixed up, the nodes left empty. */
+function deletedPagesTree(seed: number): { file: Uint8Array; expected: number[]; shape: string } {
+  let state = (seed * 2_654_435_761) >>> 0;
+  const random = (below: number) => {
+    state = (Math.imul(state, 1_664_525) + 1_013_904_223) >>> 0;
+    return (state >>> 8) % below;
+  };
+  const fan = [3, 5, 10, 10, 16][random(5)]!;
+  const pageTotal = 10 + random(120);
+  const keep = 1 + random(Math.ceil(pageTotal / 2));
+  const kept = new Set<number>();
+  while (kept.size < keep) {
+    kept.add(random(pageTotal));
+  }
+  const firstPage = 4;
+  const firstNode = firstPage + 2 * pageTotal;
+  const nodes: string[] = [];
+  type Built = { id: number; pages: number[] };
+  const addNode = (kids: Built[]): Built => {
+    const pages = kids.flatMap((kid) => kid.pages);
+    const live = kids.filter((kid) => kid.id < firstNode ? kid.pages.length > 0 : true);
+    nodes.push(`<</Type/Pages/Count ${pages.length}/Kids[${live.map((kid) => `${kid.id} 0 R`).join(" ")}]>>`);
+    return { id: firstNode + nodes.length - 1, pages };
+  };
+  let level: Built[] = Array.from({ length: pageTotal }, (_, i) => ({
+    id: firstPage + 2 * i,
+    pages: kept.has(i) ? [i] : [],
+  }));
+  while (level.length > fan) {
+    const next: Built[] = [];
+    for (let i = 0; i < level.length; i += fan) {
+      next.push(addNode(level.slice(i, i + fan)));
+    }
+    level = next;
+  }
+  const pages = level.flatMap((kid) => kid.pages);
+  const live = level.filter((kid) => kid.id < firstNode ? kid.pages.length > 0 : true);
+  const root = `<</Type/Pages/Count ${pages.length}/Kids[${live.map((kid) => `${kid.id} 0 R`).join(" ")}]>>`;
+  return {
+    file: fileOf(root, [...pagesFrom(firstPage, Array.from({ length: pageTotal }, (_, i) => i)), ...nodes]),
+    expected: pages,
+    shape: `seed ${seed}, fan ${fan}, ${pageTotal} pages cut to ${keep}: ${root} ${nodes.join(" ")}`,
+  };
+}
+
+test("page tree: a tree with pages deleted, empty nodes left behind: a ranged jump gives the page a whole file does", async () => {
+  const engine = await createPdfEngine();
+  for (let seed = 1; seed <= 300; seed++) {
+    const { file, expected, shape } = deletedPagesTree(seed);
+    const want = expected.map((page) => `P${page}`);
+    const whole = await engine.open(file);
+    assert.deepEqual(want.map((_, i) => readPage(whole, i)), want, shape);
+    whole.close();
+    // Every page, each on a fresh open, so each is a jump with nothing read before it.
+    for (let i = 0; i < want.length; i++) {
+      const ranged = await engine.openRanged(file);
+      assert.equal(ranged.pageCount, want.length, shape);
+      assert.equal(readPage(ranged, (i * 7 + seed) % want.length), want[(i * 7 + seed) % want.length], shape);
+      ranged.close();
+    }
+  }
+});
+
+test("page tree: nodes of up to 32 kids mixing leaves, empties and nodes read right in any order", async () => {
+  const [p1, p2, p3, p4] = [4, 6, 8, 10];
+  const mixed = fileOf(`<</Type/Pages/Count 4/Kids[12 0 R ${p1} 0 R ${p2} 0 R 13 0 R]>>`, [
+    ...pagesFrom(4, [1, 2, 3, 4]),
+    "<</Type/Pages/Count 0/Kids[]>>",
+    `<</Type/Pages/Count 2/Kids[${p3} 0 R ${p4} 0 R]>>`,
+  ]);
+  for (const order of [[1, 0, 3, 2], [3, 2, 1, 0], [0, 1, 2, 3]]) {
+    const engine = await createPdfEngine();
+    const doc = await engine.openRanged(mixed);
+    const got: string[] = [];
+    for (const i of order) {
+      got[i] = readPage(doc, i);
+    }
+    assert.deepEqual(got, ["P1", "P2", "P3", "P4"], String(order));
+    doc.close();
+  }
+});
+
+// What a ranged read gives where it can't see the problem. reference.md states this limit. These are
 // pinned so a change to them is a decision: each list is the pages read in that order.
 const AB = pagesFrom(4, [1, 2, 3]); // objects 4, 6, 8
+// Objects 4.. hold pages P0 to P35, then an empty node and a node of the last two.
+const wide = pagesFrom(4, Array.from({ length: 36 }, (_, i) => i));
+const wideKids = Array.from({ length: 34 }, (_, i) => `${4 + 2 * i} 0 R`).join(" ");
+const wideFile = fileOf(`<</Type/Pages/Count 36/Kids[76 0 R ${wideKids} 77 0 R]>>`, [
+  ...wide,
+  "<</Type/Pages/Count 0/Kids[]>>",
+  `<</Type/Pages/Count 2/Kids[${4 + 2 * 34} 0 R ${4 + 2 * 35} 0 R]>>`,
+]);
 const lies: [string, Uint8Array, number[], string[]][] = [
   [
-    "true counts, but an empty kid among as many kids as /Count, last page first: the kid's position is read as its page",
-    fileOf("<</Type/Pages/Count 3/Kids[10 0 R 11 0 R 12 0 R]>>", [
-      ...AB,
-      "<</Type/Pages/Count 2/Kids[4 0 R 6 0 R]>>",
-      "<</Type/Pages/Count 1/Kids[8 0 R]>>",
-      "<</Type/Pages/Count 0/Kids[]>>",
-    ]),
-    [1, 2, 0],
-    ["P3", "P3", "P1"],
+    "the one case with true counts: over 32 kids, as many as /Count, a node among those jumped over: P0 again for page 1",
+    wideFile,
+    [1, 0],
+    ["P0", "P0"],
   ],
-  [
-    "the same tree first page first: a node of two is seen, and the walk takes over",
-    fileOf("<</Type/Pages/Count 3/Kids[10 0 R 11 0 R 12 0 R]>>", [
-      ...AB,
-      "<</Type/Pages/Count 2/Kids[4 0 R 6 0 R]>>",
-      "<</Type/Pages/Count 1/Kids[8 0 R]>>",
-      "<</Type/Pages/Count 0/Kids[]>>",
-    ]),
-    [0, 1, 2],
-    ["P1", "P2", "P3"],
-  ],
+  ["the same tree first page first: the node is seen, and the walk takes over", wideFile, [0, 1], ["P0", "P1"]],
   [
     "a node before the page says 1 and holds 2, under a root whose counts add up: unseen",
     fileOf("<</Type/Pages/Count 2/Kids[10 0 R 8 0 R]>>", [...AB, "<</Type/Pages/Count 1/Kids[4 0 R 6 0 R]>>"]),
@@ -438,10 +508,10 @@ const lies: [string, Uint8Array, number[], string[]][] = [
     ["P3", "P1"],
   ],
   [
-    "a kid that isn't there under as many kids as /Count: position first, the walk once it's met",
+    "a kid that isn't there: seen on the way, and the walk has no such page",
     fileOf("<</Type/Pages/Count 3/Kids[4 0 R 99 0 R 6 0 R]>>", AB),
     [2, 1, 0],
-    ["P2", "P2", "P1"],
+    ["error failed", "P2", "P1"],
   ],
   [
     "a node on the path that is its own kid: seen, and the walk finds nothing",

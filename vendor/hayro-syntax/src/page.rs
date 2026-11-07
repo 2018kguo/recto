@@ -75,20 +75,24 @@ impl<'a> Walked<'a> {
     }
 }
 
+/// recto: past this many kids, a node with as many kids as its `/Count` is taken to hold one page
+/// each without fetching those before the one asked for. Narrower ones are read in order, which is what
+/// deleting pages leaves true: nodes of a few kids, some now empty, adding up by coincidence.
+const FLAT_ABOVE_KIDS: usize = 32;
+
 /// recto: page `i` of a ranged file, found by each kid's `/Count` so that only the nodes on the way
-/// to it are fetched, as pdf.js and pdfium do. Everything on that path is checked, and `None` means
-/// something there doesn't add up. What isn't on the path can't be checked: a node before it whose
-/// `/Count` is wrong moves the page unseen, and so does an empty kid under a node with as many kids
-/// as its `/Count`, whose kids aren't fetched.
+/// to it are fetched. pdf.js fetches every leaf kid before a page and pdfium walks in order, so the
+/// flat shortcut is recto's alone. Everything on the path is checked, and `None` means something
+/// there doesn't add up. What isn't on it can't be checked: a node before it whose `/Count` is wrong
+/// moves the page unseen, and so does a node among the kids a wide flat node jumps over.
 struct Descent<'a> {
     root: Dict<'a>,
     /// What's known of each node by its dict's address, so reading every page stays linear.
     nodes: FxHashMap<usize, NodeKids<'a>>,
-    kids_left: usize,
 }
 
 enum NodeKids<'a> {
-    /// As many kids as `/Count`, so each holds one page: kid `i` is read directly.
+    /// Wide, with as many kids as `/Count`, so each is taken for a page: kid `i` is read directly.
     OnePageEach(Vec<MaybeRef<Object<'a>>>),
     /// Kids read in order as far as asked: where each starts, itself, and where they end so far.
     InOrder {
@@ -123,7 +127,7 @@ impl<'a> Descent<'a> {
             if !self.nodes.contains_key(&key) {
                 let array = node.get::<Array<'a>>(KIDS)?;
                 let length = array.raw_iter().count();
-                let kids = if Some(length) == node.get::<usize>(COUNT) {
+                let kids = if length > FLAT_ABOVE_KIDS && Some(length) == node.get::<usize>(COUNT) {
                     NodeKids::OnePageEach(array.raw_iter().collect())
                 } else {
                     NodeKids::InOrder {
@@ -141,16 +145,14 @@ impl<'a> Descent<'a> {
                         MaybeRef::Ref(id) => reader.xref().get_with::<Dict<'a>>((*id).into(), reader),
                         MaybeRef::NotRef(object) => object.clone().into_dict(),
                     }?;
-                    // A node here has to hold one page, like every other kid of this one.
-                    if is_node(&kid) && kid.get::<usize>(COUNT) != Some(1) {
+                    // A node here means they aren't all pages, so position says nothing.
+                    if is_node(&kid) {
                         return None;
                     }
-                    index = 0;
-                    kid
+                    return Some((kid, context));
                 }
                 NodeKids::InOrder { rest, seen, end } => {
                     while *end <= index {
-                        self.kids_left = self.kids_left.checked_sub(1)?;
                         let kid = resolve(rest.next()?)?;
                         let span = if is_node(&kid) { kid.get::<usize>(COUNT)? } else { 1 };
                         seen.push((*end, kid));
@@ -332,7 +334,6 @@ impl<'a> Pages<'a> {
             walked.descent = Some(Descent {
                 root: pages_dict.clone(),
                 nodes: FxHashMap::default(),
-                kids_left: xref.len().saturating_add(MAX_REPEATED_KIDS),
             });
             count
         } else {
