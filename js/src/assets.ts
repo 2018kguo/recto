@@ -135,7 +135,7 @@ function loadFailure(name: AssetName, url: URL | null, reason: string, cause?: u
     `recto could not load ${name}${url ? ` from ${url.href}` : ""}: ${reason}. It ships in the package's wasm/ ` +
       "directory. If a bundler or dev server moved the package without its files, copy them " +
       "somewhere it serves and pass that directory as `assetBase` (with Vite's dev server, add " +
-      'optimizeDeps: { exclude: ["@2018kguo/recto"] } instead).',
+      'optimizeDeps: { exclude: ["@2018kguo/recto"] } instead; a server bundle should keep the package external).',
     cause
   );
 }
@@ -229,7 +229,7 @@ function compiling(name: WasmName, module: Promise<WebAssembly.Module>): Promise
 /** Verified assets by URL: hash and read each once per thread. */
 const loaded = new Map<string, Uint8Array>();
 
-/** Fetches assets ahead of time, for a thread that can't read them when they're needed. */
+/** Fetches and verifies assets ahead of time; a thread that can't read them when needed has to. */
 export async function preloadAssets(base: URL | null, names: AssetName[]): Promise<void> {
   await Promise.all(
     names.map(async (name) => {
@@ -240,7 +240,7 @@ export async function preloadAssets(base: URL | null, names: AssetName[]): Promi
         if (loaded.has(url.href)) {
           return;
         }
-        bytes = await fetchBytes(name, url);
+        bytes = nodeFs() ? checked(name, url, readFromDisk(url)) : await fetchBytes(name, url);
       } catch (error) {
         if (error instanceof PdfError) {
           throw error;

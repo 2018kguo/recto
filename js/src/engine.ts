@@ -45,14 +45,14 @@ export type PdfEngineOptions = {
    */
   recycleAboveBytes?: number;
   /**
-   * Where a thread can't read a file synchronously (a page's main thread, a service worker), the
-   * assets are fetched while the engine is created: by default all of them, 9.5 MB. Name fewer to
-   * fetch less, and a call that needs a font or CMaps you left out fails with `missing-asset`. The
-   * wasm's parts are fetched there whatever you name, so it can always draw. Where assets can be read
-   * when needed, only `recto.wasm` means anything: named, what drawing needs is fetched and compiled
-   * now, which saves the first `render` blocking on it.
+   * Files to fetch and verify while the engine is created, so that a missing one fails here and no later
+   * call waits for it. `recto-render.wasm` saves the first `render` that wait; all three parts check the
+   * whole engine at startup. The default is none, except where a thread can't read a file when it's needed
+   * (a page's main thread, a service worker): there it's all of them, 9.5 MB. Name fewer to fetch less, and
+   * a call that needs a font or CMaps you left out fails with `missing-asset`. The parts are fetched there
+   * whatever you name, so it can always draw.
    */
-  preloadAssets?: (Exclude<AssetName, Part> | "cmaps.brotli" | "fonts.bin" | "recto-text.wasm")[];
+  preloadAssets?: (AssetName | "cmaps.brotli" | "fonts.bin")[];
 };
 
 export type PdfOpenOptions = {
@@ -443,18 +443,18 @@ export async function createPdfEngine(options: PdfEngineOptions = {}): Promise<P
 async function createEngine(options: PdfEngineOptions): Promise<RectoEngine> {
   const base = assetBaseUrl(options.assetBase);
   const canRead = canReadSync();
-  // cmaps.brotli is the old name of cmaps.deflate, fonts.bin of all the fonts together, and recto-text.wasm
-  // what an engine loads anyway.
+  // cmaps.brotli is the old name of cmaps.deflate, and fonts.bin of all the fonts together.
   const names = (options.preloadAssets ?? (canRead ? [] : ALL_ASSETS)).flatMap((asset) =>
-    asset === "cmaps.brotli" ? ("cmaps.deflate" as const) : asset === "fonts.bin" ? STANDARD_FONTS : asset === "recto-text.wasm" ? [] : asset
+    asset === "cmaps.brotli" ? ("cmaps.deflate" as const) : asset === "fonts.bin" ? STANDARD_FONTS : asset
   );
+  const isPart = (name: AssetName): name is Part => (PARTS as readonly string[]).includes(name);
+  const files = names.filter((name) => name !== "recto.wasm" && !isPart(name));
   // With no way to read a part from inside a call, all of them now, always: nothing listed can take
-  // away the ability to draw. Named elsewhere, what drawing runs, to save the first `render` the wait.
-  const parts = canRead ? (names.includes("recto.wasm") ? (["recto-render.wasm"] as const) : []) : PARTS;
+  // away the ability to draw.
   const [module] = await Promise.all([
     compile("recto.wasm", base),
-    ...parts.map((part) => compile(part, base)),
-    canRead ? undefined : preloadAssets(base, names.filter((asset) => asset !== "recto.wasm")),
+    ...(canRead ? names.filter(isPart) : PARTS).map((part) => compile(part, base)),
+    preloadAssets(base, files),
   ]);
   return new RectoEngine(instantiate(0, base, module), base, options.recycleAboveBytes);
 }

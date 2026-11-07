@@ -32,7 +32,10 @@ document is open, in memory that comes back only when the instance is replaced.
 functions most files never run are in `recto-more.wasm` (0.86 MB, 0.21 MB) and `recto-rare.wasm` (0.79 MB,
 0.17 MB). There's nothing to call. If a part can't be loaded, the call throws `missing-asset`, every open
 document stays usable, and the next call tries again. A thread that will draw can save the first `render` that
-wait with `preloadAssets: ["recto.wasm"]`, which fetches and compiles what drawing needs now.
+wait with `preloadAssets: ["recto-render.wasm"]`. To find a missing file at startup and not at the first page
+that needs it, name all three parts: `preloadAssets: ["recto-render.wasm", "recto-more.wasm", "recto-rare.wasm"]`
+fetches, hashes and compiles them while the engine is created, and creating it fails with `missing-asset` if one
+isn't there. Fonts and CMaps can be named the same way.
 
 ## A document
 
@@ -144,8 +147,8 @@ Every failure is a `PdfError` with a `code`. A bad argument is a `RangeError` or
 | `closed` | The document was closed |
 | `missing-asset` | The wasm, a font or CMaps are missing, unreadable, or not this build's |
 | `wrong-thread` | A ranged read on a thread that can't block for one: a page's main thread, a service worker |
-| `fetch-failed` | A ranged read failed: the network, an HTTP error, a bad Range answer |
-| `timeout` | A ranged fetch waited longer than `timeoutMs` |
+| `fetch-failed` | A ranged read failed: the network, an HTTP error, a bad Range answer. `error.status` is the answer's HTTP status; undefined if the server never answered |
+| `timeout` | A ranged fetch waited longer than `timeoutMs`, or the read passed `totalTimeoutMs` |
 | `too-large` | A ranged read would pass `maxBytes`, the file is past 3.5 GiB, or the instance has no address space left for it (other open documents hold it) |
 | `failed` | Any other refusal, such as a page with no area |
 
@@ -176,7 +179,8 @@ server on the same thread cannot answer, and the read fails with `timeout` and s
 | `chunkBytes` | 64 KiB | The smallest fetch |
 | `maxBytes` | 64 MiB | Total to fetch before failing with `too-large` |
 | `timeoutMs` | 30 s | How long one fetch round may block |
-| `signal` | | Checked before the open and each fetch. It cannot interrupt a fetch, because the thread is blocked; `timeoutMs` bounds that |
+| `totalTimeoutMs` | none | Wall time for the whole read, from the first fetch: a fetch in flight is cut when it runs out, a stalled one included, and none starts after. It keeps counting while the document sits open. What's already fetched still reads |
+| `signal` | | Checked before the open and each fetch. It cannot interrupt a fetch, because the thread is blocked; `timeoutMs` and `totalTimeoutMs` bound that |
 | `password` | | |
 
 **A ranged read trusts `/Count`.** It finds a page by each node's `/Count`, so that it fetches only
@@ -208,12 +212,18 @@ What a server gets wrong:
 The wasm and assets are found with `new URL("../wasm/…", import.meta.url)`.
 
 - **Node 24 and newer**: nothing to configure.
-- **Vite 8** (dev server and build): nothing to configure. CI runs both in Chromium, in a
+- **Vite 8** (dev server and client build): nothing to configure. CI runs both in Chromium, in a
   dedicated worker, on the main thread and in a service worker; the same were run by hand in
   Firefox and WebKit.
 - **Vite 7**: the build works. The dev server's dependency pre-bundling loses the URLs, and the
   worker's first call fails with `missing-asset`. Add
   `optimizeDeps: { exclude: ["@2018kguo/recto"] }`. Run by hand, not in CI.
+- **A bundled server build (SSR)**: keep the package external, so it stays in `node_modules` with its files: in
+  Vite, `ssr: { external: ["@2018kguo/recto"] }` (and the same in a Nitro or similar output's own bundling, if it
+  runs this code). Vite rewrites `new URL(…, import.meta.url)` only for client builds. Bundled for a server,
+  the code moves and the files don't, so the first engine fails with `missing-asset`:
+  `recto could not load recto.wasm from file:///…/server/wasm/recto.wasm: ENOENT`. Shipping `node_modules` must then
+  include the whole package, `wasm/` too. If the package can't stay external, copy `wasm/*` and pass `assetBase`.
 - **Other bundlers**: webpack 5 and Rollup also rewrite `new URL(…, import.meta.url)` but have
   not been run. A bundler that does not (esbuild) leaves the files behind: copy
   `node_modules/@2018kguo/recto/wasm/*` somewhere it serves and pass that directory:
@@ -233,6 +243,9 @@ The wasm and assets are found with `new URL("../wasm/…", import.meta.url)`.
   until a document needs it. A ranged read still needs a thread that may block: `wrong-thread`.
 - **Edge runtimes** without `XMLHttpRequest` take the same path in principle. None has been run.
 - No headers (COOP, COEP) are needed anywhere.
+
+The files can also be reached by name, through `@2018kguo/recto/wasm/*`: `@2018kguo/recto/wasm/pins.mjs` exports
+`PINS`, each file's SHA-256 by name, which is also the list of what a deploy must ship.
 
 Every file is pinned by SHA-256, and every byte is hashed before it's used, so a dev server's HTML
 fallback page cannot read as a font, and a changed wasm is never compiled. A wasm is fetched whole and

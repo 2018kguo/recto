@@ -95,6 +95,8 @@ const drawn = await profile("render", async (doc) => {
   for (let i = 0; i < Math.min(doc.pageCount, 8); i++) {
     doc.render(i, { width: 800 });
     await doc.renderAsync(i, { width: 400 });
+    // A thumbnail: images shrink by another path.
+    doc.render(i, { width: 150 });
     doc.objects(i);
     doc.scan(i);
   }

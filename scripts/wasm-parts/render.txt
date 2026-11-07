@@ -253,6 +253,7 @@
 <read_fonts::tables::glyf::outline::plan::OutlinePlan>::load::<read_fonts::tables::glyf::outline::scale::Scale26Dot6>
 <read_fonts::tables::glyf::outline::plan::OutlinePlan>::load::<read_fonts::tables::glyf::outline::scale::Unscaled>
 <read_fonts::tables::glyf::outline::plan::OutlinePlan>::walk
+<read_fonts::tables::glyf::outline::scale::Scale26Dot6 as read_fonts::tables::glyf::outline::scale::Scale>::component_offset
 <read_fonts::tables::glyf::outline::scale::Scale26Dot6 as read_fonts::tables::glyf::outline::scale::Scale>::load_empty_phantom
 <read_fonts::tables::glyf::outline::scale::Scale26Dot6 as read_fonts::tables::glyf::outline::scale::Scale>::load_simple_points
 <read_fonts::tables::glyf::outline::scale::Unscaled as read_fonts::tables::glyf::outline::scale::Scale>::load_simple_points

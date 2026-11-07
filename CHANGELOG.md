@@ -13,6 +13,9 @@ and the threshold can hide a missing line. See
   special headers. See [the numbers](docs/benchmarks.md#across-threads).
 - `doc.structureTruncated()`: whether a limit cut the page tree, labels or outline short, or a damaged tree left no pages.
 - `doc.pageLabels()`: what each page is called. The same as pdf.js on all 16 suite files that have any.
+- `totalTimeoutMs` on `openRanged`: wall time for the whole read. A stalled fetch is cut at what's left, so nothing blocks past it.
+- `error.status` on `fetch-failed`: the HTTP status of the answer, undefined if the server never answered.
+- `@2018kguo/recto/wasm/*` in `exports`: the files, and `wasm/pins.mjs` for the list of them.
 - `bench/scorecard.mjs`, `bench/fuzz.mjs`, `bench/fuzz-structures.mjs`, `bench/api-cases.mjs`, `examples/budgets.rs`, and a bounded fuzz test in CI.
 
 ### Fixed
@@ -74,7 +77,8 @@ Opening:
 - **The standard fonts are a file each**, not `fonts.bin`: a page that draws one fetches 13–25 KB where it fetched
   213 KB. `preloadAssets` still takes `fonts.bin`, meaning all 14; an `assetBase` directory needs the new files.
 - **`createPdfPool` can't wait for ever**: a thread that can't start fails what's waiting, typed, and a pool from a CDN starts its threads through a blob.
-- `preloadAssets: ["recto.wasm"]` no longer picks an engine: it fetches and compiles what drawing needs now.
+- `preloadAssets` means one thing everywhere: what's named is fetched and verified while the engine is created. Name
+  `recto-render.wasm` to save the first `render` the wait, or all three parts to find a missing one at startup.
 - **Glyph and metric tables** are sorted bytes, not `phf` maps, and the table from a character to its
   glyph name is built on first use: 40 KB less to download with brotli. Reading text costs about 2% more, since
   opening a font bisects where it hashed.

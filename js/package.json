@@ -26,6 +26,7 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./wasm/*": "./wasm/*",
     "./package.json": "./package.json"
   },
   "files": [

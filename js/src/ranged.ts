@@ -39,6 +39,12 @@ export type PdfRangedOpenOptions = {
   signal?: AbortSignal;
   /** How long one fetch round may block the thread (code "timeout"). Default 30 s. */
   timeoutMs?: number;
+  /**
+   * Wall time for the whole read, from the first fetch on, in place of counting rounds (code "timeout").
+   * A fetch in flight is cut when it runs out, and none starts after. Reads of what's already fetched
+   * still work. Default: no limit.
+   */
+  totalTimeoutMs?: number;
 };
 
 export type PdfRangedStats = {
@@ -77,7 +83,7 @@ const HEAD_CHUNKS = 4;
 const MAX_FILE_BYTES = 3584 * 1024 * 1024;
 
 type Range = { start: number; end: number };
-type Answer = { start: number; bytes: Uint8Array; length: number; etag: string | null };
+type Answer = { start: number; bytes: Uint8Array; length: number; etag: string | null; status: number };
 /** Fetches `ranges`; `limit` is how many bytes may still arrive. */
 type Fetch = (ranges: Range[], timeoutMs: number, limit: number) => Answer[];
 
@@ -100,6 +106,8 @@ class RangeLoader {
   readonly #fetch: Fetch;
   readonly #maxBytes: number;
   readonly #timeoutMs: number;
+  readonly #totalTimeoutMs: number;
+  readonly #deadline: number;
   readonly #signal: AbortSignal | undefined;
 
   constructor(
@@ -108,6 +116,7 @@ class RangeLoader {
       chunkBytes: number;
       maxBytes: number;
       timeoutMs: number;
+      totalTimeoutMs: number;
       signal: AbortSignal | undefined;
     }
   ) {
@@ -116,6 +125,8 @@ class RangeLoader {
     this.#readAhead = options.chunkBytes;
     this.#maxBytes = options.maxBytes;
     this.#timeoutMs = options.timeoutMs;
+    this.#totalTimeoutMs = options.totalTimeoutMs;
+    this.#deadline = performance.now() + options.totalTimeoutMs;
     this.#signal = options.signal;
   }
 
@@ -162,15 +173,21 @@ class RangeLoader {
     if (this.length > 0 && this.#bytesFetched + wanted > this.#maxBytes) {
       throw tooLarge(this.#maxBytes);
     }
+    const left = this.#deadline - performance.now();
+    if (left <= 0) {
+      throw new PdfError("timeout", `the ranged read passed its ${this.#totalTimeoutMs} ms (totalTimeoutMs)`);
+    }
     this.#rounds += 1;
-    const answers = this.#fetch(runs, this.#timeoutMs, this.#maxBytes - this.#bytesFetched);
+    const answers = this.#fetch(runs, Math.min(this.#timeoutMs, Math.ceil(left)), this.#maxBytes - this.#bytesFetched);
     for (const answer of answers) {
       this.#requests += 1;
       this.#bytesFetched += answer.bytes.byteLength;
       if (this.length > 0 && answer.length !== this.length) {
         throw new PdfError(
           "fetch-failed",
-          `the file changed size during the ranged read (${this.length} bytes, now ${answer.length})`
+          `the file changed size during the ranged read (${this.length} bytes, now ${answer.length})`,
+          undefined,
+          answer.status
         );
       }
       // Before anything is sized from it: the total is whatever the server said.
@@ -181,7 +198,7 @@ class RangeLoader {
         );
       }
       if (this.#etag && answer.etag && answer.etag !== this.#etag) {
-        throw new PdfError("fetch-failed", "the file was replaced during the ranged read (its ETag changed)");
+        throw new PdfError("fetch-failed", "the file was replaced during the ranged read (its ETag changed)", undefined, answer.status);
       }
       this.#etag ??= answer.etag;
       this.length = answer.length;
@@ -307,6 +324,7 @@ export function startRangeLoader(
   positive("chunkBytes", options.chunkBytes);
   positive("maxBytes", options.maxBytes);
   positive("timeoutMs", options.timeoutMs);
+  positive("totalTimeoutMs", options.totalTimeoutMs);
   if (options.chunkBytes !== undefined && !Number.isSafeInteger(options.chunkBytes)) {
     throw new RangeError(`chunkBytes must be a whole number (got ${options.chunkBytes})`);
   }
@@ -318,6 +336,7 @@ export function startRangeLoader(
     chunkBytes,
     maxBytes: options.maxBytes ?? DEFAULT_MAX_BYTES,
     timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+    totalTimeoutMs: options.totalTimeoutMs ?? Number.POSITIVE_INFINITY,
     signal: options.signal,
   });
   loader.fetchChunks(0, HEAD_CHUNKS);
@@ -367,6 +386,7 @@ function fetcherFor(source: string | Uint8Array): Fetch {
         bytes: bytes.subarray(start, Math.min(end, bytes.byteLength)),
         length: bytes.byteLength,
         etag: null,
+        status: 206,
       }));
   }
   const url = source;
@@ -404,17 +424,19 @@ function answerOf(
         `the server does not answer Range requests, and the whole file is past the ${limit} bytes left of maxBytes`
       );
     }
-    return { start: 0, bytes, length: bytes.byteLength, etag };
+    return { start: 0, bytes, length: bytes.byteLength, etag, status };
   }
   if (status !== 206) {
-    throw new PdfError("fetch-failed", `the ranged read failed (HTTP ${status})`);
+    throw new PdfError("fetch-failed", `the ranged read failed (HTTP ${status})`, undefined, status);
   }
   const match = /^bytes (\d+)-\d+\/(\d+)$/u.exec(contentRange?.trim() ?? "");
   if (!match) {
     throw new PdfError(
       "fetch-failed",
       "the server's 206 answer has no usable Content-Range (with a total length). " +
-        "A cross-origin server must also send Access-Control-Expose-Headers: Content-Range."
+        "A cross-origin server must also send Access-Control-Expose-Headers: Content-Range.",
+      undefined,
+      status
     );
   }
   const start = Number(match[1]);
@@ -423,10 +445,12 @@ function answerOf(
   if (start !== range.start || bytes.byteLength !== Math.min(range.end, length) - range.start) {
     throw new PdfError(
       "fetch-failed",
-      `the server answered a different range than asked (asked ${range.start}-${range.end - 1}, got ${bytes.byteLength} bytes from ${start})`
+      `the server answered a different range than asked (asked ${range.start}-${range.end - 1}, got ${bytes.byteLength} bytes from ${start})`,
+      undefined,
+      status
     );
   }
-  return { start, bytes, length, etag };
+  return { start, bytes, length, etag, status };
 }
 
 function fetchOverXhr(url: string, ranges: Range[], timeoutMs: number, limit: number): Answer[] {

@@ -116,7 +116,7 @@ test("somewhere without synchronous reads, assets are fetched up front and the e
   // @ts-expect-error
   globalThis.document = {};
   try {
-    const engine = await createPdfEngine({ assetBase: pathToFileURL(`${assetDir()}/`), preloadAssets: ["recto.wasm", "FoxitSans.pfb"] });
+    const engine = await createPdfEngine({ assetBase: pathToFileURL(`${assetDir()}/`), preloadAssets: ["FoxitSans.pfb"] });
     using doc = await engine.open(pdf());
     assert.ok(doc.text(0).count > 0);
     assert.ok(doc.render(0, { width: 100 }).rgba.some((v) => v !== 255), "the page has ink, so the font was there");
@@ -374,6 +374,8 @@ test("bad ranged arguments are TypeErrors and RangeErrors, not hangs", async () 
     { chunkBytes: Number.NaN },
     { timeoutMs: Number.NaN },
     { timeoutMs: 0 },
+    { totalTimeoutMs: 0 },
+    { totalTimeoutMs: Number.NaN },
     { maxBytes: Number.NaN },
   ]) {
     await assert.rejects(engine.openRanged(pdf(), options), RangeError, JSON.stringify(options));
@@ -428,6 +430,102 @@ test("timeoutMs bounds a fetch, not how long a document stays open", async () =>
   } finally {
     await server.close();
   }
+});
+
+test("totalTimeoutMs bounds the whole read, a stalled round included", async () => {
+  const engine = await createPdfEngine();
+  const server = await startRangeServer(syntheticPdf({ pages: 40, padBytes: 64 * 1024 }));
+  try {
+    const started = performance.now();
+    await using doc = await engine.openRanged(server.url, { totalTimeoutMs: 700, timeoutMs: 60_000 });
+    server.setMode("stalled");
+    assert.throws(() => {
+      for (let i = 0; i < doc.pageCount; i++) {
+        doc.text(i);
+      }
+    }, hasCode("timeout"));
+    const elapsed = performance.now() - started;
+    assert.ok(elapsed >= 650 && elapsed < 2000, `stopped after ${elapsed} ms`);
+  } finally {
+    await server.close();
+  }
+  // With no time left, no fetch starts.
+  const slow = await startRangeServer(syntheticPdf({ pages: 40, padBytes: 64 * 1024 }));
+  try {
+    await using doc = await engine.openRanged(slow.url, { totalTimeoutMs: 400 });
+    await sleep(500);
+    const before = slow.served().requests;
+    assert.throws(() => doc.text(39), hasCode("timeout"));
+    assert.equal(slow.served().requests, before);
+  } finally {
+    await slow.close();
+  }
+});
+
+test("rounds that each fit timeoutMs still stop at totalTimeoutMs", async () => {
+  const engine = await createPdfEngine();
+  const server = await startRangeServer(syntheticPdf({ pages: 200, padBytes: 512 * 1024 }), { latencyMs: 100 });
+  try {
+    const started = performance.now();
+    await assert.rejects(async () => {
+      await using doc = await engine.openRanged(server.url, { totalTimeoutMs: 500, timeoutMs: 400, maxBytes: 2 ** 40 });
+      for (let i = 0; i < doc.pageCount; i += 7) {
+        doc.text(i);
+      }
+    }, hasCode("timeout"));
+    assert.ok(performance.now() - started < 2000);
+  } finally {
+    await server.close();
+  }
+});
+
+test("fetch-failed says the HTTP status when the server answered, and none when it didn't", async () => {
+  const engine = await createPdfEngine();
+  const server = await startRangeServer(pdf());
+  try {
+    for (const [mode, status] of [["forbidden", 403], ["short", 206], ["unknown-total", 206]] as const) {
+      server.setMode(mode);
+      await assert.rejects(engine.openRanged(server.url), (error: PdfError) => {
+        hasCode("fetch-failed")(error);
+        assert.equal(error.status, status, mode);
+        return true;
+      });
+    }
+  } finally {
+    await server.close();
+  }
+  await assert.rejects(engine.openRanged(server.url, { timeoutMs: 2000 }), (error: PdfError) => {
+    hasCode("fetch-failed")(error);
+    assert.equal(error.status, undefined);
+    return true;
+  });
+});
+
+test("preloadAssets finds a missing file at startup, in Node as well", async () => {
+  const parts = ["recto-render.wasm", "recto-more.wasm", "recto-rare.wasm"] as const;
+  for (const name of [...parts, "FoxitSans.pfb"] as const) {
+    const dir = mkdtempSync(join(tmpdir(), "recto-preload-"));
+    for (const asset of ASSETS) {
+      if (asset !== name) {
+        copyFileSync(packaged(asset), join(dir, asset));
+      }
+    }
+    const preloadAssets = [...parts, "FoxitSans.pfb"] as ("FoxitSans.pfb" | (typeof parts)[number])[];
+    await assert.rejects(createPdfEngine({ assetBase: dir, preloadAssets }), (error: PdfError) => {
+      hasCode("missing-asset")(error);
+      assert.match(error.message, new RegExp(name.replace(".", "\\."), "u"));
+      return true;
+    });
+    copyFileSync(packaged(name), join(dir, name));
+    assert.ok(await createPdfEngine({ assetBase: dir, preloadAssets }));
+    rmSync(dir, { recursive: true });
+  }
+});
+
+test("the wasm directory and its list of files are reachable by name", async () => {
+  const { PINS: named } = await import("@2018kguo/recto/wasm/pins.mjs");
+  assert.deepEqual(named, PINS);
+  assert.ok(import.meta.resolve("@2018kguo/recto/wasm/recto-more.wasm").endsWith("/wasm/recto-more.wasm"));
 });
 
 // 6. Typed errors
