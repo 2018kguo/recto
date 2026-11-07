@@ -465,3 +465,18 @@ test("planted /Identity names don't open a file of a version that has no crypt f
   out += `xref\n0 6\n0000000000 65535 f \n${offsets.map((o) => `${String(o).padStart(10, "0")} 00000 n \n`).join("")}trailer\n<</Size 6 /Root 1 0 R /Encrypt 5 0 R /ID [<00> <00>]>>\nstartxref\n${xref}\n%%EOF\n`;
   await assert.rejects(engine.open(latin1(out)), { code: "password-required" });
 });
+
+test("an annotation's /OC can be a direct membership dictionary", async () => {
+  const stamp = (oc: string) => `<</Type /Annot /Subtype /Square /Rect [0 0 100 100] /IC [1 0 0] /OC ${oc}>>`;
+  const page = (oc: string) =>
+    render(
+      pdfOf({
+        content: "",
+        pageExtra: `/Annots [${stamp(oc)}]`,
+        catalogExtra: "/OCProperties <</OCGs [5 0 R 6 0 R] /D <</OFF [6 0 R]>>>>",
+        objects: ["<</Type /OCG /Name (On)>>", "<</Type /OCG /Name (Off)>>"],
+      }),
+    );
+  assert.deepEqual((await page("<</Type /OCMD /OCGs [6 0 R]>>")).at(50, 50), WHITE);
+  assert.deepEqual((await page("<</Type /OCMD /OCGs [5 0 R]>>")).at(50, 50), RED);
+});

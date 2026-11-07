@@ -193,9 +193,12 @@ fn interpret_annotation<'a>(
     }
 
     // recto: an annotation in a hidden optional content group isn't drawn.
-    if let Some(reference) = annot.get_ref(OC) {
-        let group = annot.get::<Dict<'_>>(OC).unwrap_or_default();
-        context.ocg_state.begin_ocg(&group, reference.into());
+    if let Some(group) = annot.get::<Dict<'_>>(OC) {
+        match annot.get_ref(OC) {
+            Some(reference) => context.ocg_state.begin_ocg(&group, reference.into()),
+            // A group is always indirect, so a direct dictionary is a membership one.
+            None => context.ocg_state.begin_ocmd(&group),
+        }
         let visible = context.ocg_state.is_visible();
         context.ocg_state.end_marked_content();
         if !visible {
