@@ -47,6 +47,13 @@ on, from inside the call that needed it. That's why every thread that can read s
 load a part mid-call, and every thread that can't gets all three up front. Each part is pinned to this
 build, so a stale CDN's mixture is refused before it compiles.
 
+`wasm-split` moves functions, not data, so on its own every constant table stays in `recto.wasm`. The
+build links with relocations kept, which say where each table starts and ends and which tables point at
+which, and `scripts/wasm-data.mjs` finds every address each part's code names. A read-only table that
+only parts' code reaches moves into those parts, as data a part writes into memory when it
+instantiates, at the address the linker gave it. Anything writable, and anything writable data points
+at, stays. That takes 48 KB with brotli off a text-only page.
+
 If a part fails to load in the middle of a call, the throw has gone through wasm frames, whose state
 is then unknown. That instance is left alone from then on, and the call throws `missing-asset`. The
 next call on any document open on it reopens that document on a new instance, copying the file from the
@@ -104,7 +111,8 @@ is entered, and dropped if it has no `/Kids`. Any other dictionary is a page, wh
 `/Count` plays no part. A node that's its own ancestor is skipped. Any other repeat counts again, as it does in
 pdfium, pdf.js and poppler, so a tree can multiply: the walk stops after the file's objects plus 2^18
 kids, which a tree with no repeats can't reach. It uses its own stack, so a deep chain is fine. `open`
-does the walk and keeps each page's dictionary, and a page is built the first time it's asked for.
+does the walk and keeps where each page's dictionary is and its `/Type`, and a page's dictionary is
+indexed, and the page built, the first time it's asked for.
 
 A ranged file can't afford that: the walk fetches every page's dictionary before the one you want. It
 descends by `/Count` instead, reading a node's kids in order only as far as the page. Past 32 kids, a
@@ -136,8 +144,9 @@ scope, and one module record per instance would pin every retired instance's mem
 retires the instance: `panic = abort` on wasm32, so a panic or a failed allocation arrives as a
 `WebAssembly.RuntimeError`, and its state is unknown after that.
 
-WebAssembly memory never shrinks, so the only way to give it back is to drop the instance. Past 64 MiB
-the engine drops it once nothing has been open on it for a second, or at the close past 512 MiB. An open
+WebAssembly memory never shrinks, so the only way to give it back is to drop the instance. Once it has
+grown past what it started with, the engine drops it when nothing has been open on it for a second, or
+at the close past 512 MiB. An open
 within that second reuses it: dropping it at every close made a repeated 70 MiB file 2.1 times slower
 for 1.2 times the peak memory (`bench/results/recycle.json`). An explicit `recycleAboveBytes` drops
 it at the close past that mark. Compiling is cached, so a new instance costs only instantiation.

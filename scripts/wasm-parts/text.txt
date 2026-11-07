@@ -26,8 +26,8 @@
 <alloc::raw_vec::RawVec<(hayro_interpret::interpret::state::PaintState, u16)>>::grow_one
 <alloc::raw_vec::RawVec<(hayro_interpret::interpret::state::TextState, u16)>>::grow_one
 <alloc::raw_vec::RawVec<(hayro_interpret::types::StrokeProps, u16)>>::grow_one
-<alloc::raw_vec::RawVec<(hayro_syntax::object::dict::Dict, u32)>>::grow_one
 <alloc::raw_vec::RawVec<(kurbo::affine::Affine, u16)>>::grow_one
+<alloc::raw_vec::RawVec<(usize, hayro_syntax::object::dict::Dict)>>::grow_one
 <alloc::raw_vec::RawVec<alloc::string::String>>::grow_one
 <alloc::raw_vec::RawVec<alloc::vec::Vec<font_types::fixed::Fixed>>>::grow_one
 <alloc::raw_vec::RawVec<bool>>::grow_one
@@ -44,6 +44,7 @@
 <alloc::raw_vec::RawVec<hayro_interpret::interpret::state::ClipType>>::grow_one
 <alloc::raw_vec::RawVec<hayro_syntax::object::Object>>::grow_one
 <alloc::raw_vec::RawVec<hayro_syntax::object::dict::Dict>>::grow_one
+<alloc::raw_vec::RawVec<hayro_syntax::page::PagesContext>>::grow_one
 <alloc::raw_vec::RawVec<hayro_syntax::page::WalkFrame>>::grow_one
 <alloc::raw_vec::RawVec<kurbo::affine::Affine>>::grow_one
 <alloc::raw_vec::RawVec<kurbo::bezpath::PathEl>>::grow_one
@@ -57,6 +58,7 @@
 <alloc::raw_vec::RawVec<recto::wasm::Document>>::grow_one
 <alloc::raw_vec::RawVec<u32>>::grow_one
 <alloc::raw_vec::RawVec<u8>>::grow_one
+<alloc::raw_vec::RawVec<zune_jpeg::decoder::ICCChunk>>::grow_one
 <alloc::raw_vec::RawVecInner<_>>::reserve::do_reserve_and_handle::<alloc::alloc::Global>
 <alloc::raw_vec::RawVecInner>::finish_grow
 <alloc::raw_vec::RawVecInner>::grow_amortized
@@ -94,14 +96,14 @@
 <alloc::sync::Arc<hayro_syntax::data::Data>>::drop_slow
 <alloc::sync::Arc<hayro_syntax::metadata::Metadata>>::drop_slow
 <alloc::sync::Arc<hayro_syntax::object::dict::Repr>>::drop_slow
-<alloc::sync::Arc<hayro_syntax::reader::ReaderContextData>>::drop_slow
-<alloc::sync::Arc<hayro_syntax::reader::ReaderContextData>>::make_mut
 <alloc::sync::Arc<hayro_syntax::xref::SomeRepr>>::drop_slow
 <alloc::sync::Arc<hayro_syntax::xref::SomeRepr>>::make_mut
 <alloc::sync::Arc<hayro_syntax::xref::XRef>>::drop_slow
 <alloc::sync::Arc<read_fonts::model::font::SharedFontRepr>>::drop_slow
 <alloc::sync::Arc<read_fonts::model::font::blob::Blob>>::drop_slow
 <alloc::sync::Arc<read_fonts::model::font::tables::Tables>>::drop_slow
+<alloc::sync::Arc<smallvec::SmallVec<[hayro_syntax::object::ObjectIdentifier; 8usize]>>>::drop_slow
+<alloc::sync::Arc<smallvec::SmallVec<[hayro_syntax::object::ObjectIdentifier; 8usize]>>>::make_mut
 <alloc::sync::Arc<std::sync::once_lock::OnceLock<[u8; 256usize]>>>::drop_slow
 <alloc::sync::Arc<std::sync::once_lock::OnceLock<core::option::Option<alloc::boxed::Box<[[u8; 3usize]; 256usize]>>>>>::drop_slow
 <alloc::sync::Arc<std::sync::poison::mutex::Mutex<std::collections::hash::map::HashMap<u128, core::option::Option<alloc::boxed::Box<dyn core::any::Any + core::marker::Send + core::marker::Sync>>, rustc_hash::FxBuildHasher>>>>::drop_slow
@@ -110,9 +112,8 @@
 <alloc::vec::Vec<core::option::Option<read_fonts::model::charmap::EncodingTable>> as alloc::vec::spec_from_iter::SpecFromIter<core::option::Option<read_fonts::model::charmap::EncodingTable>, core::iter::adapters::flatten::FlatMap<core::option::IntoIter<read_fonts::tables::cmap::Cmap>, core::iter::adapters::map::Map<core::iter::adapters::enumerate::Enumerate<core::slice::iter::Iter<read_fonts::tables::cmap::EncodingRecord>>, <read_fonts::model::charmap::EncodingTables>::read<&read_fonts::model::font::tables::Tables>::{closure#0}::{closure#0}::{closure#0}>, <read_fonts::model::charmap::EncodingTables>::read<&read_fonts::model::font::tables::Tables>::{closure#0}::{closure#0}>>>::from_iter
 <alloc::vec::Vec<f32> as alloc::vec::spec_extend::SpecExtend<f32, alloc::vec::into_iter::IntoIter<f32>>>::spec_extend
 <alloc::vec::Vec<f32> as alloc::vec::spec_from_iter_nested::SpecFromIterNested<f32, hayro_syntax::object::array::ResolvedArrayIter<f32>>>::from_iter
-<alloc::vec::Vec<f32> as hayro_syntax::reader::Readable>::read
 <alloc::vec::Vec<u16>>::resize
-<alloc::vec::Vec<u32> as alloc::vec::spec_from_iter_nested::SpecFromIterNested<u32, hayro_syntax::object::array::ResolvedArrayIter<u32>>>::from_iter
+<alloc::vec::Vec<u32> as core::convert::TryFrom<hayro_syntax::object::array::Array>>::try_from
 <alloc::vec::Vec<u8> as core::convert::AsRef<[u8]>>::as_ref
 <bool as hayro_syntax::reader::Readable>::read
 <bool as hayro_syntax::reader::Skippable>::skip
@@ -160,7 +161,7 @@
 <hashbrown::raw::RawTable<(&[u8], core::option::Option<hayro_interpret::interpret::state::TextStateFont>)>>::reserve_rehash::<hashbrown::map::make_hasher<&[u8], core::option::Option<hayro_interpret::interpret::state::TextStateFont>, rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<(alloc::vec::Vec<u8>, hayro_syntax::crypto::CryptDictionary)>>::reserve_rehash::<hashbrown::map::make_hasher<alloc::vec::Vec<u8>, hayro_syntax::crypto::CryptDictionary, std::hash::random::RandomState>::{closure#0}>
 <hashbrown::raw::RawTable<(hayro_syntax::object::ObjectIdentifier, ())>>::reserve_rehash::<hashbrown::map::make_hasher<hayro_syntax::object::ObjectIdentifier, (), rustc_hash::FxBuildHasher>::{closure#0}>
-<hashbrown::raw::RawTable<(hayro_syntax::object::ObjectIdentifier, core::option::Option<hayro_syntax::object::dict::Dict>)>>::reserve_rehash::<hashbrown::map::make_hasher<hayro_syntax::object::ObjectIdentifier, core::option::Option<hayro_syntax::object::dict::Dict>, rustc_hash::FxBuildHasher>::{closure#0}>
+<hashbrown::raw::RawTable<(hayro_syntax::object::ObjectIdentifier, core::option::Option<hayro_syntax::object::dict::DictHead>)>>::reserve_rehash::<hashbrown::map::make_hasher<hayro_syntax::object::ObjectIdentifier, core::option::Option<hayro_syntax::object::dict::DictHead>, rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<(hayro_syntax::object::ObjectIdentifier, hayro_syntax::xref::EntryType)>>::reserve_rehash::<hashbrown::map::make_hasher<hayro_syntax::object::ObjectIdentifier, hayro_syntax::xref::EntryType, rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<(hayro_syntax::object::ObjectIdentifier, usize)>>::reserve_rehash::<hashbrown::map::make_hasher<hayro_syntax::object::ObjectIdentifier, usize, rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<(hayro_syntax::object::name::Name, hayro_syntax::object::dict::Dict)>>::reserve_rehash::<hashbrown::map::make_hasher<hayro_syntax::object::name::Name, hayro_syntax::object::dict::Dict, rustc_hash::FxBuildHasher>::{closure#0}>
@@ -329,6 +330,8 @@
 <hayro_syntax::object::ObjectIdentifier as hayro_syntax::reader::Skippable>::skip
 <hayro_syntax::object::array::Array as hayro_syntax::reader::Readable>::read
 <hayro_syntax::object::array::Array as hayro_syntax::reader::Skippable>::skip_with_depth
+<hayro_syntax::object::array::Array>::raw_iter
+<hayro_syntax::object::array::FlexArrayIter>::new
 <hayro_syntax::object::array::FlexArrayIter>::next::<(u32, hayro_syntax::object::array::Array)>
 <hayro_syntax::object::array::FlexArrayIter>::next::<f32>
 <hayro_syntax::object::array::FlexArrayIter>::next::<f64>
@@ -387,6 +390,7 @@
 <hayro_syntax::object::dict::Dict>::get_raw::<u8, &[u8]>
 <hayro_syntax::object::dict::Dict>::get_raw::<usize, &[u8]>
 <hayro_syntax::object::dict::Dict>::get_ref::<&[u8]>
+<hayro_syntax::object::dict::DictHead as hayro_syntax::reader::Readable>::read
 <hayro_syntax::object::indirect::IndirectObject<hayro_syntax::object::dict::Dict> as hayro_syntax::reader::Readable>::read
 <hayro_syntax::object::name::Name as core::convert::TryFrom<hayro_syntax::object::Object>>::try_from
 <hayro_syntax::object::name::Name as hayro_syntax::reader::Readable>::read
@@ -419,6 +423,7 @@
 <hayro_syntax::page::Page>::new
 <hayro_syntax::page::Page>::page_stream
 <hayro_syntax::page::Page>::render_dimensions
+<hayro_syntax::page::PageWalk>::built
 <hayro_syntax::page::PageWalk>::enter
 <hayro_syntax::page::Pages>::get
 <hayro_syntax::page::Pages>::lost_everything
@@ -432,7 +437,6 @@
 <hayro_syntax::page::Walked>::walk_to
 <hayro_syntax::page::cached::CachedPages>::new
 <hayro_syntax::pdf::LoadPdfError as core::fmt::Debug>::fmt
-<hayro_syntax::reader::ReaderContext>::new
 <hayro_syntax::reader::ReaderContext>::parent_chain_push
 <hayro_syntax::xref::ObjectStream>::get::<hayro_syntax::object::dict::Dict>
 <hayro_syntax::xref::ObjectStream>::new
@@ -441,6 +445,7 @@
 <hayro_syntax::xref::XRef>::get_with::<hayro_syntax::object::Object>
 <hayro_syntax::xref::XRef>::get_with::<hayro_syntax::object::array::Array>
 <hayro_syntax::xref::XRef>::get_with::<hayro_syntax::object::dict::Dict>
+<hayro_syntax::xref::XRef>::get_with::<hayro_syntax::object::dict::DictHead>
 <hayro_syntax::xref::XRef>::get_with::<hayro_syntax::object::name::Name>
 <hayro_syntax::xref::XRef>::get_with::<hayro_syntax::object::stream::Stream>
 <hayro_syntax::xref::XRef>::get_with::<hayro_syntax::object::string::String>
@@ -741,6 +746,8 @@ core::ptr::drop_in_place::<hayro_interpret::x_object::form::FormXObject>
 core::ptr::drop_in_place::<hayro_syntax::crypto::Decryptor>
 core::ptr::drop_in_place::<hayro_syntax::metadata::Metadata>
 core::ptr::drop_in_place::<hayro_syntax::object::Object>
+core::ptr::drop_in_place::<hayro_syntax::object::array::Array>
+core::ptr::drop_in_place::<hayro_syntax::object::array::ResolvedArrayIter<(u32, u32)>>
 core::ptr::drop_in_place::<hayro_syntax::object::stream::FiltersAndParams>
 core::ptr::drop_in_place::<hayro_syntax::page::Page>
 core::ptr::drop_in_place::<hayro_syntax::page::Resources>

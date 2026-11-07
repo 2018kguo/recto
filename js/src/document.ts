@@ -287,6 +287,8 @@ export type Instance = {
   /** Loads a part of the wasm, hashed first, or throws `missing-asset` having changed nothing. */
   loadPart(name: "recto-render.wasm" | "recto-more.wasm" | "recto-rare.wasm"): void;
   memory: WebAssembly.Memory;
+  /** Its memory when it was made: past this, something used it, and dropping it gives memory back. */
+  startBytes: number;
   generation: number;
   openDocuments: number;
   /** The engine's count of documents open, on any of its instances. */

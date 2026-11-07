@@ -239,6 +239,101 @@ fn read_inner<'a>(
     }))))
 }
 
+#[cfg(feature = "std")]
+std::thread_local! {
+    static DICT_HEAD_BUILDS: core::cell::Cell<usize> = const { core::cell::Cell::new(0) };
+}
+
+/// recto: how many page-tree dictionaries this thread has built, for the tests that an object the
+/// tree lists many times is built once.
+#[cfg(feature = "std")]
+#[doc(hidden)]
+pub fn dict_head_builds() -> usize {
+    DICT_HEAD_BUILDS.with(|n| n.get())
+}
+
+/// recto: a dictionary that parsed, kept as its bytes and where its `/Type` is, without the index of
+/// its keys a [`Dict`] builds. The page walk reads every page's dictionary at open to tell pages from
+/// nodes, and building each one's index there was a fifth of opening a large file; a page's is built
+/// when the page is. Reading one accepts and refuses exactly what reading a `Dict` does: the same
+/// parse, keeping a different part.
+#[derive(Clone, Debug)]
+pub(crate) enum DictHead<'a> {
+    Parsed {
+        data: &'a [u8],
+        ctx: ReaderContext<'a>,
+        /// The last `/Type`'s value, as an offset into `data`: the one a `Dict` would keep.
+        type_at: Option<usize>,
+        /// Built once already. The page walk keeps an object's `Dict` when it's built a second
+        /// time: one the tree lists once costs nothing kept, and one listed many times is built twice.
+        built_once: bool,
+    },
+    /// Read some other way, as from an object stream, or kept by the walk: already a `Dict`.
+    Dict(Dict<'a>),
+}
+
+impl<'a> DictHead<'a> {
+    /// What `dict.get::<Name>(TYPE)` gives.
+    pub(crate) fn type_name(&self) -> Option<Name<'a>> {
+        match self {
+            Self::Dict(dict) => dict.get::<Name<'a>>(keys::TYPE),
+            Self::Parsed { data, ctx, type_at, .. } => Reader::new(&data[(*type_at)?..])
+                .read_with_context::<MaybeRef<Name<'a>>>(ctx)?
+                .resolve(ctx),
+        }
+    }
+
+    /// The `Dict` reading it would have given: the same bytes, read the same way.
+    pub(crate) fn dict(&self) -> Option<Dict<'a>> {
+        match self {
+            Self::Dict(dict) => Some(dict.clone()),
+            Self::Parsed { data, ctx, .. } => {
+                #[cfg(feature = "std")]
+                DICT_HEAD_BUILDS.with(|n| n.set(n.get() + 1));
+                Reader::new(data).read_with_context::<Dict<'a>>(ctx)
+            }
+        }
+    }
+}
+
+impl<'a> Readable<'a> for DictHead<'a> {
+    fn read(r: &mut Reader<'a>, ctx: &ReaderContext<'a>) -> Option<Self> {
+        let mut type_at = None;
+        let data = parse_dict_with(
+            r,
+            ctx,
+            Some(b"<<"),
+            b">>",
+            #[inline]
+            |name, offset, _| {
+                if name.as_ref() == keys::TYPE {
+                    type_at = Some(offset);
+                }
+                Some(())
+            },
+        )?;
+        Some(Self::Parsed {
+            data,
+            ctx: ctx.clone(),
+            type_at,
+            built_once: false,
+        })
+    }
+}
+
+impl<'a> TryFrom<Object<'a>> for DictHead<'a> {
+    type Error = ();
+
+    fn try_from(value: Object<'a>) -> Result<Self, ()> {
+        match value {
+            Object::Dict(dict) => Ok(Self::Dict(dict)),
+            _ => Err(()),
+        }
+    }
+}
+
+impl<'a> ObjectLike<'a> for DictHead<'a> {}
+
 pub(crate) struct DictProbe<'a> {
     pub(crate) data: &'a [u8],
     pub(crate) has_root: bool,

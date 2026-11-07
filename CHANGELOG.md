@@ -72,10 +72,11 @@ Opening:
 
 ### Changed
 
-- **One wasm in four parts**: `recto.wasm` for text (0.43 MB with brotli),
-  `recto-render.wasm` for drawing (0.23 MB), `recto-more.wasm` and `recto-rare.wasm` for functions few files run (0.21
-  and 0.17 MB). A part loads inside the call that needs it, onto the same instance. Text then pixels in a browser
-  downloads 0.71 MB and text alone 0.46 MB, where 0.1.0 downloaded 1.26 MB for either, and a fresh page's first pixels go from
+- **One wasm in four parts**: `recto.wasm` for text (0.38 MB with brotli),
+  `recto-render.wasm` for drawing (0.26 MB), `recto-more.wasm` and `recto-rare.wasm` for functions few files run (0.26
+  and 0.19 MB). A part loads inside the call that needs it, onto the same instance, and the constant tables only a
+  part's code reads go with it. Text then pixels in a browser
+  downloads 0.70 MB and text alone 0.41 MB, 11 KB under pdf.js, where 0.1.0 downloaded 1.26 MB for either, and a fresh page's first pixels go from
   108 ms to 52 ms; its first text from 99 ms to 34 ms. Output is byte for byte
   the same on 2,170 PDFs, whole and ranged. Drawing costs 2% more in Node, calls across the boundary, and text 2% less. The build is the same bytes on any machine.
   If a part fails to load mid-call, the call throws `missing-asset`, open documents stay usable and the next call retries.
@@ -87,10 +88,20 @@ Opening:
 - **Glyph and metric tables** are sorted bytes, not `phf` maps, and the table from a character to its
   glyph name is built on first use: 40 KB less to download with brotli. Reading text costs about 2% more, since
   opening a font bisects where it hashed.
+- **Opening a large file is faster**: the open notes where each page's dictionary is and builds it at the page's first
+  read. A 2,000-page report opens in 4.1 ms in a fresh process, from 4.8 ms (pdfium 2.8 ms), and a page tree of
+  32,768 pages takes 46.8 MB opened and read through, from 62.8 MB. Page counts, damaged trees and every page's output
+  are the same on 2,170 PDFs and 6,000 damaged or generated ones, whole and ranged.
+- **An idle instance gives its memory back at any size**: by default it goes a second after its last document closes
+  once it has grown at all, where it waited for 64 MiB. A 40-page report, read and drawn through in Node, left 16.4 MB
+  of WebAssembly memory held for as long as the engine lived; now none. An open after that second gets a fresh
+  instance, which parses its fonts and CMaps again: open, first page and close took 2.7–6 ms longer (standard fonts,
+  text 2.8 to 5.5 ms and render 4.7 to 10.4 ms; CJK, text 2.4 to 8.3 ms and render 2.4 to 9.5 ms). To keep the
+  instance, pass a high `recycleAboveBytes`, such as 512 MiB: below it, an instance stays however long it's idle.
 
 ### Building
 
-- Building recto from source needs `wasm-split` from binaryen version_133 and Rust 1.96.0. Installing the package doesn't.
+- Building recto from source needs `wasm-split` and `wasm-dis` from binaryen version_133 and Rust 1.96.0. Installing the package doesn't.
 
 ## 0.2.0
 

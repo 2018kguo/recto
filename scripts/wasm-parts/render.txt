@@ -497,6 +497,7 @@ core::ptr::drop_in_place::<hayro_interpret::interpret::state::PaintState>
 core::ptr::drop_in_place::<hayro_interpret::types::Paint>
 core::ptr::drop_in_place::<hayro_interpret::x_object::XObject>
 core::ptr::drop_in_place::<hayro_interpret::x_object::image::ImageXObject>
+core::ptr::drop_in_place::<hayro_syntax::object::array::FlexArrayIter>
 core::ptr::drop_in_place::<pic_scale::plan::horizontal_filtering::HorizontalFiltering<u8, i16, 1usize>>
 core::ptr::drop_in_place::<pic_scale::plan::non_alpha_plan::BothAxesConvolvePlan<f32, 1usize>>
 core::ptr::drop_in_place::<pic_scale::plan::trampoline_filtering::TrampolineFiltering<f32, 1usize>>
