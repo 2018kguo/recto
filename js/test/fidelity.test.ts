@@ -396,3 +396,13 @@ test("a page with no usable /MediaBox is Letter, or the valid box above it", asy
   }
   assert.deepEqual(await opened(red), [100, 100], "a good box is left alone");
 });
+
+test("a page tree whose kids are all lost falls back to the pages the file holds", async () => {
+  const text = String.fromCharCode(...pdfOf({ content: "1 0 0 rg 0 0 100 100 re f" }));
+  const lost = text.replace("/Kids [3 0 R]", "/Kids [9 0 R]");
+  assert.notEqual(lost, text);
+  const doc = await engine.open(latin1(lost));
+  assert.equal(doc.pageCount, 1);
+  doc.close();
+  assert.deepEqual((await render(latin1(lost))).at(50, 50), RED);
+});

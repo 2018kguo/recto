@@ -187,6 +187,8 @@ struct PageWalk<'a> {
     /// What pages inherit, one entry per node that changes it.
     contexts: Vec<PagesContext<'a>>,
     kids_left: usize,
+    /// A kid was missing or broken, so the tree isn't all the file's pages.
+    lost_kid: bool,
 }
 
 struct WalkFrame<'a> {
@@ -202,6 +204,7 @@ impl<'a> PageWalk<'a> {
             path: FxHashSet::default(),
             contexts: vec![PagesContext::new()],
             kids_left: objects.saturating_add(MAX_REPEATED_KIDS),
+            lost_kid: false,
         };
         walk.enter(root, root.obj_id(), 0)?;
         Some(walk)
@@ -258,11 +261,12 @@ impl<'a> PageWalk<'a> {
                 MaybeRef::NotRef(object) => (None, object.into_dict()),
             };
             let Some(dict) = dict else {
+                self.lost_kid = true;
                 continue;
             };
             match dict.get::<Name<'_>>(TYPE).as_deref() {
                 Some(PAGES) => {
-                    let _ = self.enter(&dict, id, context);
+                    self.lost_kid |= self.enter(&dict, id, context).is_none();
                 }
                 // Let's be lenient and assume it's a `Page` in case it's `None` or something else
                 // (see corpus test case 0083781).
@@ -339,6 +343,10 @@ impl<'a> Pages<'a> {
         } else {
             walked.walk_to(usize::MAX, ctx);
             walked.found.shrink_to_fit();
+            // recto: a damaged tree that gave nothing is no tree; an honestly empty one has no pages.
+            if walked.found.is_empty() && walked.walk.lost_kid {
+                return None;
+            }
             walked.found.len()
         };
         Some(Self {

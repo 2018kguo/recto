@@ -164,8 +164,10 @@ test("page tree: nodes built to multiply stop at a limit, in about the same time
   assert.ok(pagesBomb.pageCount > 0 && pagesBomb.pageCount <= 2 ** 19, String(pagesBomb.pageCount));
   assert.equal(pagesBomb.text(pagesBomb.pageCount - 1).text.trim(), "P1");
   pagesBomb.close();
+  // Every kid is lost, so the file's one page comes from a scan, once the walk has stopped.
   const emptyBomb = await engine.open(chain("99 0 R", 60));
-  assert.equal(emptyBomb.pageCount, 0);
+  assert.equal(emptyBomb.pageCount, 1);
+  assert.equal(emptyBomb.text(0).text.trim(), "P1");
   emptyBomb.close();
 });
 
@@ -177,6 +179,7 @@ function modelWalk(nodes: Map<number, TreeNode>, pageOf: Map<number, number>, ro
   const out: number[] = [];
   const path = new Set<number>();
   let steps = 0;
+  let lost = false;
   const walk = (id: number): boolean => {
     path.add(id);
     for (const kid of nodes.get(id)!.kids) {
@@ -184,6 +187,7 @@ function modelWalk(nodes: Map<number, TreeNode>, pageOf: Map<number, number>, ro
         return false;
       }
       if (kid === "missing") {
+        lost = true;
         continue;
       }
       if (typeof kid === "object") {
@@ -193,14 +197,22 @@ function modelWalk(nodes: Map<number, TreeNode>, pageOf: Map<number, number>, ro
       const page = pageOf.get(kid);
       if (page !== undefined) {
         out.push(page);
-      } else if (!path.has(kid) && nodes.get(kid)!.hasKids && !walk(kid)) {
-        return false;
+      } else if (!path.has(kid)) {
+        if (!nodes.get(kid)!.hasKids) {
+          lost = true;
+        } else if (!walk(kid)) {
+          return false;
+        }
       }
     }
     path.delete(id);
     return true;
   };
-  return walk(root) ? out : null;
+  if (!walk(root)) {
+    return null;
+  }
+  // A damaged tree that gave nothing: the pages come from a scan of the file, in object order.
+  return out.length === 0 && lost ? [...pageOf.values()] : out;
 }
 
 /** A tree with zero-count nodes, wrong counts, cycles, repeats, deep chains, leaves mixed with nodes. */
@@ -650,6 +662,18 @@ test("page tree: a page's box with no area gives way to the node's, found on dem
   for (const doc of [await engine.open(file), await engine.openRanged(file)]) {
     const { width, height } = await doc.pageInfo(0);
     assert.deepEqual([width, height], [300, 200]);
+    doc.close();
+  }
+});
+
+test("page tree: a tree that lost its kids finds the file's pages, one honestly empty has none", async () => {
+  const engine = await createPdfEngine();
+  const lost = await engine.open(fileOf("<</Type/Pages/Kids[99 0 R]>>", pagesFrom(4, [1, 2])));
+  assert.equal(lost.pageCount, 2);
+  lost.close();
+  const file = fileOf("<</Type/Pages/Count 0/Kids[]>>", pagesFrom(4, [1, 2]));
+  for (const doc of [await engine.open(file), await engine.openRanged(file)]) {
+    assert.equal(doc.pageCount, 0);
     doc.close();
   }
 });
