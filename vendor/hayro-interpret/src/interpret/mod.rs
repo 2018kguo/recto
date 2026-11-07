@@ -186,6 +186,11 @@ fn interpret_annotation<'a>(
     context: &mut Context<'a>,
     device: &mut impl Device<'a>,
 ) {
+    // recto: a text pass never draws annotations, so the text build shouldn't carry them.
+    if cfg!(not(feature = "raster")) {
+        return;
+    }
+
     let flags = annot.get::<u32>(F).unwrap_or(0);
 
     if flags & (ANNOTATION_HIDDEN | ANNOTATION_NO_VIEW) != 0 {

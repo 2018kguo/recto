@@ -72,9 +72,9 @@ fn number(style: Option<u8>, value: i64) -> String {
     match style {
         Some(b'D') => value.to_string(),
         Some(b'r') => roman(value),
-        Some(b'R') => roman(value).to_uppercase(),
+        Some(b'R') => roman(value).to_ascii_uppercase(),
         Some(b'a') => letters(value),
-        Some(b'A') => letters(value).to_uppercase(),
+        Some(b'A') => letters(value).to_ascii_uppercase(),
         _ => String::new(),
     }
 }
