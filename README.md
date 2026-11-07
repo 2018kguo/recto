@@ -80,7 +80,7 @@ console.log(pages.length, pages[0].text);
 ```
 
 Each thread holds its own copy of the file, so it costs memory. On a 2,000-page report, 8 threads read text
-5.4× as fast and draw 3.4× as fast, and peak at 937 MB where the calling thread alone peaks at 388 MB:
+5.6× as fast and draw 4.0× as fast, and peak at 711 MB where the calling thread alone peaks at 264 MB:
 [all the numbers](docs/benchmarks.md#across-threads).
 
 ### In a browser
@@ -160,7 +160,7 @@ A page of the generated report, with what the API returned drawn over it: `text(
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/benchmarks-dark.svg">
-  <img src="docs/benchmarks-light.svg" alt="Bar charts. Read text in Node: recto 317 ms, pdf.js 1.3 s, pdfium 738 ms. Render in Node: recto 240 ms, pdf.js 1.2 s, pdfium 1.0 s. A 40-page report in Chromium slowed 4.0×: recto 453 ms, pdf.js 1.2 s, pdfium 592 ms. Peak memory in Node: recto 300 MB, pdf.js 691 MB, pdfium 312 MB.">
+  <img src="docs/benchmarks-light.svg" alt="Bar charts. Read text in Node: recto 304 ms, pdf.js 1.2 s, pdfium 720 ms. Render in Node: recto 231 ms, pdf.js 1.2 s, pdfium 977 ms. A 40-page report in Chromium slowed 4.9×: recto 444 ms, pdf.js 1.2 s, pdfium 620 ms. Peak memory in Node: recto 300 MB, pdf.js 692 MB, pdfium 312 MB.">
 </picture>
 
 Medians of 5 alternating runs on an Apple M5 Pro, with 37 public and generated PDFs in Node and 8 of them in Chromium, against
@@ -168,14 +168,14 @@ pdf.js 6.5.438 and stock pdfium. How much faster recto is than each:
 
 | | pdf.js | pdfium |
 |---|---:|---:|
-| Text in Node | 4.1× | 2.3× |
+| Text in Node | 4.0× | 2.4× |
 | Render in Node | 5.1× | 4.2× |
-| Text in Chromium | 3.0× | 2.5× |
-| Render in Chromium | 3.2× | 1.4× |
+| Text in Chromium | 3.2× | 2.6× |
+| Render in Chromium | 3.6× | 1.4× |
 
 It isn't ahead everywhere. pdf.js downloads less: 0.42 MB with brotli for everything, against recto's 0.45 MB for
-text and 0.70 MB for text and pixels. In a browser pdfium ties a fresh page's first pixels (54 ms each), though recto
-is first to text (36 ms against 56 ms and 42 ms). pdfium opens a large file faster. pdf.js holds less memory in a page. On text
+text and 0.71 MB for text and pixels. In a browser pdfium ties a fresh page's first pixels (52 and 53 ms), though recto
+is first to text (34 ms against 54 ms and 42 ms). pdfium opens a large file faster. pdf.js holds less memory in a page. On text
 quality against poppler recto leads narrowly (F1 98.7%, pdf.js 97.8%, pdfium 97.0%, on 87 documents), and it
 agrees with the other engines' pixels on 96.9% of the pages two of them agree on (small, mostly adversarial files, and the threshold can hide a missing line). [benchmarks.md](docs/benchmarks.md) has all of it, what each
 number means and how it's measured. To rerun it on PDFs of your own (it commits none):
@@ -217,8 +217,8 @@ on anything a user might upload, use one of those two.
 | File | Size | When it loads |
 |---|---:|---|
 | `wasm/recto.wasm` | 1.4 MB (0.42 MB brotli) | Creating an engine |
-| `wasm/recto-render.wasm` | 0.75 MB (0.22 MB brotli) | The first `render` or `objects` |
-| `wasm/recto-more.wasm`, `recto-rare.wasm` | 0.87, 0.79 MB (0.21, 0.17 MB brotli) | A file that runs a function the first two left out; on a main thread, up front |
+| `wasm/recto-render.wasm` | 0.79 MB (0.24 MB brotli) | The first `render` or `objects` |
+| `wasm/recto-more.wasm`, `recto-rare.wasm` | 0.90, 0.79 MB (0.21, 0.17 MB brotli) | A file that runs a function the first two left out; on a main thread, up front |
 | `wasm/recto.gen.mjs`, `dist/` | 32 KB, 73 KB of JavaScript | Importing the package |
 | `wasm/Foxit*.pfb` | 14 files, 15–30 KB each | Drawing a standard font the document doesn't embed |
 | `wasm/cmaps.deflate` | 0.36 MB | A document uses a predefined CJK CMap |

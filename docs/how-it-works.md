@@ -52,7 +52,7 @@ is then unknown. That instance is left alone from then on, and the call throws `
 next call on any document open on it reopens that document on a new instance, copying the file from the
 old instance's memory, so nothing is fetched twice, and tries again.
 
-Crossing a part's boundary is a call through a table or an import, which costs drawing about 3%
+Crossing a part's boundary is a call through a table or an import, which costs drawing about 2%
 (see [the benchmarks](benchmarks.md)) and reading text nothing.
 
 ## Transparency groups

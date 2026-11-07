@@ -9,6 +9,8 @@ and the threshold can hide a missing line. See
 
 ### Added
 
+- `createPdfPool`: pages read and drawn across worker threads, in Node and in a browser, with no
+  special headers. See [the numbers](docs/benchmarks.md#across-threads).
 - `doc.structureTruncated()`: whether a limit cut the page tree, labels or outline short, or a damaged tree left no pages.
 - `doc.pageLabels()`: what each page is called. The same as pdf.js on all 16 suite files that have any.
 - `bench/scorecard.mjs`, `bench/fuzz.mjs`, `bench/fuzz-structures.mjs`, `bench/api-cases.mjs`, `examples/budgets.rs`, and a bounded fuzz test in CI.
@@ -63,12 +65,12 @@ Opening:
 ### Changed
 
 - **One wasm in four parts**, in place of the two builds: `recto.wasm` for text (0.42 MB with brotli),
-  `recto-render.wasm` for drawing (0.22 MB), `recto-more.wasm` and `recto-rare.wasm` for functions few files run (0.21
+  `recto-render.wasm` for drawing (0.24 MB), `recto-more.wasm` and `recto-rare.wasm` for functions few files run (0.21
   and 0.17 MB). A part loads inside the call that needs it, onto the same instance, so a document no longer moves
-  between engines. Text then pixels in a browser downloads 0.70 MB where it was 1.72 MB, text alone 0.45 MB where it was
-  0.53 MB, and a fresh page's first pixels go from 66 ms to 54 ms. Output is byte for byte the same. Drawing costs
-  3% more in Node, the calls across the boundary. If a part fails to load mid-call, the call throws
-  `missing-asset`, open documents stay usable and the next call retries.
+  between engines. Text then pixels in a browser downloads 0.71 MB where it was 1.72 MB, text alone 0.45 MB where it was
+  0.53 MB, and a fresh page's first pixels go from 66 ms to 52 ms; its first text from 31 ms to 33 ms. Output is byte for byte
+  the same on 2,170 PDFs, whole and ranged. Drawing costs 2% more in Node, calls across the boundary, and text 2% less.
+  If a part fails to load mid-call, the call throws `missing-asset`, open documents stay usable and the next call retries.
 - **The standard fonts are a file each**, not `fonts.bin`: a page that draws one fetches 13–25 KB where it fetched
   213 KB. `preloadAssets` still takes `fonts.bin`, meaning all 14; an `assetBase` directory needs the new files.
 - `preloadAssets: ["recto.wasm"]` no longer picks an engine: it fetches and compiles what drawing needs now.
@@ -78,7 +80,7 @@ Opening:
 
 ### Building
 
-- Building recto from source needs `wasm-split` from binaryen version_133. Installing the package doesn't.
+- Building recto from source needs `wasm-split` from binaryen version_133 and Rust 1.96.0. Installing the package doesn't.
 
 ## 0.2.0
 
