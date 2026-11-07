@@ -99,9 +99,10 @@ impl Type0Font {
         let mut to_unicode = read_to_unicode(dict, cmap_resolver);
         let mut to_unicode_is_cid_indexed = false;
 
-        // If there is no ToUnicode map, try to get the UCS2 CMap.
-        if fallback
-            && to_unicode.is_none()
+        // If there is no ToUnicode map, try to get the UCS2 CMap. recto: for an embedded font too.
+        // Upstream only needs it to find glyphs in a substitute; text needs it whenever the codes
+        // are CIDs of a known collection, or `Identity-H` CJK comes out as garbage.
+        if to_unicode.is_none()
             && let Some(cc) = character_collection.as_ref()
             && let Some(ucs2_name) = cc.family.ucs2_cmap()
             && let Some(data) = (cmap_resolver)(ucs2_name)

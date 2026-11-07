@@ -329,8 +329,11 @@ fn repair_loca(font: &[u8]) -> Option<Vec<u8>> {
     let (head_record, loca_record, glyf_record) = (records[0]?, records[1]?, records[2]?);
     let (_, head, _) = head_record;
     let (_, glyf, glyf_length) = glyf_record;
+    // A table's place comes from the file too: all of it has to be there before anything's sized by it.
     font.get(glyf..glyf.checked_add(glyf_length)?)?;
-    let long = be16(head + 50)? != 0;
+    font.get(loca_record.1..loca_record.1.checked_add(loca_record.2)?)?;
+    let head_flag = head.checked_add(50)?;
+    let long = be16(head_flag)? != 0;
     let entry_size = if long { 4 } else { 2 };
     let entries = loca_record.2 / entry_size;
     let offset_of = |i: usize| -> Option<usize> {
@@ -388,7 +391,7 @@ fn repair_loca(font: &[u8]) -> Option<Vec<u8>> {
     };
     point(glyf_record.0, new_glyf, glyphs.len())?;
     point(loca_record.0, new_loca_at, new_loca.len())?;
-    repaired.get_mut(head + 50..head + 52)?.copy_from_slice(&1u16.to_be_bytes());
+    repaired.get_mut(head_flag..head_flag + 2)?.copy_from_slice(&1u16.to_be_bytes());
     Some(repaired)
 }
 

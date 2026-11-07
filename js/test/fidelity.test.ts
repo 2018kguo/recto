@@ -2,6 +2,7 @@
 // page must look like, where pdfium, pdf.js and poppler agree on it.
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { deflateSync } from "node:zlib";
 
 import { createPdfEngine } from "../src/index.ts";
 import { pdfOf } from "./transparency-cases.mjs";
@@ -267,4 +268,71 @@ test("a form field with no appearance shows its background, border, value and ca
   assert.ok(dark(inheritedValue) > 30, "from the field it belongs to");
   const secret = await render(annotated(`<<${box} /FT /Tx /Ff 8192 /V (HHHH) /DA (/Nope 14 Tf 0 g)>>`));
   assert.equal(dark(secret), 0, "a password field keeps its value");
+});
+
+test("Identity-H text in an embedded font of a known CJK collection reads through the collection", async () => {
+  const font = fontWithBackwardLoca();
+  const bytes = pdfOf({
+    // CIDs 34 and 843 in Adobe-Japan1: A and あ. Without a ToUnicode map the codes mean nothing alone.
+    content: "BT /F 20 Tf 0 50 Td <0022034B> Tj ET",
+    resources: "/Font <</F 5 0 R>>",
+    objects: [
+      "<</Type /Font /Subtype /Type0 /BaseFont /T /Encoding /Identity-H /DescendantFonts [6 0 R]>>",
+      "<</Type /Font /Subtype /CIDFontType2 /BaseFont /T /CIDSystemInfo <</Registry (Adobe) /Ordering (Japan1) /Supplement 7>> /CIDToGIDMap /Identity /DW 1000 /FontDescriptor 7 0 R>>",
+      "<</Type /FontDescriptor /FontName /T /Flags 4 /FontBBox [0 0 1000 1000] /ItalicAngle 0 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 80 /FontFile2 8 0 R>>",
+      { dict: ` /Length1 ${font.length}`, data: font },
+    ],
+  });
+  const doc = await engine.open(bytes);
+  assert.equal(doc.text(0).text.trim(), "A\u3042");
+  doc.close();
+});
+
+test("a predictor's parameters from a damaged file don't take the engine down", async () => {
+  const data = deflateSync(Buffer.from("1 0 0 rg 0 0 100 100 re f")).toString("latin1");
+  for (const parms of ["/Predictor 2 /Columns 0", "/Predictor 12 /Columns 0", "/Predictor 2 /Colors 0", "/Predictor 12 /Colors 32 /BitsPerComponent 8 /Columns 2", "/Predictor 2 /Columns 2147483647 /Colors 255 /BitsPerComponent 16", "/Predictor 12 /Columns 9007199254740991 /Colors 255"]) {
+    const bytes = pdfOf({ content: "", objects: [] });
+    const text = Buffer.from(bytes).toString("latin1").replace("<< /Length 0>>", `<< /Filter /FlateDecode /DecodeParms <<${parms}>> /Length ${data.length}>>`).replace("stream\n\nendstream", `stream\n${data}\nendstream`);
+    const doc = await engine.open(latin1(text));
+    doc.render(0, { width: 50 });
+    doc.text(0);
+    doc.close();
+  }
+});
+
+test("a short dash along a very long line, or a huge dash offset, is bounded", async () => {
+  for (const content of ["[0.01 0.01] 0 d 1 0 0 RG 4 w 0 50 m 100000000 50 l S", "[1 1] 100000000000 d 1 0 0 RG 4 w 0 50 m 100 50 l S"]) {
+    const started = performance.now();
+    const page = await render(pdfOf({ content }));
+    assert.ok(performance.now() - started < 2000, content);
+    assert.notDeepEqual(page.at(50, 49), [0, 0, 0], content);
+    assert.notDeepEqual(page.at(50, 49), WHITE, content);
+  }
+});
+
+test("a font whose table directory is damaged doesn't take the engine down", async () => {
+  const good = fontWithBackwardLoca();
+  const directory = 12;
+  const records = Number(good.charCodeAt(5));
+  for (let record = 0; record < records; record++) {
+    for (const field of [8, 12]) {
+      const at = directory + record * 16 + field;
+      const font = `${good.slice(0, at)}\xff\xff\xff\xf0${good.slice(at + 4)}`;
+      const doc = await engine.open(
+        pdfOf({
+          content: "BT /F 100 Tf 0 0 Td <0001> Tj ET",
+          resources: "/Font <</F 5 0 R>>",
+          objects: [
+            "<</Type /Font /Subtype /Type0 /BaseFont /T /Encoding /Identity-H /DescendantFonts [6 0 R]>>",
+            "<</Type /Font /Subtype /CIDFontType2 /BaseFont /T /CIDSystemInfo <</Registry (Adobe) /Ordering (Identity) /Supplement 0>> /CIDToGIDMap /Identity /DW 1000 /FontDescriptor 7 0 R>>",
+            "<</Type /FontDescriptor /FontName /T /Flags 4 /FontBBox [0 0 1000 1000] /ItalicAngle 0 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 80 /FontFile2 8 0 R>>",
+            { dict: ` /Length1 ${font.length}`, data: font },
+          ],
+        })
+      );
+      doc.text(0);
+      doc.render(0, { width: 50 });
+      doc.close();
+    }
+  }
 });
