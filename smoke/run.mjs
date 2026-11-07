@@ -215,6 +215,13 @@ const serveFile = (directory) => (req, res) => {
 const pdfs = (req, res) => {
   const [, mode, name] = new URL(req.url, "http://x").pathname.split("/");
   const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "Range" };
+  // The package's wasm from a server that doesn't say what it is, and one that changed a byte.
+  if (mode === "plain" || mode === "tampered") {
+    const bytes = fs.readFileSync(path.join(dir, "node_modules/@2018kguo/recto/wasm", name));
+    if (mode === "tampered") bytes[bytes.length - 1] ^= 1;
+    res.writeHead(200, { ...cors, "Content-Type": "application/octet-stream" }).end(bytes);
+    return;
+  }
   if (req.method === "OPTIONS") {
     res.writeHead(204, cors).end();
     return;
@@ -286,6 +293,8 @@ async function checkPages(browserName, label, origin) {
     assert.match(checks.mainThread.text, /Hello from recto/u);
     assert.ok(checks.mainThread.ink > 500, `main thread ink ${checks.mainThread.ink}`);
     assert.equal(checks.mainThread.ranged, "wrong-thread");
+    assert.match(checks.mainThread.plainMime, /Hello from recto/u);
+    assert.equal(checks.mainThread.tampered, "missing-asset");
     assert.equal(checks.serviceWorker.failure, undefined, checks.serviceWorker.failure);
     assert.match(checks.serviceWorker.text, /Hello from recto/u);
     assert.ok(checks.serviceWorker.ink > 500, `service worker ink ${checks.serviceWorker.ink}`);

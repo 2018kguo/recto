@@ -21,6 +21,16 @@ try {
     () => "opened",
     (error) => error.code
   );
+  const pdfs = new URLSearchParams(location.search).get("pdfs");
+  const base = new URL(pdfs, location.href);
+  const plain = await createPdfEngine({ assetBase: new URL("/plain/", base), preloadAssets: [] });
+  const plainDoc = await plain.open(report);
+  mainThread.plainMime = plainDoc.text(0).text;
+  plainDoc.close();
+  mainThread.tampered = await createPdfEngine({ assetBase: new URL("/tampered/", base), preloadAssets: [] }).then(
+    () => "opened",
+    (error) => error.code
+  );
 } catch (error) {
   mainThread.failure = String(error);
 }
