@@ -3,7 +3,8 @@
 ## 0.3.0
 
 Rendered pixels are now compared with pdfium, pdf.js and poppler, with `bench/scorecard.mjs`: on 539
-small files recto agrees on 95.8% of the pages two of the others agree on, from 93.8%. See
+small, mostly adversarial files recto agrees on 96.7% of the pages two of the others agree on, from 93.8%,
+and the threshold can hide a missing line. See
 `docs/benchmarks.md`.
 
 ### Added
@@ -42,6 +43,9 @@ Opening:
 
 - A file whose password protects only its attachments opens without one.
 - An xref that gives no pages is repaired by scanning the file.
+- A page tree whose kids are all lost falls back to a scan, and the file is refused if that finds no page. It used to open with no
+  pages. A tree that's honestly empty still does.
+- A page with an empty, zero-area or missing `/MediaBox` takes the valid box above it, then Letter. It was A4.
 
 ## 0.2.0
 

@@ -1,5 +1,5 @@
 {
- "date": "2026-11-07T03:08:46.258Z",
+ "date": "2026-11-07T04:18:24.787Z",
  "settings": {
   "width": 800,
   "pagesPerFile": 3,
@@ -21,12 +21,12 @@
   "recto": {
    "pages": 632,
    "judged": 546,
-   "agrees": 523,
-   "differs": 23,
-   "blankWhereOthersDraw": 4,
-   "failedWhereOthersDraw": 4,
-   "wrongShape": 3,
-   "percent": 95.79
+   "agrees": 528,
+   "differs": 18,
+   "blankWhereOthersDraw": 3,
+   "failedWhereOthersDraw": 1,
+   "wrongShape": 1,
+   "percent": 96.7
   },
   "pdfium": {
    "pages": 632,
@@ -40,23 +40,23 @@
   },
   "pdf.js": {
    "pages": 632,
-   "judged": 581,
+   "judged": 582,
    "agrees": 512,
-   "differs": 69,
+   "differs": 70,
    "blankWhereOthersDraw": 4,
    "failedWhereOthersDraw": 3,
    "wrongShape": 0,
-   "percent": 88.12
+   "percent": 87.97
   },
   "poppler": {
    "pages": 632,
-   "judged": 599,
+   "judged": 600,
    "agrees": 459,
-   "differs": 140,
+   "differs": 141,
    "blankWhereOthersDraw": 8,
    "failedWhereOthersDraw": 4,
-   "wrongShape": 1,
-   "percent": 76.63
+   "wrongShape": 2,
+   "percent": 76.5
   }
  },
  "agreementBySuite": {
@@ -85,8 +85,8 @@
   "pdfjs": {
    "recto": {
     "judged": 239,
-    "agrees": 229,
-    "percent": 95.82
+    "agrees": 230,
+    "percent": 96.23
    },
    "pdfium": {
     "judged": 248,
@@ -107,8 +107,8 @@
   "pdfium": {
    "recto": {
     "judged": 100,
-    "agrees": 94,
-    "percent": 94
+    "agrees": 98,
+    "percent": 98
    },
    "pdfium": {
     "judged": 102,
@@ -116,14 +116,14 @@
     "percent": 96.08
    },
    "pdf.js": {
-    "judged": 104,
+    "judged": 105,
     "agrees": 95,
-    "percent": 91.35
+    "percent": 90.48
    },
    "poppler": {
-    "judged": 106,
+    "judged": 107,
     "agrees": 96,
-    "percent": 90.57
+    "percent": 89.72
    }
   },
   "hayro": {
@@ -187,22 +187,16 @@
  "rectoOpenFailedWhereTwoReferencesOpened": [
   "pdfium/javascript_xfa_specific_bug_1238_2.pdf"
  ],
- "pageCountDisagreements": 2,
+ "pageCountDisagreements": 0,
  "maxRssMb": {
-  "recto": 293,
+  "recto": 296,
   "pdfium": 130,
   "pdf.js": 767,
   "poppler": 73
  },
- "contestedWhereRectoIsFurthest": 5,
+ "contestedWhereRectoIsFurthest": 4,
  "nearMisses": 19,
  "ranking": [
-  {
-   "id": "pdfium/bug_1506.pdf",
-   "page": 2,
-   "score": null,
-   "status": "missing"
-  },
   {
    "id": "pdfium/javascript_xfa_specific_bug_1238_2.pdf",
    "page": 0,
@@ -210,41 +204,12 @@
    "status": "invalid-file"
   },
   {
-   "id": "pdfium/viewer_ref.pdf",
-   "page": 1,
-   "score": null,
-   "status": "missing"
-  },
-  {
-   "id": "pdfium/viewer_ref.pdf",
-   "page": 2,
-   "score": null,
-   "status": "missing"
-  },
-  {
-   "id": "pdfjs/boundingBox_invalid.pdf",
-   "page": 0,
-   "score": 100,
-   "real": 100,
-   "mae": 255,
-   "blank": true,
-   "shape": true
-  },
-  {
    "id": "pdfjs/boundingBox_invalid.pdf",
    "page": 1,
    "score": 100,
    "real": 100,
    "mae": 255,
    "blank": true,
-   "shape": true
-  },
-  {
-   "id": "pdfium/bug_1506.pdf",
-   "page": 1,
-   "score": 100,
-   "real": 100,
-   "mae": 255,
    "shape": true
   },
   {

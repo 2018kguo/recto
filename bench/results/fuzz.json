@@ -1,11 +1,11 @@
 {
- "date": "2026-11-07T03:10:18.927Z",
+ "date": "2026-11-07T04:20:47.339Z",
  "seed": 8,
  "sources": 973,
  "files": 60000,
- "opened": 48444,
+ "opened": 45321,
  "refused": {
-  "invalid-file": 11191,
+  "invalid-file": 14314,
   "password-required": 357,
   "unsupported": 8
  },
@@ -20,7 +20,7 @@
   "keywords": 6729,
   "xrefOffsets": 6693
  },
- "peakRssMb": 754,
+ "peakRssMb": 398,
  "timeouts": 0,
  "crashes": 0,
  "untyped": 0,
@@ -29,21 +29,19 @@
  "failures": [],
  "repair": {
   "files": 1000,
-  "rectoOpens": 742,
-  "rectoOpenedWithNoPages": 55,
+  "rectoOpens": 753,
+  "rectoOpenedWithNoPages": 1,
   "opens": {
    "pdfium": 501,
    "pdf.js": 506,
    "poppler": 510
   },
-  "openedByTwoOthersNotRecto": 27,
+  "openedByTwoOthersNotRecto": 23,
   "mutations": [
    "keywords",
-   "numbers",
    "startxref",
    "bitFlips",
    "keywords",
-   "numbers",
    "bitFlips",
    "bitFlips",
    "truncate",
@@ -52,6 +50,7 @@
    "bitFlips",
    "bitFlips",
    "numbers",
+   "bitFlips",
    "overwriteRange",
    "overwriteRange",
    "streamLengths",
@@ -59,10 +58,7 @@
    "bitFlips",
    "bitFlips",
    "overwriteRange",
-   "numbers",
    "overwriteRange",
-   "numbers",
-   "numbers",
    "streamLengths",
    "streamLengths"
   ]

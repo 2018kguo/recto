@@ -329,27 +329,27 @@ each other, by whether it agrees with either. Each engine gets the same test.
 
 | Of the pages two others agree on | recto | pdfium | pdf.js | poppler |
 |---|---:|---:|---:|---:|
-| Agrees with them | **95.8%** of 546 | 92.2% of 565 | 88.1% of 581 | 76.6% of 599 |
-| Blank where they draw | 4 | 6 | 4 | 8 |
-| Fails where they draw | 4 | 4 | 3 | 4 |
-| A different page shape | 3 | 1 | 0 | 1 |
+| Agrees with them | **96.7%** of 546 | 92.2% of 565 | 88.0% of 582 | 76.5% of 600 |
+| Blank where they draw | 3 | 6 | 4 | 8 |
+| Fails where they draw | 1 | 4 | 3 | 4 |
+| A different page shape | 1 | 1 | 0 | 2 |
 
 | By set (recto) | Pages judged | Agrees |
 |---|---:|---:|
 | 39 public PDFs | 79 | 98.7% |
-| 250 from pdf.js's test suite | 239 | 95.8% |
-| 100 from pdfium's | 100 | 94.0% |
+| 250 from pdf.js's test suite | 239 | 96.2% |
+| 100 from pdfium's | 100 | 98.0% |
 | 150 from hayro's | 128 | 95.3% |
 
-Before this round recto agreed on 93.8%. Don't read 95.8% as "better than pdfium". Poppler's low score
+Before this round recto agreed on 93.8%. Don't read 96.7% as "better than pdfium". Poppler's low score
 is mostly how it hints small text at this size, and that makes pages count against pdf.js and pdfium that
 it wouldn't against recto: the others are judged on pages where recto is one of the two that agree. The set is
 539 small files, mostly written to break things, and the limit is generous: a missing line of text can
 pass, which is why the report also ranks pages under the limit that are well past the references' own
 difference. Of 632 pages, 86 aren't judged at all, because no two others agree.
 
-What's left of the 23 pages, from looking at each: 6 of page-tree faults (a repeated kid dropped, an empty
-`/MediaBox`), 3 where recto follows the spec and the references don't (a Type 3 glyph's `ca`, knockout groups), 8 of
+What's left of the 18 pages, from looking at each: an empty `/CropBox` that recto draws at A4 where the others use
+the media box, 3 where recto follows the spec and the references don't (a Type 3 glyph's `ca`, knockout groups), 8 of
 rounding and thin-line noise, a Brotli stream two references can't read, a file with no page tree that recto refuses,
 a tiling pattern on text and a blend against bare paper the references don't agree on either, and 2 small differences in a
 mask and an image's edges.
@@ -393,14 +393,15 @@ labels on up to 3 pages of each. A file must end in a result or a `PdfError` tha
 | Past 15 s | 2 | 0 |
 | Past 1.5 GB | 5 | 0 |
 | A failure that isn't a `PdfError` | 0 | 0 |
-| Peak memory of a process | 3.9 GB | 0.8 GB |
+| Peak memory of a process | 3.9 GB | 0.4 GB |
 
 Three more seeds (180,000 files) also found nothing. That says it's hard to find another with this
 fuzzer, not that there isn't one: a page can still take seconds and hold hundreds of megabytes.
 
-Which of 1,000 such files each engine opens with at least one page: recto 742, poppler 510, pdf.js 506, pdfium 501.
-That's less of a win than it looks. In 27 files two others find a page where recto doesn't, 20 of them because recto
-opens the file and finds no pages (55 in all opened with none). Some of the others' pages are only a trusted `/Count`.
+Which of 1,000 such files each engine opens with at least one page: recto 753, poppler 510, pdf.js 506, pdfium 501.
+That's less of a win than it looks. In 23 files two others open one where recto doesn't, and many of those pages are only a
+trusted `/Count`: of the 27 such files before this fix, pdf.js reported a page in 16 and then couldn't load it. Where the page object itself
+is damaged recto refuses the file. One file opened with no pages, down from 55; the others now scan or are refused.
 
 `js/test/fuzz.test.ts` does the same to generated PDFs in CI, 20,000 files in 3 s, stopping at 30 s.
 
