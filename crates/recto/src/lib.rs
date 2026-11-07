@@ -370,13 +370,7 @@ impl Document {
     #[cfg(feature = "render")]
     pub fn render(&self, index: usize, width: f32, max_height: f32) -> Result<Bitmap, EngineError> {
         let (pixmap, truncated) = self.pixmap(index, width, max_height)?;
-        let (width, height) = (u32::from(pixmap.width()), u32::from(pixmap.height()));
-        Ok(Bitmap {
-            width,
-            height,
-            rgba: pixmap.data_as_u8_slice().to_vec(),
-            truncated,
-        })
+        Ok(bitmap_of(pixmap, truncated))
     }
 }
 
@@ -430,12 +424,18 @@ impl RenderTask {
     /// Rasterizes what `step` drew. One call, after `step` returned true.
     pub fn finish(&mut self) -> Bitmap {
         let (pixmap, truncated) = self.job.finish();
-        Bitmap {
-            width: u32::from(pixmap.width()),
-            height: u32::from(pixmap.height()),
-            rgba: pixmap.data_as_u8_slice().to_vec(),
-            truncated,
-        }
+        bitmap_of(pixmap, truncated)
+    }
+}
+
+/// The pixmap's own buffer, with no second page-sized allocation at the render's peak.
+#[cfg(feature = "render")]
+fn bitmap_of(pixmap: hayro::vello_cpu::Pixmap, truncated: bool) -> Bitmap {
+    Bitmap {
+        width: u32::from(pixmap.width()),
+        height: u32::from(pixmap.height()),
+        rgba: pixmap.take_rgba8(hayro::vello_cpu::peniko::ImageAlphaType::AlphaPremultiplied),
+        truncated,
     }
 }
 

@@ -37,7 +37,7 @@ export type PdfEngineOptions = {
    */
   assetBase?: string | URL;
   /** Past this much linear memory, the instance is dropped when its last document closes, or
-   * replaced at the next open if one is still open. Default 512 MiB. */
+   * replaced at the next open if one is still open. Default 64 MiB. */
   recycleAboveBytes?: number;
   /**
    * Where a thread can't read a file synchronously (a page's main thread, a service worker), the
@@ -81,7 +81,7 @@ export interface PdfEngine {
 const CJK_FONT_ASSET = 14;
 const CMAPS_ASSET = 15;
 const ALL_ASSETS = ["recto.wasm", "fonts.bin", "cmaps.deflate", "cjk-fallback.ttf"] as const;
-const DEFAULT_RECYCLE_ABOVE_BYTES = 512 * 1024 * 1024;
+const DEFAULT_RECYCLE_ABOVE_BYTES = 64 * 1024 * 1024;
 
 /** Each wasm, verified and compiled once per thread, per location. */
 const compiling = new Map<string, Promise<WebAssembly.Module>>();

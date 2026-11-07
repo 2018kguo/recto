@@ -72,14 +72,12 @@ async function openPage(browser, engine, doc) {
 async function memory(page, browser) {
   await new Promise((resolve) => setTimeout(resolve, 500));
   let heap = 0;
-  let wasm = await page.evaluate("self.__bench.wasmBytes()");
+  let wasm = 0;
   for (const session of [undefined, ...page.workers]) {
     await browser.send("HeapProfiler.collectGarbage", {}, session ?? page.sessionId);
     const { usedSize } = await browser.send("Runtime.getHeapUsage", {}, session ?? page.sessionId);
     heap += usedSize;
-    if (session) {
-      wasm += (await page.evaluate("self.__bench?.wasmBytes() ?? 0", { session })) ?? 0;
-    }
+    wasm += (await page.evaluate("self.__bench?.wasmBytes() ?? 0", session ? { session } : undefined)) ?? 0;
   }
   return { heap, wasm };
 }
