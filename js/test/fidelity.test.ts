@@ -372,3 +372,27 @@ test("page labels follow the catalog's number tree", async () => {
   assert.equal(plain.pageLabels(), null);
   plain.close();
 });
+
+test("a page with no usable /MediaBox is Letter, or the valid box above it", async () => {
+  const red = pdfOf({ content: "1 0 0 rg 0 0 50 50 re f" });
+  const text = String.fromCharCode(...red);
+  const box = "/MediaBox [0 0 100 100]";
+  const opened = async (bytes: Uint8Array) => {
+    const doc = await engine.open(bytes);
+    const { width, height } = doc.pageInfo(0);
+    doc.close();
+    return [width, height];
+  };
+  for (const [name, replacement] of [
+    ["missing", "/XediaBox [0 0 100 100]"],
+    ["empty", "/MediaBox []           "],
+    ["no area", "/MediaBox [0 0 100   0]"],
+    ["all zero", "/MediaBox [0 0   0   0]"],
+  ]) {
+    const damaged = latin1(text.replace(box, replacement));
+    assert.deepEqual(await opened(damaged), [612, 792], name);
+    const page = await render(damaged, 612);
+    assert.deepEqual(page.at(10, 780), RED, `${name}: the content is drawn`);
+  }
+  assert.deepEqual(await opened(red), [100, 100], "a good box is left alone");
+});

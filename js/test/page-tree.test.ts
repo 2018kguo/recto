@@ -643,3 +643,13 @@ test("page tree: first reads are linear and take little memory beyond the open's
   assert.ok(engine.stats().heapBytes < heapAtOpen * 1.15, `heap ${heapAtOpen} to ${engine.stats().heapBytes}`);
   doc.close();
 });
+
+test("page tree: a page's box with no area gives way to the node's, found on demand or not", async () => {
+  const file = fileOf("<</Type/Pages/Count 1/Kids[4 0 R]/MediaBox[0 0 300 200]>>", pagesFrom(4, [1], "/MediaBox[0 0 0 0]"));
+  const engine = await createPdfEngine();
+  for (const doc of [await engine.open(file), await engine.openRanged(file)]) {
+    const { width, height } = await doc.pageInfo(0);
+    assert.deepEqual([width, height], [300, 200]);
+    doc.close();
+  }
+});

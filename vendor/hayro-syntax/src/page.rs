@@ -491,7 +491,13 @@ impl<'a> Page<'a> {
             return None;
         }
 
-        let media_box = dict.get::<Rect>(MEDIA_BOX).or(ctx.media_box).unwrap_or(A4);
+        // recto: a box with no area is no box. The first valid one applies, then Letter, as in
+        // pdf.js and pdfium.
+        let media_box = dict
+            .get::<Rect>(MEDIA_BOX)
+            .filter(has_area)
+            .or(ctx.media_box.filter(has_area))
+            .unwrap_or(LETTER);
 
         let crop_box = dict
             .get::<Rect>(CROP_BOX)
@@ -768,6 +774,18 @@ impl<'a> Resources<'a> {
 // <https://github.com/apache/pdfbox/blob/a53a70db16ea3133994120bcf1e216b9e760c05b/pdfbox/src/main/java/org/apache/pdfbox/pdmodel/common/PDRectangle.java#L38>
 const POINTS_PER_INCH: f64 = 72.0;
 const POINTS_PER_MM: f64 = 1.0 / (10.0 * 2.54) * POINTS_PER_INCH;
+
+/// recto: the size a page with no usable `/MediaBox` gets.
+const LETTER: Rect = Rect {
+    x0: 0.0,
+    y0: 0.0,
+    x1: 8.5 * POINTS_PER_INCH,
+    y1: 11.0 * POINTS_PER_INCH,
+};
+
+fn has_area(rect: &Rect) -> bool {
+    !(rect.width() as f32).is_nearly_zero() && !(rect.height() as f32).is_nearly_zero()
+}
 
 /// The dimension of an A4 page.
 pub const A4: Rect = Rect {
