@@ -1,0 +1,88 @@
+{
+ "date": "2026-11-07T05:36:50.652Z",
+ "seed": 8,
+ "sources": 973,
+ "files": 60000,
+ "opened": 48444,
+ "refused": {
+  "invalid-file": 11191,
+  "password-required": 357,
+  "unsupported": 8
+ },
+ "byMutation": {
+  "overwriteRange": 6545,
+  "truncate": 6678,
+  "bitFlips": 6739,
+  "numbers": 6671,
+  "streamLengths": 6749,
+  "truncateTail": 6620,
+  "startxref": 6576,
+  "keywords": 6729,
+  "xrefOffsets": 6693
+ },
+ "peakRssMb": 397,
+ "timeouts": 0,
+ "crashes": 0,
+ "untyped": 0,
+ "memory": 0,
+ "died": 0,
+ "failures": [],
+ "repair": {
+  "files": 1000,
+  "rectoOpens": 753,
+  "rectoOpenedWithNoPages": 44,
+  "opens": {
+   "pdfium": 501,
+   "pdf.js": 506,
+   "poppler": 510
+  },
+  "openedByTwoOthersNotRecto": 23,
+  "mutations": [
+   "keywords",
+   "startxref",
+   "bitFlips",
+   "keywords",
+   "bitFlips",
+   "bitFlips",
+   "truncate",
+   "bitFlips",
+   "overwriteRange",
+   "bitFlips",
+   "bitFlips",
+   "numbers",
+   "bitFlips",
+   "overwriteRange",
+   "overwriteRange",
+   "streamLengths",
+   "bitFlips",
+   "bitFlips",
+   "bitFlips",
+   "overwriteRange",
+   "overwriteRange",
+   "streamLengths",
+   "streamLengths"
+  ],
+  "emptyFromLostKids": 43,
+  "emptyHonestly": 1
+ },
+ "repairSeed": 11,
+ "before": {
+  "seed": 8,
+  "files": 59998,
+  "crashes": 7,
+  "memory": 5,
+  "timeouts": 2,
+  "peakRssMb": 3947
+ },
+ "structures": {
+  "seed": 21,
+  "files": 3000,
+  "opened": 3000,
+  "peakRssMb": 745,
+  "timeouts": 0,
+  "crashes": 0,
+  "untyped": 0,
+  "memory": 0,
+  "died": 0
+ }
+}

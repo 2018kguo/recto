@@ -99,9 +99,10 @@ impl Type0Font {
         let mut to_unicode = read_to_unicode(dict, cmap_resolver);
         let mut to_unicode_is_cid_indexed = false;
 
-        // If there is no ToUnicode map, try to get the UCS2 CMap.
-        if fallback
-            && to_unicode.is_none()
+        // If there is no ToUnicode map, try to get the UCS2 CMap. recto: for an embedded font too.
+        // Upstream only needs it to find glyphs in a substitute; text needs it whenever the codes
+        // are CIDs of a known collection, or `Identity-H` CJK comes out as garbage.
+        if to_unicode.is_none()
             && let Some(cc) = character_collection.as_ref()
             && let Some(ucs2_name) = cc.family.ucs2_cmap()
             && let Some(data) = (cmap_resolver)(ucs2_name)
@@ -337,16 +338,18 @@ impl Type0Font {
     }
 
     pub(crate) fn char_code_to_unicode(&self, code: u32) -> Option<BfString> {
-        if let Some(to_unicode) = &self.to_unicode {
-            let key = if self.to_unicode_is_cid_indexed {
-                self.code_to_cid(code).unwrap_or(0)
-            } else {
-                code
-            };
-            return to_unicode.lookup_bf_string(key);
+        let to_unicode = self.to_unicode.as_ref()?;
+
+        if self.to_unicode_is_cid_indexed {
+            return to_unicode.lookup_bf_string(self.code_to_cid(code).unwrap_or(0));
         }
 
-        None
+        to_unicode.lookup_bf_string(code).or_else(|| {
+            // See pdfjs_issue9367, whose `ToUnicode` map has its Unicode values
+            // in `cidrange`s rather than `bfrange`s.
+            let value = (1..=4).find_map(|len| to_unicode.lookup_cid_code(code, len))?;
+            char::from_u32(value).map(BfString::Char)
+        })
     }
 }
 

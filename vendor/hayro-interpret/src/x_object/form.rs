@@ -34,7 +34,10 @@ impl<'a> FormXObject<'a> {
             dict.get::<[f64; 6]>(MATRIX)
                 .unwrap_or([1.0, 0.0, 0.0, 1.0, 0.0, 0.0]),
         );
-        let bbox = dict.get::<[f32; 4]>(BBOX)?;
+        // recto: any two opposite corners make a rectangle. Everything after this expects the low
+        // corner first, and a mask's group with the corners the other way round masked everything.
+        let [x0, y0, x1, y1] = dict.get::<[f32; 4]>(BBOX)?;
+        let bbox = [x0.min(x1), y0.min(y1), x0.max(x1), y0.max(y1)];
         let group = dict.get::<Dict<'_>>(GROUP);
         let is_transparency_group = group.is_some();
         let isolated = group.as_ref().and_then(|g| g.get::<bool>(I)).unwrap_or(false);
@@ -124,8 +127,10 @@ impl<'a> FormXObject<'a> {
         });
         let states = context.num_states();
         context.save_state();
+        // recto: this path doesn't go through `interpret`, which pays for a nested stream.
+        let affordable = context.charge_nested();
         Some(Frame {
-            data: self.decoded,
+            data: if affordable { self.decoded } else { Default::default() },
             pos: 0,
             resources,
             states,

@@ -119,6 +119,24 @@ pub(crate) fn get(
     id: &[u8],
     password: &[u8],
 ) -> Result<Decryptor, DecryptionError> {
+    // recto: `/EFF` with a password while `/StmF` and `/StrF` are `/Identity` protects embedded files
+    // and nothing else. The pages are plain, and they're all this engine reads, so they don't need it.
+    // Crypt filters are from `/V` 4, and earlier versions encrypt everything whatever those keys say.
+    let has_filters = dict.get::<u8>(V).is_some_and(|v| v >= 4);
+    let is_identity = |key| dict.get::<Name<'_>>(key).is_some_and(|name| name.deref() == IDENTITY);
+    match get_checked(dict, id, password) {
+        Err(DecryptionError::PasswordProtected) if has_filters && is_identity(STM_F) && is_identity(STR_F) => {
+            Ok(Decryptor::None)
+        }
+        result => result,
+    }
+}
+
+fn get_checked(
+    dict: &Dict<'_>,
+    id: &[u8],
+    password: &[u8],
+) -> Result<Decryptor, DecryptionError> {
     let filter = dict.get::<Name<'_>>(FILTER).ok_or(InvalidEncryption)?;
 
     if filter.deref() != b"Standard" {

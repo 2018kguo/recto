@@ -10,9 +10,11 @@ run. The brackets are 95% confidence intervals on the ratio to recto, bootstrapp
 the runs to see how much the ratio could move, and with 3 runs they're rough. Above 1× recto is faster;
 below it, the other engine is. The PDFs are 37 public and generated documents
 (25 MB) that all three engines open, plus generated ones; none is committed, so bring your
-own. [Text quality](#text-quality) and [Rendering](#rendering) were
-measured earlier on a different set of 60 and aren't comparable with the tables here; recto's output
-on this set is byte for byte what it was before 0.2.0.
+own. [Transparency](#transparency) was measured earlier on a different set of 60, and
+[Text quality](#text-quality), [the scorecard](#the-scorecard) and [Damaged files](#damaged-files) on the
+sets they name; none is comparable with the tables here; recto's text
+on this set is byte for byte what it was before 0.2.0. Its pixels aren't: since 0.3.0 it draws annotations with no appearance, as on page 5 of the
+annotations file.
 
 ## In Node
 
@@ -268,20 +270,30 @@ it and everything else generated under `docs/`.
 
 ## Text quality
 
-Against `pdftotext` as the reference, on the first 10 pages of 157 public documents (of 200 tried:
-the rest had under 50 words in poppler, or an engine failed), by matching the words.
+Against `pdftotext`, on the first 10 pages of each document with at least 50 words in poppler that all
+engines open, by matching the words. Poppler's output isn't truth, only a fourth opinion. F1 here is
+over all words of the set, so a long document counts for more than a short one; the median by document
+is 100 or close to it for all three.
 
-| | recto | pdf.js | pdfium |
+| F1 against poppler | recto | pdf.js | pdfium |
 |---|---:|---:|---:|
-| Precision | 99.01% | 99.1% | 98.91% |
-| Recall | 98.63% | 98.98% | 98.68% |
-| Median F1 | 99.59% | 99.55% | 99.55% |
+| 87 documents: the public set, and the pdf.js, pdfium and hayro test suites | 98.66% | 97.82% | 97.00% |
+| The 28 of the public set alone | 99.63% | 99.25% | 97.58% |
 
-Poppler's output isn't truth, only a fourth opinion. On this measure the three are the same, so
-recto isn't more accurate than pdf.js or pdfium, and nothing here says it is.
+Before this round recto was at 98.62% and 99.63%: the one fix that moved this is CJK text in an embedded font with no
+`ToUnicode`, which was garbage. So recto's lead is mostly what it did already. The same measure among
+the others: recto against pdf.js 98.57%, recto against pdfium 97.71%, pdf.js against pdfium 96.73%.
+An earlier set of 157 public documents, measured by median, had the three level at about 99.55%. That set wasn't rerun.
+
+Where recto disagrees with poppler on purpose:
+
+- **A superscript stays on its word**: recto reads `WEGOVY®`, poppler `WEGOVY` and a `®` elsewhere.
+- **A hard hyphen at a line's end survives** as U+0002: poppler reads `dysfunction-associated` split over
+  lines as `dysfunctionassociated`. For matching words, U+0002 and soft hyphens count for nothing.
+- **Annotations and form values aren't page text**: poppler includes them. `annotations(i)` has them.
 
 ```sh
-node bench/text-compare.mjs path/to/pdfs
+node bench/text-compare.mjs path/to/pdfs [more/paths] [--worst file.json]
 ```
 
 ## Ranged reads
@@ -307,8 +319,53 @@ node bench/ranged-compare.mjs report.pdf
 
 ## Rendering
 
-Rendered pixels aren't compared across the public documents, and these numbers say how fast, not how
-good. pdfium and pdf.js have had years on files recto hasn't seen.
+### The scorecard
+
+`bench/scorecard.mjs` renders the first 3 pages of each file at 800 px in recto, stock pdfium (with its
+form-fill environment, or it leaves widgets out), pdf.js and poppler, each file in a process of its own
+with a 20 s limit per page. Compared over 4×4 cells, so that anti-aliasing and hinting cancel out and a
+missing word doesn't, two pages **agree** if under 1% of cells are off by more than 32 of 255 on a
+channel, and the mean error is under 3. An engine is judged only where two of the other three agree with
+each other, by whether it agrees with either. Each engine gets the same test.
+
+| Of the pages two others agree on | recto | pdfium | pdf.js | poppler |
+|---|---:|---:|---:|---:|
+| Agrees with them | **96.9%** of 546 | 92.2% of 564 | 88.0% of 582 | 76.5% of 600 |
+| Blank where they draw | 2 | 6 | 4 | 9 |
+| Fails where they draw | 1 | 4 | 3 | 4 |
+| A different page shape | 0 | 2 | 0 | 3 |
+
+| By set (recto) | Pages judged | Agrees |
+|---|---:|---:|
+| 39 public PDFs | 79 | 98.7% |
+| 250 from pdf.js's test suite | 239 | 96.7% |
+| 100 from pdfium's | 100 | 98.0% |
+| 150 from hayro's | 128 | 95.3% |
+
+Before this round recto agreed on 93.8%. Don't read 96.9% as "better than pdfium". Poppler's low score
+is mostly how it hints small text at this size, and that makes pages count against pdf.js and pdfium that
+it wouldn't against recto: the others are judged on pages where recto is one of the two that agree. The set is
+539 small files, mostly written to break things, and the limit is generous: a missing line of text can
+pass, which is why the report also ranks pages under the limit that are well past the references' own
+difference. Of 632 pages, 86 aren't judged at all, because no two others agree.
+
+What's left of the 17 pages, from looking at each: 3 where recto follows the spec and the references don't (a Type 3 glyph's `ca`, knockout groups), 8 of
+rounding and thin-line noise, a Brotli stream two references can't read, a file with no page tree that recto refuses,
+a tiling pattern on text and a blend against bare paper the references don't agree on either, and 2 small differences in a
+mask and an image's edges.
+
+Reports (side-by-side crops, every rank) go in `--out`, not the repository. References are cached there, so a rerun
+renders recto alone. `bench/api-cases.mjs` writes small PDFs for rotation, boxes, user units and widgets
+to run it on: recto matches pdf.js and pdfium on all of the page shapes.
+
+```sh
+node bench/scorecard.mjs public=path/to/pdfs other=path/to/more --private public --out scratch/dir
+```
+
+The results are in [`bench/results/scorecard.json`](../bench/results/scorecard.json). Files in a suite
+given by `--private` appear there as hashes. Credit for the suites: pdf.js, pdfium and hayro.
+
+### Transparency
 
 Transparency is checked on small generated PDFs, with recto, poppler, stock pdfium and MuPDF sampled
 at points where the spec's formulas give the colour. recto is on the expected colour at every point.
@@ -323,10 +380,63 @@ Where the others differ:
 PYTHONPATH=path/to/pymupdf node bench/render-compare.mjs   # PYTHONPATH only for the MuPDF column
 ```
 
+## Damaged files
+
+`bench/fuzz.mjs` damages PDFs by a seed (bit flips, overwritten ranges, truncation, xrefs, `startxref`,
+stream lengths, keywords, numbers), including copies of the files with their streams uncompressed, so
+that the damage reaches what parses them, and runs text, objects, annotations, rendering, outline and
+labels on up to 3 pages of each. A file must end in a result or a `PdfError` that isn't `crash`.
+
+| 60,000 files, one seed | Before | Now |
+|---|---:|---:|
+| `crash` | 7 | 0 |
+| Past 15 s | 2 | 0 |
+| Past 1.5 GB | 5 | 0 |
+| A failure that isn't a `PdfError` | 0 | 0 |
+| Peak memory of a process | 3.9 GB | 0.4 GB |
+
+Damage rarely makes a file built to cost, so `bench/fuzz-structures.mjs` generates them: repeats and chains in the
+page labels, destination names, outlines, `/Kids`, field parents and visibility expressions, and forms, patterns, Type 3
+glyphs, soft masks and annotations that ask for far more drawing than their size. That found hangs from a few KB and a
+crash at 2.6 GB. Each now stops at a limit and says so: `truncated` on the page's results, or `doc.structureTruncated()`.
+3,000 of them, seed 21, each in a process of its own: no failures, and a peak of 0.75 GB. CI runs each kind, 15 s and 1.5 GB per file,
+and checks exactly which results say so.
+
+The limits mustn't reach a real page. `crates/recto/examples/budgets.rs` reports the most any page or tree used of each,
+over all 543 files that open here (2,408 pages, text, objects and a render of each). Nothing is `truncated`. These are small
+suite files and 39 public ones, not a survey: a page far costlier than these could exist, and would say so.
+
+| Limit | The most used | Of | Room |
+|---|---:|---:|---:|
+| Nested streams | 800 | 2^20 | 1,310× |
+| Annotation points | 495 | 2^17 | 264× |
+| `/VE` nodes | 2 | 2^10 | 512× |
+| Page tree kids | 248 | objects + 2^18 | 1,059× |
+| Page label nodes | 1 | 2^16 | 65,536× |
+| Name tree nodes | 1 | 2^18 | 262,144× |
+
+Three more seeds (180,000 files) also found nothing. That says it's hard to find another with this
+fuzzer, not that there isn't one: a page can still take seconds and hold hundreds of megabytes.
+
+Which of 1,000 such files each engine opens with at least one page: recto 753, poppler 510, pdf.js 506, pdfium 501.
+That's less of a win than it looks. In 23 files two others open one where recto doesn't, and many of those pages are only a
+trusted `/Count`: of the 27 such files before this fix, pdf.js reported a page in 16 and then couldn't load it. 44 open with no
+pages, down from 55: 43 lost their kids, where the page object itself is damaged and a scan can't find it, and
+`doc.structureTruncated().pages` says so; one is honestly empty. A tree with nothing lost isn't scanned, and a scan doesn't bring
+back what a later revision removed.
+
+`js/test/fuzz.test.ts` does the same to generated PDFs in CI, 20,000 files in 3 s, stopping at 30 s.
+
+```sh
+node bench/fuzz.mjs path/to/pdfs [--seed 1] [--count 2000] [--repair] [--results file.json]
+node bench/fuzz.mjs --structures [--seed 1] [--count 2000]
+```
+
 ## What this doesn't show
 
 - **Your files.** A different set of PDFs moves these ratios. Rerun it on yours.
-- **Pixels** (above), and text on scans: nothing here runs OCR.
+- **Text on scans:** nothing here runs OCR.
+- **Pixels at scale:** [the scorecard](#the-scorecard) is hundreds of small files, not millions of real ones.
 - **Firefox and WebKit.** The benchmark ran in Chromium only.
 - **Phones.** The slowdown is one machine stopped part of the time; a phone's memory and storage are
   slower too.

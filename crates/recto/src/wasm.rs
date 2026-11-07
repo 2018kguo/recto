@@ -456,6 +456,21 @@ impl Document {
         Ok(s.objects.into())
     }
 
+    /// One string per page, or null if the file gives no labels.
+    #[wasm_bindgen(js_name = pageLabels)]
+    pub fn page_labels(&self) -> JsValue {
+        self.0.page_labels().map_or(JsValue::NULL, |labels| {
+            JsValue::from(labels.into_iter().map(|label| JsValue::from_str(&label)).collect::<js_sys::Array>())
+        })
+    }
+
+    /// `[pages, pageLabels, outline]`: whether a limit cut each short.
+    #[wasm_bindgen(js_name = structureTruncated)]
+    pub fn structure_truncated(&self) -> Vec<u8> {
+        let cut = self.0.structure_truncated();
+        vec![cut.pages as u8, cut.page_labels as u8, cut.outline as u8]
+    }
+
     /// Flat, in order: `[title, url or "", level, page]` per item.
     pub fn outline(&self) -> js_sys::Array {
         self.0

@@ -99,6 +99,73 @@ fn fallback_xref_map<'a>(data: &'a PdfData, password: &[u8]) -> (XrefMap, Option
     fallback_xref_map_inner(data, ReaderContext::dummy(), true, password)
 }
 
+/// recto: what a scan does with a free entry. An object written in an earlier revision is gone. One
+/// written in the same revision as the entry says free isn't: no writer does that, so the entry is
+/// damaged, and the object is what a repair is for.
+fn free_entry(map: &mut XrefMap, number: u32, generation: i32, before: usize, packed_too: bool) {
+    for id in [generation, generation - 1].map(|generation| ObjectIdentifier::new(number, generation)) {
+        let written = match map.get(&id) {
+            Some(EntryType::Normal(offset)) => Some(*offset),
+            Some(EntryType::ObjStream(container, _)) if packed_too => {
+                match map.get(&ObjectIdentifier::new(*container, 0)) {
+                    Some(EntryType::Normal(offset)) => Some(*offset),
+                    _ => None,
+                }
+            }
+            _ => None,
+        };
+        if written.is_some_and(|offset| offset < before) {
+            map.remove(&id);
+        }
+    }
+}
+
+/// recto: the free entries of the xref table these bytes start with, as object and generation.
+fn xref_table_frees(bytes: &[u8]) -> Vec<(u32, i32)> {
+    let mut frees = Vec::new();
+    let mut tokens = bytes.split(|b| b.is_ascii_whitespace()).filter(|t| !t.is_empty());
+    let number = |token: &[u8]| core::str::from_utf8(token).ok()?.parse::<u32>().ok();
+    while let (Some(first), Some(count)) = (tokens.next().and_then(number), tokens.next().and_then(number)) {
+        for i in 0..count {
+            let (Some(_), Some(generation), Some(kind)) = (tokens.next(), tokens.next().and_then(number), tokens.next()) else {
+                return frees;
+            };
+            if kind == b"f" && let Some(object) = first.checked_add(i).filter(|object| *object > 0) {
+                frees.push((object, generation.min(i32::MAX as u32) as i32));
+            }
+        }
+    }
+    frees
+}
+
+/// recto: the same for an xref stream.
+fn xref_stream_frees(stream: &Stream<'_>) -> Option<Vec<(u32, i32)>> {
+    let dict = stream.dict();
+    let widths = dict.get::<[u8; 3]>(W)?;
+    let [type_len, offset_len, generation_len] = widths.map(usize::from);
+    let entry = (type_len + offset_len + generation_len).max(1);
+    let data = stream.decoded().ok()?;
+    let size = dict.get::<u32>(SIZE)?;
+    let index: Vec<u32> = dict.get::<Vec<u32>>(INDEX).unwrap_or_else(|| vec![0, size]);
+    let mut frees = Vec::new();
+    let mut entries = data.chunks_exact(entry);
+    for section in index.chunks_exact(2) {
+        for i in 0..section[1] {
+            let Some(bytes) = entries.next() else {
+                return Some(frees);
+            };
+            if type_len > 0
+                && bytes[..type_len].iter().all(|b| *b == 0)
+                && let Some(object) = section[0].checked_add(i).filter(|object| *object > 0)
+            {
+                let generation = xref_stream_num(&bytes[type_len + offset_len..])?;
+                frees.push((object, generation.min(i32::MAX as u32) as i32));
+            }
+        }
+    }
+    Some(frees)
+}
+
 fn fallback_xref_map_inner<'a>(
     data: &'a PdfData,
     mut dummy_ctx: ReaderContext<'a>,
@@ -112,6 +179,9 @@ fn fallback_xref_map_inner<'a>(
     let mut r = Reader::new(data.as_ref());
 
     let mut last_obj_num = None;
+    let mut last_obj_offset = 0;
+    // recto: where the last xref section seen is, ending the revision before this one.
+    let mut previous_section = 0;
 
     loop {
         let cur_pos = r.offset();
@@ -127,6 +197,7 @@ fn fallback_xref_map_inner<'a>(
                 if cloned.skip::<Object<'_>>(false).is_some() {
                     xref_map.insert(obj_id, EntryType::Normal(cur_pos));
                     last_obj_num = Some(obj_id);
+                    last_obj_offset = cur_pos;
                     dummy_ctx.set_obj_number(obj_id);
                 }
             } else {
@@ -156,13 +227,23 @@ fn fallback_xref_map_inner<'a>(
                             root_ref = last_obj_num;
                         }
 
+                        // recto: an object a later revision removed stays removed. See `free_entry`.
+                        if dict.get::<Name<'_>>(TYPE).as_deref() == Some(b"XRef")
+                            && let Some(stream) = old_r.clone().read_indirect::<Stream<'_>>(&dummy_ctx)
+                        {
+                            for (number, generation) in xref_stream_frees(&stream).unwrap_or_default() {
+                                free_entry(&mut xref_map, number, generation, previous_section, true);
+                            }
+                            previous_section = last_obj_offset;
+                        }
+
                         if dict.get::<Name<'_>>(TYPE).as_deref() == Some(b"ObjStm")
                             && {
                                 let mut after_dict = r.clone();
                                 after_dict.skip_white_spaces_and_comments();
                                 after_dict.forward_tag(b"stream").is_some()
                             }
-                            && let Some(stream) = old_r.read::<Stream<'_>>(&dummy_ctx)
+                            && let Some(stream) = old_r.read_indirect::<Stream<'_>>(&dummy_ctx)
                             && let Some(last_obj_num) = last_obj_num
                             && let Some(obj_stream) = ObjectStream::new(&stream)
                         {
@@ -171,25 +252,26 @@ fn fallback_xref_map_inner<'a>(
                                     continue;
                                 }
 
-                                let id = ObjectIdentifier::new(*obj_num, 0);
-                                // If we already found an entry for that object number that was not
-                                // inside an object stream. Somewhat arbitrary and maybe
-                                // we can do better, but that seems to work for the current
-                                // set of tests.
-                                if xref_map
-                                    .get(&id)
-                                    .is_none_or(|e| !matches!(e, &EntryType::Normal(_)))
-                                {
-                                    xref_map.insert(
-                                        id,
-                                        EntryType::ObjStream(last_obj_num.obj_number, idx as u32),
-                                    );
-                                }
+                                // recto: what's later in the file is newer, in a stream or not. An
+                                // earlier plain copy is what a later revision replaced.
+                                xref_map.insert(
+                                    ObjectIdentifier::new(*obj_num, 0),
+                                    EntryType::ObjStream(last_obj_num.obj_number, idx as u32),
+                                );
                             }
                         }
                     }
                 }
             } else {
+                // recto: as with an xref stream, but only plain objects: a hybrid file's table marks
+                // what's in its object streams as free, and those are in use.
+                if r.peek_bytes(4).is_some_and(|b| b == b"xref") {
+                    for (number, generation) in xref_table_frees(&data.as_ref()[r.offset + 4..]) {
+                        free_entry(&mut xref_map, number, generation, previous_section, false);
+                    }
+                    previous_section = r.offset;
+                }
+
                 // We can skip everything until the next white space character,
                 // as there cannot possibly be any new dictionary/object identifier
                 // until then.
@@ -525,6 +607,18 @@ impl XRef {
                 })
             }
         }
+    }
+
+    /// recto: repairs, and says whether that's new.
+    pub(crate) fn repair_if_not_repaired(&self) -> bool {
+        let Inner::Some(r) = &self.0 else {
+            return false;
+        };
+        if r.map.get().repaired {
+            return false;
+        }
+        self.repair();
+        true
     }
 
     pub(crate) fn repair(&self) {
@@ -1011,6 +1105,15 @@ fn populate_from_xref_table<'a>(
                     ObjectIdentifier::new(obj_number, entry.gen_number),
                     EntryType::Normal(entry.offset),
                 );
+            } else {
+                // recto: removed by this revision, so not left over from an older one. Only a
+                // plain object: a hybrid file marks what's in its object streams as free.
+                for generation in [entry.gen_number, entry.gen_number - 1] {
+                    let id = ObjectIdentifier::new(obj_number, generation);
+                    if matches!(insert_map.get(&id), Some(EntryType::Normal(_))) {
+                        insert_map.remove(&id);
+                    }
+                }
             }
         }
     }
@@ -1028,7 +1131,12 @@ fn populate_from_xref_stream<'a>(
         .read_with_context::<IndirectObject<Stream<'_>>>(&ReaderContext::dummy())?
         .get();
 
-    if let Some(prev) = stream.dict().get::<i64>(PREV) {
+    if let Some(prev) = stream.dict().get::<i64>(PREV)
+        // recto: the `XRefStm` of a hybrid file usually has the same `Prev` as the table that
+        // names it, already read. That is no reason to give the whole xref up for a repair, which
+        // takes the first copy of an object where the xref would take the last.
+        && !visited.contains(&(prev as usize))
+    {
         // First insert the entries from any previous xref tables.
         let _ = populate_xref_impl_inner(data, prev as usize, insert_map, visited)?;
     }
@@ -1113,9 +1221,17 @@ fn xref_stream_subsection<'a>(
         let obj_number = start.checked_add(i)?;
 
         match f_type {
-            // We don't care about free objects.
+            // recto: removed by this revision, so not left over from an older one.
             0 => {
-                xref_reader.skip_bytes(f2_len as usize + f3_len as usize)?;
+                xref_reader.skip_bytes(f2_len as usize)?;
+                let generation = if f3_len > 0 {
+                    xref_stream_num(xref_reader.read_bytes(f3_len as usize)?)?
+                } else {
+                    0
+                };
+                let generation = generation.min(i32::MAX as u32) as i32;
+                insert_map.remove(&ObjectIdentifier::new(obj_number, generation));
+                insert_map.remove(&ObjectIdentifier::new(obj_number, generation - 1));
             }
             1 => {
                 let offset = if f2_len > 0 {

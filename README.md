@@ -161,9 +161,10 @@ pdf.js 6.5.438 and stock pdfium. How much faster recto is than each:
 
 It isn't ahead everywhere. In a browser pdfium reaches a fresh page's first pixels sooner (66 ms against
 54 ms), though recto is first to text (32 ms against 55 ms and 43 ms). pdf.js downloads less: 0.42 MB with
-brotli, against recto's 0.53 MB for text and 1.72 MB for text and pixels (1.22 MB if the thread asks for the
+brotli, against recto's about 0.5 MB for text and 1.7 MB for text and pixels (1.2 MB if the thread asks for the
 full engine up front). pdfium opens a large file a little faster. pdf.js holds less memory in a page. On text
-quality against poppler the three tie. [benchmarks.md](docs/benchmarks.md) has all of it, what each
+quality against poppler recto leads narrowly (F1 98.7%, pdf.js 97.8%, pdfium 97.0%, on 87 documents), and it
+agrees with the other engines' pixels on 96.9% of the pages two of them agree on (small, mostly adversarial files, and the threshold can hide a missing line). [benchmarks.md](docs/benchmarks.md) has all of it, what each
 number means and how it's measured. To rerun it on PDFs of your own (it commits none):
 
 ```sh
@@ -172,7 +173,7 @@ npm run bench -- path/to/pdfs
 npm run bench:browser -- path/to/pdfs
 ```
 
-These numbers say how fast, not how good: they don't compare rendered pixels.
+These charts say how fast. How good is in [the scorecard](docs/benchmarks.md#the-scorecard).
 
 ## Why not pdf.js or pdfium
 
@@ -202,8 +203,8 @@ on anything a user might upload, use one of those two.
 
 | File | Size | When it loads |
 |---|---:|---|
-| `wasm/recto-text.wasm` | 1.7 MB (0.50 MB brotli) | Creating an engine |
-| `wasm/recto.wasm` | 3.8 MB (0.98 MB brotli) | The first `render` or `objects`, or a main thread's engine unless you leave it out |
+| `wasm/recto-text.wasm` | 1.8 MB (0.51 MB brotli) | Creating an engine |
+| `wasm/recto.wasm` | 3.9 MB (1.0 MB brotli) | The first `render` or `objects`, or a main thread's engine unless you leave it out |
 | `wasm/recto.gen.mjs`, `dist/` | 32 KB, 73 KB of JavaScript | Importing the package |
 | `wasm/fonts.bin` | 0.26 MB | A document names a standard font it doesn't embed |
 | `wasm/cmaps.deflate` | 0.36 MB | A document uses a predefined CJK CMap |
@@ -229,7 +230,18 @@ on anything a user might upload, use one of those two.
   disagrees with poppler and pdfium on knockout, where they don't follow it. Still approximate: a
   non-isolated group that needs its backdrop inside another such group stays isolated, and so does any
   past the 32nd on a page (`truncated` says so), and a subgroup inside a non-isolated blended knockout
-  group is close but not exact. Rendered pixels haven't been compared at scale with other engines.
+  group is close but not exact. [The scorecard](docs/benchmarks.md#the-scorecard) compares pixels with pdfium,
+  pdf.js and poppler on 539 small, mostly adversarial files, not at scale, and its threshold can hide a missing line. A blend mode against bare paper blends with the white (pdfium
+  does too; the spec says the paper isn't there yet). Lab's dark colours and some mask edges differ a little. An annotation with no
+  appearance is drawn from its dictionary, with free text and field values in Helvetica, one line each, unwrapped, if a widget's in the form;
+  a stale appearance isn't redrawn under `NeedAppearances`.
+- **Page sizes:** `/UserUnit` doesn't scale `pageInfo` or the boxes, where pdf.js scales them. A page with no usable
+  `/MediaBox` is Letter. An empty `/CropBox`, or one outside the media box, gives way to the media box.
+- **Damaged files:** a page whose object header is damaged isn't found by the repair, so the file can open with no pages,
+  where another engine may report one from `/Count`. A repair won't bring back what a later revision removed.
+- **Files built to cost:** a page stops drawing at a budget and is incomplete, with `truncated` true on what `text`,
+  `objects`, `render` and `renderAsync` return for it. A page tree, labels or an outline cut short shows in
+  `doc.structureTruncated()`. See [the limits](docs/reference.md).
 - **Encryption:** the Standard security handler only, so a public-key file fails with `unsupported`. An
   encrypted file before revision 6 that lost its trailer fails with `invalid-file`, since its key needs
   the trailer's ID. Revision 6 is repaired.

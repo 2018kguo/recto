@@ -164,8 +164,10 @@ test("page tree: nodes built to multiply stop at a limit, in about the same time
   assert.ok(pagesBomb.pageCount > 0 && pagesBomb.pageCount <= 2 ** 19, String(pagesBomb.pageCount));
   assert.equal(pagesBomb.text(pagesBomb.pageCount - 1).text.trim(), "P1");
   pagesBomb.close();
+  // Every kid is lost, so the file's one page comes from a scan, once the walk has stopped.
   const emptyBomb = await engine.open(chain("99 0 R", 60));
-  assert.equal(emptyBomb.pageCount, 0);
+  assert.equal(emptyBomb.pageCount, 1);
+  assert.equal(emptyBomb.text(0).text.trim(), "P1");
   emptyBomb.close();
 });
 
@@ -177,6 +179,7 @@ function modelWalk(nodes: Map<number, TreeNode>, pageOf: Map<number, number>, ro
   const out: number[] = [];
   const path = new Set<number>();
   let steps = 0;
+  let lost = false;
   const walk = (id: number): boolean => {
     path.add(id);
     for (const kid of nodes.get(id)!.kids) {
@@ -184,6 +187,7 @@ function modelWalk(nodes: Map<number, TreeNode>, pageOf: Map<number, number>, ro
         return false;
       }
       if (kid === "missing") {
+        lost = true;
         continue;
       }
       if (typeof kid === "object") {
@@ -193,14 +197,22 @@ function modelWalk(nodes: Map<number, TreeNode>, pageOf: Map<number, number>, ro
       const page = pageOf.get(kid);
       if (page !== undefined) {
         out.push(page);
-      } else if (!path.has(kid) && nodes.get(kid)!.hasKids && !walk(kid)) {
-        return false;
+      } else if (!path.has(kid)) {
+        if (!nodes.get(kid)!.hasKids) {
+          lost = true;
+        } else if (!walk(kid)) {
+          return false;
+        }
       }
     }
     path.delete(id);
     return true;
   };
-  return walk(root) ? out : null;
+  if (!walk(root)) {
+    return null;
+  }
+  // A damaged tree that gave nothing: the pages come from a scan of the file, in object order.
+  return out.length === 0 && lost ? [...pageOf.values()] : out;
 }
 
 /** A tree with zero-count nodes, wrong counts, cycles, repeats, deep chains, leaves mixed with nodes. */
@@ -641,5 +653,170 @@ test("page tree: first reads are linear and take little memory beyond the open's
   const readMs = threadCpuMs() - reading;
   assert.ok(readMs < openMs, `first read of every page ${readMs} ms, open ${openMs} ms`);
   assert.ok(engine.stats().heapBytes < heapAtOpen * 1.15, `heap ${heapAtOpen} to ${engine.stats().heapBytes}`);
+  doc.close();
+});
+
+test("page tree: a page's box with no area gives way to the node's, found on demand or not", async () => {
+  const file = fileOf("<</Type/Pages/Count 1/Kids[4 0 R]/MediaBox[0 0 300 200]>>", pagesFrom(4, [1], "/MediaBox[0 0 0 0]"));
+  const engine = await createPdfEngine();
+  for (const doc of [await engine.open(file), await engine.openRanged(file)]) {
+    const { width, height } = await doc.pageInfo(0);
+    assert.deepEqual([width, height], [300, 200]);
+    doc.close();
+  }
+});
+
+test("page tree: a tree that lost its kids finds the file's pages, one honestly empty has none", async () => {
+  const engine = await createPdfEngine();
+  const lost = await engine.open(fileOf("<</Type/Pages/Kids[99 0 R]>>", pagesFrom(4, [1, 2])));
+  assert.equal(lost.pageCount, 2);
+  lost.close();
+  const file = fileOf("<</Type/Pages/Count 0/Kids[]>>", pagesFrom(4, [1, 2]));
+  for (const doc of [await engine.open(file), await engine.openRanged(file)]) {
+    assert.equal(doc.pageCount, 0);
+    doc.close();
+  }
+});
+
+// ---- Revisions: what a later one removed must stay gone, whole, ranged or repaired.
+
+/** A file of three pages, then updates: table updates, or xref stream ones holding objects in a stream. */
+class Revised {
+  file = "%PDF-1.7\n";
+  lastXref = 0;
+  add(objects: Record<number, string>, frees: number[] = []): void {
+    const offsets = new Map<number, number>();
+    for (const [number, body] of Object.entries(objects)) {
+      offsets.set(Number(number), this.file.length);
+      this.file += `${number} 0 obj\n${body}\nendobj\n`;
+    }
+    const at = this.file.length;
+    const lines = [`0 1\n0000000000 65535 f \n`];
+    for (const number of frees) lines.push(`${number} 1\n0000000000 00001 f \n`);
+    for (const [number, offset] of offsets) lines.push(`${number} 1\n${String(offset).padStart(10, "0")} 00000 n \n`);
+    const prev = this.lastXref ? `/Prev ${this.lastXref}` : "";
+    this.file += `xref\n${lines.join("")}trailer\n<</Size 200/Root 1 0 R${prev}>>\nstartxref\n${at}\n%%EOF\n`;
+    this.lastXref = at;
+  }
+  /** `packed` go in an object stream, numbered `stream`; an xref stream, numbered `stream + 1`, names them. */
+  addPacked(packed: Record<number, string>, stream: number, frees: number[] = []): void {
+    const entries = Object.entries(packed);
+    const head = entries.reduce<{ text: string; at: number }>(
+      (sofar, [number, body]) => ({ text: `${sofar.text}${number} ${sofar.at} `, at: sofar.at + body.length + 1 }),
+      { text: "", at: 0 },
+    ).text;
+    const data = `${head}${entries.map(([, body]) => body).join(" ")} `;
+    const streamAt = this.file.length;
+    this.file += `${stream} 0 obj\n<</Type/ObjStm/N ${entries.length}/First ${head.length}/Length ${data.length}>>\nstream\n${data}\nendstream\nendobj\n`;
+    const at = this.file.length;
+    const entry = (kind: number, a: number, b: number) =>
+      String.fromCharCode(kind, (a >>> 16) & 255, (a >>> 8) & 255, a & 255, b);
+    const index: number[] = [];
+    let table = "";
+    for (const number of frees) {
+      index.push(number, 1);
+      table += entry(0, 0, 1);
+    }
+    entries.forEach(([number], i) => {
+      index.push(Number(number), 1);
+      table += entry(2, stream, i);
+    });
+    index.push(stream, 2);
+    table += entry(1, streamAt, 0) + entry(1, at, 0);
+    const prev = this.lastXref ? `/Prev ${this.lastXref}` : "";
+    this.file += `${stream + 1} 0 obj\n<</Type/XRef/Size 200/Root 1 0 R${prev}/W[1 3 1]/Index[${index.join(" ")}]/Length ${table.length}>>\nstream\n${table}\nendstream\nendobj\nstartxref\n${at}\n%%EOF\n`;
+    this.lastXref = at;
+  }
+  bytes(): Uint8Array {
+    return Uint8Array.from(this.file, (c) => c.charCodeAt(0));
+  }
+  /** The same with no way to the xref, so it has to be scanned. */
+  scanned(): Uint8Array {
+    const lost = this.file.replace(/startxref\n\d+/g, "startxref\n7");
+    return Uint8Array.from(lost, (c) => c.charCodeAt(0));
+  }
+}
+
+function threePages(): Revised {
+  const revised = new Revised();
+  const objects: Record<number, string> = {
+    1: "<</Type/Catalog/Pages 2 0 R>>",
+    2: "<</Type/Pages/Count 3/Kids[4 0 R 6 0 R 8 0 R]>>",
+    3: "<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>",
+  };
+  pagesFrom(4, [1, 2, 3]).forEach((body, i) => {
+    objects[4 + i] = body;
+  });
+  revised.add(objects);
+  return revised;
+}
+
+async function allPages(bytes: Uint8Array, ranged = false): Promise<string[]> {
+  const engine = await createPdfEngine();
+  const doc = ranged ? await engine.openRanged(bytes) : await engine.open(bytes);
+  const out: string[] = [];
+  for (let i = 0; i < doc.pageCount; i++) out.push(readPage(doc, i));
+  doc.close();
+  return out;
+}
+
+test("a revision's removals stay removed, read through the xref or by a scan, whole or ranged", async () => {
+  const cases: [string, (revised: Revised) => void, string[]][] = [
+    ["tree emptied in a table", (r) => r.add({ 2: "<</Type/Pages/Count 0/Kids[]>>" }), []],
+    ["tree emptied in an object stream", (r) => r.addPacked({ 2: "<</Type/Pages/Count 0/Kids[]>>" }, 20), []],
+    ["pages freed, tree emptied", (r) => r.add({ 2: "<</Type/Pages/Count 0/Kids[]>>" }, [4, 6, 8]), []],
+    ["one page freed in a table", (r) => r.add({ 2: "<</Type/Pages/Count 2/Kids[4 0 R 8 0 R]>>" }, [6]), ["P1", "P3"]],
+    ["one page cut in an object stream", (r) => r.addPacked({ 2: "<</Type/Pages/Count 2/Kids[4 0 R 8 0 R]>>" }, 20, [6]), ["P1", "P3"]],
+    // The tree still names them, so it's lost its kids, and a scan has nothing to bring back.
+    ["freed in a table, still named", (r) => r.add({}, [4, 6, 8]), []],
+    ["freed in an xref stream, still named", (r) => r.addPacked({ 3: "<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>" }, 20, [4, 6, 8]), []],
+    ["page replaced in an object stream", (r) => r.addPacked({ 2: "<</Type/Pages/Count 1/Kids[8 0 R]>>" }, 20), ["P3"]],
+  ];
+  for (const [name, revise, want] of cases) {
+    const revised = threePages();
+    revise(revised);
+    assert.deepEqual(await allPages(revised.bytes()), want, `${name}: through the xref`);
+    assert.deepEqual(await allPages(revised.scanned()), want, `${name}: by a scan`);
+    const ranged = await allPages(revised.bytes(), true);
+    assert.deepEqual(ranged.filter((page) => !page.startsWith("error")), want, `${name}: ranged`);
+  }
+});
+
+test("page tree: no pages from a damaged tree says so, and from an empty one doesn't", async () => {
+  const engine = await createPdfEngine();
+  const damaged = await engine.open(fileOf("<</Type/Pages/Kids[99 0 R]>>", []));
+  assert.equal(damaged.pageCount, 0);
+  assert.equal(damaged.structureTruncated().pages, true);
+  damaged.close();
+  const empty = await engine.open(fileOf("<</Type/Pages/Count 0/Kids[]>>", []));
+  assert.equal(empty.pageCount, 0);
+  assert.equal(empty.structureTruncated().pages, false);
+  empty.close();
+});
+
+test("page tree: an honestly empty tree in a long file is a document with no pages, and fetches little", async () => {
+  // 3 MB of content nothing refers to. A repair would read it all.
+  const padding = `<</Length 3000000>>\nstream\n${" ".repeat(3_000_000)}\nendstream`;
+  const file = fileOf("<</Type/Pages/Count 0/Kids[]>>", [padding]);
+  const engine = await createPdfEngine();
+  const doc = await engine.openRanged(file);
+  assert.equal(doc.pageCount, 0);
+  assert.ok(doc.stats().bytesFetched < file.byteLength / 4, `fetched ${doc.stats().bytesFetched}`);
+  doc.close();
+});
+
+test("page tree: a scan's pages inherit from their /Parent", async () => {
+  const content = "BT /F 12 Tf 10 10 Td (P1) Tj ET";
+  const file = fileOf("<</Type/Pages/Kids[99 0 R]>>", [
+    "<</Type/Pages/Kids[5 0 R]/MediaBox[0 0 300 200]/Resources<</Font<</F 3 0 R>>>>>>",
+    "<</Type/Page/Parent 4 0 R/Contents 6 0 R>>",
+    `<</Length ${content.length}>>\nstream\n${content}\nendstream`,
+  ]);
+  const engine = await createPdfEngine();
+  const doc = await engine.open(file);
+  assert.equal(doc.pageCount, 1);
+  const { width, height } = doc.pageInfo(0);
+  assert.deepEqual([width, height], [300, 200]);
+  assert.equal(doc.text(0).text.trim(), "P1");
   doc.close();
 });

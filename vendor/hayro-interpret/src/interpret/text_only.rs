@@ -175,6 +175,9 @@ pub(crate) fn interpret<'a>(
     context: &mut Context<'a>,
     device: &mut impl Device<'a>,
 ) {
+    if !context.charge_nested() {
+        return;
+    }
     let num_states = context.num_states();
     // Resolved once per name: resolving hashes the font dict.
     let mut fonts = FxHashMap::<&[u8], Option<TextStateFont<'a>>>::default();
@@ -201,7 +204,12 @@ pub(crate) fn interpret<'a>(
         }
         match op {
             b"q" => context.save_state(),
-            b"Q" => context.restore_state(device),
+            b"Q" => {
+                // As in `run_ops`: a `Q` without a `q` in this stream is ignored.
+                if context.num_states() > num_states + 1 {
+                    context.restore_state(device);
+                }
+            }
             b"cm" => {
                 if let Some(m) = nums::<6>(ops) {
                     context.pre_concat_affine(Affine::new(m));
@@ -486,7 +494,7 @@ pub(crate) fn interpret<'a>(
             // the rest of the stream goes to `interpret`'s loop from here.
             b"BI" => {
                 let mut rest = TypedIter::new(&d[lexer.op_start()..]);
-                super::run_ops(&mut rest, resources, context, device, None);
+                super::run_ops(&mut rest, resources, context, device, None, num_states + 1);
                 break;
             }
             // A malformed path operator ends the stream in `interpret`.

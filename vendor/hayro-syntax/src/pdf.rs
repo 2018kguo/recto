@@ -79,7 +79,15 @@ impl Pdf {
         };
         let xref = Arc::new(xref);
 
-        let pages = CachedPages::new(xref.clone()).ok_or(LoadPdfError::Invalid)?;
+        let mut pages = CachedPages::new(xref.clone());
+        // recto: an xref that reads well can still have lost the objects a page tree needs (an offset
+        // into nowhere that never gets as far as a read). A tree that lost them and gave nothing is
+        // worth one scan of the file. One that's empty and lost nothing has no pages: nothing to fetch,
+        // and a scan would only find what a later revision removed.
+        if pages.as_ref().is_none_or(|pages| pages.get().lost_everything()) && xref.repair_if_not_repaired() {
+            pages = CachedPages::new(xref.clone());
+        }
+        let pages = pages.ok_or(LoadPdfError::Invalid)?;
 
         Ok(Self {
             xref,
@@ -181,6 +189,7 @@ impl PdfVersion {
 
 #[cfg(test)]
 mod tests {
+    use crate::object::{ObjectIdentifier, Stream};
     use crate::pdf::{Pdf, PdfVersion};
 
     #[test]
@@ -202,5 +211,17 @@ mod tests {
         let pdf = Pdf::new(data).unwrap();
 
         assert_eq!(pdf.version(), PdfVersion::Pdf17);
+    }
+
+    #[test]
+    fn xref_stream_in_encrypted_pdf() {
+        let data = std::fs::read("../tests/pdfs/custom/catalog-in-objstm-aes.pdf").unwrap();
+        let pdf = Pdf::new(data).unwrap();
+        let stream = pdf
+            .xref()
+            .get::<Stream<'_>>(ObjectIdentifier::new(13, 0))
+            .unwrap();
+
+        assert_eq!(stream.decoded().unwrap().len(), 98);
     }
 }

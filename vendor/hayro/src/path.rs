@@ -3,6 +3,38 @@ use hayro_interpret::{DrawMode, DrawProps, FillRule, StrokeProps};
 use kurbo::{Affine, BezPath, Point, Rect, Shape};
 use std::f64::consts::SQRT_2;
 
+const MIN_DASH_PERIOD: f32 = 0.1;
+
+/// recto: see `stroke_path`.
+const MAX_DASHES_PER_PATH: f64 = 65536.0;
+
+/// recto: an upper bound on a path's length.
+fn control_polygon_length(path: &BezPath) -> f64 {
+    let mut length = 0.0;
+    let mut last = Point::ZERO;
+    let mut add = |p: Point, last: &mut Point| {
+        length += p.distance(*last);
+        *last = p;
+    };
+    for element in path.elements() {
+        match *element {
+            kurbo::PathEl::MoveTo(p) => last = p,
+            kurbo::PathEl::LineTo(p) => add(p, &mut last),
+            kurbo::PathEl::QuadTo(a, p) => {
+                add(a, &mut last);
+                add(p, &mut last);
+            }
+            kurbo::PathEl::CurveTo(a, b, p) => {
+                add(a, &mut last);
+                add(b, &mut last);
+                add(p, &mut last);
+            }
+            kurbo::PathEl::ClosePath => {}
+        }
+    }
+    length
+}
+
 impl Renderer<'_> {
     pub(super) fn set_stroke_properties(&mut self, stroke_props: &StrokeProps, is_text: bool) {
         let threshold = if is_text { 0.25 } else { 1.0 };
@@ -32,14 +64,29 @@ impl Renderer<'_> {
             join => join,
         };
 
+        let dash_period: f32 = stroke_props.dash_array.iter().map(|n| n.abs()).sum();
+        let dash_pattern = if dash_period * min_factor >= MIN_DASH_PERIOD {
+            stroke_props.dash_array.iter().map(|n| *n as f64).collect()
+        } else {
+            kurbo::Dashes::new()
+        };
+
+        // recto: kurbo walks the pattern up to the offset, one entry at a time, so a large offset
+        // over a short pattern is a hang. Twice the period is where an odd-length pattern repeats.
+        let dash_offset = if dash_pattern.is_empty() {
+            0.0
+        } else {
+            (stroke_props.dash_offset as f64).rem_euclid(2.0 * dash_period as f64)
+        };
+
         let stroke = kurbo::Stroke {
             width: line_width as f64,
             join,
             miter_limit: stroke_props.miter_limit as f64,
             start_cap: cap,
             end_cap: cap,
-            dash_pattern: stroke_props.dash_array.iter().map(|n| *n as f64).collect(),
-            dash_offset: stroke_props.dash_offset as f64,
+            dash_pattern,
+            dash_offset,
         };
 
         self.ctx.set_stroke(stroke);
@@ -54,6 +101,15 @@ impl Renderer<'_> {
     ) {
         self.apply_draw_props(&props);
         self.set_stroke_properties(stroke_props, is_text);
+
+        // recto: a short dash along a long path is millions of segments and all of memory. Nothing
+        // on a page can show that many, so past the budget it's drawn solid, as a sub-pixel pattern is.
+        let dash_period: f64 = self.ctx.stroke().dash_pattern.iter().map(|n| n.abs()).sum();
+        if dash_period > 0.0 && control_polygon_length(path) / dash_period > MAX_DASHES_PER_PATH {
+            let mut solid = self.ctx.stroke().clone();
+            solid.dash_pattern = kurbo::Dashes::new();
+            self.ctx.set_stroke(solid);
+        }
 
         let stroke = self.ctx.stroke();
         let extent = stroke.width / 2.0 * stroke.miter_limit.max(SQRT_2);

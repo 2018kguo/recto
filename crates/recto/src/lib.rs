@@ -6,7 +6,8 @@
 //! loose font boxes (advance × em), not glyph ink.
 
 mod annots;
-mod outline;
+mod labels;
+pub mod outline;
 mod assets;
 mod ctext;
 mod device;
@@ -89,8 +90,18 @@ pub struct PageInfo {
     pub rotation: u32,
 }
 
+/// Whether a limit cut a tree of the document short: see `Document::structure_truncated`.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct StructureTruncated {
+    pub pages: bool,
+    pub page_labels: bool,
+    pub outline: bool,
+}
+
 /// A page's text, objects and annotations from one load.
 pub struct Scan {
+    /// Nested streams, annotation points and the largest `/VE`: see `PageBudget`.
+    pub budget_used: (u32, usize, u32),
     pub text: TextPage,
     /// Empty unless asked for.
     pub objects: PageObjects,
@@ -278,12 +289,18 @@ impl Document {
             device.glyphs = caches.glyphs.take();
             interpret_page(page, &mut ctx, &mut device);
             let mut device = device.finish();
+            let tripped = ctx.budget_tripped();
+            let budget_used = ctx.budget_used();
             let mut text = text::build_page(&device.glyphs, &device.fonts, &device.runs);
-            text.truncated = device.text_truncated;
+            text.truncated = device.text_truncated || tripped;
+            if tripped && let Some(objects) = &mut device.objects {
+                objects.truncated = true;
+            }
             device.glyphs.clear();
             caches.glyphs.replace(device.glyphs);
             Scan {
                 text,
+                budget_used,
                 objects: device.objects.unwrap_or_default(),
                 annotations: if annotations {
                     annots::read(page, &caches.text, viewer)
@@ -297,6 +314,49 @@ impl Document {
     /// The file as it was opened, in place.
     pub fn file_bytes(&self) -> &[u8] {
         self.0.borrow_owner().data().as_ref()
+    }
+
+    /// What each page is called, if the file says: "iv", "A-5".
+    pub fn page_labels(&self) -> Option<Vec<String>> {
+        let pages = self.page_count();
+        self.0.with_dependent(|pdf, _| labels::read(pdf, pages))
+    }
+
+    /// Which of the document's trees were cut short: by a limit, which only a file built to cost
+    /// reaches, or for pages by a tree that lost its kids and left none. Walks the outline and labels
+    /// again to find out.
+    pub fn structure_truncated(&self) -> StructureTruncated {
+        self.0.with_dependent(|pdf, _| StructureTruncated {
+            // A tree that lost its kids, with nothing found by a scan, looks like an empty one.
+            pages: pdf.pages().walk_stopped() || pdf.pages().lost_everything(),
+            page_labels: labels::walked(pdf).stopped,
+            outline: outline::walked(pdf).stopped,
+        })
+    }
+
+    /// For `examples/budgets.rs`: what a render of the page spent, and whether it was cut short.
+    #[doc(hidden)]
+    #[cfg(feature = "render")]
+    pub fn render_budget(&self, index: usize, width: f32) -> Result<((u32, usize, u32), bool), EngineError> {
+        let settings = self.pixmap_settings(index, width, 4096.0)?;
+        Ok(self.0.with_dependent(|pdf, caches| {
+            let Some(page) = pdf.pages().get(index) else {
+                unreachable!("pixmap_settings found it")
+            };
+            let interpreter = crate::assets::settings();
+            let budget = interpreter.budget.clone();
+            let _ = render(page, &caches.render, &interpreter, &RenderSettings::default(), &settings);
+            (budget.used(), caches.render.take_degraded())
+        }))
+    }
+
+    /// For `examples/budgets.rs`: what the walks of the file's trees used: page tree kids and their
+    /// limit, label nodes, name tree nodes, and whether the tree was lost altogether.
+    #[doc(hidden)]
+    pub fn tree_use(&self) -> ((usize, usize), usize, usize, bool) {
+        self.0.with_dependent(|pdf, _| {
+            (pdf.pages().kids_read(), labels::walked(pdf).nodes, outline::walked(pdf).names, pdf.pages().lost_everything())
+        })
     }
 
     /// The document's outline, in order; each item's children follow it, one level deeper.

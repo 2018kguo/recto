@@ -187,6 +187,13 @@ struct PageWalk<'a> {
     /// What pages inherit, one entry per node that changes it.
     contexts: Vec<PagesContext<'a>>,
     kids_left: usize,
+    /// recto: read once each, or a large page repeated in `/Kids` is parsed every time: 2^18 times.
+    read: FxHashMap<ObjectIdentifier, Option<Dict<'a>>>,
+    /// A kid was missing or broken, so the tree isn't all the file's pages.
+    lost_kid: bool,
+    /// recto: the kids ran out, so pages may be missing.
+    stopped: bool,
+    kids_read: usize,
 }
 
 struct WalkFrame<'a> {
@@ -202,6 +209,10 @@ impl<'a> PageWalk<'a> {
             path: FxHashSet::default(),
             contexts: vec![PagesContext::new()],
             kids_left: objects.saturating_add(MAX_REPEATED_KIDS),
+            read: FxHashMap::default(),
+            lost_kid: false,
+            stopped: false,
+            kids_read: 0,
         };
         walk.enter(root, root.obj_id(), 0)?;
         Some(walk)
@@ -243,26 +254,34 @@ impl<'a> PageWalk<'a> {
                 continue;
             };
             if self.kids_left == 0 {
+                self.stopped = true;
                 self.stack.clear();
                 return None;
             }
             self.kids_left -= 1;
+            self.kids_read += 1;
             let (id, dict) = match kid {
                 MaybeRef::Ref(id) => {
                     let id: ObjectIdentifier = id.into();
                     if self.path.contains(&id) {
                         continue;
                     }
-                    (Some(id), reader.xref().get_with::<Dict<'a>>(id, reader))
+                    let dict = self
+                        .read
+                        .entry(id)
+                        .or_insert_with(|| reader.xref().get_with::<Dict<'a>>(id, reader))
+                        .clone();
+                    (Some(id), dict)
                 }
                 MaybeRef::NotRef(object) => (None, object.into_dict()),
             };
             let Some(dict) = dict else {
+                self.lost_kid = true;
                 continue;
             };
             match dict.get::<Name<'_>>(TYPE).as_deref() {
                 Some(PAGES) => {
-                    let _ = self.enter(&dict, id, context);
+                    self.lost_kid |= self.enter(&dict, id, context).is_none();
                 }
                 // Let's be lenient and assume it's a `Page` in case it's `None` or something else
                 // (see corpus test case 0083781).
@@ -361,6 +380,23 @@ impl<'a> Pages<'a> {
         }
     }
 
+    /// recto: whether the walk of the tree stopped at its limit, so pages may be missing.
+    pub fn walk_stopped(&self) -> bool {
+        self.lazy.as_ref().is_some_and(|lazy| lazy.walked.get().walk.stopped)
+    }
+
+    /// recto: how many kids the walk has read, and how many it may: the objects, and this many repeats.
+    pub fn kids_read(&self) -> (usize, usize) {
+        let read = self.lazy.as_ref().map_or(0, |lazy| lazy.walked.get().walk.kids_read);
+        (read, self.xref.len().saturating_add(MAX_REPEATED_KIDS))
+    }
+
+    /// recto: whether a kid was lost and no pages were found: the tree is damaged, where one that's
+    /// honestly empty, or a document with no pages, isn't.
+    pub fn lost_everything(&self) -> bool {
+        self.is_empty() && self.lazy.as_ref().is_some_and(|lazy| lazy.walked.get().walk.lost_kid)
+    }
+
     /// recto: whether there are no pages.
     pub fn is_empty(&self) -> bool {
         self.len() == 0
@@ -399,7 +435,7 @@ impl<'a> Pages<'a> {
 
         for object in xref.objects() {
             if let Some(dict) = object.into_dict()
-                && let Some(page) = Page::new(&dict, &PagesContext::new(), ctx, true)
+                && let Some(page) = Page::new(&dict, &inherited(&dict), ctx, true)
             {
                 pages.push(page);
             }
@@ -442,6 +478,21 @@ impl<'a> Deref for Pages<'a> {
             None => &self.pages,
         }
     }
+}
+
+/// recto: what a page found without its tree gets from the nodes above it, by way of `/Parent`.
+fn inherited<'a>(page: &Dict<'a>) -> PagesContext<'a> {
+    let mut nodes = Vec::new();
+    let mut seen = FxHashSet::default();
+    let mut node = page.get::<Dict<'a>>(PARENT);
+    while let Some(parent) = node.take().filter(|_| nodes.len() < MAX_CHECKED_DEPTH) {
+        if parent.obj_id().is_some_and(|id| !seen.insert(id)) {
+            break;
+        }
+        node = parent.get::<Dict<'a>>(PARENT);
+        nodes.push(parent);
+    }
+    nodes.iter().rev().fold(PagesContext::new(), |context, node| inherit(node, context))
 }
 
 fn inherit<'a>(dict: &Dict<'a>, mut ctx: PagesContext<'a>) -> PagesContext<'a> {
@@ -491,11 +542,19 @@ impl<'a> Page<'a> {
             return None;
         }
 
-        let media_box = dict.get::<Rect>(MEDIA_BOX).or(ctx.media_box).unwrap_or(A4);
+        // recto: a box with no area is no box. The first valid one applies, then Letter, as in
+        // pdf.js and pdfium.
+        let media_box = dict
+            .get::<Rect>(MEDIA_BOX)
+            .filter(has_area)
+            .or(ctx.media_box.filter(has_area))
+            .unwrap_or(LETTER);
 
+        // recto: one with no area, or none in the media box, isn't a crop box either.
         let crop_box = dict
             .get::<Rect>(CROP_BOX)
             .or(ctx.crop_box)
+            .filter(|crop_box| has_area(&crop_box.intersect(media_box)))
             .unwrap_or(media_box);
 
         let rotation = match dict
@@ -593,20 +652,30 @@ impl<'a> Page<'a> {
         self.crop_box().intersect(self.media_box())
     }
 
+    /// recto: the page's annotations, each read once. One listed thousands of times would be parsed
+    /// thousands of times, however large.
+    pub fn annotations(&self) -> Vec<Dict<'a>> {
+        let Some(annotations) = self.raw().get::<Array<'a>>(ANNOTS) else {
+            return Vec::new();
+        };
+        let mut seen = FxHashSet::default();
+        annotations
+            .raw_iter()
+            .filter_map(|annotation| match annotation {
+                MaybeRef::Ref(id) => {
+                    let id: ObjectIdentifier = id.into();
+                    seen.insert(id).then(|| self.xref().get_with::<Dict<'a>>(id, &self.ctx))?
+                }
+                MaybeRef::NotRef(object) => object.into_dict(),
+            })
+            .collect()
+    }
+
     /// Return the base dimensions of the page (same as `intersected_crop_box`, but with special
     /// handling applied for zero-area pages).
     pub fn base_dimensions(&self) -> (f32, f32) {
         let crop_box = self.intersected_crop_box();
-
-        if (crop_box.width() as f32).is_nearly_zero() || (crop_box.height() as f32).is_nearly_zero()
-        {
-            (A4.width() as f32, A4.height() as f32)
-        } else {
-            (
-                crop_box.width().max(1.0) as f32,
-                crop_box.height().max(1.0) as f32,
-            )
-        }
+        (crop_box.width().max(1.0) as f32, crop_box.height().max(1.0) as f32)
     }
 
     /// Return the with and height of the page that should be assumed when rendering the page.
@@ -767,15 +836,18 @@ impl<'a> Resources<'a> {
 
 // <https://github.com/apache/pdfbox/blob/a53a70db16ea3133994120bcf1e216b9e760c05b/pdfbox/src/main/java/org/apache/pdfbox/pdmodel/common/PDRectangle.java#L38>
 const POINTS_PER_INCH: f64 = 72.0;
-const POINTS_PER_MM: f64 = 1.0 / (10.0 * 2.54) * POINTS_PER_INCH;
 
-/// The dimension of an A4 page.
-pub const A4: Rect = Rect {
+/// recto: the size a page with no usable `/MediaBox` gets.
+const LETTER: Rect = Rect {
     x0: 0.0,
     y0: 0.0,
-    x1: 210.0 * POINTS_PER_MM,
-    y1: 297.0 * POINTS_PER_MM,
+    x1: 8.5 * POINTS_PER_INCH,
+    y1: 11.0 * POINTS_PER_INCH,
 };
+
+fn has_area(rect: &Rect) -> bool {
+    !(rect.width() as f32).is_nearly_zero() && !(rect.height() as f32).is_nearly_zero()
+}
 
 pub(crate) mod cached {
     use crate::page::Pages;
@@ -810,10 +882,14 @@ pub(crate) mod cached {
             let xref_reference: &'static XRef = unsafe { core::mem::transmute(xref.deref()) };
 
             let ctx = ReaderContext::new(xref_reference, false);
-            let pages = xref_reference
+            let tree = xref_reference
                 .get_with(xref.trailer_data().pages_ref, &ctx)
-                .and_then(|p| Pages::new(&p, &ctx, xref_reference))
-                .or_else(|| Pages::new_brute_force(&ctx, xref_reference))?;
+                .and_then(|p| Pages::new(&p, &ctx, xref_reference));
+            let pages = if tree.as_ref().is_none_or(Pages::lost_everything) {
+                Pages::new_brute_force(&ctx, xref_reference).or(tree)?
+            } else {
+                tree?
+            };
 
             Some(Self { pages, _xref: xref })
         }

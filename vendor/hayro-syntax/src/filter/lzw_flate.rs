@@ -701,12 +701,13 @@ struct PredictorParams {
 }
 
 impl PredictorParams {
-    fn bits_per_pixel(&self) -> u8 {
-        self.bits_per_component * self.colors
+    // recto: wide enough for what a file can say; 255 colours of 16 bits don't fit a `u8`.
+    fn bits_per_pixel(&self) -> usize {
+        self.bits_per_component as usize * self.colors as usize
     }
 
     fn row_length_in_bytes(&self) -> usize {
-        (self.columns * self.bits_per_pixel() as usize).div_ceil(8)
+        (self.columns * self.bits_per_pixel()).div_ceil(8)
     }
 }
 
@@ -740,6 +741,17 @@ fn apply_predictor(data: Vec<u8>, params: &PredictorParams) -> Option<Vec<u8>> {
         i => {
             let is_png_predictor = i >= 10;
 
+            // recto: these come straight from the file. No columns or colours made a row of no bytes
+            // to divide by, and a row longer than the data held nothing but a huge allocation.
+            let row_bits = (params.columns)
+                .checked_mul(params.bits_per_component as usize)?
+                .checked_mul(params.colors as usize)?;
+            if row_bits == 0 {
+                return None;
+            }
+            if row_bits.div_ceil(8) + usize::from(is_png_predictor) > data.len() {
+                return Some(Vec::new());
+            }
             let row_len = params.row_length_in_bytes();
 
             let total_row_len = if is_png_predictor {
@@ -758,7 +770,7 @@ fn apply_predictor(data: Vec<u8>, params: &PredictorParams) -> Option<Vec<u8>> {
             let (bit_size, chunk_len) = if is_png_predictor {
                 (
                     8,
-                    (params.colors * params.bits_per_component).div_ceil(8) as usize,
+                    params.bits_per_pixel().div_ceil(8),
                 )
             } else {
                 (params.bits_per_component, params.colors as usize)

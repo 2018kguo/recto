@@ -3,11 +3,11 @@
 // compare script in bench/ renders them in poppler and pdfium too.
 
 /** A one-page 100 x 100 PDF: objects are appended after catalog, pages and page. */
-export function pdfOf({ content, resources = "", objects = [] }) {
+export function pdfOf({ content, resources = "", objects = [], pageExtra = "", catalogExtra = "" }) {
   const all = [
-    "<</Type /Catalog /Pages 2 0 R>>",
+    `<</Type /Catalog /Pages 2 0 R${catalogExtra && ` ${catalogExtra}`}>>`,
     "<</Type /Pages /Count 1 /Kids [3 0 R]>>",
-    `<</Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R /Resources <<${resources}>>>>`,
+    `<</Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R /Resources <<${resources}>>${pageExtra && ` ${pageExtra}`}>>`,
     { dict: "", data: content },
     ...objects,
   ];

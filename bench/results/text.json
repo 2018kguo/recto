@@ -1,27 +1,93 @@
 {
- "date": "2026-11-06T22:05:11.452Z",
- "documents": 157,
- "of": 200,
+ "date": "2026-11-07T03:09:13.910Z",
+ "documents": 87,
+ "of": 537,
  "pagesEach": 10,
  "reference": null,
  "summary": {
-  "recto": {
-   "precision": 99.01,
-   "recall": 98.63,
-   "medianF1": 99.59,
-   "words": 256991
+  "recto against pdf.js": {
+   "precision": 98.15,
+   "recall": 98.99,
+   "microF1": 98.57,
+   "medianF1": 100,
+   "words": 146911
   },
-  "pdf.js": {
-   "precision": 99.1,
-   "recall": 98.98,
-   "medianF1": 99.55,
-   "words": 257651
+  "recto against pdfium": {
+   "precision": 97.73,
+   "recall": 97.68,
+   "microF1": 97.71,
+   "medianF1": 100,
+   "words": 146911
   },
-  "pdfium": {
-   "precision": 98.91,
-   "recall": 98.68,
-   "medianF1": 99.55,
-   "words": 257375
+  "recto against poppler": {
+   "precision": 98.72,
+   "recall": 98.6,
+   "microF1": 98.66,
+   "medianF1": 100,
+   "words": 146911
+  },
+  "pdf.js against recto": {
+   "precision": 98.99,
+   "recall": 98.15,
+   "microF1": 98.57,
+   "medianF1": 100,
+   "words": 145668
+  },
+  "pdf.js against pdfium": {
+   "precision": 97.17,
+   "recall": 96.29,
+   "microF1": 96.73,
+   "medianF1": 99.98,
+   "words": 145668
+  },
+  "pdf.js against poppler": {
+   "precision": 98.3,
+   "recall": 97.35,
+   "microF1": 97.82,
+   "medianF1": 99.95,
+   "words": 145668
+  },
+  "pdfium against recto": {
+   "precision": 97.68,
+   "recall": 97.73,
+   "microF1": 97.71,
+   "medianF1": 100,
+   "words": 146993
+  },
+  "pdfium against pdf.js": {
+   "precision": 96.29,
+   "recall": 97.17,
+   "microF1": 96.73,
+   "medianF1": 99.98,
+   "words": 146993
+  },
+  "pdfium against poppler": {
+   "precision": 97.03,
+   "recall": 96.97,
+   "microF1": 97,
+   "medianF1": 99.98,
+   "words": 146993
+  },
+  "poppler against recto": {
+   "precision": 98.6,
+   "recall": 98.72,
+   "microF1": 98.66,
+   "medianF1": 100,
+   "words": 147087
+  },
+  "poppler against pdf.js": {
+   "precision": 97.35,
+   "recall": 98.3,
+   "microF1": 97.82,
+   "medianF1": 99.95,
+   "words": 147087
+  },
+  "poppler against pdfium": {
+   "precision": 96.97,
+   "recall": 97.03,
+   "microF1": 97,
+   "medianF1": 99.98,
+   "words": 147087
   }
  }
 }

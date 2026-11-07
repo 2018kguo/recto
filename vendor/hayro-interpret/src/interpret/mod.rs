@@ -15,8 +15,8 @@ use crate::x_object::{FormXObject, ImageXObject, XObject};
 use bitflags::bitflags;
 use hayro_syntax::content::TypedIter;
 use hayro_syntax::content::ops::TypedInstruction;
-use hayro_syntax::object::dict::keys::{ANNOTS, AP, AS, F, N, OC, RECT};
-use hayro_syntax::object::{Array, Dict, Name, Object, Rect, Stream, dict_or_stream};
+use hayro_syntax::object::dict::keys::{AP, AS, F, N, OC, RECT};
+use hayro_syntax::object::{Dict, Name, Object, Rect, Stream, dict_or_stream};
 use hayro_syntax::page::{Page, Resources};
 use kurbo::{Affine, Point, Shape};
 use rustc_hash::FxHashMap;
@@ -29,6 +29,7 @@ pub(crate) mod path;
 pub(crate) mod stack;
 pub(crate) mod state;
 pub(crate) mod text;
+mod annot_fallback;
 pub(crate) mod page_run;
 pub(crate) mod text_only;
 
@@ -98,6 +99,8 @@ pub struct InterpreterSettings {
     pub warning_sink: WarningSinkFn,
     /// Which parts of a page should be rendered.
     pub render_content: RenderContent,
+    /// recto: what this interpretation may spend on what multiplies. One per page.
+    pub budget: Arc<crate::context::PageBudget>,
 }
 
 impl Default for InterpreterSettings {
@@ -117,6 +120,7 @@ impl Default for InterpreterSettings {
             warning_sink: Arc::new(|_| {}),
             // recto: not `all()`, which would take in TEXT_ONLY.
             render_content: RenderContent::PAGE | RenderContent::ANNOTATIONS,
+            budget: Arc::default(),
         }
     }
 }
@@ -168,10 +172,8 @@ pub fn interpret_page<'a>(
         interpret(page.typed_operations(), resources, context, device);
     }
 
-    if render_content.contains(RenderContent::ANNOTATIONS)
-        && let Some(annot_arr) = page.raw().get::<Array<'_>>(ANNOTS)
-    {
-        for annot in annot_arr.iter::<Dict<'_>>() {
+    if render_content.contains(RenderContent::ANNOTATIONS) {
+        for annot in page.annotations() {
             interpret_annotation(&annot, resources, context, device);
         }
     }
@@ -183,10 +185,29 @@ fn interpret_annotation<'a>(
     context: &mut Context<'a>,
     device: &mut impl Device<'a>,
 ) {
+    // recto: a text pass never draws annotations, so the text build shouldn't carry them.
+    if cfg!(not(feature = "raster")) {
+        return;
+    }
+
     let flags = annot.get::<u32>(F).unwrap_or(0);
 
     if flags & (ANNOTATION_HIDDEN | ANNOTATION_NO_VIEW) != 0 {
         return;
+    }
+
+    // recto: an annotation in a hidden optional content group isn't drawn.
+    if let Some(group) = annot.get::<Dict<'_>>(OC) {
+        match annot.get_ref(OC) {
+            Some(reference) => context.ocg_state.begin_ocg(&group, reference.into()),
+            // A group is always indirect, so a direct dictionary is a membership one.
+            None => context.ocg_state.begin_ocmd(&group),
+        }
+        let visible = context.ocg_state.is_visible();
+        context.ocg_state.end_marked_content();
+        if !visible {
+            return;
+        }
     }
 
     if let Some(apx) = appearance_stream(annot).and_then(|o| FormXObject::new(&o)) {
@@ -245,6 +266,8 @@ fn interpret_annotation<'a>(
         context.restore_state(device);
     } else if annot.get::<Dict<'_>>(AP).is_some() {
         (context.settings.warning_sink)(InterpreterWarning::UnresolvedAnnotationAppearance);
+    } else {
+        annot_fallback::draw(annot, resources, context, device);
     }
 }
 
@@ -268,11 +291,14 @@ pub fn interpret<'a>(
     context: &mut Context<'a>,
     device: &mut impl Device<'a>,
 ) {
+    if !context.charge_nested() {
+        return;
+    }
     let num_states = context.num_states();
 
     context.save_state();
 
-    run_ops(&mut ops, resources, context, device, None);
+    run_ops(&mut ops, resources, context, device, None, num_states + 1);
 
     // A path object, including a pending `W` or `W*`, can't continue beyond the content
     // stream it starts in.
@@ -292,6 +318,8 @@ pub(crate) fn run_ops<'a>(
     context: &mut Context<'a>,
     device: &mut impl Device<'a>,
     mut slice: Option<&mut page_run::Slice<'_>>,
+    // recto: how many states this stream started with, which its `Q`s can't go below.
+    floor: usize,
 ) -> page_run::Step<'a> {
     let mut font_dict_cache = FxHashMap::<Name<'a>, Dict<'a>>::default();
 
@@ -477,7 +505,14 @@ pub(crate) fn run_ops<'a>(
             TypedInstruction::ClipEvenOdd(_) => {
                 *(context.clip_mut()) = Some(FillRule::EvenOdd);
             }
-            TypedInstruction::RestoreState(_) => context.restore_state(device),
+            TypedInstruction::RestoreState(_) => {
+                // Ignore a `Q` without a matching `q` in this stream: it would otherwise
+                // restore the state saved on entry and let later operators change the
+                // caller's state.
+                if context.num_states() > floor {
+                    context.restore_state(device);
+                }
+            }
             TypedInstruction::FlatnessTolerance(_) => {
                 // Ignore for now.
             }
