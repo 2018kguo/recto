@@ -1,5 +1,5 @@
-use hayro_syntax::object::dict::keys::{BASE_STATE, D, OCGS, OCMD, OCPROPERTIES, OFF, ON, P, TYPE};
-use hayro_syntax::object::{Array, Dict, Name, ObjectIdentifier};
+use hayro_syntax::object::dict::keys::{BASE_STATE, D, OCGS, OCMD, OCPROPERTIES, OFF, ON, P, TYPE, VE};
+use hayro_syntax::object::{Array, Dict, Name, Object, ObjectIdentifier};
 use std::collections::HashSet;
 
 pub(crate) struct OcgState {
@@ -71,7 +71,50 @@ impl OcgState {
         self.visibility_stack.push(visible);
     }
 
+    /// recto: a visibility expression (`/VE`): `[/And a b ...]`, `[/Or a b ...]` or `[/Not a]`, whose
+    /// operands are groups or further expressions.
+    fn evaluate_expression(&self, expression: &Array<'_>, depth: usize) -> Option<bool> {
+        const MAX_DEPTH: usize = 32;
+        if depth > MAX_DEPTH {
+            return None;
+        }
+        let mut raw = expression.raw_iter();
+        let mut resolved = expression.iter::<Object<'_>>();
+        raw.next();
+        let operator = resolved.next()?.into_name()?;
+        let mut operands = Vec::new();
+        for (item, object) in raw.zip(resolved) {
+            let value = match (item.as_obj_ref(), object) {
+                (_, Object::Array(nested)) => self.evaluate_expression(&nested, depth + 1),
+                (Some(reference), _) => {
+                    let id: ObjectIdentifier = reference.into();
+                    Some(!self.inactive_ocgs.contains(&id))
+                }
+                _ => None,
+            };
+            if let Some(value) = value {
+                operands.push(value);
+            }
+        }
+        match operator.as_ref() {
+            b"And" => Some(operands.iter().all(|&on| on)),
+            b"Or" => Some(operands.iter().any(|&on| on)),
+            b"Not" => operands.first().map(|&on| !on),
+            _ => None,
+        }
+    }
+
     pub(crate) fn begin_ocmd(&mut self, ocmd: &Dict<'_>) {
+        // recto: `/VE` takes the place of `/OCGs` and `/P` for a reader that understands it.
+        if let Some(on) = ocmd
+            .get::<Array<'_>>(VE)
+            .and_then(|expression| self.evaluate_expression(&expression, 0))
+        {
+            let visible = self.is_visible() && on;
+            self.visibility_stack.push(visible);
+            return;
+        }
+
         let policy = ocmd
             .get::<Name<'_>>(P)
             .and_then(|n| OcmdPolicy::from_name(n.as_ref()))

@@ -162,7 +162,7 @@ fn fallback_xref_map_inner<'a>(
                                 after_dict.skip_white_spaces_and_comments();
                                 after_dict.forward_tag(b"stream").is_some()
                             }
-                            && let Some(stream) = old_r.read::<Stream<'_>>(&dummy_ctx)
+                            && let Some(stream) = old_r.read_indirect::<Stream<'_>>(&dummy_ctx)
                             && let Some(last_obj_num) = last_obj_num
                             && let Some(obj_stream) = ObjectStream::new(&stream)
                         {
@@ -1028,7 +1028,12 @@ fn populate_from_xref_stream<'a>(
         .read_with_context::<IndirectObject<Stream<'_>>>(&ReaderContext::dummy())?
         .get();
 
-    if let Some(prev) = stream.dict().get::<i64>(PREV) {
+    if let Some(prev) = stream.dict().get::<i64>(PREV)
+        // recto: the `XRefStm` of a hybrid file usually has the same `Prev` as the table that
+        // names it, already read. That is no reason to give the whole xref up for a repair, which
+        // takes the first copy of an object where the xref would take the last.
+        && !visited.contains(&(prev as usize))
+    {
         // First insert the entries from any previous xref tables.
         let _ = populate_xref_impl_inner(data, prev as usize, insert_map, visited)?;
     }

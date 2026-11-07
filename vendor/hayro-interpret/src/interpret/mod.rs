@@ -189,6 +189,17 @@ fn interpret_annotation<'a>(
         return;
     }
 
+    // recto: an annotation in a hidden optional content group isn't drawn.
+    if let Some(reference) = annot.get_ref(OC) {
+        let group = annot.get::<Dict<'_>>(OC).unwrap_or_default();
+        context.ocg_state.begin_ocg(&group, reference.into());
+        let visible = context.ocg_state.is_visible();
+        context.ocg_state.end_marked_content();
+        if !visible {
+            return;
+        }
+    }
+
     if let Some(apx) = appearance_stream(annot).and_then(|o| FormXObject::new(&o)) {
         let Some(rect) = annot.get::<Rect>(RECT) else {
             return;
@@ -272,7 +283,7 @@ pub fn interpret<'a>(
 
     context.save_state();
 
-    run_ops(&mut ops, resources, context, device, None);
+    run_ops(&mut ops, resources, context, device, None, num_states + 1);
 
     // A path object, including a pending `W` or `W*`, can't continue beyond the content
     // stream it starts in.
@@ -292,6 +303,8 @@ pub(crate) fn run_ops<'a>(
     context: &mut Context<'a>,
     device: &mut impl Device<'a>,
     mut slice: Option<&mut page_run::Slice<'_>>,
+    // recto: how many states this stream started with, which its `Q`s can't go below.
+    floor: usize,
 ) -> page_run::Step<'a> {
     let mut font_dict_cache = FxHashMap::<Name<'a>, Dict<'a>>::default();
 
@@ -477,7 +490,14 @@ pub(crate) fn run_ops<'a>(
             TypedInstruction::ClipEvenOdd(_) => {
                 *(context.clip_mut()) = Some(FillRule::EvenOdd);
             }
-            TypedInstruction::RestoreState(_) => context.restore_state(device),
+            TypedInstruction::RestoreState(_) => {
+                // Ignore a `Q` without a matching `q` in this stream: it would otherwise
+                // restore the state saved on entry and let later operators change the
+                // caller's state.
+                if context.num_states() > floor {
+                    context.restore_state(device);
+                }
+            }
             TypedInstruction::FlatnessTolerance(_) => {
                 // Ignore for now.
             }

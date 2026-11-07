@@ -26,6 +26,11 @@ pub(crate) struct FontProgram(Arc<Inner>);
 
 impl FontProgram {
     pub(crate) fn new(data: FontData, index: u32) -> Option<Self> {
+        // recto: see `repair_loca`.
+        #[cfg(feature = "outlines")]
+        let data = repair_loca(data.as_ref().as_ref())
+            .map(|repaired| -> FontData { Arc::new(repaired) })
+            .unwrap_or(data);
         let mut font = Font::new(data.clone(), index)?;
 
         // OpenType fonts embedded in PDFs sometimes only contain the tables needed for their
@@ -300,6 +305,91 @@ struct Inner {
     font: Font,
     #[cfg(feature = "outlines")]
     scaler: ScalerFont,
+}
+
+/// recto: a copy of a TrueType font whose `loca` runs backwards, in order. skrifa reads a glyph from
+/// `loca[i]` to `loca[i + 1]` and finds nothing when the second is the lower, so those glyphs would
+/// go missing, where FreeType and the others read on to the end of the table. None for a font that's
+/// in order, which is nearly all, so what this costs is one pass over `loca`.
+#[cfg(feature = "outlines")]
+fn repair_loca(font: &[u8]) -> Option<Vec<u8>> {
+    let be16 = |at: usize| Some(u16::from_be_bytes(font.get(at..at + 2)?.try_into().ok()?));
+    let be32 = |at: usize| Some(u32::from_be_bytes(font.get(at..at + 4)?.try_into().ok()?));
+    let mut records = [None; 3];
+    for i in 0..be16(4)? as usize {
+        let record = 12 + 16 * i;
+        let slot = match font.get(record..record + 4)? {
+            b"head" => 0,
+            b"loca" => 1,
+            b"glyf" => 2,
+            _ => continue,
+        };
+        records[slot] = Some((record, be32(record + 8)? as usize, be32(record + 12)? as usize));
+    }
+    let (head_record, loca_record, glyf_record) = (records[0]?, records[1]?, records[2]?);
+    let (_, head, _) = head_record;
+    let (_, glyf, glyf_length) = glyf_record;
+    font.get(glyf..glyf.checked_add(glyf_length)?)?;
+    let long = be16(head + 50)? != 0;
+    let entry_size = if long { 4 } else { 2 };
+    let entries = loca_record.2 / entry_size;
+    let offset_of = |i: usize| -> Option<usize> {
+        let at = loca_record.1 + i * entry_size;
+        if long { be32(at).map(|v| v as usize) } else { be16(at).map(|v| v as usize * 2) }
+    };
+    let mut offsets = Vec::with_capacity(entries);
+    let mut in_order = true;
+    for i in 0..entries {
+        let offset = offset_of(i)?;
+        in_order &= offsets.last().is_none_or(|&last| last <= offset);
+        offsets.push(offset);
+    }
+    if in_order || entries < 2 {
+        return None;
+    }
+    let mut sorted = offsets.clone();
+    sorted.sort_unstable();
+    sorted.dedup();
+    let mut glyphs = Vec::new();
+    let mut new_loca = Vec::with_capacity(entries * 4);
+    for pair in offsets.windows(2) {
+        new_loca.extend_from_slice(&u32::try_from(glyphs.len()).ok()?.to_be_bytes());
+        let (start, end) = (pair[0], pair[1]);
+        if start == end || start >= glyf_length {
+            continue;
+        }
+        let end = if end > start {
+            end.min(glyf_length)
+        } else {
+            // Up to the glyph that follows in the table, not all the way to its end.
+            let next = sorted.partition_point(|&offset| offset <= start);
+            sorted.get(next).copied().unwrap_or(glyf_length).min(glyf_length)
+        };
+        // A hostile `loca` could name one long stretch many times over.
+        if glyphs.len() + (end - start) > font.len().saturating_mul(16) {
+            return None;
+        }
+        glyphs.extend_from_slice(&font[glyf + start..glyf + end]);
+    }
+    new_loca.extend_from_slice(&u32::try_from(glyphs.len()).ok()?.to_be_bytes());
+
+    let mut repaired = Vec::with_capacity(font.len() + glyphs.len() + new_loca.len() + 8);
+    repaired.extend_from_slice(font);
+    repaired.resize(repaired.len().next_multiple_of(4), 0);
+    let new_glyf = repaired.len();
+    repaired.extend_from_slice(&glyphs);
+    repaired.resize(repaired.len().next_multiple_of(4), 0);
+    let new_loca_at = repaired.len();
+    repaired.extend_from_slice(&new_loca);
+    let mut point = |record: usize, offset: usize, length: usize| -> Option<()> {
+        repaired.get_mut(record + 8..record + 12)?.copy_from_slice(&u32::try_from(offset).ok()?.to_be_bytes());
+        repaired.get_mut(record + 12..record + 16)?.copy_from_slice(&u32::try_from(length).ok()?.to_be_bytes());
+        Some(())
+    };
+    point(glyf_record.0, new_glyf, glyphs.len())?;
+    point(loca_record.0, new_loca_at, new_loca.len())?;
+    repaired.get_mut(head + 50..head + 52)?.copy_from_slice(&1u16.to_be_bytes());
+    Some(repaired)
 }
 
 fn cff_table_font(data: &FontData, index: u32) -> Option<Font> {

@@ -114,7 +114,8 @@ impl<'a> PageRun<'a> {
         };
         while let Some(frame) = self.frames.last_mut() {
             let mut ops = TypedIter::new(&frame.data[frame.pos..]);
-            let step = run_ops(&mut ops, &frame.resources, context, device, Some(&mut slice));
+            let floor = frame.states + 1;
+            let step = run_ops(&mut ops, &frame.resources, context, device, Some(&mut slice), floor);
             frame.pos += ops.offset();
             match step {
                 Step::Paused => return false,
