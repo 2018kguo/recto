@@ -332,7 +332,6 @@ impl Document {
 
     /// For `examples/budgets.rs`: what a render of the page spent, and whether it was cut short.
     #[doc(hidden)]
-    #[cfg(feature = "render")]
     pub fn render_budget(&self, index: usize, width: f32) -> Result<((u32, usize, u32), bool), EngineError> {
         let settings = self.pixmap_settings(index, width, 4096.0)?;
         Ok(self.0.with_dependent(|pdf, caches| {
