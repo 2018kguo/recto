@@ -532,9 +532,11 @@ impl<'a> Page<'a> {
             .or(ctx.media_box.filter(has_area))
             .unwrap_or(LETTER);
 
+        // recto: one with no area, or none in the media box, isn't a crop box either.
         let crop_box = dict
             .get::<Rect>(CROP_BOX)
             .or(ctx.crop_box)
+            .filter(|crop_box| has_area(&crop_box.intersect(media_box)))
             .unwrap_or(media_box);
 
         let rotation = match dict
@@ -655,16 +657,7 @@ impl<'a> Page<'a> {
     /// handling applied for zero-area pages).
     pub fn base_dimensions(&self) -> (f32, f32) {
         let crop_box = self.intersected_crop_box();
-
-        if (crop_box.width() as f32).is_nearly_zero() || (crop_box.height() as f32).is_nearly_zero()
-        {
-            (A4.width() as f32, A4.height() as f32)
-        } else {
-            (
-                crop_box.width().max(1.0) as f32,
-                crop_box.height().max(1.0) as f32,
-            )
-        }
+        (crop_box.width().max(1.0) as f32, crop_box.height().max(1.0) as f32)
     }
 
     /// Return the with and height of the page that should be assumed when rendering the page.
@@ -825,7 +818,6 @@ impl<'a> Resources<'a> {
 
 // <https://github.com/apache/pdfbox/blob/a53a70db16ea3133994120bcf1e216b9e760c05b/pdfbox/src/main/java/org/apache/pdfbox/pdmodel/common/PDRectangle.java#L38>
 const POINTS_PER_INCH: f64 = 72.0;
-const POINTS_PER_MM: f64 = 1.0 / (10.0 * 2.54) * POINTS_PER_INCH;
 
 /// recto: the size a page with no usable `/MediaBox` gets.
 const LETTER: Rect = Rect {
@@ -838,14 +830,6 @@ const LETTER: Rect = Rect {
 fn has_area(rect: &Rect) -> bool {
     !(rect.width() as f32).is_nearly_zero() && !(rect.height() as f32).is_nearly_zero()
 }
-
-/// The dimension of an A4 page.
-pub const A4: Rect = Rect {
-    x0: 0.0,
-    y0: 0.0,
-    x1: 210.0 * POINTS_PER_MM,
-    y1: 297.0 * POINTS_PER_MM,
-};
 
 pub(crate) mod cached {
     use crate::page::Pages;

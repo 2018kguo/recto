@@ -480,3 +480,14 @@ test("an annotation's /OC can be a direct membership dictionary", async () => {
   assert.deepEqual((await page("<</Type /OCMD /OCGs [6 0 R]>>")).at(50, 50), WHITE);
   assert.deepEqual((await page("<</Type /OCMD /OCGs [5 0 R]>>")).at(50, 50), RED);
 });
+
+test("a crop box with no area, or outside the media box, gives way to the media box", async () => {
+  for (const crop of ["[0 0 0 0]", "[600 800 1000 1000]"]) {
+    const bytes = pdfOf({ content: "1 0 0 rg 0 0 100 100 re f", pageExtra: `/CropBox ${crop}` });
+    const doc = await engine.open(bytes);
+    const { width, height } = doc.pageInfo(0);
+    doc.close();
+    assert.deepEqual([width, height], [100, 100], crop);
+    assert.deepEqual((await render(bytes)).at(50, 50), RED, crop);
+  }
+});
