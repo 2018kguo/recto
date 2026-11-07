@@ -29,6 +29,7 @@ pub(crate) mod path;
 pub(crate) mod stack;
 pub(crate) mod state;
 pub(crate) mod text;
+mod annot_fallback;
 pub(crate) mod page_run;
 pub(crate) mod text_only;
 
@@ -256,6 +257,8 @@ fn interpret_annotation<'a>(
         context.restore_state(device);
     } else if annot.get::<Dict<'_>>(AP).is_some() {
         (context.settings.warning_sink)(InterpreterWarning::UnresolvedAnnotationAppearance);
+    } else {
+        annot_fallback::draw(annot, resources, context, device);
     }
 }
 

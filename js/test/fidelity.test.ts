@@ -170,3 +170,51 @@ test("a soft mask's group with its BBox corners the other way round still masks 
   );
   assert.deepEqual(page.at(50, 50), RED);
 });
+
+// An annotation with no /AP, drawn from its dictionary. The page is white, or green under a highlight.
+function annotated(annot: string, content = "") {
+  return pdfOf({ content, objects: [annot], pageExtra: "/Annots [5 0 R]" });
+}
+
+test("a highlight with no appearance multiplies over what's under it", async () => {
+  const page = await render(
+    annotated("<</Type /Annot /Subtype /Highlight /Rect [10 10 90 50] /C [1 1 0] /QuadPoints [10 50 90 50 10 10 90 10]>>", "0 1 1 rg 0 0 50 100 re f")
+  );
+  assert.deepEqual(page.at(70, 70), [255, 255, 0], "yellow on paper");
+  assert.deepEqual(page.at(30, 70), GREEN, "yellow times cyan");
+  assert.deepEqual(page.at(70, 20), WHITE, "outside its quad");
+});
+
+test("markup, shapes and ink with no appearance are drawn from their dictionaries", async () => {
+  const cases: [string, string, [number, number], number[], [number, number]][] = [
+    ["underline", "/Subtype /Underline /Rect [0 40 100 61] /C [1 0 0] /QuadPoints [0 60.5 100 60.5 0 40.5 100 40.5]", [50, 59], RED, [50, 50]],
+    ["strikeout", "/Subtype /StrikeOut /Rect [0 40 100 61] /C [1 0 0] /QuadPoints [0 60.5 100 60.5 0 40.5 100 40.5]", [50, 49], RED, [50, 42]],
+    ["square, filled", "/Subtype /Square /Rect [20 20 80 80] /IC [0 1 0] /C [1 0 0] /BS <</W 4>>", [50, 50], GREEN, [10, 10]],
+    ["square, outline", "/Subtype /Square /Rect [20 20 80 80] /C [1 0 0] /BS <</W 4>>", [21, 50], RED, [50, 50]],
+    ["circle", "/Subtype /Circle /Rect [20 20 80 80] /IC [1 0 0] /C [1 0 0]", [50, 50], RED, [22, 22]],
+    ["line", "/Subtype /Line /Rect [0 0 100 100] /L [0 50 100 50] /C [1 0 0] /BS <</W 6>>", [50, 49], RED, [50, 30]],
+    ["polygon", "/Subtype /Polygon /Rect [0 0 100 100] /Vertices [10 10 90 10 50 90] /IC [0 1 0] /C [0 1 0]", [50, 60], GREEN, [15, 20]],
+    ["ink", "/Subtype /Ink /Rect [0 0 100 100] /InkList [[0 50 100 50]] /C [1 0 0] /BS <</W 6>>", [50, 49], RED, [50, 30]],
+  ];
+  for (const [name, dict, at, want, away] of cases) {
+    const page = await render(annotated(`<</Type /Annot ${dict}>>`));
+    assert.deepEqual(page.at(...at), want, name);
+    assert.deepEqual(page.at(...away), WHITE, `${name}, away from it`);
+  }
+});
+
+test("a hidden annotation with no appearance stays hidden, and an empty /C draws no stroke", async () => {
+  for (const dict of ["/F 2 /Subtype /Square /Rect [20 20 80 80] /IC [1 0 0]", "/Subtype /Square /Rect [20 20 80 80] /C []"]) {
+    const page = await render(annotated(`<</Type /Annot ${dict}>>`));
+    assert.deepEqual(page.at(50, 50), WHITE, dict);
+    assert.deepEqual(page.at(20, 50), WHITE, dict);
+  }
+});
+
+test("a free text box with no appearance shows its fill and its words", async () => {
+  const page = await render(annotated("<</Type /Annot /Subtype /FreeText /Rect [10 10 90 90] /C [0 1 0] /DA (0 0 0 rg /Nope 20 Tf) /Contents (HHHH) /BS <</W 0>>>>"));
+  assert.deepEqual(page.at(50, 80), GREEN);
+  let dark = 0;
+  for (let y = 10; y < 45; y++) for (let x = 10; x < 90; x++) if ((page.at(x, y)[1] ?? 255) < 100) dark++;
+  assert.ok(dark > 40, `the text is there: ${dark} dark pixels`);
+});
