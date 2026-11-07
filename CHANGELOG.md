@@ -3,14 +3,14 @@
 ## 0.3.0
 
 Rendered pixels are now compared with pdfium, pdf.js and poppler, with `bench/scorecard.mjs`: on 539
-small, mostly adversarial files recto agrees on 96.7% of the pages two of the others agree on, from 93.8%,
+small, mostly adversarial files recto agrees on 96.9% of the pages two of the others agree on, from 93.8%,
 and the threshold can hide a missing line. See
 `docs/benchmarks.md`.
 
 ### Added
 
 - `doc.pageLabels()`: what each page is called. The same as pdf.js on all 16 suite files that have any.
-- `bench/scorecard.mjs`, `bench/fuzz.mjs`, `bench/api-cases.mjs`, and a bounded fuzz test in CI.
+- `bench/scorecard.mjs`, `bench/fuzz.mjs`, `bench/fuzz-structures.mjs`, `bench/api-cases.mjs`, and a bounded fuzz test in CI.
 
 ### Fixed
 
@@ -18,10 +18,10 @@ Rendering:
 
 - An annotation with no appearance stream was left out. Highlights, underlines, squiggles, strikeouts,
   squares, circles, lines, polylines, polygons, ink, free text and form fields are drawn from their
-  dictionaries.
+  dictionaries; a combo box shows its option's display text, and a list box its options.
 - A TrueType font whose `loca` runs backwards lost those glyphs.
 - A hybrid file's `XRefStm` with the table's own `Prev` lost the xref, and the repair took old objects.
-- A visibility expression (`/VE`) was ignored, and so was `/OC` on an annotation.
+- A visibility expression (`/VE`) was ignored, and so was `/OC` on an annotation, direct or not.
 - A `Q` with no `q` in a form undid its caller's state.
 - A form's `BBox` with its corners the other way round.
 - From upstream hayro since 0.9.0: sub-pixel dashes drawn solid, a lone sign read as zero, streams only as an indirect
@@ -33,6 +33,10 @@ Text:
   font's character collection.
 - A `ToUnicode` map written with cidranges, and one with empty destinations (from upstream).
 
+Files built to cost, a hang or a `crash` before, now stopping at a budget: page labels, destination names and `/VE` whose nodes
+name the next twice; forms, patterns and Type 3 glyphs that draw the next twice; a large page repeated in `/Kids` or a large
+annotation in `/Annots` (read once each, drawn once each); annotations with no appearance that ask for gigabytes of stream.
+
 Damaged files, each a `crash`, a hang or all of memory before:
 
 - A predictor with no columns or colours, or more than fit a byte.
@@ -43,9 +47,15 @@ Opening:
 
 - A file whose password protects only its attachments opens without one.
 - An xref that gives no pages is repaired by scanning the file.
-- A page tree whose kids are all lost falls back to a scan, and the file is refused if that finds no page. It used to open with no
-  pages. A tree that's honestly empty still does.
+- A page tree whose kids are all lost falls back to a scan. A tree that's honestly empty is a document with no pages, with
+  nothing scanned or fetched.
+- A repair took an older plain copy over a newer one in an object stream, and free entries were ignored, in the scan and in the
+  xref chain. What a later revision removes stays removed.
+- A page a scan finds inherits through its `/Parent`.
 - A page with an empty, zero-area or missing `/MediaBox` takes the valid box above it, then Letter. It was A4.
+- A `/CropBox` with no area, or outside the media box, gives way to the media box. It was A4.
+- `/Identity` names planted in a file before `/V` 4 don't open it with no password.
+- A one-row image under a TIFF predictor was empty.
 
 ## 0.2.0
 

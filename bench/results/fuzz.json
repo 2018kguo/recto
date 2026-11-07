@@ -1,11 +1,11 @@
 {
- "date": "2026-11-07T04:20:47.339Z",
+ "date": "2026-11-07T05:17:35.378Z",
  "seed": 8,
  "sources": 973,
  "files": 60000,
- "opened": 45321,
+ "opened": 48444,
  "refused": {
-  "invalid-file": 14314,
+  "invalid-file": 11191,
   "password-required": 357,
   "unsupported": 8
  },
@@ -20,7 +20,7 @@
   "keywords": 6729,
   "xrefOffsets": 6693
  },
- "peakRssMb": 398,
+ "peakRssMb": 389,
  "timeouts": 0,
  "crashes": 0,
  "untyped": 0,
@@ -30,7 +30,7 @@
  "repair": {
   "files": 1000,
   "rectoOpens": 753,
-  "rectoOpenedWithNoPages": 1,
+  "rectoOpenedWithNoPages": 44,
   "opens": {
    "pdfium": 501,
    "pdf.js": 506,
@@ -71,5 +71,16 @@
   "memory": 5,
   "timeouts": 2,
   "peakRssMb": 3947
+ },
+ "structures": {
+  "seed": 21,
+  "files": 3000,
+  "opened": 3000,
+  "peakRssMb": 1395,
+  "timeouts": 0,
+  "crashes": 0,
+  "untyped": 0,
+  "memory": 0,
+  "died": 0
  }
 }

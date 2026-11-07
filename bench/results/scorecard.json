@@ -1,5 +1,5 @@
 {
- "date": "2026-11-07T04:18:24.787Z",
+ "date": "2026-11-07T05:17:57.882Z",
  "settings": {
   "width": 800,
   "pagesPerFile": 3,
@@ -21,12 +21,12 @@
   "recto": {
    "pages": 632,
    "judged": 546,
-   "agrees": 528,
-   "differs": 18,
-   "blankWhereOthersDraw": 3,
+   "agrees": 529,
+   "differs": 17,
+   "blankWhereOthersDraw": 2,
    "failedWhereOthersDraw": 1,
-   "wrongShape": 1,
-   "percent": 96.7
+   "wrongShape": 0,
+   "percent": 96.89
   },
   "pdfium": {
    "pages": 632,
@@ -35,7 +35,7 @@
    "differs": 44,
    "blankWhereOthersDraw": 6,
    "failedWhereOthersDraw": 4,
-   "wrongShape": 1,
+   "wrongShape": 2,
    "percent": 92.21
   },
   "pdf.js": {
@@ -53,9 +53,9 @@
    "judged": 600,
    "agrees": 459,
    "differs": 141,
-   "blankWhereOthersDraw": 8,
+   "blankWhereOthersDraw": 9,
    "failedWhereOthersDraw": 4,
-   "wrongShape": 2,
+   "wrongShape": 3,
    "percent": 76.5
   }
  },
@@ -85,13 +85,13 @@
   "pdfjs": {
    "recto": {
     "judged": 239,
-    "agrees": 230,
-    "percent": 96.23
+    "agrees": 231,
+    "percent": 96.65
    },
    "pdfium": {
-    "judged": 248,
+    "judged": 249,
     "agrees": 225,
-    "percent": 90.73
+    "percent": 90.36
    },
    "pdf.js": {
     "judged": 252,
@@ -99,9 +99,9 @@
     "percent": 89.29
    },
    "poppler": {
-    "judged": 264,
+    "judged": 265,
     "agrees": 199,
-    "percent": 75.38
+    "percent": 75.09
    }
   },
   "pdfium": {
@@ -111,9 +111,9 @@
     "percent": 98
    },
    "pdfium": {
-    "judged": 102,
+    "judged": 101,
     "agrees": 98,
-    "percent": 96.08
+    "percent": 97.03
    },
    "pdf.js": {
     "judged": 105,
@@ -121,9 +121,9 @@
     "percent": 90.48
    },
    "poppler": {
-    "judged": 107,
+    "judged": 106,
     "agrees": 96,
-    "percent": 89.72
+    "percent": 90.57
    }
   },
   "hayro": {
@@ -194,7 +194,7 @@
   "pdf.js": 767,
   "poppler": 73
  },
- "contestedWhereRectoIsFurthest": 4,
+ "contestedWhereRectoIsFurthest": 5,
  "nearMisses": 19,
  "ranking": [
   {
@@ -202,15 +202,6 @@
    "page": 0,
    "score": null,
    "status": "invalid-file"
-  },
-  {
-   "id": "pdfjs/boundingBox_invalid.pdf",
-   "page": 1,
-   "score": 100,
-   "real": 100,
-   "mae": 255,
-   "blank": true,
-   "shape": true
   },
   {
    "id": "pdfium/brotli_decodeparms.pdf",
