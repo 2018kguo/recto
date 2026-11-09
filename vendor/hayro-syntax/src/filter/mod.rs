@@ -20,6 +20,12 @@ use crate::object::dict::keys::*;
 use crate::object::stream::{DecodeFailure, FilterResult, ImageDecodeParams};
 use core::ops::Deref;
 
+/// recto: a `FlateDecode` stream's data decoded as a stream's is, without parameters. For tests.
+#[doc(hidden)]
+pub fn flate_decode(data: &[u8]) -> Option<alloc::vec::Vec<u8>> {
+    lzw_flate::flate::decode(data, &crate::object::Dict::empty())
+}
+
 /// A data filter.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Filter {

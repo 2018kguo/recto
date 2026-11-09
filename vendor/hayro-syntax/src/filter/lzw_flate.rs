@@ -12,26 +12,43 @@ pub(crate) mod flate {
 
     #[cfg(feature = "unsafe")]
     pub(crate) fn decode(data: &[u8], params: &Dict<'_>) -> Option<Vec<u8>> {
-        use flate2::read::{DeflateDecoder, ZlibDecoder};
-        use std::io::Read;
-
-        fn zlib_stream(data: &[u8]) -> Option<Vec<u8>> {
-            let mut decoder = ZlibDecoder::new(data);
-            let mut result = Vec::new();
-            decoder.read_to_end(&mut result).ok().map(|_| result)
-        }
-
-        fn deflate_stream(data: &[u8]) -> Option<Vec<u8>> {
-            let mut decoder = DeflateDecoder::new(data);
-            let mut result = Vec::new();
-            decoder.read_to_end(&mut result).ok().map(|_| result)
-        }
-
-        let decoded = zlib_stream(data)
-            .or_else(|| deflate_stream(data))
+        let decoded = inflate(data, true)
+            .or_else(|| inflate(data, false))
             .or_else(|| fallback::decode(data))?;
         let params = PredictorParams::from_params(params);
         apply_predictor(decoded, &params)
+    }
+
+    /// recto: what `flate2::read::{Zlib,Deflate}Decoder` and `read_to_end` gave (the data up to the
+    /// stream's end, or up to where the input runs out; `None` on an error), in as few calls as the
+    /// output takes. Reading grew the output from 32 bytes, decoding a little at a time, and each call
+    /// copied what it wrote into the decoder's window too; a call that finishes the stream skips that.
+    #[cfg(feature = "unsafe")]
+    pub(crate) fn inflate(data: &[u8], zlib: bool) -> Option<Vec<u8>> {
+        use flate2::{Decompress, FlushDecompress, Status};
+
+        let mut decoder = Decompress::new(zlib);
+        // Most streams inflate to a few times their size; the output grows by doubling past that.
+        let mut out = Vec::with_capacity(data.len().saturating_mul(4).clamp(1 << 10, 1 << 24));
+        loop {
+            let (read, written) = (decoder.total_in(), decoder.total_out());
+            let input = data.get(read as usize..).unwrap_or_default();
+            let status = decoder
+                .decompress_vec(input, &mut out, FlushDecompress::Finish)
+                .ok()?;
+            match status {
+                Status::StreamEnd => break,
+                _ if out.len() == out.capacity() => out.reserve(out.capacity()),
+                // No room was missing, so the input ran out: what's decoded is the result.
+                _ if decoder.total_in() == read && decoder.total_out() == written => break,
+                _ => {}
+            }
+        }
+        // What's decoded may be kept, as a font's program is: not with room to spare.
+        if out.capacity() - out.len() > out.len() / 8 {
+            out.shrink_to_fit();
+        }
+        Some(out)
     }
 
     #[cfg(not(feature = "unsafe"))]

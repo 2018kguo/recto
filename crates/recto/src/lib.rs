@@ -599,6 +599,63 @@ mod tests {
         }
     }
 
+    /// The flate decoder's single call gives what reading the stream did, for whole, raw,
+    /// truncated, trailing and damaged data.
+    #[test]
+    fn flate_decodes_as_a_reader_did() {
+        use std::io::{Read, Write};
+        let reference = |data: &[u8]| -> Option<Vec<u8>> {
+            let mut out = Vec::new();
+            if flate2::read::ZlibDecoder::new(data).read_to_end(&mut out).is_ok() {
+                return Some(out);
+            }
+            out.clear();
+            flate2::read::DeflateDecoder::new(data).read_to_end(&mut out).ok().map(|_| out)
+        };
+        let mut seed = 1u64;
+        let mut next = move || {
+            seed ^= seed << 13;
+            seed ^= seed >> 7;
+            seed ^= seed << 17;
+            seed
+        };
+        let mut checked = 0;
+        for size in [0usize, 1, 100, 4095, 4096, 70_000, 1 << 20] {
+            // Text-like data, and runs that inflate far past four times their size.
+            for repetitive in [false, true] {
+                let plain: Vec<u8> = (0..size)
+                    .map(|i| if repetitive { b'a' + (i / 5000 % 3) as u8 } else { b"abcdefgh ()TjBT"[(next() % 15) as usize] })
+                    .collect();
+                let mut zlib = flate2::write::ZlibEncoder::new(Vec::new(), flate2::Compression::default());
+                zlib.write_all(&plain).unwrap();
+                let zlib = zlib.finish().unwrap();
+                let mut raw = flate2::write::DeflateEncoder::new(Vec::new(), flate2::Compression::default());
+                raw.write_all(&plain).unwrap();
+                let raw = raw.finish().unwrap();
+                let mut cases = vec![zlib.clone(), raw.clone(), [&zlib[..], b"garbage after"].concat()];
+                for cut in [1, 2, 6, zlib.len() / 2, zlib.len().saturating_sub(4)] {
+                    cases.push(zlib[..cut.min(zlib.len())].to_vec());
+                }
+                for _ in 0..8 {
+                    let mut damaged = zlib.clone();
+                    let at = (next() as usize) % damaged.len();
+                    damaged[at] ^= 1 << (next() % 8);
+                    cases.push(damaged);
+                }
+                for case in cases {
+                    let ours = hayro::hayro_syntax::flate_decode(&case);
+                    match reference(&case) {
+                        Some(expected) => assert_eq!(ours.as_deref(), Some(&expected[..]), "{size}"),
+                        // The reader gave up; the stream then tried the fallback decoder, as it does.
+                        None => {}
+                    }
+                    checked += 1;
+                }
+            }
+        }
+        assert!(checked > 200);
+    }
+
     /// One 200x200 page: a filled-and-stroked rect, `Tr 2` text, a `sh`, an
     /// image, a line; a stamp, a note and a choice widget.
     fn synthetic() -> Document {

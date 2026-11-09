@@ -539,6 +539,7 @@ dependencies = [
 name = "recto"
 version = "0.3.0"
 dependencies = [
+ "flate2",
  "hayro",
  "hayro-cmap",
  "js-sys",
