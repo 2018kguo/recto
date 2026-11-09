@@ -88,6 +88,14 @@ second, out of 2^20, and stop at 50 levels; annotations with no appearance share
 stop at 2^18 kids, page labels at 2^16 nodes or ranges, an outline at 2^16 items and 64 levels, its name tree at
 2^18 nodes. [The costliest real pages we measured](benchmarks.md#damaged-files) leave over 250× room on each.
 
+Three limits change what's drawn without setting `truncated`. A function (a shading's, or a transfer
+function's) that would hold over 2^14 functions, each repeat counted, isn't built, so what needs it isn't
+drawn; the most any test-suite or public file held was 49. An inline image's end is looked for past at
+most 1,024 `EI`s and `BI`s in its data; none of 13,206 inline images in those files looked past 2. Past
+256 MiB of glyph images on a page, the rest of its glyphs are filled as paths, as a glyph too large to
+cache already is. What a stream decompresses to has no limit, nor has an image's declared size, so a
+small file can still exhaust memory and end in `crash`.
+
 A render is capped at 16,384 px a side and 64 Mpx, and shrinks to fit. `maxHeight` defaults to
 4096; pass `Infinity` to fit the width alone.
 

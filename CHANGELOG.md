@@ -19,6 +19,26 @@ runs against 0.3.0 on the same machine; see [the numbers](docs/benchmarks.md#bef
 
 ### Fixed
 
+Inputs whose cost grew faster than their size, each with a test that counts the work. Times are per call,
+native release builds:
+
+- A named resource (`gs`, `Do`, `cs`, `scn`, `sh`, `BDC`, `Tf`, an inline image's `/CS`) was parsed again at
+  every use: 8,000 uses of a 16 KB object took 0.6 s, and 1 ms now. Each name is read once a stream.
+- An optional-content membership dictionary was read again at every `BDC` naming it: 16,000 of each took
+  13.3 s, and 1.1 ms now.
+- Finding where an inline image ends rechecked every later `EI`: 16,000 of them took 1.1 s, and 256,000 now
+  take 2.4 ms. The search stops at 1,024 candidates; no inline image in the test suites needed more than 2.
+- A stitching function listing the same function twice at every level doubled per level: 20 levels took 17 s.
+  One that would hold over 2^14 functions isn't built (the most any test file held was 49).
+- A page switching among n fonts compared each run's font with every one before it: 8,000 fonts took 66 ms
+  for `objects`, and 21 ms now, linearly.
+- Each glyph drawn at a size of its own was cached as an image for as long as the document was open: 16,000
+  glyphs a hair apart peaked at 541 MB, now 395 MB. Past 256 MiB on a page the rest are filled as paths, and
+  the cache is emptied before a page once it holds over 64 MiB.
+
+These change no output on the corpora. Still unbounded: a stream or image decompressing to more than memory,
+and a large object shared by thousands of referrers, parsed once by each.
+
 Rendering, each checked against pdfium, pdf.js and poppler in the scorecard:
 
 - An image drawn at under twice its size was sampled without smoothing, so a slightly enlarged image looked

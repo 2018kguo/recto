@@ -481,7 +481,9 @@ page labels, destination names, outlines, `/Kids`, field parents and visibility 
 glyphs, soft masks and annotations that ask for far more drawing than their size. That found hangs from a few KB and a
 crash at 2.6 GB. Each now stops at a limit and says so: `truncated` on the page's results, or `doc.structureTruncated()`.
 3,000 of them, seed 21, each in a process of its own: no failures, and a peak of 0.75 GB. CI runs each kind, 15 s and 1.5 GB per file,
-and checks exactly which results say so.
+and checks exactly which results say so. 0.4.0 added four kinds, which the 3,000 above predate: a named resource
+used thousands of times, a membership dictionary named by thousands of `BDC`s, an inline image full of `EI`s, and a
+stitching function nested 20 to 31 levels. The build before took over 300 s on the first of them; now each takes 7–64 ms.
 
 The limits mustn't reach a real page. `crates/recto/examples/budgets.rs` reports the most any page or tree used of each,
 over all 543 files that open here (2,408 pages, text, objects and a render of each). Nothing is `truncated`. These are small
