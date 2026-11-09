@@ -575,6 +575,40 @@ mod tests {
         s
     }
 
+    /// A page switching among many fonts finds each one's id in one lookup: comparing with every
+    /// font met so far made a page of n fonts, each shown a few times, cost n² comparisons.
+    #[test]
+    fn a_font_switch_costs_the_same_however_many_fonts_a_page_has() {
+        const FONTS: usize = 300;
+        const RUNS: usize = 4 * FONTS;
+        let names: String = (0..FONTS).map(|i| format!("/F{i} {} 0 R ", 5 + i)).collect();
+        let page = format!(
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 800] /Contents 4 0 R /Resources << /Font << {names}>> >> >>"
+        );
+        let content: String = (0..RUNS)
+            .map(|i| format!("/F{} 1 Tf 1 0 0 1 {} {} Tm (a) Tj ", i % FONTS, i % 500, i / 500))
+            .collect();
+        let content = stream("", format!("BT {content}ET").as_bytes());
+        // Each font its own dictionary: a width tells them apart.
+        let fonts: Vec<String> = (0..FONTS)
+            .map(|i| format!("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /FirstChar 97 /LastChar 97 /Widths [{}] >>", 500 + i))
+            .collect();
+        let mut objects: Vec<&[u8]> = vec![
+            b"<< /Type /Catalog /Pages 2 0 R >>",
+            b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            page.as_bytes(),
+            &content,
+        ];
+        objects.extend(fonts.iter().map(|f| f.as_bytes()));
+        let doc = Document::open(pdf(&objects), "").unwrap();
+        let before = device::FONT_PROBES.with(|n| n.get());
+        let text = doc.text(0).unwrap();
+        let probes = device::FONT_PROBES.with(|n| n.get()) - before;
+        assert_eq!(text.fonts.len(), FONTS);
+        assert!(text.chars.iter().filter(|c| &*c.text == "a").count() >= RUNS - 10);
+        assert!(probes <= 2 * RUNS, "{probes} comparisons for {RUNS} runs");
+    }
+
     /// A node, and a page, listed many times in `/Kids`: each dictionary is built at most twice, at
     /// open and through every page's read, so a large one repeated doesn't cost its size per repeat.
     #[test]

@@ -568,6 +568,12 @@ impl OutlineGlyph {
         Rc::ptr_eq(&self.codes, &other.codes)
     }
 
+    /// recto: the font's identity as a number, equal for two glyphs exactly when `same_font` is, for
+    /// as long as a glyph of the font is kept.
+    pub fn font_identity(&self) -> usize {
+        Rc::as_ptr(&self.codes) as usize
+    }
+
     /// recto: `as_unicode` and `advance_width` from one read of the code table.
     pub fn unicode_and_width(&self) -> (Option<BfString>, Option<f32>) {
         self.codes
