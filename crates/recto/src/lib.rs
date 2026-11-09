@@ -1185,4 +1185,36 @@ mod tests {
         // 4.5: blocks of black and white.
         assert!(grey_share(90) < 0.05, "{}", grey_share(90));
     }
+
+    /// A luminosity soft mask weighs red, green and blue 0.30, 0.59 and 0.11, as the spec, pdfium,
+    /// pdf.js and poppler do: pure red masks black to 30% over white.
+    #[test]
+    fn a_luminosity_mask_weighs_colours_as_pdf_does() {
+        let shade = |rgb: &str| {
+            let mask_group = format!("{rgb} rg 0 0 100 100 re f");
+            let doc = Document::open(
+                pdf(&[
+                    b"<< /Type /Catalog /Pages 2 0 R >>",
+                    b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                    b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R \
+                       /Resources << /ExtGState << /M << /SMask << /S /Luminosity /G 5 0 R >> >> >> >> >>",
+                    &stream("", b"/M gs 0 g 0 0 100 100 re f"),
+                    &stream(
+                        "/Type /XObject /Subtype /Form /BBox [0 0 100 100] \
+                         /Group << /S /Transparency /CS /DeviceRGB >>",
+                        mask_group.as_bytes(),
+                    ),
+                ]),
+                "",
+            )
+            .unwrap();
+            let bitmap = doc.render(0, 100.0, f32::INFINITY).unwrap();
+            bitmap.rgba[(50 * bitmap.width as usize + 50) * 4]
+        };
+        for (rgb, weight) in [("1 0 0", 0.30), ("0 1 0", 0.59), ("0 0 1", 0.11)] {
+            let expected = 255.0 * (1.0 - weight);
+            let got = f64::from(shade(rgb));
+            assert!((got - expected).abs() <= 2.0, "{rgb}: {got}, not {expected}");
+        }
+    }
 }

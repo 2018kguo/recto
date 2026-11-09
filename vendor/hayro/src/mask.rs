@@ -108,7 +108,7 @@ fn draw_soft_mask(
     renderer.ctx.render(&mut pix, &mut resources);
 
     let mut rendered_mask = match mask.mask_type() {
-        MaskType::Luminosity => Mask::new_luminance(&pix),
+        MaskType::Luminosity => luminosity(&pix),
         MaskType::Alpha => Mask::new_alpha(&pix),
     };
 
@@ -129,4 +129,16 @@ fn draw_soft_mask(
     }
 
     rendered_mask
+}
+
+/// recto: a luminosity mask by PDF's own weights, 0.30, 0.59 and 0.11 (ISO 32000-2 11.3.5.3), as
+/// pdfium, pdf.js and poppler weigh it. vello's `Mask::new_luminance` takes CSS's (0.2126, 0.7152,
+/// 0.0722), which made a red mask about 30% weaker and a green one 20% stronger.
+fn luminosity(pixmap: &Pixmap) -> Mask {
+    let data = pixmap
+        .data()
+        .iter()
+        .map(|p| ((u32::from(p.r) * 30 + u32::from(p.g) * 59 + u32::from(p.b) * 11 + 50) / 100) as u8)
+        .collect();
+    Mask::from_parts(data, pixmap.width(), pixmap.height())
 }
