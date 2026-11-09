@@ -24,7 +24,6 @@
 <alloc::collections::vec_deque::VecDeque<alloc::sync::Arc<alloc::vec::Vec<u8>>>>::grow
 <alloc::collections::vec_deque::VecDeque<alloc::sync::Arc<alloc::vec::Vec<u8>>>>::wrap_copy
 <alloc::raw_vec::RawVec<(char, &str)>>::grow_one
-<alloc::raw_vec::RawVec<(hayro_font::OutlineGlyph, u32)>>::grow_one
 <alloc::raw_vec::RawVec<(hayro_interpret::interpret::state::CompositingState, u16)>>::grow_one
 <alloc::raw_vec::RawVec<(hayro_interpret::interpret::state::PaintState, u16)>>::grow_one
 <alloc::raw_vec::RawVec<(hayro_interpret::interpret::state::TextState, u16)>>::grow_one
@@ -68,9 +67,9 @@
 <alloc::raw_vec::RawVecInner>::try_allocate_in
 <alloc::raw_vec::RawVecInner>::try_reserve_exact
 <alloc::rc::Rc<core::cell::Cell<bool>>>::drop_slow
+<alloc::rc::Rc<core::cell::RefCell<hayro::glyph_cache::GlyphCache>>>::drop_slow
 <alloc::rc::Rc<core::cell::RefCell<std::collections::hash::map::HashMap<(u128, u32), core::option::Option<alloc::rc::Rc<kurbo::bezpath::BezPath>>, rustc_hash::FxBuildHasher>>>>::drop_slow
 <alloc::rc::Rc<core::cell::RefCell<std::collections::hash::map::HashMap<(u128, u32), core::option::Option<alloc::rc::Rc<skrifa::scaler::ScalerFont>>, rustc_hash::FxBuildHasher>>>>::drop_slow
-<alloc::rc::Rc<core::cell::RefCell<std::collections::hash::map::HashMap<hayro::glyph_cache::GlyphKey, core::option::Option<alloc::sync::Arc<hayro::glyph_cache::CachedGlyph>>, rustc_hash::FxBuildHasher>>>>::drop_slow
 <alloc::rc::Rc<hayro_font::FontCacheInner>>::drop_slow
 <alloc::rc::Rc<hayro_font::cid::Type0Font>>::drop_slow
 <alloc::rc::Rc<hayro_font::codes::CodeTable>>::drop_slow
@@ -180,6 +179,7 @@
 <hashbrown::raw::RawTable<(u32, f32)>>::reserve_rehash::<hashbrown::map::make_hasher<u32, f32, rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<(u32, u32)>>::reserve_rehash::<hashbrown::map::make_hasher<u32, u32, rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<(u8, alloc::string::String)>>::reserve_rehash::<hashbrown::map::make_hasher<u8, alloc::string::String, rustc_hash::FxBuildHasher>::{closure#0}>
+<hashbrown::raw::RawTable<(usize, (hayro_font::OutlineGlyph, u32))>>::reserve_rehash::<hashbrown::map::make_hasher<usize, (hayro_font::OutlineGlyph, u32), rustc_hash::FxBuildHasher>::{closure#0}>
 <hayro::RenderCache>::new
 <hayro_cmap::CMap>::identity
 <hayro_cmap::CMap>::identity_h
@@ -740,6 +740,7 @@ core::ptr::drop_in_place::<core::option::Option<hayro_syntax::object::dict::Dict
 core::ptr::drop_in_place::<core::option::Option<moxcms::profile::LutWarehouse>>
 core::ptr::drop_in_place::<core::option::Option<moxcms::profile::ProfileText>>
 core::ptr::drop_in_place::<core::option::Option<moxcms::trc::ToneReprCurve>>
+core::ptr::drop_in_place::<hayro::glyph_cache::GlyphCache>
 core::ptr::drop_in_place::<hayro_cmap::CMap>
 core::ptr::drop_in_place::<hayro_cmap::CharacterCollection>
 core::ptr::drop_in_place::<hayro_font::FallbackFontQuery>
@@ -1027,11 +1028,3 @@ zlib_rs::inflate::inflate
 zlib_rs::inflate::inflate_fast_help
 zlib_rs::inflate::inftrees::inflate_table
 zlib_rs::inflate::init
-<alloc::raw_vec::RawVec<hayro_syntax::object::dict::Dict>>::grow_one
-<alloc::rc::Rc<core::cell::RefCell<hayro::glyph_cache::GlyphCache>>>::drop_slow
-<hashbrown::raw::RawTable<(usize, (hayro_font::OutlineGlyph, u32))>>::reserve_rehash::<hashbrown::map::make_hasher<usize, (hayro_font::OutlineGlyph, u32), rustc_hash::FxBuildHasher>::{closure#0}>
-<hashbrown::raw::RawTableInner>::fallible_with_capacity::<alloc::alloc::Global>
-<std::sync::once_lock::OnceLock<core::option::Option<alloc::vec::Vec<u8>>>>::initialize::<<std::sync::once_lock::OnceLock<core::option::Option<alloc::vec::Vec<u8>>>>::get_or_init<<hayro_syntax::page::Page>::page_stream::{closure#1}>::{closure#0}, !>
-core::ptr::drop_in_place::<hayro::glyph_cache::GlyphCache>
-flate2::zio::read::<flate2::bufreader::BufReader<&[u8]>, flate2::mem::Decompress>
-std::io::default_read_to_end::small_probe_read::<flate2::zlib::read::ZlibDecoder<&[u8]>>
