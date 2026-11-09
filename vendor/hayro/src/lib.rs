@@ -107,7 +107,6 @@ impl GlobalState {
 pub(crate) struct Renderer<'r> {
     global: &'r GlobalState,
     pub(crate) ctx: &'r mut RenderContext,
-    pub(crate) inside_pattern: bool,
     pub(crate) soft_mask_cache: FxHashMap<u128, Mask>,
     pub(crate) in_type3_glyph: bool,
     // recto: see `group`.
@@ -124,7 +123,6 @@ impl<'r> Renderer<'r> {
         Self {
             global,
             ctx,
-            inside_pattern: false,
             soft_mask_cache: FxHashMap::default(),
             in_type3_glyph: false,
             groups: Vec::new(),

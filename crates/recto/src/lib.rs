@@ -1217,4 +1217,32 @@ mod tests {
             assert!((got - expected).abs() <= 2.0, "{rgb}: {got}, not {expected}");
         }
     }
+
+    /// A hairline in a tiling pattern is at least a pixel wide, as everywhere else on the page and
+    /// as pdfium and pdf.js draw it: a 0.1 pt hatch was a faint grey.
+    #[test]
+    fn a_thin_line_in_a_pattern_is_a_pixel_wide() {
+        let doc = Document::open(
+            pdf(&[
+                b"<< /Type /Catalog /Pages 2 0 R >>",
+                b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R \
+                   /Resources << /Pattern << /P 5 0 R >> >> >>",
+                &stream("", b"/Pattern cs /P scn 0 0 100 100 re f"),
+                &stream(
+                    "/Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
+                    b"0.1 w 0 G 2.5 0 m 2.5 5 l S",
+                ),
+            ]),
+            "",
+        )
+        .unwrap();
+        let bitmap = doc.render(0, 100.0, f32::INFINITY).unwrap();
+        // Ink across one row of the page, in pixels' worth of black: 20 lines.
+        let row = 50 * bitmap.width as usize * 4;
+        let ink: f64 = (0..bitmap.width as usize)
+            .map(|x| f64::from(255 - bitmap.rgba[row + x * 4]) / 255.0)
+            .sum();
+        assert!(ink > 15.0, "{ink} pixels of ink for 20 lines");
+    }
 }

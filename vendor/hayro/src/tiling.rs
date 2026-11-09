@@ -60,7 +60,6 @@ impl Renderer<'_> {
             Affine::scale_non_uniform(x.scale, y.scale) * Affine::translate((-x.start, -y.start));
         let mut ctx = self.child_context(x.size, y.size);
         let mut renderer = Renderer::new(&mut ctx, self.global);
-        renderer.inside_pattern = true;
 
         for j in y.copies.clone() {
             for i in x.copies.clone() {
