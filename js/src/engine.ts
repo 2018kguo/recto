@@ -47,6 +47,13 @@ export type PdfEngineOptions = {
    */
   recycleAboveBytes?: number;
   /**
+   * The most bytes one stream may decode to, and one image hold at a byte a component. Past it, that
+   * stream or image is left out and the page's results say `truncated`, so a few bytes that inflate to
+   * gigabytes can't take the instance's memory. Default 768 MiB (a 600 dpi gray scan of an A0 page is
+   * 558 MB); `Infinity` for none.
+   */
+  maxDecodedBytes?: number;
+  /**
    * Files to fetch and verify while the engine is created, so that a missing one fails here and no later
    * call waits for it. `recto-render.wasm` saves the first `render` that wait; all three parts check the
    * whole engine at startup. The default is none, except where a thread can't read a file when it's needed
@@ -149,6 +156,7 @@ function instantiate(
   generation: number,
   base: URL | null,
   module: WebAssembly.Module,
+  maxDecodedBytes: number | undefined,
   documents: { open: number } = { open: 0 }
 ): Instance {
   const parts = new Set<Part>();
@@ -231,6 +239,9 @@ function instantiate(
       return;
     }
   });
+  if (maxDecodedBytes !== undefined) {
+    glue.setMaxDecodedBytes(maxDecodedBytes);
+  }
   return instance;
 }
 
@@ -257,6 +268,7 @@ class RectoEngine implements PdfEngine {
   #starting: Promise<Instance> | null = null;
   readonly #base: URL | null;
   readonly #recycleAboveBytes: number;
+  readonly #maxDecodedBytes: number | undefined;
   /** Past this, an instance with a document open takes no other. */
   readonly #idleAboveBytes: number;
   /** Whether an instance that grew goes once nothing has been open on it for IDLE_MS: the default. */
@@ -265,7 +277,8 @@ class RectoEngine implements PdfEngine {
   /** Across every instance: a document that moved, or stayed on an old one, still counts. */
   readonly #documents: { open: number };
 
-  constructor(instance: Instance, base: URL | null, recycleAboveBytes: number | undefined) {
+  constructor(instance: Instance, base: URL | null, recycleAboveBytes: number | undefined, maxDecodedBytes: number | undefined) {
+    this.#maxDecodedBytes = maxDecodedBytes;
     this.#instance = instance;
     this.#generation = instance.generation;
     this.#base = base;
@@ -319,7 +332,7 @@ class RectoEngine implements PdfEngine {
       return current;
     }
     this.#starting ??= compile("recto.wasm", this.#base)
-      .then((module) => instantiate(this.#generation + 1, this.#base, module, this.#documents))
+      .then((module) => instantiate(this.#generation + 1, this.#base, module, this.#maxDecodedBytes, this.#documents))
       .finally(() => {
         this.#starting = null;
       });
@@ -341,7 +354,13 @@ class RectoEngine implements PdfEngine {
       return current;
     }
     // Compiled already: it's what the abandoned instance ran.
-    const instance = instantiate(this.#generation + 1, this.#base, compiled.get(moduleKey("recto.wasm", this.#base))!, this.#documents);
+    const instance = instantiate(
+      this.#generation + 1,
+      this.#base,
+      compiled.get(moduleKey("recto.wasm", this.#base))!,
+      this.#maxDecodedBytes,
+      this.#documents
+    );
     this.#adopt(instance);
     return instance;
   }
@@ -471,7 +490,11 @@ async function createEngine(options: PdfEngineOptions): Promise<RectoEngine> {
     ...(canRead ? names.filter(isPart) : PARTS).map((part) => compile(part, base)),
     preloadAssets(base, files),
   ]);
-  return new RectoEngine(instantiate(0, base, module), base, options.recycleAboveBytes);
+  const maxDecodedBytes = options.maxDecodedBytes;
+  if (maxDecodedBytes !== undefined && !(typeof maxDecodedBytes === "number" && maxDecodedBytes >= 0)) {
+    throw new RangeError("maxDecodedBytes must be a number of bytes, 0 or more");
+  }
+  return new RectoEngine(instantiate(0, base, module, maxDecodedBytes), base, options.recycleAboveBytes, maxDecodedBytes);
 }
 
 let shared: Promise<RectoEngine> | null = null;

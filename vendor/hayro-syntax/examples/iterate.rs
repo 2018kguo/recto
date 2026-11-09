@@ -17,7 +17,8 @@ fn main() {
     // content stream and print them.
     let pages = pdf.pages();
     for page in pages.iter() {
-        let mut ops = page.typed_operations();
+        let contents = page.contents();
+    let mut ops = contents.typed_operations();
 
         while let Some(op) = ops.next() {
             println!("{op}");

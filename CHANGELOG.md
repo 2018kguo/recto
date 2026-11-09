@@ -1,5 +1,79 @@
 # Changelog
 
+## 0.4.0
+
+recto agrees with the other engines' pixels on 97.6% of the pages two of them agree on, from 96.9%, and a long
+document read page by page no longer holds every page's decoded content. Measured with paired, alternating
+runs against 0.3.0 on the same machine; see [the numbers](docs/benchmarks.md#before-and-after-040).
+
+### Added
+
+- `maxDecodedBytes` on `createPdfEngine` and `createPdfPool`, and `set_max_decoded_bytes` in Rust: the most
+  one stream may decode to and one image hold at a byte a component, 768 MiB by default. Past it that stream
+  or image is left out and the page's `text`, `objects`, `render` or `renderAsync` result says `truncated`,
+  on every call that uses what it was left out of, since the page's content, fonts and colour spaces are
+  cached that way. It's on what a page holds at once: its content streams together (one 700 MiB stream listed
+  five times in `/Contents`, from 714 KB, crashed it), and nested forms with what they draw (five of 600 MiB).
+  A 3.7 MB file of four FlateDecode pages inflating to 300, 700, 1,100 and 1,500 MB crashed the instance at
+  the third page; now the third and fourth come back empty and `truncated`. 16 bytes of `CCITTFaxDecode`
+  declaring 60,000 by 60,000 pixels crashed it; now the image is left out. What it changes: an image or stream
+  over 768 MiB that drew before is left out, such as one declaring 32,000 by 32,000 gray pixels (1 GB), which
+  0.3.0 drew, as white, in 978 MB. The most any page of the 543 suite and public files that open asked for
+  was 151 MB; a 600 dpi gray scan of an A0 page is 558 MB and still draws.
+
+### Changed
+
+- **Memory**: a page's decoded content stream is kept while the page is among the last four read (or the
+  ones kept come to under 1 MiB), not for as long as the document is open. WebAssembly memory after reading
+  the text of every page: a 2,000-page report 36.8 → 22.5 MB, an 85-page credit agreement 15.3 → 6.6 MB; after
+  drawing every page of the agreement, 20.1 → 10.0 MB. Reading the same pages a second time decodes them again,
+  about 3% more on the agreement. Once those kept come to over 256 MiB, only the last page read is kept.
+- **Speed**: reading text on 37 public PDFs takes 3.6% less time, 4.1% fewer instructions: a FlateDecode
+  stream inflates in one call into a buffer sized from its input, fake-bold copies are found in a flat table
+  instead of a hash map, and a glyph-name lookup bisects entries instead of bytes. Rendering is unchanged
+  (−0.2% instructions, −0.2% time). The download is 3.9 KB more with brotli for text, 4.5 KB for drawing. The
+  inflated buffer starts at a power of two, as 0.3.0's grew, so a large stream peaks where it did: a stream of
+  200 MiB at 514 MiB of WebAssembly memory in 0.3.0 and 513 MiB now.
+
+### Fixed
+
+Inputs whose cost grew faster than their size, each with a test that counts the work. Times are per call,
+in native release builds unless they say wasm:
+
+- A named resource (`gs`, `Do`, `cs`, `scn`, `sh`, `BDC`, `Tf`, an inline image's `/CS`) was parsed again at
+  every use: 8,000 uses of a 16 KB object took 0.6 s, and 1 ms now. Each name is read once a stream.
+- An optional-content membership dictionary was read again at every `BDC` naming it: 16,000 of each took
+  13.3 s, and 1.1 ms now.
+- Finding where an inline image ends rechecked every later `EI` from each candidate: 16,000 of them and a
+  binary byte after took 1.7 s in wasm, and take 5.8 ms now, linearly (256,000: 97 ms). One pass carries
+  every candidate's reading at once, so each is decided as before: a test compares the two on 20,000 random
+  streams of `EI`, `BI`, strings, escapes and binary bytes.
+- A stitching function listing the same function twice at every level doubled per level: 20 levels took 17 s.
+  A function listed again at the same depth is now built once and shared, and one repeating functions over
+  2^14 times in all isn't built (the most any of the 543 suite and public files repeated was 44). 30 levels
+  take 7 ms in wasm. A function of many distinct ones isn't limited: one of 20,000 draws as in 0.3.0.
+- A page switching among n fonts compared each run's font with every one before it: 8,000 fonts took 66 ms
+  for `objects`, and 21 ms now, linearly.
+- Each glyph drawn at a size of its own was cached as an image for as long as the document was open: 16,000
+  glyphs a hair apart peaked at 541 MB, now 395 MB. Past 256 MiB on a page the rest are filled as paths, and
+  the cache is emptied before a page once it holds over 64 MiB.
+
+These change no output on the corpora. What the limits change, on files built to reach them: a function
+repeating over 2^14 times isn't drawn, and past 256 MiB of glyph images on a page the rest are filled as
+paths. Still unbounded: a large object shared by thousands of referrers is parsed once by each, and several
+pages under `maxDecodedBytes` can together take more memory than there is.
+
+Rendering, each checked against pdfium, pdf.js and poppler in the scorecard:
+
+- An image drawn at under twice its size was sampled without smoothing, so a slightly enlarged image looked
+  blocky. It's smoothed now, as pdfium does.
+- A luminosity soft mask weighed its colours by the wrong coefficients; it uses PDF's 0.30, 0.59 and 0.11.
+- A hairline inside a tiling pattern could be thinner than a pixel and disappear.
+- A page asked for at 800 px could come out 801 wide, when its scale times its width landed a hair above a
+  whole number.
+- The scorecard's cache of recto's renders was keyed by `recto.wasm` alone, so a change in another part
+  reused stale pixels.
+
 ## 0.3.0
 
 Rendered pixels are now compared with pdfium, pdf.js and poppler, with `bench/scorecard.mjs`: on 539

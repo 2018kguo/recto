@@ -26,6 +26,11 @@ pub(crate) fn decode(
         .transpose()
         .ok()?;
     let page = hayro_jbig2::Page::new_embedded(data, globals.as_ref(), &settings).ok()?;
+    // recto: what the image holds is limited, whatever its header says.
+    let pixels = (page.width() as usize).saturating_mul(page.height() as usize);
+    if !crate::filter::fits_decoded(if image_params.is_indexed { pixels.div_ceil(8) } else { pixels }) {
+        return None;
+    }
 
     // Whenever possible (if we don't have an indexed color space), we convert
     // the data as 8-bit instead of 1-bit, so that it can be easier converted

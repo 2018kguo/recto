@@ -1,7 +1,7 @@
 use super::xobject_oc;
 use crate::context::Context;
 use crate::device::Device;
-use crate::interpret::page_run::{Close, Frame};
+use crate::interpret::page_run::{Close, Frame, FrameData};
 use crate::{BlendMode, ClipPath, FillRule, interpret};
 use hayro_syntax::content::TypedIter;
 use hayro_syntax::object::Dict;
@@ -13,6 +13,8 @@ use std::borrow::Cow;
 
 pub(crate) struct FormXObject<'a> {
     pub(crate) decoded: Cow<'a, [u8]>,
+    /// recto: `decoded` counts against the limit on decoding while the form is held.
+    pub(crate) held: hayro_syntax::HeldDecoded,
     pub(crate) matrix: Affine,
     pub(crate) bbox: [f32; 4],
     is_transparency_group: bool,
@@ -28,6 +30,7 @@ impl<'a> FormXObject<'a> {
         let dict = stream.dict();
 
         let decoded = stream.decoded_data().ok()?;
+        let held = hayro_syntax::hold_decoded(decoded.len());
         let resources = dict.get(RESOURCES).map(Resources::new);
 
         let matrix = Affine::new(
@@ -45,6 +48,7 @@ impl<'a> FormXObject<'a> {
 
         Some(Self {
             decoded,
+            held,
             matrix,
             is_transparency_group,
             isolated,
@@ -130,7 +134,8 @@ impl<'a> FormXObject<'a> {
         // recto: this path doesn't go through `interpret`, which pays for a nested stream.
         let affordable = context.charge_nested();
         Some(Frame {
-            data: if affordable { self.decoded } else { Default::default() },
+            data: FrameData::Form(if affordable { self.decoded } else { Default::default() }),
+            _held: self.held,
             pos: 0,
             resources,
             states,

@@ -60,6 +60,8 @@ pub(crate) fn decode(
             /// The bits of the last byte in a row that belong to the image.
             last_byte_mask: u8,
             decoded_rows: u32,
+            /// recto: rows past the limit on decoded bytes aren't added.
+            over: bool,
         }
 
         impl Decoder for BitPackDecoder {
@@ -69,6 +71,10 @@ pub(crate) fn decode(
 
                 // If the number of rows is unknown, the output grows on demand.
                 if self.output.len() < end {
+                    if self.over || end > crate::filter::max_decoded_bytes() {
+                        self.over = true;
+                        return;
+                    }
                     self.output.resize(end, self.white);
                 }
 
@@ -99,6 +105,10 @@ pub(crate) fn decode(
         }
 
         let stride = (columns as usize).div_ceil(8);
+        // recto: what the image holds is limited, whatever its dictionary says.
+        if !crate::filter::fits_decoded(stride.checked_mul(rows as usize)?) || !crate::filter::fits_decoded(stride) {
+            return None;
+        }
         let mut decoder = BitPackDecoder {
             output: vec![white; stride.checked_mul(rows as usize)?],
             columns,
@@ -106,12 +116,17 @@ pub(crate) fn decode(
             white,
             last_byte_mask: 0xFF_u8 << ((8 - columns % 8) % 8),
             decoded_rows: 0,
+            over: false,
         };
         let mut context = DecoderContext::new(settings);
         let result = hayro_ccitt::decode(data, &mut decoder, &mut context);
 
         // If we decoded at least one row, let's be lenient and return what we got.
         // See also 0001763.pdf.
+        if decoder.over {
+            crate::filter::fits_decoded(usize::MAX);
+            return None;
+        }
         if result.is_err() && decoder.decoded_rows == 0 {
             return None;
         }
@@ -127,6 +142,7 @@ pub(crate) fn decode(
             columns: u32,
             white: u8,
             decoded_rows: u32,
+            over: bool,
         }
 
         impl Decoder for Luma8Decoder {
@@ -136,6 +152,10 @@ pub(crate) fn decode(
 
                 // If the number of rows is unknown, the output grows on demand.
                 if self.output.len() < end {
+                    if self.over || end > crate::filter::max_decoded_bytes() {
+                        self.over = true;
+                        return;
+                    }
                     self.output.resize(end, self.white);
                 }
 
@@ -149,15 +169,23 @@ pub(crate) fn decode(
             }
         }
 
+        if !crate::filter::fits_decoded(output_len) || !crate::filter::fits_decoded(columns as usize) {
+            return None;
+        }
         let mut decoder = Luma8Decoder {
             output: vec![white; output_len],
             columns,
             white,
             decoded_rows: 0,
+            over: false,
         };
         let mut context = DecoderContext::new(settings);
         let result = hayro_ccitt::decode(data, &mut decoder, &mut context);
 
+        if decoder.over {
+            crate::filter::fits_decoded(usize::MAX);
+            return None;
+        }
         if result.is_err() && decoder.decoded_rows == 0 {
             return None;
         }

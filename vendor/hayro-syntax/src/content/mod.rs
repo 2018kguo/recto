@@ -220,6 +220,283 @@ fn read_operand<'a>(r: &mut Reader<'a>, stack: &mut Stack<'a>) -> Option<()> {
     }
 }
 
+// recto: where an inline image ends. Each `EI` in its data followed by white space is a candidate,
+// tried in order, and upstream decided each by reading on through the `EI`s and `BI`s after it, so
+// data of n `EI`s and a binary byte after them read n²/2: 16,000 of them took 1.1 s a call.
+// `Ends` gives every candidate the answer upstream's reading gives it (`ends_by_rereading`, kept for
+// the test that compares them), with each byte after the data read a bounded number of times, by
+// what that reading depends on:
+//
+// - the first `BI` at or after the candidate that starts an inline-image dictionary (`v`): the
+//   reading ends there, the candidate the end;
+// - every `EI` before `v`: the candidate isn't the end if the bytes between it and that `EI` hold a
+//   binary byte outside a string, or if what follows the candidate doesn't read as content;
+// - nothing else.
+//
+// Whether a binary byte comes before a point depends on where the reading starts, through the
+// strings it sees, so one pass carries every candidate's reading at once: readings outside a
+// string are in the same state and move as one group; those inside strings are grouped by depth,
+// which every byte changes alike for all of them, and a string's backslash too.
+
+#[cfg(feature = "std")]
+std::thread_local! {
+    static INLINE_IMAGE_WORK: core::cell::Cell<usize> = const { core::cell::Cell::new(0) };
+}
+
+/// recto: the steps this thread has taken to end inline images, for the test that it's linear.
+#[cfg(feature = "std")]
+#[doc(hidden)]
+pub fn inline_image_work() -> usize {
+    INLINE_IMAGE_WORK.with(|n| n.get())
+}
+
+#[inline]
+fn work(_n: usize) {
+    #[cfg(feature = "std")]
+    INLINE_IMAGE_WORK.with(|n| n.set(n.get() + _n));
+}
+
+/// The candidates for an image's end in `data` (from just after `ID` and its white space), in the
+/// order they're tried: an `EI` followed by white space or the end. One followed by anything else
+/// is skipped with the byte after it. With none, how far that went.
+fn next_candidate(data: &[u8], from: usize) -> Result<usize, usize> {
+    let mut at = from;
+    loop {
+        let Some(ei) = data.get(at..).and_then(|tail| find_needle(tail, b"EI")) else {
+            return Err(at);
+        };
+        let ei = at + ei;
+        match data.get(ei + 2) {
+            Some(&b) if !is_white_space_character(b) => at = ei + 3,
+            _ => return Ok(ei),
+        }
+    }
+}
+
+/// Where the image in `data` ends, the offset of its `EI`; or if none does, how far reading it went.
+fn inline_image_end(data: &[u8]) -> Result<usize, usize> {
+    let mut ends = Ends::new(data);
+    let mut at = 0;
+    loop {
+        let candidate = next_candidate(data, at)?;
+        if ends.is_end(candidate) {
+            return Ok(candidate);
+        }
+        at = candidate + 2;
+    }
+}
+
+struct Ends<'a> {
+    data: &'a [u8],
+    /// Every `EI` before `eis_to`.
+    eis: Vec<usize>,
+    eis_to: usize,
+    /// Every `BI` before `bis_to`, with whether it starts a dictionary, once asked.
+    bis: Vec<(usize, Option<bool>)>,
+    bis_to: usize,
+    /// The last answer for the first dictionary `BI`: asked from where, and where it is.
+    dict_bi: Option<(usize, Option<usize>)>,
+    /// The candidates found so far, whether there are more, and where each one's reading met a
+    /// binary byte outside a string.
+    candidates: Vec<usize>,
+    candidates_done: bool,
+    binary_at: Vec<Option<usize>>,
+    /// The pass: the next byte, how many candidates' readings have started, those outside a string,
+    /// and those inside, by depth (`depth + shift`), deepest first.
+    at: usize,
+    joined: usize,
+    outside: Vec<u32>,
+    inside: Vec<(isize, Vec<u32>)>,
+    shift: isize,
+    escaped: bool,
+}
+
+impl<'a> Ends<'a> {
+    fn new(data: &'a [u8]) -> Self {
+        Self {
+            data,
+            eis: Vec::new(),
+            eis_to: 0,
+            bis: Vec::new(),
+            bis_to: 0,
+            dict_bi: None,
+            candidates: Vec::new(),
+            candidates_done: false,
+            binary_at: Vec::new(),
+            at: 0,
+            joined: 0,
+            outside: Vec::new(),
+            inside: Vec::new(),
+            shift: 0,
+            escaped: false,
+        }
+    }
+
+    /// Whether `candidate`, the next one tried, is where the image ends.
+    fn is_end(&mut self, candidate: usize) -> bool {
+        let from = candidate + 2;
+        let v = self.first_dict_bi(from).unwrap_or(self.data.len());
+        let Some(first) = self.first_ei(from).filter(|&ei| ei < v) else {
+            return true;
+        };
+        let index = self.candidate_index(candidate);
+        if self.binary_before(index, first) || !starts_with_content(&self.data[from..]) {
+            return false;
+        }
+        // Not the end if a binary byte comes before any later `EI` before `v`: before the last.
+        self.first_ei(v);
+        let last = self.eis[self.eis.partition_point(|&ei| ei < v) - 1];
+        !self.binary_before(index, last)
+    }
+
+    fn more_candidates(&mut self) -> bool {
+        if self.candidates_done {
+            return false;
+        }
+        let from = self.candidates.last().map_or(0, |&last| last + 2);
+        match next_candidate(self.data, from) {
+            Ok(next) => {
+                self.candidates.push(next);
+                self.binary_at.push(None);
+                true
+            }
+            Err(_) => {
+                self.candidates_done = true;
+                false
+            }
+        }
+    }
+
+    fn candidate_index(&mut self, candidate: usize) -> usize {
+        while self.candidates.last().is_none_or(|&last| last < candidate) && self.more_candidates() {}
+        self.candidates.partition_point(|&c| c < candidate)
+    }
+
+    /// The first `EI` at or after `from`.
+    fn first_ei(&mut self, from: usize) -> Option<usize> {
+        loop {
+            if let Some(&ei) = self.eis.get(self.eis.partition_point(|&ei| ei < from)) {
+                return Some(ei);
+            }
+            work(1);
+            match self.data.get(self.eis_to..).and_then(|tail| find_needle(tail, b"EI")) {
+                Some(ei) => {
+                    self.eis.push(self.eis_to + ei);
+                    self.eis_to += ei + 1;
+                }
+                None => {
+                    self.eis_to = self.data.len();
+                    return None;
+                }
+            }
+        }
+    }
+
+    /// The first `BI` at or after `from` that starts an inline image's dictionary. `from` never goes
+    /// back, so each `BI` is read once.
+    fn first_dict_bi(&mut self, from: usize) -> Option<usize> {
+        if let Some((asked, answer)) = self.dict_bi {
+            if asked <= from && answer.is_none_or(|bi| bi >= from) {
+                return answer;
+            }
+        }
+        let mut i = self.bis.partition_point(|&(bi, _)| bi < from);
+        let answer = loop {
+            if i == self.bis.len() {
+                let Some(found) = self.data.get(self.bis_to..).and_then(|tail| find_needle(tail, b"BI")) else {
+                    self.bis_to = self.data.len();
+                    break None;
+                };
+                self.bis.push((self.bis_to + found, None));
+                self.bis_to += found + 1;
+            }
+            if self.bis[i].0 < from {
+                i += 1;
+                continue;
+            }
+            work(1);
+            let data = self.data;
+            let (bi, dict) = &mut self.bis[i];
+            let bi = *bi;
+            let starts = *dict.get_or_insert_with(|| {
+                Reader::new(&data[bi + 2..]).read_without_context::<InlineImageDict<'_>>().is_some()
+            });
+            if starts {
+                break Some(bi);
+            }
+            i += 1;
+        };
+        self.dict_bi = Some((from, answer));
+        answer
+    }
+
+    /// Whether the candidate's reading meets a binary byte outside a string before `end`.
+    fn binary_before(&mut self, index: usize, end: usize) -> bool {
+        while self.binary_at[index].is_none() && self.at < end.min(self.data.len()) {
+            if self.outside.is_empty() && self.inside.is_empty() {
+                // No reading under way: on to where the next one starts.
+                let next = self.candidates[self.joined] + 2;
+                self.at = self.at.max(next);
+                if self.at >= end.min(self.data.len()) {
+                    break;
+                }
+            }
+            self.step();
+        }
+        self.binary_at[index].is_some_and(|binary| binary < end)
+    }
+
+    /// The pass reads one byte, for every reading at once.
+    fn step(&mut self) {
+        work(1);
+        let at = self.at;
+        while self.candidates.last().is_none_or(|&last| last + 2 <= at) && self.more_candidates() {}
+        while self.candidates.get(self.joined).is_some_and(|&c| c + 2 == at) {
+            self.outside.push(self.joined as u32);
+            self.joined += 1;
+        }
+        let b = self.data[at];
+        let mut closed = Vec::new();
+        if !self.inside.is_empty() {
+            if self.escaped {
+                self.escaped = false;
+            } else if b == b'\\' {
+                self.escaped = true;
+            } else if b == b'(' {
+                self.shift += 1;
+            } else if b == b')' {
+                self.shift -= 1;
+                while self.inside.last().is_some_and(|&(depth, _)| depth + self.shift == 0) {
+                    if let Some((_, group)) = self.inside.pop() {
+                        merge(&mut closed, group);
+                    }
+                }
+            }
+        }
+        if !self.outside.is_empty() {
+            if !b.is_ascii() {
+                for i in self.outside.drain(..) {
+                    self.binary_at[i as usize] = Some(at);
+                }
+            } else if b == b'(' {
+                // A string opens: in it, after a `(`, nothing is escaped, for any reading.
+                self.inside.push((1 - self.shift, core::mem::take(&mut self.outside)));
+                self.escaped = false;
+            }
+        }
+        merge(&mut self.outside, closed);
+        self.at += 1;
+    }
+}
+
+/// Adds one group of readings to another, the smaller into the larger.
+fn merge(into: &mut Vec<u32>, mut other: Vec<u32>) {
+    if other.len() > into.len() {
+        core::mem::swap(into, &mut other);
+    }
+    into.extend(other);
+}
+
 fn read_inline_image<'a>(r: &mut Reader<'a>, stack: &mut Stack<'a>) -> Option<()> {
     // The ID operator will already be consumed by this.
     let inline_dict = r.read_without_context::<InlineImageDict<'_>>()?;
@@ -229,103 +506,77 @@ fn read_inline_image<'a>(r: &mut Reader<'a>, stack: &mut Stack<'a>) -> Option<()
     r.read_white_space()?;
 
     let stream_data = r.tail()?;
-    let start_offset = r.offset();
-
-    'outer: while let Some(pos) = find_needle(r.tail()?, b"EI") {
-        r.read_bytes(pos)?;
-
-        if r.peek_bytes(2) == Some(b"EI") {
-            // If the following character is not a whitespace character, then we are in a ASCII-85 stream.
-            if r.peek_bytes(3)
-                .is_some_and(|b| !is_white_space_character(b[2]))
-            {
-                r.read_bytes(3)?;
-
-                continue;
-            }
-
-            let end_offset = r.offset() - start_offset;
-            let image_data = &stream_data[..end_offset];
-
-            let stream = Stream::new(image_data, dict.clone());
-
-            // Note that there is a possibility that the encoded stream data
-            // contains the "EI" operator as part of the data, in which case we
-            // cannot confidently know whether we have hit the actual end of the
-            // stream. See also <https://github.com/pdf-association/pdf-issues/issues/543>
-            // PDF 2.0 does have a `/Length` attribute we can read, but since it's relatively
-            // new we don't bother trying to read it.
-            let tail = &r.tail()?[2..];
-            let mut find_reader = Reader::new(tail);
-            let mut binary = BinaryTracker::default();
-            let mut is_content = None;
-            let mut next_bi = find_needle(tail, b"BI");
-
-            while !find_reader.at_end() {
-                let offset = find_reader.offset();
-
-                if next_bi.is_some_and(|bi| bi < offset) {
-                    next_bi = find_needle(&tail[offset..], b"BI").map(|bi| offset + bi);
-                }
-
-                let next_ei = find_needle(&tail[offset..], b"EI").map(|ei| offset + ei);
-
-                let (next_pos, is_ei) = match (next_ei, next_bi) {
-                    (Some(ei), Some(bi)) if ei <= bi => (ei, true),
-                    (Some(_), Some(bi)) => (bi, false),
-                    (Some(ei), None) => (ei, true),
-                    (None, Some(bi)) => (bi, false),
-                    (None, None) => break,
-                };
-
-                find_reader.read_bytes(next_pos - offset)?;
-
-                if is_ei {
-                    // If there is any binary data in-between, we for sure
-                    // have not reached the end.
-                    if binary.found_before(tail, next_pos) {
-                        r.read_bytes(2)?;
-                        continue 'outer;
-                    }
-
-                    // Otherwise, the only possibility that we reached an
-                    // "EI", even though the previous one was valid, is
-                    // that it's part of a string in the content
-                    // stream that follows the inline image. Therefore,
-                    // it should be valid to interpret `tail` as a content
-                    // stream.
-                    if !*is_content.get_or_insert_with(|| starts_with_content(tail)) {
-                        // Seems like the data in-between is not a valid content
-                        // stream, so we are likely still within the image data.
-                        r.read_bytes(2)?;
-                        continue 'outer;
-                    }
-                } else {
-                    // Possibly another inline image, if so, the previously found "EI"
-                    // is indeed the end of data.
-                    let mut cloned = find_reader.clone();
-                    cloned.read_bytes(2)?;
-                    if cloned
-                        .read_without_context::<InlineImageDict<'_>>()
-                        .is_some()
-                    {
-                        break;
-                    }
-                }
-
-                find_reader.read_byte()?;
-            }
-
-            stack.push(Object::Stream(stream))?;
-
-            r.read_bytes(2)?;
+    match inline_image_end(stream_data) {
+        Ok(end) => {
+            // Note that the encoded data may hold "EI" itself, in which case we can't know for
+            // sure where it ends; see <https://github.com/pdf-association/pdf-issues/issues/543>.
+            // PDF 2.0 has a `/Length` we could read, but it's new enough not to bother.
+            stack.push(Object::Stream(Stream::new(&stream_data[..end], dict)))?;
+            r.read_bytes(end + 2)?;
             r.skip_white_spaces();
-
-            break;
+        }
+        Err(read) => {
+            r.read_bytes(read)?;
         }
     }
 
     Some(())
+}
+
+/// recto: `inline_image_end`, for the test that compares it with `ends_by_rereading`.
+#[doc(hidden)]
+pub fn inline_image_end_for_tests(data: &[u8]) -> Result<usize, usize> {
+    inline_image_end(data)
+}
+
+/// recto: upstream's search for where an inline image ends, which reads on from each candidate, for
+/// the test that `inline_image_end` answers the same.
+#[doc(hidden)]
+pub fn ends_by_rereading(data: &[u8]) -> Result<usize, usize> {
+    let mut r = Reader::new(data);
+    'outer: while let Some(pos) = find_needle(r.tail().unwrap_or_default(), b"EI") {
+        r.read_bytes(pos);
+        if r.peek_bytes(3).is_some_and(|b| !is_white_space_character(b[2])) {
+            r.read_bytes(3);
+            continue;
+        }
+        let candidate = r.offset();
+        let tail = &data[candidate + 2..];
+        let mut find_reader = Reader::new(tail);
+        let mut binary = BinaryTracker::default();
+        let mut is_content = None;
+        let mut next_bi = find_needle(tail, b"BI");
+        while !find_reader.at_end() {
+            let offset = find_reader.offset();
+            if next_bi.is_some_and(|bi| bi < offset) {
+                next_bi = find_needle(&tail[offset..], b"BI").map(|bi| offset + bi);
+            }
+            let next_ei = find_needle(&tail[offset..], b"EI").map(|ei| offset + ei);
+            let (next_pos, is_ei) = match (next_ei, next_bi) {
+                (Some(ei), Some(bi)) if ei <= bi => (ei, true),
+                (Some(_), Some(bi)) => (bi, false),
+                (Some(ei), None) => (ei, true),
+                (None, Some(bi)) => (bi, false),
+                (None, None) => break,
+            };
+            find_reader.read_bytes(next_pos - offset);
+            if is_ei {
+                if binary.found_before(tail, next_pos) || !*is_content.get_or_insert_with(|| starts_with_content(tail)) {
+                    r.read_bytes(2);
+                    continue 'outer;
+                }
+            } else {
+                let mut cloned = find_reader.clone();
+                cloned.read_bytes(2);
+                if cloned.read_without_context::<InlineImageDict<'_>>().is_some() {
+                    break;
+                }
+            }
+            find_reader.read_byte();
+        }
+        return Ok(candidate);
+    }
+    Err(r.offset())
 }
 
 fn starts_with_content(data: &[u8]) -> bool {

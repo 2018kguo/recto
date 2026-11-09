@@ -13,18 +13,39 @@ pub(crate) mod zapf_dings;
 // lookup, and compress better: `key 0xFE value 0xFF`, repeated, sorted by key's bytes. Neither
 // separator can occur in UTF-8, so a key from a file can't be mistaken for one.
 
-/// The value for `key`, by bisecting the table's bytes.
+/// The value for `key`, by bisecting the table's entries. Each table's entry starts are found the first
+/// time it's read on a thread, a scan of its bytes, so a step compares one key rather than scanning
+/// for the entry around the middle: a font asks for 256 names as it's opened.
 pub(crate) fn by_name(table: &'static [u8], key: &str) -> Option<&'static str> {
-    let (mut low, mut high) = (0, table.len());
-    while low < high {
-        let middle = (low + high) / 2;
-        let start = table[low..middle].iter().rposition(|&b| b == 0xFF).map_or(low, |at| low + at + 1);
+    thread_local! {
+        static STARTS: std::cell::RefCell<Vec<(usize, std::rc::Rc<[u32]>)>> = const { std::cell::RefCell::new(Vec::new()) };
+    }
+    let starts = STARTS.with_borrow_mut(|known| {
+        let at = table.as_ptr() as usize;
+        if let Some((_, starts)) = known.iter().find(|(t, _)| *t == at) {
+            return starts.clone();
+        }
+        let starts: std::rc::Rc<[u32]> = core::iter::once(0)
+            .chain(table.iter().enumerate().filter(|&(_, &b)| b == 0xFF).map(|(i, _)| i as u32 + 1))
+            .filter(|&start| (start as usize) < table.len())
+            .collect();
+        known.push((at, starts.clone()));
+        starts
+    });
+    let entry = |i: usize| {
+        let start = starts[i] as usize;
         let end = start + table[start..].iter().position(|&b| b == 0xFF)?;
         let split = start + table[start..end].iter().position(|&b| b == 0xFE)?;
-        match table[start..split].cmp(key.as_bytes()) {
-            core::cmp::Ordering::Less => low = end + 1,
-            core::cmp::Ordering::Greater => high = start,
-            core::cmp::Ordering::Equal => return core::str::from_utf8(&table[split + 1..end]).ok(),
+        Some((&table[start..split], &table[split + 1..end]))
+    };
+    let (mut low, mut high) = (0, starts.len());
+    while low < high {
+        let middle = (low + high) / 2;
+        let (name, value) = entry(middle)?;
+        match name.cmp(key.as_bytes()) {
+            core::cmp::Ordering::Less => low = middle + 1,
+            core::cmp::Ordering::Greater => high = middle,
+            core::cmp::Ordering::Equal => return core::str::from_utf8(value).ok(),
         }
     }
     None

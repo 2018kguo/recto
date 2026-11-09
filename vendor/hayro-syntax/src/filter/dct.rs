@@ -61,6 +61,10 @@ pub(crate) fn decode(
     }
 
     decoder.set_options(DecoderOptions::default().jpeg_set_out_colorspace(out_colorspace));
+    // recto: what the image holds is limited, whatever its header says.
+    if !crate::filter::fits_decoded(decoder.output_buffer_size()?) {
+        return None;
+    }
     let mut decoded = decoder.decode().ok()?;
 
     if out_colorspace == ColorSpace::YCCK {

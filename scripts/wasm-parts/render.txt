@@ -68,12 +68,14 @@
 <foldhash::seed::global::GlobalSeed>::init_slow
 <hashbrown::map::HashMap<(u128, u32), core::option::Option<alloc::rc::Rc<kurbo::bezpath::BezPath>>, rustc_hash::FxBuildHasher>>::insert
 <hashbrown::map::HashMap<hayro_syntax::object::ObjectIdentifier, (), std::hash::random::RandomState>>::insert
-<hashbrown::map::HashMap<hayro_syntax::object::name::Name, hayro_syntax::object::dict::Dict, rustc_hash::FxBuildHasher>>::insert
+<hashbrown::map::HashMap<hayro_syntax::object::name::Name, core::option::Option<hayro_interpret::interpret::state::TextStateFont>, rustc_hash::FxBuildHasher>>::insert
 <hashbrown::raw::RawTable<((u128, u32), core::option::Option<alloc::rc::Rc<kurbo::bezpath::BezPath>>)>>::reserve_rehash::<hashbrown::map::make_hasher<(u128, u32), core::option::Option<alloc::rc::Rc<kurbo::bezpath::BezPath>>, rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<((u128, u32), core::option::Option<alloc::rc::Rc<skrifa::scaler::ScalerFont>>)>>::reserve_rehash::<hashbrown::map::make_hasher<(u128, u32), core::option::Option<alloc::rc::Rc<skrifa::scaler::ScalerFont>>, rustc_hash::FxBuildHasher>::{closure#0}>
+<hashbrown::raw::RawTable<(hayro::glyph_cache::GlyphKey, ())>>::reserve_rehash::<hashbrown::map::make_hasher<hayro::glyph_cache::GlyphKey, (), rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<(hayro::glyph_cache::GlyphKey, core::option::Option<alloc::sync::Arc<hayro::glyph_cache::CachedGlyph>>)>>::reserve_rehash::<hashbrown::map::make_hasher<hayro::glyph_cache::GlyphKey, core::option::Option<alloc::sync::Arc<hayro::glyph_cache::CachedGlyph>>, rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<(hayro_syntax::object::ObjectIdentifier, ())>>::reserve_rehash::<hashbrown::map::make_hasher<hayro_syntax::object::ObjectIdentifier, (), std::hash::random::RandomState>::{closure#0}>
 <hashbrown::raw::RawTable<(u32, alloc::sync::Arc<dyn core::convert::AsRef<[u8]> + core::marker::Send + core::marker::Sync>)>>::reserve_rehash::<hashbrown::map::make_hasher<u32, alloc::sync::Arc<dyn core::convert::AsRef<[u8]> + core::marker::Send + core::marker::Sync>, std::hash::random::RandomState>::{closure#0}>
+<hayro::GlobalState>::new
 <hayro::PageJob>::finish
 <hayro::PageJob>::new
 <hayro::PageJob>::step
@@ -122,6 +124,7 @@
 <hayro_interpret::encode::EncodedRadialAxialShading>::as_svg_gradient::{closure#0}
 <hayro_interpret::function::Function>::stitching_bounds
 <hayro_interpret::interpret::InterpreterSettings as core::default::Default>::default::{closure#1}
+<hayro_interpret::interpret::Named>::shading
 <hayro_interpret::interpret::page_run::PageRun>::new
 <hayro_interpret::interpret::page_run::Slice>::tick
 <hayro_interpret::pattern::ShadingPattern>::encode
@@ -133,14 +136,12 @@
 <hayro_interpret::x_object::image::ImageXObject>::draw::<hayro::Renderer>
 <hayro_interpret::x_object::image::ImageXObject>::draw::<recto::device::PageDevice>
 <hayro_interpret::x_object::image::ImageXObject>::has_mask
-<hayro_interpret::x_object::image::ImageXObject>::new::<hayro_interpret::interpret::run_ops<hayro_interpret::pattern::StencilPatternDevice<hayro::Renderer>>::{closure#11}::{closure#0}>
-<hayro_interpret::x_object::image::ImageXObject>::new::<hayro_interpret::interpret::run_ops<recto::device::PageDevice>::{closure#11}::{closure#0}>
+<hayro_interpret::x_object::image::ImageXObject>::new::<hayro_interpret::interpret::run_ops<hayro_interpret::pattern::StencilPatternDevice<hayro::Renderer>>::{closure#10}::{closure#0}>
+<hayro_interpret::x_object::image::ImageXObject>::new::<hayro_interpret::interpret::run_ops<recto::device::PageDevice>::{closure#10}::{closure#0}>
 <hayro_interpret::x_object::image::ImageXObject>::new_mask
-<hayro_syntax::object::array::ArrayIter as core::iter::traits::iterator::Iterator>::next
 <hayro_syntax::object::dict::Dict>::get::<[f32; 6usize], &[u8]>
 <hayro_syntax::object::dict::Dict>::get::<hayro_syntax::object::stream::Stream, hayro_syntax::object::name::Name>
 <hayro_syntax::object::name::Name as core::cmp::PartialEq>::eq
-<hayro_syntax::page::Page>::typed_operations
 <hayro_syntax::page::Resources>::get_shading
 <js_sys::Date>::now
 <kurbo::bezpath::BezPath as kurbo::shape::Shape>::bounding_box
@@ -290,7 +291,6 @@
 <recto::RenderTask>::new
 <recto::assets::resolve as core::ops::function::Fn<(&hayro_font::FontQuery,)>>::call
 <recto::device::PageDevice as hayro_interpret::device::Device>::draw_image
-<recto::wasm::Document>::objects
 <recto::wasm::RenderTask>::step::{closure#0}
 <skrifa::outline::autohint::context::FontContext as skrifa::outline::autohint::context::AutohintContext>::advance_width
 <skrifa::outline::autohint::context::FontContext as skrifa::outline::autohint::context::AutohintContext>::coords
@@ -351,7 +351,6 @@
 <smallvec::SmallVec<[skrifa::outline::autohint::topo::Edge; 12usize]>>::try_grow
 <smallvec::SmallVec<[skrifa::outline::autohint::topo::Segment; 18usize]>>::reserve_one_unchecked
 <smallvec::SmallVec<[skrifa::outline::autohint::topo::Segment; 18usize]>>::try_grow
-<std::hash::random::DefaultHasher as core::hash::Hasher>::write_u32
 <std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&hayro_syntax::object::ObjectIdentifier>
 <std::sync::once_lock::OnceLock<alloc::boxed::Box<[std::sync::once_lock::OnceLock<core::option::Option<read_fonts::ps::cff::font::Subfont>>]>>>::initialize::<<std::sync::once_lock::OnceLock<alloc::boxed::Box<[std::sync::once_lock::OnceLock<core::option::Option<read_fonts::ps::cff::font::Subfont>>]>>>::get_or_init<<read_fonts::model::font::Font>::cff_subfont::{closure#0}>::{closure#0}, !>
 <std::sync::once_lock::OnceLock<alloc::boxed::Box<dyn core::any::Any + core::marker::Send + core::marker::Sync>>>::initialize::<<std::sync::once_lock::OnceLock<alloc::boxed::Box<dyn core::any::Any + core::marker::Send + core::marker::Sync>>>::get_or_init<read_fonts::model::font::interop::_get_or_init_scaling_data<<skrifa::outline::autohint::instance::LocatedState>::of_outlines::{closure#1}>::{closure#0}>::{closure#0}, !>
@@ -504,7 +503,7 @@ core::ptr::drop_in_place::<pic_scale::plan::trampoline_filtering::TrampolineFilt
 core::ptr::drop_in_place::<pic_scale::plan::vertical_filtering::VerticalFiltering<u8, i16, 1usize>>
 core::ptr::drop_in_place::<recto::wasm::RenderTask>
 core::ptr::drop_in_place::<skrifa::outline::autohint::instance::ScalingData>
-core::ptr::drop_in_place::<std::collections::hash::map::HashMap<hayro_syntax::object::name::Name, hayro_syntax::object::dict::Dict, rustc_hash::FxBuildHasher>>
+core::ptr::drop_in_place::<std::collections::hash::map::HashMap<hayro_syntax::object::name::Name, core::option::Option<hayro_interpret::interpret::state::TextStateFont>, rustc_hash::FxBuildHasher>>
 core::ptr::drop_in_place::<std::sync::poison::rwlock::RwLockWriteGuard<alloc::vec::Vec<core::option::Option<skrifa::outline::autohint::metrics::UnscaledStyleMetrics>>>>
 core::ptr::drop_in_place::<vello_common::clip::ClipContext>
 core::ptr::drop_in_place::<vello_common::clip::ClipState>
@@ -570,6 +569,7 @@ hayro_interpret::interpret::text::show_glyph_run::<hayro::Renderer>
 hayro_interpret::x_object::decode::decode_context
 hayro_interpret::x_object::decode::mask::decode_mask
 hayro_syntax::content::ops::parse_named_color
+hayro_syntax::filter::fits_decoded
 kurbo::offset::offset_cubic
 kurbo::stroke::extend_reversed
 kurbo::stroke::round_join
@@ -607,6 +607,7 @@ read_fonts::mem::with_scratch::<skrifa::outline::autohint::style::GlyphStyleMap,
 read_fonts::mem::with_scratch_dyn
 read_fonts::mem::with_scratch_dyn::on_stack::<1024usize>
 read_fonts::mem::with_scratch_dyn::on_stack::<2048usize>
+read_fonts::mem::with_scratch_dyn::on_stack::<4096usize>
 read_fonts::mem::with_scratch_dyn::on_stack::<512usize>
 read_fonts::model::glyph::outline::glyf::draw_plan
 read_fonts::tables::glyf::outline::scale::read_points_and_phantom::<i32>

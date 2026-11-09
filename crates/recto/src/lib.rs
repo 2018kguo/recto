@@ -161,6 +161,14 @@ fn render_scale(page_w: f32, page_h: f32, width: f32, max_height: f32) -> Result
         .min((MAX_RENDER_PIXELS / (page_w * page_h)).sqrt()))
 }
 
+/// A side of the bitmap: `page * scale`, rounded up. Within float error of a whole number it is that
+/// number: a page 612 wide asked for 800 pixels came to 800.00006 and drew 801.
+fn pixel_side(exact: f32) -> f32 {
+    let near = exact.round();
+    let side = if (exact - near).abs() <= near * f32::EPSILON * 4.0 { near } else { exact.ceil() };
+    side.clamp(1.0, MAX_RENDER_SIDE)
+}
+
 impl Document {
     pub fn open(bytes: Vec<u8>, password: &str) -> Result<Self, EngineError> {
         Self::open_data(bytes.into(), password)
@@ -257,6 +265,7 @@ impl Document {
         annotations: bool,
     ) -> Result<Scan, EngineError> {
         self.page(index)?;
+        let cuts = hayro::hayro_syntax::decodes_cut();
         Ok(self.0.with_dependent(|pdf, caches| {
             let Some(page) = pdf.pages().get(index) else {
                 unreachable!("self.page(index) found it")
@@ -285,7 +294,8 @@ impl Document {
             device.glyphs = caches.glyphs.take();
             interpret_page(page, &mut ctx, &mut device);
             let mut device = device.finish();
-            let tripped = ctx.budget_tripped();
+            // A stream or image past the limit on decoded bytes is left out, as a budget leaves out.
+            let tripped = ctx.budget_tripped() || hayro::hayro_syntax::decodes_cut() != cuts;
             let budget_used = ctx.budget_used();
             let mut text = text::build_page(&device.glyphs, &device.fonts, &device.runs);
             text.truncated = device.text_truncated || tripped;
@@ -328,6 +338,12 @@ impl Document {
             page_labels: labels::walked(pdf).stopped,
             outline: outline::walked(pdf).stopped,
         })
+    }
+
+    /// For tests and `examples/budgets.rs`: the bytes of glyph images the render cache holds.
+    #[doc(hidden)]
+    pub fn glyph_cache_bytes(&self) -> usize {
+        self.0.with_dependent(|_, caches| caches.render.glyph_cache_bytes())
     }
 
     /// For `examples/budgets.rs`: what a render of the page spent, and whether it was cut short.
@@ -382,7 +398,7 @@ impl Document {
         // fill that bitmap (under a pixel). hayro floors `side * scale`, so
         // step the exact scale up by one ULP when float error would lose a pixel.
         let fit = |page: f32| {
-            let side = (page * scale).ceil().clamp(1.0, MAX_RENDER_SIDE);
+            let side = pixel_side(page * scale);
             let exact = side / page;
             if (page * exact) as u16 >= side as u16 {
                 exact
@@ -404,6 +420,7 @@ impl Document {
         max_height: f32,
     ) -> Result<(hayro::vello_cpu::Pixmap, bool), EngineError> {
         let settings = self.pixmap_settings(index, width, max_height)?;
+        let cuts = hayro::hayro_syntax::decodes_cut();
         Ok(self.0.with_dependent(|pdf, caches| {
             let Some(page) = pdf.pages().get(index) else {
                 unreachable!("self.page(index) found it")
@@ -415,7 +432,7 @@ impl Document {
                 &RenderSettings::default(),
                 &settings,
             );
-            (pixmap, caches.render.take_degraded())
+            (pixmap, caches.render.take_degraded() || hayro::hayro_syntax::decodes_cut() != cuts)
         }))
     }
 
@@ -431,6 +448,8 @@ pub struct RenderTask {
     // Before the document it borrows from, so it's dropped first.
     job: hayro::PageJob<'static, 'static>,
     _document: std::rc::Rc<Document>,
+    /// Whether a stream or image was left out for its size, in any slice.
+    cut: bool,
 }
 
 impl RenderTask {
@@ -441,6 +460,7 @@ impl RenderTask {
         max_height: f32,
     ) -> Result<Self, EngineError> {
         let settings = document.pixmap_settings(index, width, max_height)?;
+        let cuts = hayro::hayro_syntax::decodes_cut();
         let job = document.0.with_dependent(|pdf, caches| {
             let Some(page) = pdf.pages().get(index) else {
                 unreachable!("pixmap_settings found it")
@@ -463,18 +483,24 @@ impl RenderTask {
         Ok(Self {
             job,
             _document: document,
+            cut: hayro::hayro_syntax::decodes_cut() != cuts,
         })
     }
 
     /// Runs until `expired` says so; true once the page's content is done.
     pub fn step(&mut self, expired: &dyn Fn() -> bool) -> bool {
-        self.job.step(expired)
+        let cuts = hayro::hayro_syntax::decodes_cut();
+        let done = self.job.step(expired);
+        self.cut |= hayro::hayro_syntax::decodes_cut() != cuts;
+        done
     }
 
     /// Rasterizes what `step` drew. One call, after `step` returned true.
     pub fn finish(&mut self) -> Bitmap {
+        let cuts = hayro::hayro_syntax::decodes_cut();
         let (pixmap, truncated) = self.job.finish();
-        bitmap_of(pixmap, truncated)
+        self.cut |= hayro::hayro_syntax::decodes_cut() != cuts;
+        bitmap_of(pixmap, truncated || self.cut)
     }
 }
 
@@ -567,6 +593,426 @@ mod tests {
         s
     }
 
+    /// A stream or image that decodes past the limit is left out, and what the page says is
+    /// `truncated`, rather than taking memory it can't give back. 60,000 by 60,000 pixels declared by
+    /// 16 bytes of `CCITTFaxDecode` crashed the wasm; a content stream inflating past the limit is
+    /// cut there, and the page's other content still reads.
+    #[test]
+    fn what_decodes_past_the_limit_is_left_out_and_says_so() {
+        use std::io::Write;
+        let font = "/Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >>";
+        let page = |resources: String| format!("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents [4 0 R 5 0 R] /Resources << {resources} >> >>");
+
+        // An image declaring 3.6 GB, from 16 bytes.
+        let image = stream("/Type /XObject /Subtype /Image /Width 60000 /Height 60000 /BitsPerComponent 1 /ColorSpace /DeviceGray /Filter /CCITTFaxDecode /DecodeParms << /K -1 /Columns 60000 /Rows 60000 >>", &[0; 16]);
+        let doc = Document::open(
+            pdf(&[
+                b"<< /Type /Catalog /Pages 2 0 R >>",
+                b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                page(format!("{font} /XObject << /Im 6 0 R >>")).as_bytes(),
+                &stream("", b"BT /F1 10 Tf 10 10 Td (kept) Tj ET"),
+                &stream("", b"q 100 0 0 100 0 0 cm /Im Do Q"),
+                &image,
+            ]),
+            "",
+        )
+        .unwrap();
+        let bitmap = doc.render(0, 100.0, f32::INFINITY).unwrap();
+        assert!(bitmap.truncated);
+        assert!(bitmap.rgba.chunks(4).any(|px| px[0] < 128), "the text is still drawn");
+        let text = doc.text(0).unwrap();
+        assert!(text.text().contains("kept") && !text.truncated, "text doesn't decode the image");
+
+        // A content stream inflating to 4 MiB, under a limit of 1 MiB.
+        let mut zipped = flate2::write::ZlibEncoder::new(Vec::new(), flate2::Compression::best());
+        zipped.write_all(&vec![b' '; 4 << 20]).unwrap();
+        let bomb = stream("/Filter /FlateDecode", &zipped.finish().unwrap());
+        let doc = Document::open(
+            pdf(&[
+                b"<< /Type /Catalog /Pages 2 0 R >>",
+                b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                page(font.to_string()).as_bytes(),
+                &stream("", b"BT /F1 10 Tf 10 10 Td (kept) Tj ET"),
+                &bomb,
+            ]),
+            "",
+        )
+        .unwrap();
+        let whole = doc.text(0).unwrap();
+        hayro::hayro_syntax::set_max_decoded_bytes(1 << 20);
+        let cut = Document::open(doc.file_bytes().to_vec(), "").unwrap().text(0).unwrap();
+        hayro::hayro_syntax::set_max_decoded_bytes(hayro::hayro_syntax::DEFAULT_MAX_DECODED_BYTES);
+        assert!(cut.truncated && !whole.truncated);
+        assert!(cut.text().contains("kept"), "the page's other stream still reads: {:?}", cut.text());
+    }
+
+    /// A page's content streams are joined, and a form's content is held while what it draws runs,
+    /// so the limit is on what they add up to: one 700 MiB stream listed five times in `/Contents`,
+    /// or forms of 600 MiB nested five deep, crashed the wasm with the limit on each alone. And what
+    /// a limit left out is kept that way, in the page's content and in a font, so every call that
+    /// uses it says `truncated`, whatever was read before, and after the page's content is let go.
+    #[test]
+    fn what_a_limit_left_out_says_so_on_every_call_in_any_order() {
+        use std::io::Write;
+        const MAX: usize = 1 << 20;
+        let zip = |data: &[u8]| {
+            let mut zipped = flate2::write::ZlibEncoder::new(Vec::new(), flate2::Compression::best());
+            zipped.write_all(data).unwrap();
+            zipped.finish().unwrap()
+        };
+        let spaces = vec![b' '; 300 << 10];
+        let font = "/F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>";
+        let text = b"BT /F1 10 Tf 10 10 Td (kept) Tj ET";
+        // Page 1: one 300 KiB stream listed five times. Page 2: three nested forms of 400 KiB. Page 3:
+        // a font whose 2 MiB program is past the limit. Pages 4 to 8 read 300 KiB each, to let page 1's
+        // content go.
+        let page = |contents: &str, resources: &str| {
+            format!("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents {contents} /Resources << /Font << {font} >> {resources} >> >>")
+        };
+        let form = |inner: Option<u32>| {
+            let (resources, draw) = match inner {
+                Some(n) => (format!("/Resources << /XObject << /N {n} 0 R >> >>"), "/N Do\n"),
+                None => (String::new(), ""),
+            };
+            let mut data = draw.as_bytes().to_vec();
+            data.extend_from_slice(&[b' '; 400 << 10]);
+            stream(&format!("/Type /XObject /Subtype /Form /BBox [0 0 100 100] /Filter /FlateDecode {resources}"), &zip(&data))
+        };
+        let objects: Vec<Vec<u8>> = vec![
+            b"<< /Type /Catalog /Pages 2 0 R >>".to_vec(),
+            b"<< /Type /Pages /Kids [3 0 R 4 0 R 5 0 R 6 0 R 6 0 R 6 0 R 6 0 R 6 0 R 17 0 R 18 0 R] /Count 10 >>".to_vec(),
+            page("[7 0 R 8 0 R 8 0 R 8 0 R 8 0 R 8 0 R]", "").into_bytes(),
+            page("9 0 R", "/XObject << /N 10 0 R >>").into_bytes(),
+            page("13 0 R", "/Font << /F2 14 0 R >>").into_bytes(),
+            page("[7 0 R 8 0 R]", "").into_bytes(),
+            stream("", text),
+            stream("/Filter /FlateDecode", &zip(&spaces)),
+            stream("", b"/N Do"),
+            form(Some(11)),
+            form(Some(12)),
+            form(None),
+            stream("", b"BT /F2 10 Tf 10 10 Td (kept) Tj ET"),
+            b"<< /Type /Font /Subtype /TrueType /BaseFont /Big /FirstChar 32 /LastChar 126 /FontDescriptor 15 0 R >>".to_vec(),
+            b"<< /Type /FontDescriptor /FontName /Big /Flags 32 /FontBBox [0 0 1000 1000] /ItalicAngle 0 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 80 /FontFile2 16 0 R >>".to_vec(),
+            stream("/Filter /FlateDecode", &zip(&vec![0; 2 << 20])),
+            // Page 9 uses the same font, so reading it first caches the font before page 3 reads it.
+            page("13 0 R", "/Font << /F2 14 0 R >>").into_bytes(),
+            // Page 10: a colour space whose ICC profile is past the limit, kept in the object cache.
+            page("19 0 R", "/ColorSpace << /C 20 0 R >>").into_bytes(),
+            stream("", b"/C cs 0.5 0.5 0.5 sc 0 0 50 50 re f"),
+            b"[/ICCBased 21 0 R]".to_vec(),
+            stream("/N 3 /Filter /FlateDecode", &zip(&vec![0; 2 << 20])),
+        ];
+        let bytes = pdf(&objects.iter().map(Vec::as_slice).collect::<Vec<_>>());
+        hayro::hayro_syntax::set_max_decoded_bytes(MAX);
+        type Read = fn(&std::rc::Rc<Document>, usize) -> bool;
+        let reads: [(&str, Read); 4] = [
+            ("text", |d, i| d.text(i).unwrap().truncated),
+            ("objects", |d, i| d.scan(i, true, false).unwrap().objects.truncated),
+            ("render", |d, i| d.render(i, 50.0, f32::INFINITY).unwrap().truncated),
+            ("sliced", |d, i| {
+                let mut task = RenderTask::new(d.clone(), i, 50.0, f32::INFINITY).unwrap();
+                while !task.step(&|| true) {}
+                task.finish().truncated
+            }),
+        ];
+        let orders: [&[usize]; 4] = [&[0, 1, 2, 3], &[3, 2, 1, 0], &[2, 0, 3, 1], &[1, 3, 0, 2]];
+        for (o, order) in orders.iter().enumerate() {
+            let doc = std::rc::Rc::new(Document::open(bytes.clone(), "").unwrap());
+            // Different things read first: the font through page 9, page 1's content, or nothing.
+            match o {
+                1 => assert!(doc.render(8, 50.0, f32::INFINITY).unwrap().truncated),
+                2 => assert!(doc.text(0).unwrap().truncated),
+                _ => {}
+            }
+            for round in 0..2 {
+                for &r in *order {
+                    let (name, read) = reads[r];
+                    // Page 3's text: a font with no program reads the same, but it's still cut.
+                    for page in [0, 1, 2, 9] {
+                        // Text reads neither page 2's forms (no text in them) nor page 10's colours.
+                        if name == "text" && (page == 1 || page == 9) {
+                            continue;
+                        }
+                        assert!(read(&doc, page), "order {o} round {round}: {name} of page {} says nothing", page + 1);
+                    }
+                }
+                // Let page 1's content go, so it's decoded again.
+                for page in 3..8 {
+                    doc.text(page).unwrap();
+                }
+            }
+        }
+        hayro::hayro_syntax::set_max_decoded_bytes(hayro::hayro_syntax::DEFAULT_MAX_DECODED_BYTES);
+    }
+
+    /// A page switching among many fonts finds each one's id in one lookup: comparing with every
+    /// font met so far made a page of n fonts, each shown a few times, cost n² comparisons.
+    #[test]
+    fn a_font_switch_costs_the_same_however_many_fonts_a_page_has() {
+        const FONTS: usize = 300;
+        const RUNS: usize = 4 * FONTS;
+        let names: String = (0..FONTS).map(|i| format!("/F{i} {} 0 R ", 5 + i)).collect();
+        let page = format!(
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 800] /Contents 4 0 R /Resources << /Font << {names}>> >> >>"
+        );
+        let content: String = (0..RUNS)
+            .map(|i| format!("/F{} 1 Tf 1 0 0 1 {} {} Tm (a) Tj ", i % FONTS, i % 500, i / 500))
+            .collect();
+        let content = stream("", format!("BT {content}ET").as_bytes());
+        // Each font its own dictionary: a width tells them apart.
+        let fonts: Vec<String> = (0..FONTS)
+            .map(|i| format!("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /FirstChar 97 /LastChar 97 /Widths [{}] >>", 500 + i))
+            .collect();
+        let mut objects: Vec<&[u8]> = vec![
+            b"<< /Type /Catalog /Pages 2 0 R >>",
+            b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            page.as_bytes(),
+            &content,
+        ];
+        objects.extend(fonts.iter().map(|f| f.as_bytes()));
+        let doc = Document::open(pdf(&objects), "").unwrap();
+        let before = device::FONT_PROBES.with(|n| n.get());
+        let text = doc.text(0).unwrap();
+        let probes = device::FONT_PROBES.with(|n| n.get()) - before;
+        assert_eq!(text.fonts.len(), FONTS);
+        assert!(text.chars.iter().filter(|c| &*c.text == "a").count() >= RUNS - 10);
+        assert!(probes <= 2 * RUNS, "{probes} comparisons for {RUNS} runs");
+    }
+
+    /// Every glyph drawn at a size of its own is an image of its own. One page's are bounded, and
+    /// the cache doesn't keep them past the next page: 12,000 glyphs a hair apart in size took 320 MB
+    /// and kept it for as long as the document was open.
+    #[test]
+    fn glyph_images_are_bounded_per_page_and_not_kept() {
+        const GLYPHS: usize = 12_000;
+        let content: String = (0..GLYPHS)
+            .map(|i| format!("{:.4} 0 0 60 {} {} Tm (W) Tj ", 60.0 + i as f64 * 1e-4, i * 13 % 500, i * 7 % 700))
+            .collect();
+        let big = stream("", format!("BT /F1 1 Tf {content}ET").as_bytes());
+        let small = stream("", b"BT /F1 12 Tf 10 10 Td (W) Tj ET");
+        let page = |contents: u32| {
+            format!(
+                "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 800] /Contents {contents} 0 R /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> >>"
+            )
+        };
+        let (first, second) = (page(4), page(6));
+        let doc = Document::open(
+            pdf(&[
+                b"<< /Type /Catalog /Pages 2 0 R >>",
+                b"<< /Type /Pages /Kids [3 0 R 5 0 R] /Count 2 >>",
+                first.as_bytes(),
+                &big,
+                second.as_bytes(),
+                &small,
+            ]),
+            "",
+        )
+        .unwrap();
+        let bitmap = doc.render(0, 1000.0, f32::INFINITY).unwrap();
+        assert!(!bitmap.truncated);
+        let held = doc.glyph_cache_bytes();
+        assert!(held <= (256 << 20) + (64 << 10), "{held} bytes of glyph images for one page");
+        doc.render(1, 1000.0, f32::INFINITY).unwrap();
+        let kept = doc.glyph_cache_bytes();
+        assert!(kept < 1 << 20, "{kept} bytes kept after a page of one glyph");
+    }
+
+    /// A stitching function that lists the same function twice at every level asks for 2^levels of
+    /// them from a few hundred bytes: 20 levels took 17 s to draw. A repeat is built once, and one
+    /// holding more than 2^14 repeats isn't built.
+    #[test]
+    fn a_function_listing_the_next_twice_costs_a_bounded_amount() {
+        use hayro::hayro_interpret::function_work;
+        let work = |levels: usize| {
+            let page = b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R /Resources << /Shading << /S << /ShadingType 2 /ColorSpace /DeviceGray /Coords [0 0 100 0] /Function 5 0 R >> >> >> >>";
+            let content = stream("", b"/S sh");
+            let functions: Vec<String> = (0..levels)
+                .map(|i| {
+                    if i == levels - 1 {
+                        "<< /FunctionType 2 /Domain [0 1] /C0 [0] /C1 [1] /N 1 >>".to_string()
+                    } else {
+                        format!("<< /FunctionType 3 /Domain [0 1] /Functions [{n} 0 R {n} 0 R] /Bounds [0.5] /Encode [0 1 0 1] >>", n = 6 + i)
+                    }
+                })
+                .collect();
+            let mut objects: Vec<&[u8]> = vec![b"<< /Type /Catalog /Pages 2 0 R >>", b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>", page, &content];
+            objects.extend(functions.iter().map(|f| f.as_bytes()));
+            let doc = Document::open(pdf(&objects), "").unwrap();
+            let before = function_work();
+            doc.scan(0, true, false).unwrap();
+            let bitmap = doc.render(0, 100.0, f32::INFINITY).unwrap();
+            (function_work() - before, bitmap)
+        };
+        // Under the limit it draws, as before: 2^11 pieces, black to white.
+        let (_, bitmap) = work(12);
+        assert!(bitmap.rgba[0] < 16 && bitmap.rgba[4 * 99] > 240, "{:?}", &bitmap.rgba[..8]);
+        let (work, _) = work(22);
+        assert!(work <= 4 << 14, "{work} functions built or visited");
+    }
+
+    /// A stitching function of many distinct functions isn't a repeat, so it's drawn whole: one of
+    /// 20,000 was left blank by a limit on the functions one may hold.
+    #[test]
+    fn a_function_of_many_distinct_ones_is_drawn() {
+        const N: usize = 20_000;
+        let functions: String = (0..N).map(|i| format!("<< /FunctionType 2 /Domain [0 1] /C0 [{}] /C1 [{}] /N 1 >> ", i as f32 / N as f32, (i + 1) as f32 / N as f32)).collect();
+        let bounds: String = (1..N).map(|i| format!("{} ", i as f32 / N as f32)).collect();
+        let page = format!("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R /Resources << /Shading << /S << /ShadingType 2 /ColorSpace /DeviceGray /Coords [0 0 100 0] /Function << /FunctionType 3 /Domain [0 1] /Functions [{functions}] /Bounds [{bounds}] /Encode [{}] >> >> >> >> >>", "0 1 ".repeat(N));
+        let content = stream("", b"/S sh");
+        let doc = Document::open(pdf(&[b"<< /Type /Catalog /Pages 2 0 R >>", b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>", page.as_bytes(), &content]), "").unwrap();
+        let bitmap = doc.render(0, 100.0, f32::INFINITY).unwrap();
+        assert!(bitmap.rgba[0] < 16 && bitmap.rgba[4 * 99] > 240 && (100..156).contains(&bitmap.rgba[4 * 50]), "{:?} {:?}", &bitmap.rgba[..4], &bitmap.rgba[4 * 50..4 * 51]);
+    }
+
+    /// Every `EI` in an inline image's data is a candidate end, which upstream checked by reading on
+    /// through the later ones: 16,000 of them and a binary byte after them took 1.1 s a call. The
+    /// work is linear now, and the text after the image still reads.
+    #[test]
+    fn ending_an_inline_image_is_linear_in_its_eis() {
+        use hayro::hayro_syntax::content::inline_image_work;
+        let work = |eis: usize| {
+            let mut data = format!("q 10 0 0 10 0 0 cm BI /W 1 /H 1 /BPC 8 /CS /G ID {}", "EI ".repeat(eis)).into_bytes();
+            // Binary after them: every EI before it is image data.
+            data.extend_from_slice(b"\x80 EI Q BT /F1 10 Tf (after) Tj ET");
+            let content = stream("", &data);
+            let doc = Document::open(
+                pdf(&[
+                    b"<< /Type /Catalog /Pages 2 0 R >>",
+                    b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                    b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> >>",
+                    &content,
+                ]),
+                "",
+            )
+            .unwrap();
+            let before = inline_image_work();
+            let text = doc.text(0).unwrap().text();
+            assert!(text.contains("after"), "{text:?}");
+            inline_image_work() - before
+        };
+        let (small, large) = (work(2000), work(8000));
+        assert!(large <= 5 * small, "{small} steps for 2,000 EIs, {large} for 8,000");
+        assert!(large <= 8 * 8000 * 3, "{large} steps for 8,000 EIs");
+    }
+
+    /// The one-pass search for an inline image's end answers what upstream's rereading does, on
+    /// random data made of what decides it: `EI`, `BI`, white space, strings and their escapes,
+    /// binary bytes, operators, and dictionaries that start an image.
+    #[test]
+    fn an_inline_image_ends_where_rereading_says() {
+        use hayro::hayro_syntax::content::{ends_by_rereading, inline_image_end_for_tests};
+        let pieces: [&[u8]; 16] = [
+            b"EI", b"EI ", b" EI\n", b"BI", b"BI /W 1 /H 1 /BPC 8 /CS /G ID ", b" ", b"(", b")", b"\\", b"\x80",
+            b"\xff", b"q ", b"Q ", b"(a) Tj ", b"x", b"1 0 0 1 0 0 cm ",
+        ];
+        let mut seed = 0x2545_f491_4f6c_dd1d_u64;
+        let mut next = move || {
+            seed ^= seed << 13;
+            seed ^= seed >> 7;
+            seed ^= seed << 17;
+            seed
+        };
+        for round in 0..20_000 {
+            let length = 1 + (next() % 60) as usize;
+            let data: Vec<u8> = (0..length).flat_map(|_| pieces[(next() % 16) as usize].iter().copied()).collect();
+            assert_eq!(inline_image_end_for_tests(&data), ends_by_rereading(&data), "round {round}: {:?} {:?}", String::from_utf8_lossy(&data), data);
+        }
+    }
+
+    /// A membership dictionary of n groups, named by m `BDC`s, was read m times: 16,000 of each took
+    /// 13 s a call. It's read once a page.
+    #[test]
+    fn a_membership_dictionary_is_read_once_a_page() {
+        use hayro::hayro_interpret::ocmd_reads;
+        const BDCS: usize = 500;
+        let content = stream("", format!("{}BT /F1 10 Tf 10 10 Td (on) Tj ET /OC /M BDC BT /F1 10 Tf 10 30 Td (off) Tj ET EMC", "/OC /M BDC EMC ".repeat(BDCS)).as_bytes());
+        let ocmd = format!("<< /Type /OCMD /OCGs [{}] /P /AllOn >>", "6 0 R ".repeat(BDCS));
+        let doc = Document::open(
+            pdf(&[
+                b"<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [6 0 R] /D << /OFF [6 0 R] >> >> >>",
+                b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R /Resources << /Properties << /M 5 0 R >> /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> >>",
+                &content,
+                ocmd.as_bytes(),
+                b"<< /Type /OCG /Name (x) >>",
+            ]),
+            "",
+        )
+        .unwrap();
+        let before = ocmd_reads();
+        let text = doc.text(0).unwrap().text();
+        let reads = ocmd_reads() - before;
+        assert_eq!(text.trim(), "on");
+        assert!(reads <= 1, "{reads} reads of one dictionary");
+    }
+
+    /// Each use of a named resource parsed the object it names, so naming one of n bytes m times cost
+    /// m×n: 8,000 `gs`, `Do`, `cs` or `BDC` naming a 16 KB object took 0.6 s a call. A stream looks
+    /// each name up once.
+    #[test]
+    fn a_stream_looks_each_named_resource_up_once() {
+        use hayro::hayro_interpret::named_reads;
+        const USES: usize = 300;
+        let junk = "0 ".repeat(2000);
+        let uses = "/G gs /X Do /C cs 0.5 sc /P scn /S sh /Tag /M BDC EMC /F1 10 Tf (a) Tj /F2 10 Tf (b) Tj ".repeat(USES);
+        let content = stream("", format!("BT {uses}ET").replace("/X Do", "ET /X Do BT").replace("/S sh", "ET /S sh BT").as_bytes());
+        let page = format!(
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R /Resources << \
+             /ExtGState << /G << /LW 1 /Junk [{junk}] >> >> /XObject << /X 5 0 R >> \
+             /ColorSpace << /C [/Indexed /DeviceRGB 0 <000000> {junk}] >> \
+             /Pattern << /P << /PatternType 2 /Shading << /ShadingType 2 /ColorSpace /DeviceGray /Coords [0 0 1 0] /Function << /FunctionType 2 /Domain [0 1] /C0 [0] /C1 [1] /N 1 >> >> /Junk [{junk}] >> >> \
+             /Shading << /S << /ShadingType 2 /ColorSpace /DeviceGray /Coords [0 0 1 0] /Function << /FunctionType 2 /Domain [0 1] /C0 [0] /C1 [1] /N 1 >> /Junk [{junk}] >> >> \
+             /Properties << /M << /Junk [{junk}] >> >> \
+             /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Junk [{junk}] >> /F2 << /Type /Font /Subtype /Type1 /BaseFont /Courier >> >> >> >>"
+        );
+        let form = stream(&format!("/Type /XObject /Subtype /Form /BBox [0 0 10 10] /Junk [{junk}]"), b"");
+        let doc = Document::open(
+            pdf(&[
+                b"<< /Type /Catalog /Pages 2 0 R >>",
+                b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                page.as_bytes(),
+                &content,
+                &form,
+            ]),
+            "",
+        )
+        .unwrap();
+        let calls: [(&str, &dyn Fn()); 3] = [
+            ("text", &|| drop(doc.text(0).unwrap())),
+            ("objects", &|| drop(doc.scan(0, true, false).unwrap())),
+            ("render", &|| drop(doc.render(0, 100.0, f32::INFINITY).unwrap())),
+        ];
+        for (call, run) in calls {
+            let before = named_reads();
+            run();
+            let reads = named_reads() - before;
+            assert!(reads <= 9, "{call}: {reads} lookups of 9 names used {USES} times each");
+        }
+    }
+
+    /// An inline image naming its colour space parsed it again: 8,000 naming one of 16 KB took 1 s a
+    /// call.
+    #[test]
+    fn inline_images_look_their_colour_space_up_once() {
+        use hayro::hayro_interpret::named_reads;
+        let content = stream("", &b"q 10 0 0 10 0 0 cm BI /W 1 /H 1 /BPC 8 /CS /C ID \x00 EI Q ".repeat(300));
+        let page = format!(
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R /Resources << /ColorSpace << /C [/Indexed /DeviceRGB 0 <000000> {}] >> >> >>",
+            "0 ".repeat(2000)
+        );
+        let doc = Document::open(
+            pdf(&[b"<< /Type /Catalog /Pages 2 0 R >>", b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>", page.as_bytes(), &content]),
+            "",
+        )
+        .unwrap();
+        let before = named_reads();
+        doc.text(0).unwrap();
+        doc.render(0, 100.0, f32::INFINITY).unwrap();
+        let reads = named_reads() - before;
+        assert!(reads <= 2, "{reads} lookups of one colour space");
+    }
+
     /// A node, and a page, listed many times in `/Kids`: each dictionary is built at most twice, at
     /// open and through every page's read, so a large one repeated doesn't cost its size per repeat.
     #[test]
@@ -597,6 +1043,110 @@ mod tests {
             let built = dict_head_builds() - before;
             assert!(built <= 4, "{name}: {built} dictionaries built for 2 objects");
         }
+    }
+
+    /// A page's decoded content is kept while it's among the last read, so its text and then its
+    /// pixels decode it once, and reading a document through holds a few pages' worth, not all.
+    #[test]
+    fn page_content_is_decoded_once_per_use_and_not_kept_for_every_page() {
+        use hayro::hayro_syntax::page::Page;
+        const N: usize = 30;
+        // Half a MiB of content per page, mostly a comment: past the bytes kept, so only the last
+        // few pages hold theirs.
+        let content = format!("BT /F1 12 Tf 10 50 Td (Hello) Tj ET\n%{}\n", "x".repeat(512 << 10));
+        let mut objects: Vec<Vec<u8>> = vec![
+            b"<< /Type /Catalog /Pages 2 0 R >>".to_vec(),
+            format!(
+                "<< /Type /Pages /Count {N} /Kids [{}] >>",
+                (0..N).map(|i| format!("{} 0 R ", 4 + 2 * i)).collect::<String>()
+            )
+            .into_bytes(),
+            b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>".to_vec(),
+        ];
+        for i in 0..N {
+            objects.push(
+                format!(
+                    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents {} 0 R \
+                     /Resources << /Font << /F1 3 0 R >> >> >>",
+                    5 + 2 * i
+                )
+                .into_bytes(),
+            );
+            objects.push(stream("", content.as_bytes()));
+        }
+        let refs: Vec<&[u8]> = objects.iter().map(Vec::as_slice).collect();
+        let doc = Document::open(pdf(&refs), "").unwrap();
+        let before = Page::content_decodes();
+        for i in 0..N {
+            assert!(doc.text(i).unwrap().text().starts_with("Hello"));
+            doc.render(i, 20.0, f32::INFINITY).unwrap();
+            doc.annotations(i).unwrap();
+        }
+        assert_eq!(Page::content_decodes() - before, N, "each page's content decoded once");
+        let held = doc.0.with_dependent(|pdf, _| {
+            (0..N).filter(|&i| pdf.pages().get(i).unwrap().holds_contents()).count()
+        });
+        assert!(held <= 4, "{held} pages of {N} still hold their content");
+        // Read again, a page decodes it again.
+        doc.text(0).unwrap();
+        assert_eq!(Page::content_decodes() - before, N + 1);
+    }
+
+    /// The flate decoder's single call gives what reading the stream did, for whole, raw,
+    /// truncated, trailing and damaged data.
+    #[test]
+    fn flate_decodes_as_a_reader_did() {
+        use std::io::{Read, Write};
+        let reference = |data: &[u8]| -> Option<Vec<u8>> {
+            let mut out = Vec::new();
+            if flate2::read::ZlibDecoder::new(data).read_to_end(&mut out).is_ok() {
+                return Some(out);
+            }
+            out.clear();
+            flate2::read::DeflateDecoder::new(data).read_to_end(&mut out).ok().map(|_| out)
+        };
+        let mut seed = 1u64;
+        let mut next = move || {
+            seed ^= seed << 13;
+            seed ^= seed >> 7;
+            seed ^= seed << 17;
+            seed
+        };
+        let mut checked = 0;
+        for size in [0usize, 1, 100, 4095, 4096, 70_000, 1 << 20] {
+            // Text-like data, and runs that inflate far past four times their size.
+            for repetitive in [false, true] {
+                let plain: Vec<u8> = (0..size)
+                    .map(|i| if repetitive { b'a' + (i / 5000 % 3) as u8 } else { b"abcdefgh ()TjBT"[(next() % 15) as usize] })
+                    .collect();
+                let mut zlib = flate2::write::ZlibEncoder::new(Vec::new(), flate2::Compression::default());
+                zlib.write_all(&plain).unwrap();
+                let zlib = zlib.finish().unwrap();
+                let mut raw = flate2::write::DeflateEncoder::new(Vec::new(), flate2::Compression::default());
+                raw.write_all(&plain).unwrap();
+                let raw = raw.finish().unwrap();
+                let mut cases = vec![zlib.clone(), raw.clone(), [&zlib[..], b"garbage after"].concat()];
+                for cut in [1, 2, 6, zlib.len() / 2, zlib.len().saturating_sub(4)] {
+                    cases.push(zlib[..cut.min(zlib.len())].to_vec());
+                }
+                for _ in 0..8 {
+                    let mut damaged = zlib.clone();
+                    let at = (next() as usize) % damaged.len();
+                    damaged[at] ^= 1 << (next() % 8);
+                    cases.push(damaged);
+                }
+                for case in cases {
+                    let ours = hayro::hayro_syntax::flate_decode(&case);
+                    match reference(&case) {
+                        Some(expected) => assert_eq!(ours.as_deref(), Some(&expected[..]), "{size}"),
+                        // The reader gave up; the stream then tried the fallback decoder, as it does.
+                        None => {}
+                    }
+                    checked += 1;
+                }
+            }
+        }
+        assert!(checked > 200);
     }
 
     /// One 200x200 page: a filled-and-stroked rect, `Tr 2` text, a `sh`, an
@@ -1038,5 +1588,126 @@ mod tests {
             (first[0] - 157.536).abs() < 0.5 && first[1] == 40.0,
             "{first:?}"
         );
+    }
+
+    /// An image drawn at under twice its size is smoothed, as pdfium, pdf.js and poppler smooth it;
+    /// one drawn much larger keeps sharp pixels, as pdfium and pdf.js keep them.
+    #[test]
+    fn a_slightly_enlarged_image_is_smoothed() {
+        // A 20x20 checkerboard of black and white pixels, drawn at `side` points on a 100 pt page.
+        let checker: Vec<u8> = (0..400).map(|i| if (i % 20 + i / 20) % 2 == 0 { 0 } else { 255 }).collect();
+        let grey_share = |side: u32| {
+            let content = format!("q {side} 0 0 {side} 0 0 cm /Im Do Q");
+            let doc = Document::open(
+                pdf(&[
+                    b"<< /Type /Catalog /Pages 2 0 R >>",
+                    b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                    b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R \
+                       /Resources << /XObject << /Im 5 0 R >> >> >>",
+                    &stream("", content.as_bytes()),
+                    &stream(
+                        "/Type /XObject /Subtype /Image /Width 20 /Height 20 /ColorSpace /DeviceGray /BitsPerComponent 8",
+                        &checker,
+                    ),
+                ]),
+                "",
+            )
+            .unwrap();
+            let bitmap = doc.render(0, 100.0, f32::INFINITY).unwrap();
+            let inside = (side as usize).min(bitmap.width as usize) - 1;
+            let mut grey = 0;
+            for y in 0..inside {
+                for x in 0..inside {
+                    let v = bitmap.rgba[((bitmap.height as usize - 1 - y) * bitmap.width as usize + x) * 4];
+                    if (16..240).contains(&v) {
+                        grey += 1;
+                    }
+                }
+            }
+            grey as f64 / (inside * inside) as f64
+        };
+        // 1.5 device pixels to an image pixel: most pixels blend two image pixels.
+        assert!(grey_share(30) > 0.3, "{}", grey_share(30));
+        // 4.5: blocks of black and white.
+        assert!(grey_share(90) < 0.05, "{}", grey_share(90));
+    }
+
+    /// A luminosity soft mask weighs red, green and blue 0.30, 0.59 and 0.11, as the spec, pdfium,
+    /// pdf.js and poppler do: pure red masks black to 30% over white.
+    #[test]
+    fn a_luminosity_mask_weighs_colours_as_pdf_does() {
+        let shade = |rgb: &str| {
+            let mask_group = format!("{rgb} rg 0 0 100 100 re f");
+            let doc = Document::open(
+                pdf(&[
+                    b"<< /Type /Catalog /Pages 2 0 R >>",
+                    b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                    b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R \
+                       /Resources << /ExtGState << /M << /SMask << /S /Luminosity /G 5 0 R >> >> >> >> >>",
+                    &stream("", b"/M gs 0 g 0 0 100 100 re f"),
+                    &stream(
+                        "/Type /XObject /Subtype /Form /BBox [0 0 100 100] \
+                         /Group << /S /Transparency /CS /DeviceRGB >>",
+                        mask_group.as_bytes(),
+                    ),
+                ]),
+                "",
+            )
+            .unwrap();
+            let bitmap = doc.render(0, 100.0, f32::INFINITY).unwrap();
+            bitmap.rgba[(50 * bitmap.width as usize + 50) * 4]
+        };
+        for (rgb, weight) in [("1 0 0", 0.30), ("0 1 0", 0.59), ("0 0 1", 0.11)] {
+            let expected = 255.0 * (1.0 - weight);
+            let got = f64::from(shade(rgb));
+            assert!((got - expected).abs() <= 2.0, "{rgb}: {got}, not {expected}");
+        }
+    }
+
+    /// A hairline in a tiling pattern is at least a pixel wide, as everywhere else on the page and
+    /// as pdfium and pdf.js draw it: a 0.1 pt hatch was a faint grey.
+    #[test]
+    fn a_thin_line_in_a_pattern_is_a_pixel_wide() {
+        let doc = Document::open(
+            pdf(&[
+                b"<< /Type /Catalog /Pages 2 0 R >>",
+                b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R \
+                   /Resources << /Pattern << /P 5 0 R >> >> >>",
+                &stream("", b"/Pattern cs /P scn 0 0 100 100 re f"),
+                &stream(
+                    "/Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
+                    b"0.1 w 0 G 2.5 0 m 2.5 5 l S",
+                ),
+            ]),
+            "",
+        )
+        .unwrap();
+        let bitmap = doc.render(0, 100.0, f32::INFINITY).unwrap();
+        // Ink across one row of the page, in pixels' worth of black: 20 lines.
+        let row = 50 * bitmap.width as usize * 4;
+        let ink: f64 = (0..bitmap.width as usize)
+            .map(|x| f64::from(255 - bitmap.rgba[row + x * 4]) / 255.0)
+            .sum();
+        assert!(ink > 15.0, "{ink} pixels of ink for 20 lines");
+    }
+
+    /// A bitmap asked for `width` pixels across is that wide, whatever float error the page's own
+    /// width brings: 800 across a 612 pt page was 801.
+    #[test]
+    fn a_render_is_as_wide_as_asked() {
+        let mut wrong = Vec::new();
+        for page in [612.0_f32, 595.0, 595.276, 841.89, 792.0, 419.53, 1224.0, 100.0, 3.0, 14400.0] {
+            for width in (1..=4096).map(|w| w as f32) {
+                let scale = render_scale(page, page, width, f32::INFINITY).unwrap();
+                if pixel_side(page * scale) != width {
+                    wrong.push((page, width));
+                }
+            }
+        }
+        assert!(wrong.is_empty(), "{} sizes off, such as {:?}", wrong.len(), &wrong[..wrong.len().min(5)]);
+        // A side that isn't whole still rounds up.
+        assert_eq!(pixel_side(100.4), 101.0);
+        assert_eq!(pixel_side(0.2), 1.0);
     }
 }

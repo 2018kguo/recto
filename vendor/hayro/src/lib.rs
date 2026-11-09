@@ -34,7 +34,7 @@ This crate has one optional feature:
 #![deny(missing_docs)]
 
 use fearless_simd::Level;
-use glyph_cache::GlyphCache;
+use glyph_cache::{GlyphCache, PageGlyphs};
 use hayro_interpret::Device;
 use hayro_interpret::FillRule;
 use hayro_interpret::InterpreterCache;
@@ -78,6 +78,8 @@ pub(crate) struct GlobalState {
     level: Level,
     outline_cache: Rc<RefCell<OutlineCache>>,
     glyph_cache: Rc<RefCell<GlyphCache>>,
+    // recto: see `glyph_cache::MAX_PAGE_GLYPH_BYTES`.
+    page_glyphs: RefCell<PageGlyphs>,
     hinting_cache: HintingCache,
     scaler: Scaler,
     force_image_interpolation: bool,
@@ -89,10 +91,13 @@ pub(crate) struct GlobalState {
 
 impl GlobalState {
     pub(crate) fn new(cache: &RenderCache<'_>, settings: &RenderSettings) -> Self {
+        // recto: see `glyph_cache::MAX_CACHED_GLYPH_BYTES`.
+        cache.glyph_cache.borrow_mut().trim();
         Self {
             level: Level::new(),
             outline_cache: cache.outline_cache.clone(),
             glyph_cache: cache.glyph_cache.clone(),
+            page_glyphs: RefCell::default(),
             hinting_cache: cache.hinting_cache.clone(),
             scaler: Scaler::new(image::RESAMPLING_FUNCTION),
             force_image_interpolation: settings.force_image_interpolation,
@@ -107,7 +112,6 @@ impl GlobalState {
 pub(crate) struct Renderer<'r> {
     global: &'r GlobalState,
     pub(crate) ctx: &'r mut RenderContext,
-    pub(crate) inside_pattern: bool,
     pub(crate) soft_mask_cache: FxHashMap<u128, Mask>,
     pub(crate) in_type3_glyph: bool,
     // recto: see `group`.
@@ -124,7 +128,6 @@ impl<'r> Renderer<'r> {
         Self {
             global,
             ctx,
-            inside_pattern: false,
             soft_mask_cache: FxHashMap::default(),
             in_type3_glyph: false,
             groups: Vec::new(),
@@ -274,6 +277,12 @@ impl<'a> RenderCache<'a> {
     /// so isn't what the file says everywhere.
     pub fn take_degraded(&self) -> bool {
         self.degraded.replace(false)
+    }
+
+    /// recto: the bytes of the glyph images the cache holds, for tests and `examples/budgets.rs`.
+    #[doc(hidden)]
+    pub fn glyph_cache_bytes(&self) -> usize {
+        self.glyph_cache.borrow().bytes()
     }
 
     /// Create a new render cache.

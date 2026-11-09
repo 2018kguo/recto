@@ -7,7 +7,7 @@ frame: top-left origin, with `/Rotate` and the crop box applied.
 
 ```ts
 openPdf(bytes: Uint8Array | ArrayBuffer, options?: { password?: string; signal?: AbortSignal }): Promise<PdfDocument>
-createPdfEngine(options?: { assetBase?: string | URL; recycleAboveBytes?: number; preloadAssets?: string[] }): Promise<PdfEngine>
+createPdfEngine(options?: { assetBase?: string | URL; recycleAboveBytes?: number; maxDecodedBytes?: number; preloadAssets?: string[] }): Promise<PdfEngine>
 
 engine.open(bytes, options?): Promise<PdfDocument>
 engine.openRanged(source: string | URL | Uint8Array, options?: PdfRangedOpenOptions): Promise<PdfRangedDocument>
@@ -88,6 +88,27 @@ second, out of 2^20, and stop at 50 levels; annotations with no appearance share
 stop at 2^18 kids, page labels at 2^16 nodes or ranges, an outline at 2^16 items and 64 levels, its name tree at
 2^18 nodes. [The costliest real pages we measured](benchmarks.md#damaged-files) leave over 250× room on each.
 
+Two limits change what's drawn without setting `truncated`. A function (a shading's, or a transfer
+function's) listing the same one again at the same depth builds it once and shares it, and one that would
+repeat functions over 2^14 times in all isn't built, so what needs it isn't drawn: a few KB listing the next
+level twice, 30 levels down, asks for 2^30. Distinct functions don't count, so one of 20,000 draws; the most
+any of the 543 test-suite and public files that open repeated was 44. Past 256 MiB of glyph images on a
+page, the rest of its glyphs are filled as paths, as a glyph too large to cache already is.
+
+**What a stream decodes to** is limited by `maxDecodedBytes`, on `createPdfEngine` and `createPdfPool`:
+768 MiB by default. No stream may decode to more, and no image hold more at a byte a component. Past it,
+that stream or image is left out, as one that can't be read is, and `truncated` is true on what `text`,
+`objects`, `render` and `renderAsync` return for the page. That's `truncated` and not an error, as with the
+other limits on a page, because the rest of the page still reads. The limit is on what's held at once: a
+page's content streams count together, as they're joined, and the content of a page, form, tiling pattern or
+Type 3 glyph counts against what's decoded while it runs. What a limit left out stays left out in what's
+cached (the page's content, a font, a colour space), so every call that uses it says `truncated`, whatever
+was read before. A stream read outside a page's call (an object stream, an outline's) is left out the same
+way, with nothing to say so; so is an annotation's text that `annotations` reads, which has no `truncated`. The most any page of those
+543 files asked for was 151 MB. A 600 dpi scan of an A0 page is 558 MB in gray, and draws in about 2.1 GB of
+WebAssembly memory; in RGB it's 1.7 GB, which ended in `crash` before and is left out now. Several pages
+under the limit can still add up to more than the instance has.
+
 A render is capped at 16,384 px a side and 64 Mpx, and shrinks to fit. `maxHeight` defaults to
 4096; pass `Infinity` to fit the width alone.
 
@@ -106,7 +127,7 @@ Helpers over those columns: `textItems(page, info)` makes pdf.js-style text item
 ## A pool of threads
 
 ```ts
-createPdfPool(options?: { threads?: number; assetBase?: string }): Promise<PdfPool>
+createPdfPool(options?: { threads?: number; assetBase?: string; maxDecodedBytes?: number }): Promise<PdfPool>
 
 pool.open(bytes, { password? }): Promise<PdfPoolDocument>
 pool.stats(): { threads: number; queued: number }

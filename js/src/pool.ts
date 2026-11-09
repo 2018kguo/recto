@@ -24,6 +24,8 @@ export type PdfPoolOptions = {
   threads?: number;
   /** As for `createPdfEngine`. A string: it crosses to the threads. */
   assetBase?: string;
+  /** As for `createPdfEngine`, on every thread. */
+  maxDecodedBytes?: number;
 };
 
 export type PdfPoolOpenOptions = { password?: string };
@@ -103,6 +105,7 @@ class Pool implements PdfPool {
   #limit: number;
   readonly #ceiling: number;
   readonly #assetBase: string | undefined;
+  readonly #maxDecodedBytes: number | undefined;
   readonly #threads: Thread[] = [];
   /** Started and not yet ready. */
   readonly #startingThreads = new Set<Thread>();
@@ -111,10 +114,11 @@ class Pool implements PdfPool {
   #nextId = 0;
   #closed = false;
 
-  constructor(limit: number, assetBase: string | undefined) {
+  constructor(limit: number, assetBase: string | undefined, maxDecodedBytes: number | undefined) {
     this.#limit = limit;
     this.#ceiling = limit;
     this.#assetBase = assetBase;
+    this.#maxDecodedBytes = maxDecodedBytes;
   }
 
   #spawn(): void {
@@ -219,7 +223,7 @@ class Pool implements PdfPool {
         };
         thread.worker = worker;
       }
-      const start: PoolStart = { assetBase: this.#assetBase };
+      const start: PoolStart = { assetBase: this.#assetBase, maxDecodedBytes: this.#maxDecodedBytes };
       thread.worker.postMessage(start);
     } catch (error) {
       onDeath(error);
@@ -363,5 +367,9 @@ export function startPool(options: PdfPoolOptions): PdfPool {
     options.assetBase !== undefined && typeof location !== "undefined"
       ? new URL(options.assetBase, location.href).href
       : options.assetBase;
-  return new Pool(threads, assetBase);
+  const maxDecodedBytes = options.maxDecodedBytes;
+  if (maxDecodedBytes !== undefined && !(typeof maxDecodedBytes === "number" && maxDecodedBytes >= 0)) {
+    throw new RangeError("maxDecodedBytes must be a number of bytes, 0 or more");
+  }
+  return new Pool(threads, assetBase, maxDecodedBytes);
 }

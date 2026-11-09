@@ -262,6 +262,51 @@ fn cell_key(level: i32, x: i32, y: i32) -> u64 {
 }
 
 const NONE: u32 = u32::MAX;
+
+/// Each cell's newest glyph, by key: open addressing with linear probing, sized once to more than
+/// one and a half times the glyphs, so it never fills or rehashes. Insert-only, as `copies` uses it;
+/// a general hash map's probing cost more than the rest of the pass.
+struct Cells {
+    keys: Vec<u64>,
+    glyphs: Vec<u32>,
+    shift: u32,
+}
+
+impl Cells {
+    /// No key is this: a cell key's top bits are a level under 81.
+    const EMPTY: u64 = u64::MAX;
+
+    fn with_capacity(n: usize) -> Self {
+        let size = (n.saturating_add(n / 2) + 1).max(16).next_power_of_two();
+        Self {
+            keys: vec![Self::EMPTY; size],
+            glyphs: vec![NONE; size],
+            shift: 64 - size.trailing_zeros(),
+        }
+    }
+
+    fn slot(&self, key: u64) -> usize {
+        let mask = self.keys.len() - 1;
+        let mut at = (key.wrapping_mul(0x9E37_79B9_7F4A_7C15) >> self.shift) as usize;
+        while self.keys[at] != key && self.keys[at] != Self::EMPTY {
+            at = (at + 1) & mask;
+        }
+        at
+    }
+
+    /// The cell's newest glyph, or `NONE`.
+    fn get(&self, key: u64) -> u32 {
+        self.glyphs[self.slot(key)]
+    }
+
+    /// Makes `glyph` the cell's newest and returns the one before it, or `NONE`.
+    fn replace(&mut self, key: u64, glyph: u32) -> u32 {
+        let at = self.slot(key);
+        self.keys[at] = key;
+        std::mem::replace(&mut self.glyphs[at], glyph)
+    }
+}
+
 const FAKE_BOLD_CHAIN: usize = 64;
 
 #[cfg(test)]
@@ -284,8 +329,7 @@ fn copies(glyphs: &[Glyph]) -> Vec<bool> {
     // Kept glyphs by origin cell: the cell's newest glyph, then each glyph's
     // older neighbour in `next` (a chain through one flat array, no Vec per
     // cell). Sized once, so it never rehashes.
-    let mut head: rustc_hash::FxHashMap<u64, u32> =
-        rustc_hash::FxHashMap::with_capacity_and_hasher(glyphs.len(), Default::default());
+    let mut head = Cells::with_capacity(glyphs.len());
     let mut next: Vec<u32> = Vec::with_capacity(glyphs.len());
     // Bit `L - MIN_LEVEL` set once a glyph is indexed on level L.
     let mut levels: u128 = 0;
@@ -340,7 +384,7 @@ fn copies(glyphs: &[Glyph]) -> Vec<bool> {
                     let (cx, cy) = cell(g.origin, l);
                     'scan: for x in cx.saturating_sub(1)..=cx.saturating_add(1) {
                         for y in cy.saturating_sub(1)..=cy.saturating_add(1) {
-                            let mut c = head.get(&cell_key(l, x, y)).copied().unwrap_or(NONE);
+                            let mut c = head.get(cell_key(l, x, y));
                             // A cell holds a glyph or two; the cap keeps thousands of
                             // different glyphs stacked on one point (only a hostile
                             // file draws that) linear.
@@ -383,7 +427,7 @@ fn copies(glyphs: &[Glyph]) -> Vec<bool> {
                 let l = level(g.em);
                 levels |= 1 << (l - MIN_LEVEL);
                 let (x, y) = cell(g.origin, l);
-                head.insert(cell_key(l, x, y), at).unwrap_or(NONE)
+                head.replace(cell_key(l, x, y), at)
             } else {
                 NONE
             });
@@ -551,7 +595,9 @@ fn close_lines(chars: &mut Vec<Char>) {
                 let [x, _, w, _] = chars[write - 1].bbox;
                 chars[read].bbox[0] = x + w;
             }
-            chars.swap(write, read);
+            if write != read {
+                chars.swap(write, read);
+            }
             write += 1;
             line_start = write;
             prev_space = false;
@@ -561,7 +607,9 @@ fn close_lines(chars: &mut Vec<Char>) {
             continue;
         }
         prev_space = space;
-        chars.swap(write, read);
+        if write != read {
+            chars.swap(write, read);
+        }
         write += 1;
     }
     if prev_space && write - line_start > 1 {
@@ -897,6 +945,21 @@ mod tests {
         // Viewer frame: y grows down, so glyph "up" is -y.
         let t = Affine::new([size / 1000.0, 0.0, 0.0, -size / 1000.0, x, y]);
         glyph_from(t, text.into(), 500.0, false, (ASCENT, DESCENT)).unwrap()
+    }
+
+    /// The cells' table answers as a map does, through collisions and replacements.
+    #[test]
+    fn cells_answer_as_a_map_does() {
+        let mut map = std::collections::HashMap::new();
+        let mut cells = Cells::with_capacity(5000);
+        let mut seed = 7u64;
+        for i in 0..5000u32 {
+            seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            // Few distinct keys, so most inserts replace one; keys that share low bits collide.
+            let key = cell_key((seed >> 60) as i32 - 8, (seed >> 40 & 15) as i32 * 1024, (seed >> 20 & 7) as i32);
+            assert_eq!(cells.get(key), map.get(&key).copied().unwrap_or(NONE));
+            assert_eq!(cells.replace(key, i), map.insert(key, i).unwrap_or(NONE));
+        }
     }
 
     #[test]

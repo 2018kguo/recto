@@ -5,6 +5,7 @@ import { test } from "node:test";
 
 import { createPdfEngine, openPdf, PdfError } from "../src/index.ts";
 import { syntheticPdf } from "./synthetic-pdf.ts";
+import { pagePdf } from "./rare-pdfs.ts";
 import { pdfOf } from "./transparency-cases.mjs";
 
 const fixture = (name: string) => new Uint8Array(readFileSync(new URL(`./fixtures/${name}`, import.meta.url)));
@@ -193,4 +194,82 @@ test("encrypted, trailer lost: revision 6 is repaired, with or without a passwor
 
 test("encrypted, trailer lost: before revision 6 the key died with it, and it says so, not blank", async () => {
   await assert.rejects(openPdf(fixture("encrypted-r4-no-trailer.pdf")), (error: PdfError) => error.code === "invalid-file");
+});
+
+// 16 bytes of CCITTFaxDecode declaring 60,000 by 60,000 pixels crashed the instance; a stream that
+// inflates past `maxDecodedBytes` took memory the instance never gives back.
+test("a stream or image that decodes past maxDecodedBytes is left out, and the page says so", async () => {
+  const { deflateSync } = await import("node:zlib");
+  const pdf = pagePdf("BT /H 10 Tf 10 10 Td (kept) Tj ET q 100 0 0 100 0 0 cm /Im Do Q /F Do", "/Font << /H 5 0 R >> /XObject << /Im 6 0 R /F 7 0 R >>", [
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    {
+      dict: "/Type /XObject /Subtype /Image /Width 60000 /Height 60000 /BitsPerComponent 1 /ColorSpace /DeviceGray /Filter /CCITTFaxDecode /DecodeParms << /K -1 /Columns 60000 /Rows 60000 >>",
+      data: new Uint8Array(16),
+    },
+    {
+      dict: "/Type /XObject /Subtype /Form /BBox [0 0 100 100] /Filter /FlateDecode",
+      data: deflateSync(Buffer.alloc(4 << 20, 0x20)),
+    },
+  ]);
+  const engine = await createPdfEngine();
+  await using whole = await engine.open(pdf);
+  assert.equal(whole.render(0, { width: 50 }).truncated, true, "the image is past the default");
+  const text = whole.text(0);
+  assert.equal(text.truncated, false, "text decodes neither the image nor, under 768 MiB, the form");
+  assert.ok(String.fromCodePoint(...text.codepoints).includes("kept"));
+
+  const small = await createPdfEngine({ maxDecodedBytes: 1 << 20 });
+  await using cut = await small.open(pdf);
+  const cutText = cut.text(0);
+  assert.equal(cutText.truncated, true, "the form inflates past 1 MiB");
+  assert.ok(String.fromCodePoint(...cutText.codepoints).includes("kept"), "the rest of the page still reads");
+  await assert.rejects(createPdfEngine({ maxDecodedBytes: -1 }), RangeError);
+});
+
+// One stream listed five times in `/Contents`, or forms nested five deep, each under the limit, took
+// five times it at once and crashed the instance. And what a limit left out stays left out in what's
+// cached, so every call says so, not only the first that decoded it.
+test("maxDecodedBytes bounds what a page holds at once, and every call on it says truncated, in any order", async () => {
+  const { deflateSync } = await import("node:zlib");
+  const MAX = 1 << 20;
+  const spaces = deflateSync(Buffer.alloc(300 << 10, 0x20));
+  const form = (inner: number | null) => ({
+    dict: `/Type /XObject /Subtype /Form /BBox [0 0 100 100] /Filter /FlateDecode${inner ? ` /Resources << /XObject << /N ${inner} 0 R >> >>` : ""}`,
+    data: deflateSync(Buffer.concat([Buffer.from(inner ? "/N Do\n" : ""), Buffer.alloc(400 << 10, 0x20)])),
+  });
+  // Objects from 5: the font, the spaces, three nested forms.
+  // The page's content is object 4 and the spaces five times over.
+  const pdf = pagePdf(
+    "BT /H 10 Tf 10 10 Td (kept) Tj ET /N Do",
+    "/Font << /H 5 0 R >> /XObject << /N 7 0 R >>",
+    ["<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", { dict: "/Filter /FlateDecode", data: spaces }, form(8), form(9), form(null)],
+    "[4 0 R 6 0 R 6 0 R 6 0 R 6 0 R 6 0 R]"
+  );
+  type Doc = Awaited<ReturnType<Awaited<ReturnType<typeof createPdfEngine>>["open"]>>;
+  const reads: [string, (doc: Doc) => boolean | Promise<boolean>][] = [
+    ["text", (doc) => doc.text(0).truncated],
+    ["objects", (doc) => doc.objects(0).truncated],
+    ["render", (doc) => doc.render(0, { width: 50 }).truncated],
+    ["renderAsync", async (doc) => (await doc.renderAsync(0, { width: 50 })).truncated],
+  ];
+  for (const order of [[0, 1, 2, 3], [3, 2, 1, 0], [2, 0, 3, 1]]) {
+    const engine = await createPdfEngine({ maxDecodedBytes: MAX });
+    await using doc = await engine.open(pdf);
+    const before = engine.stats().heapBytes;
+    for (let round = 0; round < 2; round++) {
+      for (const index of order) {
+        const [name, read] = reads[index]!;
+        assert.equal(await read(doc), true, `${name}, order ${order}, round ${round}`);
+      }
+    }
+    assert.ok(engine.stats().heapBytes - before < 6 * MAX, `${engine.stats().heapBytes - before} bytes more`);
+  }
+  // The pool's threads run the built package.
+  const { createPdfPool } = await import("../dist/index.js");
+  using pool = await createPdfPool({ maxDecodedBytes: MAX, threads: 1 });
+  const pooled = await pool.open(pdf);
+  for (let i = 0; i < 2; i++) {
+    assert.equal((await pooled.render(0, { width: 50 })).truncated, true);
+    assert.equal((await pooled.text(0)).truncated, true);
+  }
 });

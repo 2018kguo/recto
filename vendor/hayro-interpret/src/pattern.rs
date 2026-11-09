@@ -235,6 +235,7 @@ impl<'a> TilingPattern<'a> {
         );
 
         let decoded = self.stream.decoded_data().ok()?;
+        let _held = hayro_syntax::hold_decoded(decoded.len());
         let iter = TypedIter::new(decoded.as_ref());
 
         let clip_path = ClipPath {

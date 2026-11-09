@@ -6,7 +6,7 @@ use crate::device::Device;
 use crate::interpret::path::{
     close_path, end_path, fill_path, fill_path_impl, fill_stroke_path, stroke_path,
 };
-use crate::interpret::state::handle_gs;
+use crate::interpret::state::{TextStateFont, handle_gs};
 use crate::interpret::text::TextRenderingMode;
 use crate::pattern::{Pattern, ShadingPattern};
 use crate::shading::Shading;
@@ -161,15 +161,15 @@ pub fn interpret_page<'a>(
     let resources = page.resources();
     let render_content = context.settings.render_content;
 
+    // recto: the page's content counts against the limit on what's decoded while it's drawn.
     if render_content.contains(RenderContent::PAGE | RenderContent::TEXT_ONLY) {
-        text_only::interpret(
-            page.page_stream().unwrap_or_default(),
-            resources,
-            context,
-            device,
-        );
+        let contents = page.contents();
+        let _held = hayro_syntax::hold_decoded(contents.data().len());
+        text_only::interpret(contents.data(), resources, context, device);
     } else if render_content.contains(RenderContent::PAGE) {
-        interpret(page.typed_operations(), resources, context, device);
+        let contents = page.contents();
+        let _held = hayro_syntax::hold_decoded(contents.data().len());
+        interpret(contents.typed_operations(), resources, context, device);
     }
 
     if render_content.contains(RenderContent::ANNOTATIONS) {
@@ -307,6 +307,104 @@ pub fn interpret<'a>(
 
 /// recto: the operator loop of `interpret`, without its save and restore, so
 /// the text-only interpreter can hand it the rest of a stream.
+/// recto: a stream's named resources, each looked up once (see `run_ops`).
+#[derive(Default)]
+pub(crate) struct Named<'a>(FxHashMap<Vec<u8>, [Option<Slot<'a>>; 6]>);
+
+#[derive(Clone)]
+enum Slot<'a> {
+    Dict(Option<Dict<'a>>),
+    Stream(Option<Stream<'a>>),
+    Object(Option<Object<'a>>),
+    ColorSpace(Option<ColorSpace>),
+    /// A `BDC`'s property list, and its optional content if it names a group: the dictionary and
+    /// its reference.
+    Properties(Option<Dict<'a>>, Option<(Dict<'a>, hayro_syntax::object::ObjRef)>),
+}
+
+std::thread_local! {
+    static NAMED_READS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+/// recto: how many named resources this thread has looked up, for the tests that a stream looks each
+/// up once.
+#[doc(hidden)]
+pub fn named_reads() -> usize {
+    NAMED_READS.with(|n| n.get())
+}
+
+impl<'a> Named<'a> {
+    fn once(&mut self, kind: usize, name: &Name<'_>, read: impl FnOnce() -> Slot<'a>) -> Slot<'a> {
+        if let Some(Some(slot)) = self.0.get(name.as_ref()).map(|slots| &slots[kind]) {
+            return slot.clone();
+        }
+        NAMED_READS.with(|n| n.set(n.get() + 1));
+        let slot = read();
+        self.0.entry(name.as_ref().to_vec()).or_default()[kind] = Some(slot.clone());
+        slot
+    }
+
+    pub(crate) fn ext_g_state(&mut self, resources: &Resources<'a>, name: &Name<'_>) -> Option<Dict<'a>> {
+        match self.once(0, name, || Slot::Dict(resources.get_ext_g_state(name))) {
+            Slot::Dict(dict) => dict,
+            _ => None,
+        }
+    }
+
+    pub(crate) fn x_object(&mut self, resources: &Resources<'a>, name: &Name<'_>) -> Option<Stream<'a>> {
+        match self.once(1, name, || Slot::Stream(resources.get_x_object(name))) {
+            Slot::Stream(stream) => stream,
+            _ => None,
+        }
+    }
+
+    pub(crate) fn shading(&mut self, resources: &Resources<'a>, name: &Name<'_>) -> Option<Object<'a>> {
+        match self.once(2, name, || Slot::Object(resources.get_shading(name))) {
+            Slot::Object(object) => object,
+            _ => None,
+        }
+    }
+
+    pub(crate) fn pattern(&mut self, resources: &Resources<'a>, name: &Name<'_>) -> Option<Object<'a>> {
+        match self.once(3, name, || Slot::Object(resources.get_pattern(name))) {
+            Slot::Object(object) => object,
+            _ => None,
+        }
+    }
+
+    pub(crate) fn color_space(
+        &mut self,
+        context: &mut Context<'a>,
+        resources: &Resources<'a>,
+        name: &Name<'_>,
+    ) -> Option<ColorSpace> {
+        match self.once(4, name, || Slot::ColorSpace(context.get_color_space(resources, name))) {
+            Slot::ColorSpace(cs) => cs,
+            _ => None,
+        }
+    }
+
+    #[allow(clippy::type_complexity)]
+    pub(crate) fn properties(
+        &mut self,
+        resources: &Resources<'a>,
+        name: &Name<'_>,
+    ) -> (Option<Dict<'a>>, Option<(Dict<'a>, hayro_syntax::object::ObjRef)>) {
+        let slot = self.once(5, name, || {
+            let properties = resources.properties.get::<Dict<'_>>(name);
+            let oc = resources
+                .properties
+                .get_ref(name.as_ref())
+                .map(|r| (properties.clone().unwrap_or_default(), r));
+            Slot::Properties(properties, oc)
+        });
+        match slot {
+            Slot::Properties(properties, oc) => (properties, oc),
+            _ => (None, None),
+        }
+    }
+}
+
 pub(crate) fn run_ops<'a>(
     ops: &mut TypedIter<'_>,
     resources: &Resources<'a>,
@@ -316,7 +414,11 @@ pub(crate) fn run_ops<'a>(
     // recto: how many states this stream started with, which its `Q`s can't go below.
     floor: usize,
 ) -> page_run::Step<'a> {
-    let mut font_dict_cache = FxHashMap::<Name<'a>, Dict<'a>>::default();
+    let mut font_dict_cache = FxHashMap::<Name<'a>, Option<TextStateFont<'a>>>::default();
+    // recto: a named resource is read once per stream. Each read parses the object it names, so a
+    // stream naming one of n bytes m times cost m×n: 8,000 `gs`, `Do`, `cs` or `BDC` naming a 16 KB
+    // object took 0.6 s.
+    let mut named = Named::default();
 
     loop {
         if let Some(slice) = slice.as_mut()
@@ -476,7 +578,7 @@ pub(crate) fn run_ops<'a>(
                 close_path(context);
             }
             TypedInstruction::SetGraphicsState(gs) => {
-                if let Some(gs) = resources.get_ext_g_state(gs.0) {
+                if let Some(gs) = named.ext_g_state(resources, gs.0) {
                     handle_gs(&gs, context, resources);
                 }
             }
@@ -512,11 +614,11 @@ pub(crate) fn run_ops<'a>(
                 // Ignore for now.
             }
             TypedInstruction::ColorSpaceStroke(c) => {
-                let cs = if let Some(named) = ColorSpace::new_from_name(c.0) {
-                    named
+                let cs = if let Some(device) = ColorSpace::new_from_name(c.0) {
+                    device
                 } else {
-                    context
-                        .get_color_space(resources, c.0)
+                    named
+                        .color_space(context, resources, c.0)
                         .unwrap_or(ColorSpace::device_gray())
                 };
 
@@ -527,11 +629,11 @@ pub(crate) fn run_ops<'a>(
                 context.stroke_paint_mut().color_space = cs;
             }
             TypedInstruction::ColorSpaceNonStroke(c) => {
-                let cs = if let Some(named) = ColorSpace::new_from_name(c.0) {
-                    named
+                let cs = if let Some(device) = ColorSpace::new_from_name(c.0) {
+                    device
                 } else {
-                    context
-                        .get_color_space(resources, c.0)
+                    named
+                        .color_space(context, resources, c.0)
                         .unwrap_or(ColorSpace::device_gray())
                 };
 
@@ -555,16 +657,16 @@ pub(crate) fn run_ops<'a>(
             TypedInstruction::NonStrokeColorNamed(n) => {
                 context.fill_paint_mut().color = n.0.into_iter().map(|n| n.as_f32()).collect();
                 context.fill_paint_mut().pattern = n.1.and_then(|name| {
-                    resources
-                        .get_pattern(name)
+                    named
+                        .pattern(resources, name)
                         .and_then(|d| Pattern::new(d, context))
                 });
             }
             TypedInstruction::StrokeColorNamed(n) => {
                 context.stroke_paint_mut().color = n.0.into_iter().map(|n| n.as_f32()).collect();
                 context.stroke_paint_mut().pattern = n.1.and_then(|name| {
-                    resources
-                        .get_pattern(name)
+                    named
+                        .pattern(resources, name)
                         .and_then(|d| Pattern::new(d, context))
                 });
             }
@@ -573,25 +675,14 @@ pub(crate) fn run_ops<'a>(
                 // 1. A Name that references an entry in the Resources/Properties dictionary
                 // 2. An inline property-list dictionary
 
-                let properties = bdc
-                    .1
-                    .clone()
-                    .into_name()
-                    .and_then(|name| resources.properties.get::<Dict<'_>>(name))
-                    .or_else(|| dict_or_stream(bdc.1).map(|(props, _)| props.clone()));
+                let (properties, oc) = match bdc.1.clone().into_name() {
+                    Some(name) => named.properties(resources, &name),
+                    None => (None, None),
+                };
+                let properties =
+                    properties.or_else(|| dict_or_stream(bdc.1).map(|(props, _)| props.clone()));
 
-                let oc = bdc
-                    .1
-                    .clone()
-                    .into_name()
-                    .and_then(|name| {
-                        let r = resources.properties.get_ref(name.as_ref())?;
-                        let d = resources
-                            .properties
-                            .get::<Dict<'_>>(name)
-                            .unwrap_or_default();
-                        Some((d, r))
-                    })
+                let oc = oc
                     .or_else(|| {
                         let (props, _) = dict_or_stream(bdc.1)?;
                         let r = props.get_ref(OC)?;
@@ -653,11 +744,15 @@ pub(crate) fn run_ops<'a>(
                 // 2) In case it's `None` because we were unable to resolve the font
                 // (for whatever reason), leave it as `None`. Better showing no
                 // text at all than garbage text.
-                let font = if let Some(font_dict) = font_dict_cache.get(name).cloned() {
-                    context.resolve_font(&font_dict)
+                // recto: the font a name resolves to, once per stream: resolving hashes the
+                // font's dictionary.
+                let font = if let Some(font) = font_dict_cache.get(name).cloned() {
+                    font
                 } else if let Some(font_dict) = resources.get_font(name) {
-                    font_dict_cache.insert(name.clone(), font_dict.clone());
-                    context.resolve_font(&font_dict)
+                    NAMED_READS.with(|n| n.set(n.get() + 1));
+                    let font = context.resolve_font(&font_dict);
+                    font_dict_cache.insert(name.clone(), font.clone());
+                    font
                 } else {
                     context.fallback_font()
                 };
@@ -743,10 +838,10 @@ pub(crate) fn run_ops<'a>(
                 let cache = context.interpreter_cache.object_cache.clone();
                 let warning_sink = context.settings.warning_sink.clone();
                 let transfer_function = context.compositing().transfer_function.clone();
-                if let Some(x_object) = resources.get_x_object(x.0).and_then(|s| {
+                if let Some(x_object) = named.x_object(resources, x.0).and_then(|s| {
                     XObject::new(
                         &s,
-                        |name| context.get_color_space(resources, name),
+                        |name| named.color_space(context, resources, name),
                         &warning_sink,
                         &cache,
                         transfer_function.clone(),
@@ -771,7 +866,7 @@ pub(crate) fn run_ops<'a>(
                 let cache = context.interpreter_cache.object_cache.clone();
                 if let Some(x_object) = ImageXObject::new(
                     i.0,
-                    |name| context.get_color_space(resources, name),
+                    |name| named.color_space(context, resources, name),
                     &warning_sink,
                     &cache,
                     transfer_function,
@@ -789,7 +884,7 @@ pub(crate) fn run_ops<'a>(
 
                 let transfer_function = context.compositing().transfer_function.clone();
 
-                if let Some(mut shading) = resources.get_shading(s.0).and_then(|o| {
+                if let Some(mut shading) = named.shading(resources, s.0).and_then(|o| {
                     let (dict, stream) = dict_or_stream(&o)?;
                     Shading::new(dict, stream, &context.interpreter_cache.object_cache)
                 }) {

@@ -45,13 +45,32 @@ pub(crate) enum Step<'a> {
     Enter(FormXObject<'a>),
 }
 
+/// A frame's content: a form's, or the page's, which the page keeps only while it's in use.
+pub(crate) enum FrameData<'a> {
+    Form(Cow<'a, [u8]>),
+    Page(Option<std::sync::Arc<Vec<u8>>>),
+}
+
+impl std::ops::Deref for FrameData<'_> {
+    type Target = [u8];
+
+    fn deref(&self) -> &[u8] {
+        match self {
+            Self::Form(data) => data,
+            Self::Page(data) => data.as_deref().map_or(&[], Vec::as_slice),
+        }
+    }
+}
+
 pub(crate) enum Close {
     Page,
     Form { group: bool, has_oc: bool },
 }
 
 pub(crate) struct Frame<'a> {
-    pub(crate) data: Cow<'a, [u8]>,
+    /// recto: the frame's content counts against the limit on decoding while it runs.
+    pub(crate) _held: hayro_syntax::HeldDecoded,
+    pub(crate) data: FrameData<'a>,
     pub(crate) pos: usize,
     pub(crate) resources: Resources<'a>,
     pub(crate) states: usize,
@@ -83,9 +102,11 @@ impl<'a> PageRun<'a> {
         // Reversed: popped from the end, in order.
         let mut annotations: Vec<Dict<'a>> = annotations;
         annotations.reverse();
+        let contents = page.page_stream();
         Self {
             frames: vec![Frame {
-                data: Cow::Borrowed(page.page_stream().unwrap_or_default()),
+                _held: hayro_syntax::hold_decoded(contents.as_ref().map_or(0, |c| c.len())),
+                data: FrameData::Page(contents),
                 pos: 0,
                 resources: resources.clone(),
                 states,

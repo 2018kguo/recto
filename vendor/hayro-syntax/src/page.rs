@@ -12,7 +12,7 @@ use crate::object::dict::keys::*;
 use crate::object::{MaybeRef, Object};
 use crate::reader::ReaderContext;
 use crate::object::ObjectIdentifier;
-use crate::sync::{FxHashMap, FxHashSet, Mutex, MutexExt, OnceLock};
+use crate::sync::{Arc, FxHashMap, FxHashSet, Mutex, MutexExt, OnceLock, Weak};
 use crate::transform::Transform;
 use crate::util::FloatExt;
 use crate::xref::XRef;
@@ -560,13 +560,100 @@ pub enum Rotation {
     FlippedHorizontal,
 }
 
+/// recto: a page's decoded content stream, held for as long as this is.
+pub struct Contents(Option<Arc<Vec<u8>>>);
+
+impl Contents {
+    /// The decoded bytes; empty if the page has none.
+    pub fn data(&self) -> &[u8] {
+        self.0.as_deref().map_or(&[], Vec::as_slice)
+    }
+
+    /// An untyped iterator over the operators.
+    pub fn operations(&self) -> UntypedIter<'_> {
+        UntypedIter::new(self.data())
+    }
+
+    /// A typed iterator over the operators.
+    pub fn typed_operations(&self) -> TypedIter<'_> {
+        TypedIter::from_untyped(self.operations())
+    }
+}
+
+/// recto: the decoded content streams of the pages read last on this thread: the last `PAGES`, and
+/// older ones while they all come to under `BYTES`. Reading a page's text, then drawing it, decodes
+/// its content once, and what reading a long document holds stays bounded.
+mod recent {
+    use crate::sync::Arc;
+    use alloc::collections::VecDeque;
+    use alloc::vec::Vec;
+
+    pub(crate) const PAGES: usize = 4;
+    pub(crate) const BYTES: usize = 1 << 20;
+    /// Past this, only the last page read is kept: a few pages of hundreds of MB each would
+    /// otherwise all be held.
+    pub(crate) const MOST_BYTES: usize = 256 << 20;
+
+    #[cfg(feature = "std")]
+    std::thread_local! {
+        pub(crate) static DECODES: core::cell::Cell<usize> = const { core::cell::Cell::new(0) };
+        static KEPT: core::cell::RefCell<(VecDeque<Arc<Vec<u8>>>, usize)> =
+            const { core::cell::RefCell::new((VecDeque::new(), 0)) };
+    }
+
+    #[cfg(feature = "std")]
+    pub(crate) fn keep(stream: &Arc<Vec<u8>>) {
+        KEPT.with_borrow_mut(|(kept, bytes)| {
+            kept.push_back(stream.clone());
+            *bytes += stream.len();
+            while kept.len() > 1 && *bytes > BYTES && (kept.len() > PAGES || *bytes > MOST_BYTES) {
+                if let Some(old) = kept.pop_front() {
+                    *bytes -= old.len();
+                }
+            }
+        });
+    }
+
+    #[cfg(feature = "std")]
+    pub(crate) fn forget(stream: &Arc<Vec<u8>>) {
+        // `try_with`: a page can be dropped as the thread's locals are.
+        let _ = KEPT.try_with(|kept| {
+            if let Ok(mut kept) = kept.try_borrow_mut() {
+                let (kept, bytes) = &mut *kept;
+                if let Some(at) = kept.iter().position(|s| Arc::ptr_eq(s, stream)) {
+                    *bytes -= stream.len();
+                    kept.remove(at);
+                }
+            }
+        });
+    }
+
+    /// Without `std` there are no thread locals: a page's content is decoded for each use.
+    #[cfg(not(feature = "std"))]
+    pub(crate) fn keep(_: &Arc<Vec<u8>>) {}
+
+    #[cfg(not(feature = "std"))]
+    pub(crate) fn forget(_: &Arc<Vec<u8>>) {}
+}
+
+impl Drop for Page<'_> {
+    fn drop(&mut self) {
+        if let Some(stream) = self.page_streams.get().upgrade() {
+            recent::forget(&stream);
+        }
+    }
+}
+
 /// A PDF page.
 pub struct Page<'a> {
     inner: Dict<'a>,
     media_box: Rect,
     crop_box: Rect,
     rotation: Rotation,
-    page_streams: OnceLock<Option<Vec<u8>>>,
+    // recto: the decoded content, while `recent` keeps it or a caller holds it.
+    page_streams: Mutex<Weak<Vec<u8>>>,
+    /// recto: whether a limit left part of the content out when it was last decoded.
+    content_cut: core::sync::atomic::AtomicBool,
     resources: Resources<'a>,
     ctx: ReaderContext<'a>,
 }
@@ -622,51 +709,81 @@ impl<'a> Page<'a> {
             media_box,
             crop_box,
             rotation,
-            page_streams: OnceLock::new(),
+            page_streams: Mutex::new(Weak::new()),
+            content_cut: core::sync::atomic::AtomicBool::new(false),
             resources,
             ctx: reader_ctx.clone(),
         })
     }
 
-    fn operations_impl(&self) -> Option<UntypedIter<'_>> {
-        let stream = self.page_stream()?;
-        let iter = UntypedIter::new(stream);
-
-        Some(iter)
-    }
-
     /// Return the decoded content stream of the page.
-    pub fn page_stream(&self) -> Option<&[u8]> {
+    ///
+    /// recto: decoded on first use and kept while `recent` keeps it (the last pages read on this
+    /// thread) or a caller holds it, then decoded again. It was kept for as long as the document
+    /// was open, so reading a document through held all of its pages' content.
+    pub fn page_stream(&self) -> Option<Arc<Vec<u8>>> {
+        if let Some(stream) = self.page_streams.get().upgrade() {
+            // recto: kept without what a limit left out, so it says so again.
+            if self.content_cut.load(core::sync::atomic::Ordering::Relaxed) {
+                crate::filter::repeat_cut();
+            }
+            return Some(stream);
+        }
         let convert_single = |s: Stream<'_>| {
             let data = s.decoded_data().ok()?;
             Some(data.into_owned())
         };
 
-        self.page_streams
-            .get_or_init(|| {
-                if let Some(stream) = self.inner.get::<Stream<'_>>(CONTENTS) {
-                    convert_single(stream)
-                } else if let Some(array) = self.inner.get::<Array<'_>>(CONTENTS) {
-                    let streams = array
-                        .raw_iter()
-                        .filter_map(|item| item.resolve(&self.ctx)?.into_stream())
-                        .flat_map(convert_single);
+        let (stream, cut) = crate::filter::noting_cuts(|| {
+            if let Some(stream) = self.inner.get::<Stream<'_>>(CONTENTS) {
+                convert_single(stream)
+            } else if let Some(array) = self.inner.get::<Array<'_>>(CONTENTS) {
+                let mut collected = vec![];
 
-                    let mut collected = vec![];
-
-                    for stream in streams {
-                        collected.extend(stream);
-                        // Streams must have at least one whitespace in-between.
-                        collected.push(b' ');
+                // recto: the streams are joined, so the limit is on all of them: one listed five
+                // times took five times the memory.
+                let max = crate::filter::max_decoded_bytes();
+                for item in array.raw_iter() {
+                    let Some(stream) = item.resolve(&self.ctx).and_then(|o| o.into_stream()) else {
+                        continue;
+                    };
+                    let room = max.saturating_sub(collected.len());
+                    let Some(stream) = crate::filter::with_max_decoded(room, || convert_single(stream)) else {
+                        continue;
+                    };
+                    if !crate::filter::fits_decoded(collected.len() + stream.len() + 1) {
+                        continue;
                     }
-
-                    Some(collected)
-                } else {
-                    None
+                    collected.extend(stream);
+                    // Streams must have at least one whitespace in-between.
+                    collected.push(b' ');
                 }
-            })
-            .as_ref()
-            .map(|d| d.as_slice())
+
+                Some(collected)
+            } else {
+                None
+            }
+        });
+        self.content_cut.store(cut, core::sync::atomic::Ordering::Relaxed);
+        let stream = Arc::new(stream?);
+        #[cfg(feature = "std")]
+        recent::DECODES.with(|n| n.set(n.get() + 1));
+        *self.page_streams.get() = Arc::downgrade(&stream);
+        recent::keep(&stream);
+        Some(stream)
+    }
+
+    /// recto: whether the page's decoded content is held now. For tests.
+    #[doc(hidden)]
+    pub fn holds_contents(&self) -> bool {
+        self.page_streams.get().strong_count() > 0
+    }
+
+    /// recto: how many pages' content this thread has decoded. For tests.
+    #[cfg(feature = "std")]
+    #[doc(hidden)]
+    pub fn content_decodes() -> usize {
+        recent::DECODES.with(|n| n.get())
     }
 
     /// Get the resources of the page.
@@ -737,9 +854,10 @@ impl<'a> Page<'a> {
         (base_width, base_height)
     }
 
-    /// Return an untyped iterator over the operators of the page's content stream.
-    pub fn operations(&self) -> UntypedIter<'_> {
-        self.operations_impl().unwrap_or(UntypedIter::empty())
+    /// Return the page's content stream, to iterate over its operators with
+    /// [`Contents::operations`] or [`Contents::typed_operations`].
+    pub fn contents(&self) -> Contents {
+        Contents(self.page_stream())
     }
 
     /// Get the raw dictionary of the page.
@@ -752,10 +870,6 @@ impl<'a> Page<'a> {
         self.ctx.xref()
     }
 
-    /// Return a typed iterator over the operators of the page's content stream.
-    pub fn typed_operations(&self) -> TypedIter<'_> {
-        TypedIter::from_untyped(self.operations())
-    }
 
     /// Return the initial transform that should be applied when rendering.
     ///

@@ -12,26 +12,53 @@ pub(crate) mod flate {
 
     #[cfg(feature = "unsafe")]
     pub(crate) fn decode(data: &[u8], params: &Dict<'_>) -> Option<Vec<u8>> {
-        use flate2::read::{DeflateDecoder, ZlibDecoder};
-        use std::io::Read;
-
-        fn zlib_stream(data: &[u8]) -> Option<Vec<u8>> {
-            let mut decoder = ZlibDecoder::new(data);
-            let mut result = Vec::new();
-            decoder.read_to_end(&mut result).ok().map(|_| result)
-        }
-
-        fn deflate_stream(data: &[u8]) -> Option<Vec<u8>> {
-            let mut decoder = DeflateDecoder::new(data);
-            let mut result = Vec::new();
-            decoder.read_to_end(&mut result).ok().map(|_| result)
-        }
-
-        let decoded = zlib_stream(data)
-            .or_else(|| deflate_stream(data))
-            .or_else(|| fallback::decode(data))?;
+        // recto: a stream cut for its size isn't tried again another way.
+        let cut = crate::filter::decodes_cut();
+        let uncut = || crate::filter::decodes_cut() == cut;
+        let decoded = inflate(data, true)
+            .or_else(|| uncut().then(|| inflate(data, false)).flatten())
+            .or_else(|| uncut().then(|| fallback::decode(data)).flatten())?;
         let params = PredictorParams::from_params(params);
         apply_predictor(decoded, &params)
+    }
+
+    /// recto: what `flate2::read::{Zlib,Deflate}Decoder` and `read_to_end` gave (the data up to the
+    /// stream's end, or up to where the input runs out; `None` on an error), in as few calls as the
+    /// output takes. Reading grew the output from 32 bytes, decoding a little at a time, and each call
+    /// copied what it wrote into the decoder's window too; a call that finishes the stream skips that.
+    #[cfg(feature = "unsafe")]
+    pub(crate) fn inflate(data: &[u8], zlib: bool) -> Option<Vec<u8>> {
+        use flate2::{Decompress, FlushDecompress, Status};
+
+        let mut decoder = Decompress::new(zlib);
+        // Most streams inflate to a few times their size; the output grows by doubling past that. A
+        // power of two, as reading grew it, so the largest stream holds no more at its peak than it
+        // did: the room it ends with, and the half before it while that's copied.
+        let mut out = Vec::with_capacity(data.len().saturating_mul(4).clamp(1 << 10, 1 << 24).next_power_of_two());
+        // recto: past the limit it's left out: room for one byte more shows it's past.
+        let room = crate::filter::max_decoded_bytes().saturating_add(1);
+        loop {
+            let (read, written) = (decoder.total_in(), decoder.total_out());
+            let input = data.get(read as usize..).unwrap_or_default();
+            let status = decoder
+                .decompress_vec(input, &mut out, FlushDecompress::Finish)
+                .ok()?;
+            if !crate::filter::fits_decoded(out.len()) {
+                return None;
+            }
+            match status {
+                Status::StreamEnd => break,
+                _ if out.len() == out.capacity() => out.reserve_exact(out.capacity().min(room - out.len())),
+                // No room was missing, so the input ran out: what's decoded is the result.
+                _ if decoder.total_in() == read && decoder.total_out() == written => break,
+                _ => {}
+            }
+        }
+        // What's decoded may be kept, as a font's program is: not with room to spare.
+        if out.capacity() - out.len() > out.len() / 8 {
+            out.shrink_to_fit();
+        }
+        Some(out)
     }
 
     #[cfg(not(feature = "unsafe"))]
@@ -93,6 +120,10 @@ pub(crate) mod flate {
             fn decode(&mut self) -> Option<Vec<u8>> {
                 while !self.eof && self.pos < self.data.len() {
                     self.read_block();
+                    // recto: a block can hold any amount, so its copies stop at the limit too.
+                    if !crate::filter::fits_decoded(self.output.len()) {
+                        return None;
+                    }
                 }
 
                 Some(core::mem::take(&mut self.output))
@@ -325,6 +356,11 @@ pub(crate) mod flate {
                                 let byte = self.output[self.output.len() - distance];
                                 self.output.push(byte);
                             }
+                        }
+                        // recto: `decode` leaves out what's past the limit.
+                        if self.output.len() > crate::filter::max_decoded_bytes() {
+                            self.eof = true;
+                            return;
                         }
                     }
                 }
@@ -577,7 +613,13 @@ pub(crate) mod lzw {
         let mut decoded = vec![];
         let mut prev = None;
 
+        let max = crate::filter::max_decoded_bytes();
         loop {
+            // recto: past the limit it's left out.
+            if decoded.len() > max {
+                crate::filter::fits_decoded(decoded.len());
+                return None;
+            }
             let next = match reader.read(bit_size) {
                 Some(code) => code as usize,
                 None => {

@@ -181,6 +181,8 @@ pub(crate) fn interpret<'a>(
     let num_states = context.num_states();
     // Resolved once per name: resolving hashes the font dict.
     let mut fonts = FxHashMap::<&[u8], Option<TextStateFont<'a>>>::default();
+    // recto: each named resource looked up once, as in `run_ops`.
+    let mut named = super::Named::default();
     let mut lexer = Lexer::new(d);
     let mut buf = Vec::new();
 
@@ -218,7 +220,7 @@ pub(crate) fn interpret<'a>(
             b"gs" => {
                 if let Some(gs) = last::<1>(ops)
                     .and_then(|[n]| name(d, n))
-                    .and_then(|n| resources.get_ext_g_state(&n))
+                    .and_then(|n| named.ext_g_state(resources, &n))
                 {
                     handle_gs(&gs, context, resources);
                 }
@@ -263,8 +265,8 @@ pub(crate) fn interpret<'a>(
             b"scn" | b"SCN" => {
                 if let Some((c, p)) = color(d, ops) {
                     let pattern = p.and_then(|name| {
-                        resources
-                            .get_pattern(&name)
+                        named
+                            .pattern(resources, &name)
                             .and_then(|d| Pattern::new(d, context))
                     });
                     let paint = if op == b"scn" {
@@ -279,8 +281,8 @@ pub(crate) fn interpret<'a>(
             b"cs" | b"CS" => {
                 if let Some(n) = last::<1>(ops).and_then(|[n]| name(d, n)) {
                     let cs = ColorSpace::new_from_name(&n).unwrap_or_else(|| {
-                        context
-                            .get_color_space(resources, &n)
+                        named
+                            .color_space(context, resources, &n)
                             .unwrap_or(ColorSpace::device_gray())
                     });
                     let paint = if op == b"cs" {
@@ -305,22 +307,13 @@ pub(crate) fn interpret<'a>(
                 if props.is_none() && !matches!(ops[ops.len() - 1], Operand::Num(_)) {
                     break;
                 }
-                let properties = props
-                    .clone()
-                    .and_then(Object::into_name)
-                    .and_then(|name| resources.properties.get::<Dict<'_>>(name))
+                let (properties, oc) = match props.clone().and_then(Object::into_name) {
+                    Some(name) => named.properties(resources, &name),
+                    None => (None, None),
+                };
+                let properties = properties
                     .or_else(|| dict_or_stream(props.as_ref()?).map(|(props, _)| props.clone()));
-                let oc = props
-                    .clone()
-                    .and_then(Object::into_name)
-                    .and_then(|name| {
-                        let r = resources.properties.get_ref(name.as_ref())?;
-                        let d = resources
-                            .properties
-                            .get::<Dict<'_>>(name)
-                            .unwrap_or_default();
-                        Some((d, r))
-                    })
+                let oc = oc
                     .or_else(|| {
                         let (props, _) = dict_or_stream(props.as_ref()?)?;
                         let r = props.get_ref(OC)?;
@@ -479,7 +472,7 @@ pub(crate) fn interpret<'a>(
             b"Do" => {
                 let Some(stream) = last::<1>(ops)
                     .and_then(|[n]| name(d, n))
-                    .and_then(|n| resources.get_x_object(&n))
+                    .and_then(|n| named.x_object(resources, &n))
                 else {
                     continue;
                 };

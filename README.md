@@ -180,7 +180,7 @@ faster: 2.8 ms against 4.1 ms for 2,000 pages, where recto took 4.8 ms. pdf.js h
 (5.6 MB of JS heap, against recto's 1.7 MB and 11.9 MB of WebAssembly memory), and recto now gives all of it back a
 second after the close. On text
 quality against poppler recto leads narrowly (F1 98.7%, pdf.js 97.8%, pdfium 97.0%, on 87 documents), and it
-agrees with the other engines' pixels on 96.9% of the pages two of them agree on (small, mostly adversarial files, and the threshold can hide a missing line). [benchmarks.md](docs/benchmarks.md) has all of it, what each
+agrees with the other engines' pixels on 97.6% of the pages two of them agree on (small, mostly adversarial files, and the threshold can hide a missing line). [benchmarks.md](docs/benchmarks.md) has all of it, what each
 number means and how it's measured. To rerun it on PDFs of your own (it commits none):
 
 ```sh
@@ -258,7 +258,9 @@ on anything a user might upload, use one of those two.
   where another engine may report one from `/Count`. A repair won't bring back what a later revision removed.
 - **Files built to cost:** a page stops drawing at a budget and is incomplete, with `truncated` true on what `text`,
   `objects`, `render` and `renderAsync` return for it. A page tree, labels or an outline cut short shows in
-  `doc.structureTruncated()`. See [the limits](docs/reference.md).
+  `doc.structureTruncated()`. A stream or image that decodes past `maxDecodedBytes` (768 MiB) is left out, with
+  `truncated` true; several pages under it can still add up to more memory than there is, which ends in
+  `crash`. See [the limits](docs/reference.md).
 - **Encryption:** the Standard security handler only, so a public-key file fails with `unsupported`. An
   encrypted file before revision 6 that lost its trailer fails with `invalid-file`, since its key needs
   the trailer's ID. Revision 6 is repaired.

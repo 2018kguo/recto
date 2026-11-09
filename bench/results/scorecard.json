@@ -1,5 +1,5 @@
 {
- "date": "2026-11-07T05:33:27.478Z",
+ "date": "2026-11-09T19:08:25.311Z",
  "settings": {
   "width": 800,
   "pagesPerFile": 3,
@@ -21,42 +21,42 @@
   "recto": {
    "pages": 632,
    "judged": 546,
-   "agrees": 529,
-   "differs": 17,
+   "agrees": 533,
+   "differs": 13,
    "blankWhereOthersDraw": 2,
    "failedWhereOthersDraw": 1,
    "wrongShape": 0,
-   "percent": 96.89
+   "percent": 97.62
   },
   "pdfium": {
    "pages": 632,
-   "judged": 564,
-   "agrees": 520,
+   "judged": 567,
+   "agrees": 523,
    "differs": 44,
    "blankWhereOthersDraw": 6,
    "failedWhereOthersDraw": 4,
    "wrongShape": 2,
-   "percent": 92.2
+   "percent": 92.24
   },
   "pdf.js": {
    "pages": 632,
-   "judged": 582,
-   "agrees": 512,
-   "differs": 70,
+   "judged": 583,
+   "agrees": 514,
+   "differs": 69,
    "blankWhereOthersDraw": 4,
    "failedWhereOthersDraw": 3,
    "wrongShape": 0,
-   "percent": 87.97
+   "percent": 88.16
   },
   "poppler": {
    "pages": 632,
-   "judged": 600,
-   "agrees": 459,
-   "differs": 141,
+   "judged": 601,
+   "agrees": 461,
+   "differs": 140,
    "blankWhereOthersDraw": 9,
    "failedWhereOthersDraw": 4,
    "wrongShape": 3,
-   "percent": 76.5
+   "percent": 76.71
   }
  },
  "agreementBySuite": {
@@ -85,23 +85,23 @@
   "pdfjs": {
    "recto": {
     "judged": 239,
-    "agrees": 231,
-    "percent": 96.65
+    "agrees": 232,
+    "percent": 97.07
    },
    "pdfium": {
-    "judged": 249,
-    "agrees": 225,
-    "percent": 90.36
+    "judged": 250,
+    "agrees": 226,
+    "percent": 90.4
    },
    "pdf.js": {
     "judged": 252,
-    "agrees": 225,
-    "percent": 89.29
+    "agrees": 226,
+    "percent": 89.68
    },
    "poppler": {
-    "judged": 265,
-    "agrees": 199,
-    "percent": 75.09
+    "judged": 266,
+    "agrees": 200,
+    "percent": 75.19
    }
   },
   "pdfium": {
@@ -129,23 +129,23 @@
   "hayro": {
    "recto": {
     "judged": 128,
-    "agrees": 122,
-    "percent": 95.31
+    "agrees": 125,
+    "percent": 97.66
    },
    "pdfium": {
-    "judged": 135,
-    "agrees": 124,
-    "percent": 91.85
+    "judged": 137,
+    "agrees": 126,
+    "percent": 91.97
    },
    "pdf.js": {
-    "judged": 142,
-    "agrees": 117,
-    "percent": 82.39
+    "judged": 143,
+    "agrees": 118,
+    "percent": 82.52
    },
    "poppler": {
     "judged": 142,
-    "agrees": 103,
-    "percent": 72.54
+    "agrees": 104,
+    "percent": 73.24
    }
   }
  },
@@ -189,13 +189,13 @@
  ],
  "pageCountDisagreements": 0,
  "maxRssMb": {
-  "recto": 298,
+  "recto": 293,
   "pdfium": 130,
   "pdf.js": 767,
   "poppler": 73
  },
  "contestedWhereRectoIsFurthest": 5,
- "nearMisses": 19,
+ "nearMisses": 14,
  "ranking": [
   {
    "id": "pdfium/javascript_xfa_specific_bug_1238_2.pdf",
@@ -232,13 +232,6 @@
    "mae": 5
   },
   {
-   "id": "hayro/custom_pdftc_100k_0138.pdf",
-   "page": 0,
-   "score": 1.7,
-   "real": 0.79,
-   "mae": 2.5
-  },
-  {
    "id": "pdfjs/issue18032.pdf",
    "page": 0,
    "score": 1.6,
@@ -260,17 +253,10 @@
    "mae": 10.7
   },
   {
-   "id": "pdfjs/issue20489.pdf",
-   "page": 0,
-   "score": 1.4,
-   "real": 0.43,
-   "mae": 1.9
-  },
-  {
    "id": "hayro/custom_issue_cmap_lookup.pdf",
    "page": 0,
    "score": 1.3,
-   "real": 0.74,
+   "real": 0.75,
    "mae": 4.1
   },
   {
@@ -300,20 +286,6 @@
    "score": 1.1,
    "real": 1.3,
    "mae": 8.6
-  },
-  {
-   "id": "hayro/custom_mask_alpha.pdf",
-   "page": 0,
-   "score": 1.1,
-   "real": 0,
-   "mae": 3.3
-  },
-  {
-   "id": "hayro/custom_color_space_indexed.pdf",
-   "page": 0,
-   "score": 1.1,
-   "real": 0.17,
-   "mae": 0.7
   }
  ]
 }

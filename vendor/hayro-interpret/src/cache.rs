@@ -7,7 +7,9 @@ use std::any::Any;
 use std::collections::hash_map::Entry;
 use std::sync::{Arc, Mutex};
 
-type CacheMap = FxHashMap<u128, Option<Box<dyn Any + Send + Sync>>>;
+/// recto: with each value, whether a limit left out a stream or image it was built from, so that
+/// each use of it says so (`hayro_syntax::repeat_cut`).
+type CacheMap = FxHashMap<u128, (Option<Box<dyn Any + Send + Sync>>, bool)>;
 #[derive(Clone)]
 pub(crate) struct Cache(Arc<Mutex<CacheMap>>);
 
@@ -32,17 +34,23 @@ impl Cache {
         // We can't use `get_or_insert_with` here, because if the closure makes another access to the
         // cache, we end up with a deadlock.
         match locked.entry(id) {
-            Entry::Occupied(o) => o
-                .get()
-                .as_ref()
-                .and_then(|val| val.downcast_ref::<T>().cloned()),
+            Entry::Occupied(o) => {
+                let (val, cut) = o.get();
+                if *cut {
+                    hayro_syntax::repeat_cut();
+                }
+                val.as_ref().and_then(|val| val.downcast_ref::<T>().cloned())
+            }
             Entry::Vacant(_) => {
                 drop(locked);
-                let val = f();
+                let (val, cut) = hayro_syntax::noting_cuts(f);
                 self.0.lock().unwrap().insert(
                     id,
-                    val.clone()
-                        .map(|val| Box::new(val) as Box<dyn Any + Send + Sync>),
+                    (
+                        val.clone()
+                            .map(|val| Box::new(val) as Box<dyn Any + Send + Sync>),
+                        cut,
+                    ),
                 );
 
                 val

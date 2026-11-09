@@ -46,8 +46,10 @@ impl Renderer<'_> {
         let mut line_width = stroke_props.line_width.max(0.01 / min_factor);
         let transformed_width = line_width * min_factor;
 
-        // Only enforce line width if not inside of pattern or type 3 glyph.
-        if transformed_width < threshold && !self.inside_pattern && !self.in_type3_glyph {
+        // Only enforce line width if not inside of a type 3 glyph. recto: and inside a pattern, whose
+        // cell is drawn at about the page's own pixels, as pdfium and pdf.js do: a hatch of 0.1 pt
+        // lines was a faint grey.
+        if transformed_width < threshold && !self.in_type3_glyph {
             line_width /= transformed_width;
             line_width *= threshold;
         }

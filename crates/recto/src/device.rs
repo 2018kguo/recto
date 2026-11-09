@@ -78,15 +78,25 @@ pub(crate) struct PageDevice {
     /// The last run's fill and its RGBA: runs nearly always share one, and a
     /// calibrated or ICC space converts at a cost.
     fill: Option<(hayro::hayro_interpret::color::Color, u32)>,
-    /// Each font met on the page (a glyph of it) and its id, newest last: a
-    /// font switch finds its id here without hashing the program again.
-    seen_fonts: Vec<(hayro::hayro_interpret::font::OutlineGlyph, u32)>,
+    /// The last font met on the page (a glyph of it) and its id: runs nearly
+    /// always repeat it.
+    last_font: Option<(hayro::hayro_interpret::font::OutlineGlyph, u32)>,
+    /// Every font met on the page, by `font_identity`, and its id: a font switch
+    /// finds its id here without hashing the program again. A glyph of each is
+    /// kept, so an identity is never reused while this lives.
+    seen_fonts: rustc_hash::FxHashMap<usize, (hayro::hayro_interpret::font::OutlineGlyph, u32)>,
     /// Where the next drawn path's `re` rectangles start (`Device::path_rects`).
     rect_starts: Vec<u32>,
     /// Inside the fill that paints `sh` (`Device::shading_fill`).
     in_shading_fill: bool,
     /// More glyphs than `MAX_PAGE_GLYPHS` were shown.
     pub text_truncated: bool,
+}
+
+#[cfg(test)]
+thread_local! {
+    /// Fonts `font_of` compared a glyph's with, for tests that count its work.
+    pub(crate) static FONT_PROBES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
 impl PageDevice {
@@ -102,7 +112,8 @@ impl PageDevice {
             to_page: viewer.inverse(),
             last: Last::None,
             fill: None,
-            seen_fonts: Vec::new(),
+            last_font: None,
+            seen_fonts: Default::default(),
             rect_starts: Vec::new(),
             in_shading_fill: false,
             text_truncated: false,
@@ -118,17 +129,28 @@ impl PageDevice {
 
     fn font_of(&mut self, glyph: &HayroGlyph<'_>) -> u32 {
         // The glyphs kept here hold their fonts alive, so a match is the same
-        // font. Runs nearly always repeat the last one, and a page has few.
-        // Limit: linear in the page's fonts; a map by pointer if a page
-        // ever switches among hundreds.
+        // font. Runs nearly always repeat the last one; a switch is one lookup,
+        // however many fonts the page has (a page switching among thousands
+        // was quadratic in them).
         let HayroGlyph::Outline(g) = glyph else {
             return self.font_id(glyph);
         };
-        if let Some((_, id)) = self.seen_fonts.iter().rev().find(|(f, _)| g.same_font(f)) {
+        #[cfg(test)]
+        FONT_PROBES.with(|n| n.set(n.get() + 2));
+        if let Some((f, id)) = &self.last_font
+            && g.same_font(f)
+        {
             return *id;
         }
-        let id = self.font_id(glyph);
-        self.seen_fonts.push((g.clone(), id));
+        let id = match self.seen_fonts.get(&g.font_identity()) {
+            Some((_, id)) => *id,
+            None => {
+                let id = self.font_id(glyph);
+                self.seen_fonts.insert(g.font_identity(), (g.clone(), id));
+                id
+            }
+        };
+        self.last_font = Some((g.clone(), id));
         id
     }
 
