@@ -99,8 +99,12 @@ page, the rest of its glyphs are filled as paths, as a glyph too large to cache 
 768 MiB by default. No stream may decode to more, and no image hold more at a byte a component. Past it,
 that stream or image is left out, as one that can't be read is, and `truncated` is true on what `text`,
 `objects`, `render` and `renderAsync` return for the page. That's `truncated` and not an error, as with the
-other limits on a page, because the rest of the page still reads. A stream read outside a page's call (an
-object stream, an outline's) is left out the same way, with nothing to say so. The most any page of those
+other limits on a page, because the rest of the page still reads. The limit is on what's held at once: a
+page's content streams count together, as they're joined, and the content of a page, form, tiling pattern or
+Type 3 glyph counts against what's decoded while it runs. What a limit left out stays left out in what's
+cached (the page's content, a font, a colour space), so every call that uses it says `truncated`, whatever
+was read before. A stream read outside a page's call (an object stream, an outline's) is left out the same
+way, with nothing to say so; so is an annotation's text that `annotations` reads, which has no `truncated`. The most any page of those
 543 files asked for was 151 MB. A 600 dpi scan of an A0 page is 558 MB in gray, and draws in about 2.1 GB of
 WebAssembly memory; in RGB it's 1.7 GB, which ended in `crash` before and is left out now. Several pages
 under the limit can still add up to more than the instance has.

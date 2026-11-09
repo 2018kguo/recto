@@ -10,7 +10,10 @@ runs against 0.3.0 on the same machine; see [the numbers](docs/benchmarks.md#bef
 
 - `maxDecodedBytes` on `createPdfEngine` and `createPdfPool`, and `set_max_decoded_bytes` in Rust: the most
   one stream may decode to and one image hold at a byte a component, 768 MiB by default. Past it that stream
-  or image is left out and the page's `text`, `objects`, `render` or `renderAsync` result says `truncated`.
+  or image is left out and the page's `text`, `objects`, `render` or `renderAsync` result says `truncated`,
+  on every call that uses what it was left out of, since the page's content, fonts and colour spaces are
+  cached that way. It's on what a page holds at once: its content streams together (one 700 MiB stream listed
+  five times in `/Contents`, from 714 KB, crashed it), and nested forms with what they draw (five of 600 MiB).
   A 3.7 MB file of four FlateDecode pages inflating to 300, 700, 1,100 and 1,500 MB crashed the instance at
   the third page; now the third and fourth come back empty and `truncated`. 16 bytes of `CCITTFaxDecode`
   declaring 60,000 by 60,000 pixels crashed it; now the image is left out. What it changes: an image or stream
