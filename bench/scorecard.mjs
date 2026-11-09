@@ -52,7 +52,13 @@ const AGREE_COARSE_MAE = 3;
 const CELL_SIZE = 4;
 const CELL = 32;
 
-const wasmHash = createHash("sha1").update(fs.readFileSync(path.join(here, "../js/wasm/recto.wasm"))).digest("hex").slice(0, 12);
+// Every part: a change to drawing alone leaves recto.wasm as it was.
+const wasmHash = (() => {
+  const hash = createHash("sha1");
+  const dir = path.join(here, "../js/wasm");
+  for (const name of fs.readdirSync(dir).filter((n) => n.endsWith(".wasm")).sort()) hash.update(name).update(fs.readFileSync(path.join(dir, name)));
+  return hash.digest("hex").slice(0, 12);
+})();
 
 const sha1 = (bytes) => createHash("sha1").update(bytes).digest("hex").slice(0, 16);
 const files = [];
