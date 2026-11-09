@@ -338,6 +338,12 @@ impl Document {
         })
     }
 
+    /// For tests and `examples/budgets.rs`: the bytes of glyph images the render cache holds.
+    #[doc(hidden)]
+    pub fn glyph_cache_bytes(&self) -> usize {
+        self.0.with_dependent(|_, caches| caches.render.glyph_cache_bytes())
+    }
+
     /// For `examples/budgets.rs`: what a render of the page spent, and whether it was cut short.
     #[doc(hidden)]
     pub fn render_budget(&self, index: usize, width: f32) -> Result<((u32, usize, u32), bool), EngineError> {
@@ -607,6 +613,44 @@ mod tests {
         assert_eq!(text.fonts.len(), FONTS);
         assert!(text.chars.iter().filter(|c| &*c.text == "a").count() >= RUNS - 10);
         assert!(probes <= 2 * RUNS, "{probes} comparisons for {RUNS} runs");
+    }
+
+    /// Every glyph drawn at a size of its own is an image of its own. One page's are bounded, and
+    /// the cache doesn't keep them past the next page: 12,000 glyphs a hair apart in size took 320 MB
+    /// and kept it for as long as the document was open.
+    #[test]
+    fn glyph_images_are_bounded_per_page_and_not_kept() {
+        const GLYPHS: usize = 12_000;
+        let content: String = (0..GLYPHS)
+            .map(|i| format!("{:.4} 0 0 60 {} {} Tm (W) Tj ", 60.0 + i as f64 * 1e-4, i * 13 % 500, i * 7 % 700))
+            .collect();
+        let big = stream("", format!("BT /F1 1 Tf {content}ET").as_bytes());
+        let small = stream("", b"BT /F1 12 Tf 10 10 Td (W) Tj ET");
+        let page = |contents: u32| {
+            format!(
+                "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 800] /Contents {contents} 0 R /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> >>"
+            )
+        };
+        let (first, second) = (page(4), page(6));
+        let doc = Document::open(
+            pdf(&[
+                b"<< /Type /Catalog /Pages 2 0 R >>",
+                b"<< /Type /Pages /Kids [3 0 R 5 0 R] /Count 2 >>",
+                first.as_bytes(),
+                &big,
+                second.as_bytes(),
+                &small,
+            ]),
+            "",
+        )
+        .unwrap();
+        let bitmap = doc.render(0, 1000.0, f32::INFINITY).unwrap();
+        assert!(!bitmap.truncated);
+        let held = doc.glyph_cache_bytes();
+        assert!(held <= (256 << 20) + (64 << 10), "{held} bytes of glyph images for one page");
+        doc.render(1, 1000.0, f32::INFINITY).unwrap();
+        let kept = doc.glyph_cache_bytes();
+        assert!(kept < 1 << 20, "{kept} bytes kept after a page of one glyph");
     }
 
     /// A node, and a page, listed many times in `/Kids`: each dictionary is built at most twice, at

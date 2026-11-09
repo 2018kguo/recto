@@ -11,7 +11,48 @@ use vello_cpu::{Image, ImageSource, PixelMetadata, Pixmap, Tint, TintMode};
 const SUBPIXEL_STEPS: f64 = 4.0;
 const MAX_CACHED_SIZE: f64 = 128.0;
 
-pub(crate) type GlyphCache = FxHashMap<GlyphKey, Option<Arc<CachedGlyph>>>;
+/// recto: what the glyph images of one page may come to. Every glyph a page draws at a size or
+/// angle of its own is an image of its own, held until the page is rasterized: 16,000 glyphs
+/// each a hair larger than the last took 540 MB, and a page within the glyph limit could ask for
+/// tens of GB. Past this, a glyph the page hasn't drawn yet is filled as a path, as one too large
+/// to cache is. Which glyphs those are depends only on the page. The most a suite page used was
+/// 22 MB, drawn 4096 px wide.
+pub(crate) const MAX_PAGE_GLYPH_BYTES: usize = 256 << 20;
+/// recto: the cache is emptied before a page is drawn once it holds more than this, so a document
+/// drawn at many sizes doesn't keep every one. Emptying never changes a pixel: a glyph's image
+/// depends only on its key.
+pub(crate) const MAX_CACHED_GLYPH_BYTES: usize = 64 << 20;
+
+#[derive(Default)]
+pub(crate) struct GlyphCache {
+    map: FxHashMap<GlyphKey, Option<Arc<CachedGlyph>>>,
+    /// recto: the bytes of the images in `map`.
+    bytes: usize,
+}
+
+impl GlyphCache {
+    /// recto: empties the cache if it's over its limit.
+    pub(crate) fn trim(&mut self) {
+        if self.bytes > MAX_CACHED_GLYPH_BYTES {
+            *self = Self::default();
+        }
+    }
+
+    pub(crate) fn bytes(&self) -> usize {
+        self.bytes
+    }
+}
+
+/// recto: the glyph images one page has drawn, and their bytes.
+#[derive(Default)]
+pub(crate) struct PageGlyphs {
+    keys: rustc_hash::FxHashSet<GlyphKey>,
+    bytes: usize,
+}
+
+fn image_bytes(glyph: &Option<Arc<CachedGlyph>>) -> usize {
+    glyph.as_ref().map_or(0, |g| usize::from(g.pixmap.width()) * usize::from(g.pixmap.height()) * 4)
+}
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct GlyphKey {
@@ -48,7 +89,12 @@ impl Renderer<'_> {
             subpixel,
         };
 
-        let cached = self.global.glyph_cache.borrow().get(&key).cloned();
+        // recto: past the page's limit, only glyphs it has drawn already come from the cache.
+        let seen = self.global.page_glyphs.borrow().keys.contains(&key);
+        if !seen && self.global.page_glyphs.borrow().bytes > MAX_PAGE_GLYPH_BYTES {
+            return false;
+        }
+        let cached = self.global.glyph_cache.borrow().map.get(&key).cloned();
         let cached = match cached {
             Some(cached) => cached,
             None => {
@@ -58,13 +104,17 @@ impl Renderer<'_> {
                     return false;
                 };
                 let rasterized = rasterized.map(Arc::new);
-                self.global
-                    .glyph_cache
-                    .borrow_mut()
-                    .insert(key, rasterized.clone());
+                let mut cache = self.global.glyph_cache.borrow_mut();
+                cache.bytes += image_bytes(&rasterized);
+                cache.map.insert(key, rasterized.clone());
                 rasterized
             }
         };
+        if !seen {
+            let mut page = self.global.page_glyphs.borrow_mut();
+            page.keys.insert(key);
+            page.bytes += image_bytes(&cached);
+        }
 
         let Some(cached) = cached else {
             return true;
