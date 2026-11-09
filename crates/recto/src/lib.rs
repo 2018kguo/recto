@@ -1143,4 +1143,46 @@ mod tests {
             "{first:?}"
         );
     }
+
+    /// An image drawn at under twice its size is smoothed, as pdfium, pdf.js and poppler smooth it;
+    /// one drawn much larger keeps sharp pixels, as pdfium and pdf.js keep them.
+    #[test]
+    fn a_slightly_enlarged_image_is_smoothed() {
+        // A 20x20 checkerboard of black and white pixels, drawn at `side` points on a 100 pt page.
+        let checker: Vec<u8> = (0..400).map(|i| if (i % 20 + i / 20) % 2 == 0 { 0 } else { 255 }).collect();
+        let grey_share = |side: u32| {
+            let content = format!("q {side} 0 0 {side} 0 0 cm /Im Do Q");
+            let doc = Document::open(
+                pdf(&[
+                    b"<< /Type /Catalog /Pages 2 0 R >>",
+                    b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                    b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R \
+                       /Resources << /XObject << /Im 5 0 R >> >> >>",
+                    &stream("", content.as_bytes()),
+                    &stream(
+                        "/Type /XObject /Subtype /Image /Width 20 /Height 20 /ColorSpace /DeviceGray /BitsPerComponent 8",
+                        &checker,
+                    ),
+                ]),
+                "",
+            )
+            .unwrap();
+            let bitmap = doc.render(0, 100.0, f32::INFINITY).unwrap();
+            let inside = (side as usize).min(bitmap.width as usize) - 1;
+            let mut grey = 0;
+            for y in 0..inside {
+                for x in 0..inside {
+                    let v = bitmap.rgba[((bitmap.height as usize - 1 - y) * bitmap.width as usize + x) * 4];
+                    if (16..240).contains(&v) {
+                        grey += 1;
+                    }
+                }
+            }
+            grey as f64 / (inside * inside) as f64
+        };
+        // 1.5 device pixels to an image pixel: most pixels blend two image pixels.
+        assert!(grey_share(30) > 0.3, "{}", grey_share(30));
+        // 4.5: blocks of black and white.
+        assert!(grey_share(90) < 0.05, "{}", grey_share(90));
+    }
 }

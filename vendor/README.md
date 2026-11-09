@@ -8,7 +8,7 @@ crates come from crates.io as they are.
 They are patched for what upstream does not have:
 
 - **hayro**: isolated and knockout transparency groups (`src/group.rs`), which upstream draws all
-  as isolated layers.
+  as isolated layers; an image drawn at under twice its size smoothed, as pdfium does.
 - **hayro-syntax**: reading a file by range. Bytes arrive on first use (`PdfData::ranged`),
   objects and xref sections fetch what they need, and pages are found on demand. Offsets past
   2 GiB. Repairing an encrypted file whose trailer is gone.

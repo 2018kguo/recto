@@ -163,6 +163,12 @@ impl Renderer<'_> {
             }
             (w, h)
         } else {
+            // recto: an image drawn at under twice its size is smoothed, as pdfium does whatever
+            // `/Interpolate` says (and pdf.js and poppler below their own thresholds); larger, its
+            // pixels stay sharp. Nearest-neighbour there left jagged edges the three others don't.
+            if x_scale < 2.0 && y_scale < 2.0 {
+                quality = ImageQuality::Medium;
+            }
             (img_width, img_height)
         };
 
