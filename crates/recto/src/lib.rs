@@ -161,6 +161,14 @@ fn render_scale(page_w: f32, page_h: f32, width: f32, max_height: f32) -> Result
         .min((MAX_RENDER_PIXELS / (page_w * page_h)).sqrt()))
 }
 
+/// A side of the bitmap: `page * scale`, rounded up. Within float error of a whole number it is that
+/// number: a page 612 wide asked for 800 pixels came to 800.00006 and drew 801.
+fn pixel_side(exact: f32) -> f32 {
+    let near = exact.round();
+    let side = if (exact - near).abs() <= near * f32::EPSILON * 4.0 { near } else { exact.ceil() };
+    side.clamp(1.0, MAX_RENDER_SIDE)
+}
+
 impl Document {
     pub fn open(bytes: Vec<u8>, password: &str) -> Result<Self, EngineError> {
         Self::open_data(bytes.into(), password)
@@ -382,7 +390,7 @@ impl Document {
         // fill that bitmap (under a pixel). hayro floors `side * scale`, so
         // step the exact scale up by one ULP when float error would lose a pixel.
         let fit = |page: f32| {
-            let side = (page * scale).ceil().clamp(1.0, MAX_RENDER_SIDE);
+            let side = pixel_side(page * scale);
             let exact = side / page;
             if (page * exact) as u16 >= side as u16 {
                 exact
@@ -1244,5 +1252,24 @@ mod tests {
             .map(|x| f64::from(255 - bitmap.rgba[row + x * 4]) / 255.0)
             .sum();
         assert!(ink > 15.0, "{ink} pixels of ink for 20 lines");
+    }
+
+    /// A bitmap asked for `width` pixels across is that wide, whatever float error the page's own
+    /// width brings: 800 across a 612 pt page was 801.
+    #[test]
+    fn a_render_is_as_wide_as_asked() {
+        let mut wrong = Vec::new();
+        for page in [612.0_f32, 595.0, 595.276, 841.89, 792.0, 419.53, 1224.0, 100.0, 3.0, 14400.0] {
+            for width in (1..=4096).map(|w| w as f32) {
+                let scale = render_scale(page, page, width, f32::INFINITY).unwrap();
+                if pixel_side(page * scale) != width {
+                    wrong.push((page, width));
+                }
+            }
+        }
+        assert!(wrong.is_empty(), "{} sizes off, such as {:?}", wrong.len(), &wrong[..wrong.len().min(5)]);
+        // A side that isn't whole still rounds up.
+        assert_eq!(pixel_side(100.4), 101.0);
+        assert_eq!(pixel_side(0.2), 1.0);
     }
 }
