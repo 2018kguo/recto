@@ -14,11 +14,16 @@ pub(crate) struct Type3 {
 
 impl Type3 {
     /// Create a new type 3 function.
-    pub(crate) fn new(dict: &Dict<'_>, domain: Interval, depth: u8) -> Option<Self> {
+    pub(crate) fn new(
+        dict: &Dict<'_>,
+        domain: Interval,
+        depth: u8,
+        nodes: &std::cell::Cell<u32>,
+    ) -> Option<Self> {
         let functions = dict
             .get::<Array<'_>>(FUNCTIONS)?
             .iter::<Object<'_>>()
-            .map(|o| Function::new_nested(&o, depth + 1))
+            .map(|o| Function::new_nested(&o, depth + 1, nodes))
             .collect::<Option<Vec<_>>>()?;
 
         let num_outputs = functions.first().map(Function::num_outputs)?;

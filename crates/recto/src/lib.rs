@@ -653,6 +653,33 @@ mod tests {
         assert!(kept < 1 << 20, "{kept} bytes kept after a page of one glyph");
     }
 
+    /// A stitching function that lists the same function twice at every level asks for 2^levels of
+    /// them from a few hundred bytes: 20 levels took 17 s to draw. Building one stops at a limit.
+    #[test]
+    fn a_function_listing_the_next_twice_is_built_a_bounded_number_of_times() {
+        use hayro::hayro_interpret::functions_built;
+        const LEVELS: usize = 20;
+        let page = b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R /Resources << /Shading << /S << /ShadingType 2 /ColorSpace /DeviceGray /Coords [0 0 100 0] /Function 5 0 R >> >> >> >>";
+        let content = stream("", b"/S sh");
+        let functions: Vec<String> = (0..LEVELS)
+            .map(|i| {
+                if i == LEVELS - 1 {
+                    "<< /FunctionType 2 /Domain [0 1] /C0 [0] /C1 [1] /N 1 >>".to_string()
+                } else {
+                    format!("<< /FunctionType 3 /Domain [0 1] /Functions [{n} 0 R {n} 0 R] /Bounds [0.5] /Encode [0 1 0 1] >>", n = 6 + i)
+                }
+            })
+            .collect();
+        let mut objects: Vec<&[u8]> = vec![b"<< /Type /Catalog /Pages 2 0 R >>", b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>", page, &content];
+        objects.extend(functions.iter().map(|f| f.as_bytes()));
+        let doc = Document::open(pdf(&objects), "").unwrap();
+        let before = functions_built();
+        doc.scan(0, true, false).unwrap();
+        doc.render(0, 100.0, f32::INFINITY).unwrap();
+        let built = functions_built() - before;
+        assert!(built <= 4 << 14, "{built} functions built");
+    }
+
     /// A node, and a page, listed many times in `/Kids`: each dictionary is built at most twice, at
     /// open and through every page's read, so a large one repeated doesn't cost its size per repeat.
     #[test]

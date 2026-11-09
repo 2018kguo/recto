@@ -49,7 +49,7 @@ pub mod util;
 pub use cache::CacheKey;
 pub use context::*;
 pub use device::*;
-pub use function::{Function, TransferFunction};
+pub use function::{Function, TransferFunction, functions_built};
 pub use hayro_cmap;
 pub use hayro_syntax;
 pub use interpret::*;

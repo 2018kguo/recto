@@ -20,6 +20,22 @@ use std::sync::{Arc, OnceLock};
 pub(crate) const MAX_COMPONENTS: usize = 32;
 
 const MAX_FUNCTION_DEPTH: u8 = 32;
+/// recto: the most functions one may hold, each repeat counted again. A stitching function can list
+/// the same one twice at every level, so a few KB asked for 2^32 of them: building, sampling and
+/// finding the stitching bounds of a 20-level chain took 17 s. The most any of 1,039 suite and public
+/// files held was 49.
+const MAX_FUNCTION_NODES: u32 = 1 << 14;
+
+std::thread_local! {
+    static BUILT: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+/// recto: how many functions this thread has built, for the tests that a function listing the same
+/// one many times costs a bounded amount.
+#[doc(hidden)]
+pub fn functions_built() -> usize {
+    BUILT.with(|n| n.get())
+}
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct Interval {
@@ -75,13 +91,16 @@ pub struct Function(Arc<Repr>);
 impl Function {
     /// Create a new function.
     pub fn new(obj: &Object<'_>) -> Option<Self> {
-        Self::new_nested(obj, 0)
+        Self::new_nested(obj, 0, &std::cell::Cell::new(0))
     }
 
-    fn new_nested(obj: &Object<'_>, depth: u8) -> Option<Self> {
-        if depth >= MAX_FUNCTION_DEPTH {
+    /// recto: `nodes` counts the functions built for this one so far.
+    fn new_nested(obj: &Object<'_>, depth: u8, nodes: &std::cell::Cell<u32>) -> Option<Self> {
+        if depth >= MAX_FUNCTION_DEPTH || nodes.get() >= MAX_FUNCTION_NODES {
             return None;
         }
+        nodes.set(nodes.get() + 1);
+        BUILT.with(|n| n.set(n.get() + 1));
 
         let (dict, stream) = dict_or_stream(obj)?;
         let function_type = dict.get::<u8>(FUNCTION_TYPE)?;
@@ -110,7 +129,7 @@ impl Function {
                 (FunctionType::Type2(function), num_outputs)
             }
             3 => {
-                let function = Type3::new(dict, domain[0], depth)?;
+                let function = Type3::new(dict, domain[0], depth, nodes)?;
                 let num_outputs = function.num_outputs();
 
                 (FunctionType::Type3(function), num_outputs)
