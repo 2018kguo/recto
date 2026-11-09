@@ -816,7 +816,7 @@ pub(crate) fn run_ops<'a>(
                 if let Some(x_object) = named.x_object(resources, x.0).and_then(|s| {
                     XObject::new(
                         &s,
-                        |name| context.get_color_space(resources, name),
+                        |name| named.color_space(context, resources, name),
                         &warning_sink,
                         &cache,
                         transfer_function.clone(),
@@ -841,7 +841,7 @@ pub(crate) fn run_ops<'a>(
                 let cache = context.interpreter_cache.object_cache.clone();
                 if let Some(x_object) = ImageXObject::new(
                     i.0,
-                    |name| context.get_color_space(resources, name),
+                    |name| named.color_space(context, resources, name),
                     &warning_sink,
                     &cache,
                     transfer_function,

@@ -779,6 +779,28 @@ mod tests {
         }
     }
 
+    /// An inline image naming its colour space parsed it again: 8,000 naming one of 16 KB took 1 s a
+    /// call.
+    #[test]
+    fn inline_images_look_their_colour_space_up_once() {
+        use hayro::hayro_interpret::named_reads;
+        let content = stream("", &b"q 10 0 0 10 0 0 cm BI /W 1 /H 1 /BPC 8 /CS /C ID \x00 EI Q ".repeat(300));
+        let page = format!(
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R /Resources << /ColorSpace << /C [/Indexed /DeviceRGB 0 <000000> {}] >> >> >>",
+            "0 ".repeat(2000)
+        );
+        let doc = Document::open(
+            pdf(&[b"<< /Type /Catalog /Pages 2 0 R >>", b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>", page.as_bytes(), &content]),
+            "",
+        )
+        .unwrap();
+        let before = named_reads();
+        doc.text(0).unwrap();
+        doc.render(0, 100.0, f32::INFINITY).unwrap();
+        let reads = named_reads() - before;
+        assert!(reads <= 2, "{reads} lookups of one colour space");
+    }
+
     /// A node, and a page, listed many times in `/Kids`: each dictionary is built at most twice, at
     /// open and through every page's read, so a large one repeated doesn't cost its size per repeat.
     #[test]
