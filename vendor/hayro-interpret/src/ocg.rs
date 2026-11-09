@@ -9,6 +9,21 @@ pub(crate) struct OcgState {
     visibility_stack: Vec<bool>,
     /// recto: where a `/VE` that ran out says so.
     budget: Option<Arc<PageBudget>>,
+    /// recto: whether each membership dictionary met so far is on. It depends only on the
+    /// dictionary, and reading one of n groups for each of m `BDC`s took m×n: 16,000 of each took
+    /// 13 s.
+    ocmds: rustc_hash::FxHashMap<ObjectIdentifier, bool>,
+}
+
+std::thread_local! {
+    static OCMD_READS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+/// recto: how many membership dictionaries this thread has read, for the tests that each is read once
+/// a page.
+#[doc(hidden)]
+pub fn ocmd_reads() -> usize {
+    OCMD_READS.with(|n| n.get())
 }
 
 impl OcgState {
@@ -17,6 +32,7 @@ impl OcgState {
             inactive_ocgs: HashSet::default(),
             visibility_stack: vec![],
             budget: None,
+            ocmds: Default::default(),
         }
     }
 
@@ -73,6 +89,7 @@ impl OcgState {
             inactive_ocgs: inactive,
             visibility_stack: Vec::new(),
             budget: None,
+            ocmds: Default::default(),
         }
     }
 
@@ -122,6 +139,23 @@ impl OcgState {
     }
 
     pub(crate) fn begin_ocmd(&mut self, ocmd: &Dict<'_>) {
+        let id = ocmd.obj_id();
+        let on = match id.and_then(|id| self.ocmds.get(&id)) {
+            Some(&on) => on,
+            None => {
+                OCMD_READS.with(|n| n.set(n.get() + 1));
+                let on = self.ocmd_on(ocmd);
+                if let Some(id) = id {
+                    self.ocmds.insert(id, on);
+                }
+                on
+            }
+        };
+        let visible = self.is_visible() && on;
+        self.visibility_stack.push(visible);
+    }
+
+    fn ocmd_on(&self, ocmd: &Dict<'_>) -> bool {
         // recto: `/VE` takes the place of `/OCGs` and `/P` for a reader that understands it.
         if let Some(on) = ocmd
             .get::<Array<'_>>(VE)
@@ -134,9 +168,7 @@ impl OcgState {
                 on
             })
         {
-            let visible = self.is_visible() && on;
-            self.visibility_stack.push(visible);
-            return;
+            return on;
         }
 
         let policy = ocmd
@@ -156,7 +188,7 @@ impl OcgState {
             ocg_ids.push(ref_.into());
         }
 
-        let is_active = if ocg_ids.is_empty() {
+        if ocg_ids.is_empty() {
             true
         } else {
             match policy {
@@ -165,10 +197,7 @@ impl OcgState {
                 OcmdPolicy::AnyOff => ocg_ids.iter().any(|id| self.inactive_ocgs.contains(id)),
                 OcmdPolicy::AllOff => ocg_ids.iter().all(|id| self.inactive_ocgs.contains(id)),
             }
-        };
-
-        let visible = self.is_visible() && is_active;
-        self.visibility_stack.push(visible);
+        }
     }
 
     pub(crate) fn begin_ocg(&mut self, props: &Dict<'_>, ref_id: ObjectIdentifier) {

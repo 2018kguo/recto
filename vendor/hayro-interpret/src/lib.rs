@@ -50,6 +50,8 @@ pub use cache::CacheKey;
 pub use context::*;
 pub use device::*;
 pub use function::{Function, TransferFunction, functions_built};
+pub use interpret::named_reads;
+pub use ocg::ocmd_reads;
 pub use hayro_cmap;
 pub use hayro_syntax;
 pub use interpret::*;

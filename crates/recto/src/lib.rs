@@ -708,6 +708,77 @@ mod tests {
         assert!(read <= 2 << 10, "{read} EIs and BIs read");
     }
 
+    /// A membership dictionary of n groups, named by m `BDC`s, was read m times: 16,000 of each took
+    /// 13 s a call. It's read once a page.
+    #[test]
+    fn a_membership_dictionary_is_read_once_a_page() {
+        use hayro::hayro_interpret::ocmd_reads;
+        const BDCS: usize = 500;
+        let content = stream("", format!("{}BT /F1 10 Tf 10 10 Td (on) Tj ET /OC /M BDC BT /F1 10 Tf 10 30 Td (off) Tj ET EMC", "/OC /M BDC EMC ".repeat(BDCS)).as_bytes());
+        let ocmd = format!("<< /Type /OCMD /OCGs [{}] /P /AllOn >>", "6 0 R ".repeat(BDCS));
+        let doc = Document::open(
+            pdf(&[
+                b"<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [6 0 R] /D << /OFF [6 0 R] >> >> >>",
+                b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R /Resources << /Properties << /M 5 0 R >> /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> >>",
+                &content,
+                ocmd.as_bytes(),
+                b"<< /Type /OCG /Name (x) >>",
+            ]),
+            "",
+        )
+        .unwrap();
+        let before = ocmd_reads();
+        let text = doc.text(0).unwrap().text();
+        let reads = ocmd_reads() - before;
+        assert_eq!(text.trim(), "on");
+        assert!(reads <= 1, "{reads} reads of one dictionary");
+    }
+
+    /// Each use of a named resource parsed the object it names, so naming one of n bytes m times cost
+    /// m×n: 8,000 `gs`, `Do`, `cs` or `BDC` naming a 16 KB object took 0.6 s a call. A stream looks
+    /// each name up once.
+    #[test]
+    fn a_stream_looks_each_named_resource_up_once() {
+        use hayro::hayro_interpret::named_reads;
+        const USES: usize = 300;
+        let junk = "0 ".repeat(2000);
+        let uses = "/G gs /X Do /C cs 0.5 sc /P scn /S sh /Tag /M BDC EMC /F1 10 Tf (a) Tj /F2 10 Tf (b) Tj ".repeat(USES);
+        let content = stream("", format!("BT {uses}ET").replace("/X Do", "ET /X Do BT").replace("/S sh", "ET /S sh BT").as_bytes());
+        let page = format!(
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R /Resources << \
+             /ExtGState << /G << /LW 1 /Junk [{junk}] >> >> /XObject << /X 5 0 R >> \
+             /ColorSpace << /C [/Indexed /DeviceRGB 0 <000000> {junk}] >> \
+             /Pattern << /P << /PatternType 2 /Shading << /ShadingType 2 /ColorSpace /DeviceGray /Coords [0 0 1 0] /Function << /FunctionType 2 /Domain [0 1] /C0 [0] /C1 [1] /N 1 >> >> /Junk [{junk}] >> >> \
+             /Shading << /S << /ShadingType 2 /ColorSpace /DeviceGray /Coords [0 0 1 0] /Function << /FunctionType 2 /Domain [0 1] /C0 [0] /C1 [1] /N 1 >> /Junk [{junk}] >> >> \
+             /Properties << /M << /Junk [{junk}] >> >> \
+             /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Junk [{junk}] >> /F2 << /Type /Font /Subtype /Type1 /BaseFont /Courier >> >> >> >>"
+        );
+        let form = stream(&format!("/Type /XObject /Subtype /Form /BBox [0 0 10 10] /Junk [{junk}]"), b"");
+        let doc = Document::open(
+            pdf(&[
+                b"<< /Type /Catalog /Pages 2 0 R >>",
+                b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                page.as_bytes(),
+                &content,
+                &form,
+            ]),
+            "",
+        )
+        .unwrap();
+        let calls: [(&str, &dyn Fn()); 3] = [
+            ("text", &|| drop(doc.text(0).unwrap())),
+            ("objects", &|| drop(doc.scan(0, true, false).unwrap())),
+            ("render", &|| drop(doc.render(0, 100.0, f32::INFINITY).unwrap())),
+        ];
+        for (call, run) in calls {
+            let before = named_reads();
+            run();
+            let reads = named_reads() - before;
+            assert!(reads <= 9, "{call}: {reads} lookups of 9 names used {USES} times each");
+        }
+    }
+
     /// A node, and a page, listed many times in `/Kids`: each dictionary is built at most twice, at
     /// open and through every page's read, so a large one repeated doesn't cost its size per repeat.
     #[test]
