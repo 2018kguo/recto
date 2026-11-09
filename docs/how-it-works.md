@@ -28,8 +28,8 @@ error of a whole number (612 pt at 800 px came to 800.00006), and the page stret
 bitmap. Sizes are capped because hayro sizes pixmaps in `u16`.
 
 A page's decoded content stream is kept while the page is one of the last four read, or while the
-ones kept come to under 1 MiB, and decoded again after that. Holding every page's made a long
-document's memory grow with each page read.
+ones kept come to under 1 MiB, and decoded again after that; past 256 MiB, only the last one is kept.
+Holding every page's made a long document's memory grow with each page read.
 
 ## Assets
 

@@ -291,27 +291,31 @@ instructions retired are the steadier number.
 
 | | 0.3.0 | 0.4.0 |
 |---|---:|---:|
-| Text of the first 20 pages of each: time | 304 ms | 292 ms (−4.1%) |
-| Instructions | 31.98 B | 30.70 B (−4.0%) |
-| Cycles | 6.43 B | 6.24 B (−2.9%) |
-| Render of the first 2 pages of each at 1024 px: time | 237 ms | 237 ms (+0.2%) |
-| Instructions | 29.09 B | 29.02 B (−0.2%) |
-| A fresh process to the first text of a 40-page report | 29.1 ms | 28.8 ms |
-| Open a 2,000-page report | 4.16 ms | 4.12 ms |
+| Text of the first 20 pages of each: time | 305 ms | 294 ms (−3.6%) |
+| Instructions | 31.99 B | 30.69 B (−4.1%) |
+| Cycles | 6.42 B | 6.20 B (−3.4%) |
+| Render of the first 2 pages of each at 1024 px: time | 248 ms | 247 ms (−0.2%) |
+| Instructions | 29.13 B | 29.06 B (−0.2%) |
+| A fresh process to the first text of a 40-page report | 30.7 ms | 29.9 ms |
+| Open a 2,000-page report | 5.05 ms | 4.97 ms |
 
 WebAssembly memory with the document still open, after reading every page in order:
 
 | | 0.3.0 | 0.4.0 |
 |---|---:|---:|
-| A 2,000-page report (14.1 MB), text | 36.8 MB | 21.7 MB |
-| An 85-page credit agreement (0.4 MB), text | 15.3 MB | 6.0 MB |
+| A 2,000-page report (14.1 MB), text | 36.8 MB | 22.5 MB |
+| An 85-page credit agreement (0.4 MB), text | 15.3 MB | 6.6 MB |
 | A 28-page drug label (5.0 MB), text | 17.1 MB | 14.1 MB |
-| The credit agreement, drawn | 20.1 MB | 9.8 MB |
+| The credit agreement, drawn | 20.1 MB | 10.0 MB |
 
 A page's decoded content is now kept only while it's among the last read, so reading the same pages a second
-time decodes them again: about 3% more time on the credit agreement. Download is 2.5 KB more with brotli for text
-(409,669 bytes) and 3.4 KB more for text and drawing (670,113), from the counters and caches that bound the inputs in
-[damaged files](#damaged-files).
+time decodes them again: about 3% more time on the credit agreement. Download is 3.9 KB more with brotli for text
+(411,060 bytes) and 4.5 KB more for text and drawing (671,263), from the counters, caches and limits that bound the
+inputs in [damaged files](#damaged-files).
+
+A large `FlateDecode` stream peaks where it did in 0.3.0: one inflating to 200 MiB took 514 MiB of WebAssembly
+memory in 0.3.0 and 513 MiB now (100 MiB: 258 and 258; 300 MiB: 1,027 and 1,024). A build of 0.4.0 that started
+the buffer at four times the input took 798 MiB.
 
 ## Giving memory back
 
@@ -514,6 +518,7 @@ crash at 2.6 GB. Each now stops at a limit and says so: `truncated` on the page'
 and checks exactly which results say so. 0.4.0 added four kinds, which the 3,000 above predate: a named resource
 used thousands of times, a membership dictionary named by thousands of `BDC`s, an inline image full of `EI`s, and a
 stitching function nested 20 to 31 levels. The build before took over 300 s on the first of them; now each takes 7–64 ms.
+A function repeats the ones it lists at most 2^14 times; the most any of these files repeated was 44.
 
 The limits mustn't reach a real page. `crates/recto/examples/budgets.rs` reports the most any page or tree used of each,
 over all 543 files that open here (2,408 pages, text, objects and a render of each). Nothing is `truncated`. These are small
@@ -527,6 +532,7 @@ suite files and 39 public ones, not a survey: a page far costlier than these cou
 | Page tree kids | 248 | objects + 2^18 | 1,059× |
 | Page label nodes | 1 | 2^16 | 65,536× |
 | Name tree nodes | 1 | 2^18 | 262,144× |
+| Bytes one stream or image decodes to | 151 MB | 768 MiB | 5.3× |
 
 Three more seeds (180,000 files) also found nothing. That says it's hard to find another with this
 fuzzer, not that there isn't one: a page can still take seconds and hold hundreds of megabytes.

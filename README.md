@@ -258,8 +258,9 @@ on anything a user might upload, use one of those two.
   where another engine may report one from `/Count`. A repair won't bring back what a later revision removed.
 - **Files built to cost:** a page stops drawing at a budget and is incomplete, with `truncated` true on what `text`,
   `objects`, `render` and `renderAsync` return for it. A page tree, labels or an outline cut short shows in
-  `doc.structureTruncated()`. A stream or an image can still decompress to more memory than there is, which ends
-  in `crash`. See [the limits](docs/reference.md).
+  `doc.structureTruncated()`. A stream or image that decodes past `maxDecodedBytes` (768 MiB) is left out, with
+  `truncated` true; several pages under it can still add up to more memory than there is, which ends in
+  `crash`. See [the limits](docs/reference.md).
 - **Encryption:** the Standard security handler only, so a public-key file fails with `unsupported`. An
   encrypted file before revision 6 that lost its trailer fails with `invalid-file`, since its key needs
   the trailer's ID. Revision 6 is repaired.

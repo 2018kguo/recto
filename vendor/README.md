@@ -27,7 +27,9 @@ They are patched for what upstream does not have:
   `PageJob`) and a `raster` feature the text build leaves out.
 - **hayro-syntax**: a page's decoded content kept only while it's among the last read, not for as
   long as its document is open (`recent` in `src/page.rs`), and `FlateDecode` inflated in one call
-  into a sized buffer rather than through a reader.
+  into a sized buffer rather than through a reader; a limit on what one stream or image decodes to
+  (`set_max_decoded_bytes`), and an inline image's end found in one pass.
+- **hayro-interpret**: a function listed again at the same depth built once and shared.
 - **hayro-cmap**: `host-cmaps`, so a WebAssembly build gets its CMaps from the host on first
   use instead of embedding them, deflated rather than brotli so the wasm needs no brotli decoder.
 
