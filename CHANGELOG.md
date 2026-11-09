@@ -41,7 +41,7 @@ the same on 2,172 files, read whole and by range.
   one after another.
 - **More bytes for fewer rounds**: 25% more for the first pages above, 11% more for pages read one by one,
   mostly the tail fetched beside a head that already held a small file.
-- **Download**: 3.6 KB more with brotli for text and 13.3 KB more for text and drawing. A ranged open no longer
+- **Download**: 3.6 KB more with brotli for text and 13.2 KB more for text and drawing. A ranged open no longer
   fetches `recto-more.wasm` (251 KB), which in 0.4.0 it did.
 
 ## 0.4.0

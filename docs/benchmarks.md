@@ -463,9 +463,9 @@ counted. At 40 ms and below recto is ahead.
 of 4 chunks or fewer the head and the tail overlap and both count. Over every 12th page of the same files read
 one by one (225 pages), the rounds per page went from 3.91 to 2.04 and the bytes from 105.0 to 116.4 MB (+11%).
 
-**What it adds to the download**, with brotli, from `scripts/check-wasm-budget.mjs`: text 411,549 → 415,183 bytes
+**What it adds to the download**, with brotli, from `scripts/check-wasm-budget.mjs`: text 411,549 → 415,119 bytes
 (+3.6 KB, the ranged loader's new paths, which a ranged open needs before it draws), text and drawing 672,177 →
-685,454 (+13.3 KB: the region and links code, 5.6 KB of it links, in `recto-render.wasm`, which `links` loads).
+685,390 (+13.2 KB: the region and links code, 5.6 KB of it links, in `recto-render.wasm`, which `links` loads).
 A ranged open in 0.4.0 also fetched `recto-more.wasm` (251 KB) for code its lists hadn't profiled; the lists now
 include a ranged read, so it fetches no part, and the budget check says so.
 
