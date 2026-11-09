@@ -10,12 +10,13 @@ runs against 0.3.0 on the same machine; see [the numbers](docs/benchmarks.md#bef
 
 - **Memory**: a page's decoded content stream is kept while the page is among the last four read (or the
   ones kept come to under 1 MiB), not for as long as the document is open. WebAssembly memory after reading
-  the text of every page: a 2,000-page report 36.8 → 21.7 MB, an 85-page credit agreement 15.3 → 6.1 MB; after
-  drawing every page of the agreement, 20.1 → 9.9 MB. Reading the same pages a second time decodes them again,
+  the text of every page: a 2,000-page report 36.8 → 21.7 MB, an 85-page credit agreement 15.3 → 6.0 MB; after
+  drawing every page of the agreement, 20.1 → 9.8 MB. Reading the same pages a second time decodes them again,
   about 3% more on the agreement.
-- **Speed**: reading text costs 4.1% fewer instructions over the corpus (3.5% fewer cycles): a FlateDecode
+- **Speed**: reading text on 37 public PDFs takes 4.1% less time, 4.0% fewer instructions: a FlateDecode
   stream inflates in one call into a buffer sized from its input, fake-bold copies are found in a flat table
-  instead of a hash map, and a glyph-name lookup bisects entries instead of bytes. Rendering is within 0.5%.
+  instead of a hash map, and a glyph-name lookup bisects entries instead of bytes. Rendering is unchanged (−0.2%
+  instructions, +0.2% time). The download is 2.5 KB more with brotli for text, 3.4 KB for drawing.
 
 ### Fixed
 

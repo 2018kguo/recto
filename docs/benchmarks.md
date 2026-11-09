@@ -283,6 +283,36 @@ The same 37 PDFs and the same machine, 0.1 from its own build, in `bench/results
 | Download with brotli, first text, never drawn | 1.26 MB | 0.53 MB |
 | Download with brotli, first text and pixels | 1.26 MB | 1.72 MB |
 
+## Before and after 0.4.0
+
+The 37 public PDFs and the same machine, 0.3.0 and 0.4.0 built from source, in Node 24: 8 rounds alternating the
+two builds, each round a process per build doing 4 passes, medians. The machine was shared and busy, so the
+instructions retired are the steadier number.
+
+| | 0.3.0 | 0.4.0 |
+|---|---:|---:|
+| Text of the first 20 pages of each: time | 304 ms | 292 ms (−4.1%) |
+| Instructions | 31.98 B | 30.70 B (−4.0%) |
+| Cycles | 6.43 B | 6.24 B (−2.9%) |
+| Render of the first 2 pages of each at 1024 px: time | 237 ms | 237 ms (+0.2%) |
+| Instructions | 29.09 B | 29.02 B (−0.2%) |
+| A fresh process to the first text of a 40-page report | 29.1 ms | 28.8 ms |
+| Open a 2,000-page report | 4.16 ms | 4.12 ms |
+
+WebAssembly memory with the document still open, after reading every page in order:
+
+| | 0.3.0 | 0.4.0 |
+|---|---:|---:|
+| A 2,000-page report (14.1 MB), text | 36.8 MB | 21.7 MB |
+| An 85-page credit agreement (0.4 MB), text | 15.3 MB | 6.0 MB |
+| A 28-page drug label (5.0 MB), text | 17.1 MB | 14.1 MB |
+| The credit agreement, drawn | 20.1 MB | 9.8 MB |
+
+A page's decoded content is now kept only while it's among the last read, so reading the same pages a second
+time decodes them again: about 3% more time on the credit agreement. Download is 2.5 KB more with brotli for text
+(409,669 bytes) and 3.4 KB more for text and drawing (670,113), from the counters and caches that bound the inputs in
+[damaged files](#damaged-files).
+
 ## Giving memory back
 
 300 cycles of open, text, render and close on a 70 MiB file. At rest is 2.5 s later, after a collection, in a
