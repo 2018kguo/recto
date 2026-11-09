@@ -175,6 +175,36 @@ const CASES = {
     return pdf({ page: "/Resources<</Font<</F 5 0 R>>>>", content: "BT /F 100 Tf (aa) Tj ET", extras: objects });
   },
   stateNesting: () => pdf({ content: "q ".repeat(200_000) + "0 0 10 10 re f" }),
+  stitchingTree: (r) => {
+    const depth = 20 + r.int(12);
+    const functions = Array.from({ length: depth }, (_, i) =>
+      i === depth - 1
+        ? "<</FunctionType 2/Domain[0 1]/C0[0]/C1[1]/N 1>>"
+        : `<</FunctionType 3/Domain[0 1]/Functions[${6 + i} 0 R ${6 + i} 0 R]/Bounds[0.5]/Encode[0 1 0 1]>>`,
+    );
+    return pdf({ page: "/Resources<</Shading<</S<</ShadingType 2/ColorSpace/DeviceGray/Coords[0 0 400 0]/Function 5 0 R>>>>>>", content: "/S sh", extras: functions });
+  },
+  inlineImageEIs: (r) =>
+    pdf({ content: `q 10 0 0 10 0 0 cm BI /W 1 /H 1 /BPC 8 /CS /G ID ${"EI ".repeat(40_000 + r.int(20_000))}\x80 EI Q 0 0 10 10 re f` }),
+  namedResourceReuse: (r) => {
+    const uses = 20_000 + r.int(10_000);
+    const op = ["/G gs", "/X Do", "/C cs", "/M BDC EMC"][r.int(4)];
+    const junk = times(uses, () => "0");
+    return pdf({
+      page: `/Resources<</ExtGState<</G 5 0 R>>/XObject<</X 6 0 R>>/ColorSpace<</C 7 0 R>>/Properties<</M 8 0 R>>>>`,
+      content: `${times(uses, () => op.replace("/M BDC", "/Tag /M BDC"))} 0 0 10 10 re f`,
+      extras: [`<</LW 1/Junk[${junk}]>>`, stream(`/Type/XObject/Subtype/Form/BBox[0 0 10 10]/Junk[${junk}]`, ""), `[/Indexed/DeviceRGB 0 <000000> ${junk}]`, `<</Junk[${junk}]>>`],
+    });
+  },
+  membershipGroups: (r) => {
+    const n = 20_000 + r.int(10_000);
+    return pdf({
+      catalog: "/OCProperties<</OCGs[6 0 R]/D<</OFF[6 0 R]>>>>",
+      page: "/Resources<</Properties<</M 5 0 R>>>>",
+      content: `${"/OC /M BDC EMC ".repeat(n)}0 0 10 10 re f`,
+      extras: [`<</Type/OCMD/OCGs[${times(n, () => "6 0 R")}]/P/AllOn>>`, "<</Type/OCG/Name(a)>>"],
+    });
+  },
 };
 
 export const STRUCTURES = Object.keys(CASES);
@@ -210,6 +240,10 @@ export const TRIPS = {
   softMaskChain: [],
   type3Chain: DRAWN,
   stateNesting: [],
+  stitchingTree: [],
+  inlineImageEIs: [],
+  namedResourceReuse: [],
+  membershipGroups: [],
 };
 
 /** One file, by a seed: the same seed gives the same bytes. */
