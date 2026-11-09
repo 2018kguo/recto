@@ -680,6 +680,34 @@ mod tests {
         assert!(built <= 4 << 14, "{built} functions built");
     }
 
+    /// Every `EI` in an inline image's data is a candidate end, checked by reading on through the
+    /// later ones: 16,000 of them and a binary byte after them took 1.1 s a call. The reading is
+    /// bounded in all, and the page's text after the image still reads.
+    #[test]
+    fn ending_an_inline_image_reads_a_bounded_number_of_eis() {
+        use hayro::hayro_syntax::content::inline_image_events;
+        const EIS: usize = 4000;
+        let mut data = format!("q 10 0 0 10 0 0 cm BI /W 1 /H 1 /BPC 8 /CS /G ID {}", "EI ".repeat(EIS)).into_bytes();
+        // Binary after them: every EI before it is image data.
+        data.extend_from_slice(b"\x80 EI Q BT /F1 10 Tf (after) Tj ET");
+        let content = stream("", &data);
+        let doc = Document::open(
+            pdf(&[
+                b"<< /Type /Catalog /Pages 2 0 R >>",
+                b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> >>",
+                &content,
+            ]),
+            "",
+        )
+        .unwrap();
+        let before = inline_image_events();
+        let text = doc.text(0).unwrap().text();
+        let read = inline_image_events() - before;
+        assert!(text.contains("after"), "{text:?}");
+        assert!(read <= 2 << 10, "{read} EIs and BIs read");
+    }
+
     /// A node, and a page, listed many times in `/Kids`: each dictionary is built at most twice, at
     /// open and through every page's read, so a large one repeated doesn't cost its size per repeat.
     #[test]

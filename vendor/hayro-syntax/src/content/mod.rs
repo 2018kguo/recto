@@ -220,6 +220,26 @@ fn read_operand<'a>(r: &mut Reader<'a>, stack: &mut Stack<'a>) -> Option<()> {
     }
 }
 
+/// recto: how many later `EI`s and `BI`s finding where an inline image ends may look at, in all.
+/// Each `EI` in the data is a candidate end, checked by reading on to the next one, so data of n
+/// `EI`s and a binary byte after them read n²/2: 16,000 of them (48 KB) took 1.1 s a call. Past the
+/// limit the candidate at hand is the end, as if nothing after it had said otherwise. Of 13,206
+/// inline images in 1,039 suite and public files, none looked at more than 2.
+const MAX_INLINE_IMAGE_EVENTS: u32 = 1 << 10;
+
+#[cfg(feature = "std")]
+std::thread_local! {
+    static INLINE_IMAGE_EVENTS: core::cell::Cell<usize> = const { core::cell::Cell::new(0) };
+}
+
+/// recto: how many `EI`s and `BI`s this thread has looked at to end inline images, for the tests that
+/// it's bounded.
+#[cfg(feature = "std")]
+#[doc(hidden)]
+pub fn inline_image_events() -> usize {
+    INLINE_IMAGE_EVENTS.with(|n| n.get())
+}
+
 fn read_inline_image<'a>(r: &mut Reader<'a>, stack: &mut Stack<'a>) -> Option<()> {
     // The ID operator will already be consumed by this.
     let inline_dict = r.read_without_context::<InlineImageDict<'_>>()?;
@@ -230,6 +250,8 @@ fn read_inline_image<'a>(r: &mut Reader<'a>, stack: &mut Stack<'a>) -> Option<()
 
     let stream_data = r.tail()?;
     let start_offset = r.offset();
+    // recto: see `MAX_INLINE_IMAGE_EVENTS`.
+    let mut events = 0_u32;
 
     'outer: while let Some(pos) = find_needle(r.tail()?, b"EI") {
         r.read_bytes(pos)?;
@@ -262,6 +284,12 @@ fn read_inline_image<'a>(r: &mut Reader<'a>, stack: &mut Stack<'a>) -> Option<()
             let mut next_bi = find_needle(tail, b"BI");
 
             while !find_reader.at_end() {
+                events += 1;
+                #[cfg(feature = "std")]
+                INLINE_IMAGE_EVENTS.with(|n| n.set(n.get() + 1));
+                if events > MAX_INLINE_IMAGE_EVENTS {
+                    break;
+                }
                 let offset = find_reader.offset();
 
                 if next_bi.is_some_and(|bi| bi < offset) {
