@@ -68,7 +68,7 @@
 <foldhash::seed::global::GlobalSeed>::init_slow
 <hashbrown::map::HashMap<(u128, u32), core::option::Option<alloc::rc::Rc<kurbo::bezpath::BezPath>>, rustc_hash::FxBuildHasher>>::insert
 <hashbrown::map::HashMap<hayro_syntax::object::ObjectIdentifier, (), std::hash::random::RandomState>>::insert
-<hashbrown::map::HashMap<hayro_syntax::object::name::Name, hayro_syntax::object::dict::Dict, rustc_hash::FxBuildHasher>>::insert
+<hashbrown::map::HashMap<hayro_syntax::object::name::Name, core::option::Option<hayro_interpret::interpret::state::TextStateFont>, rustc_hash::FxBuildHasher>>::insert
 <hashbrown::raw::RawTable<((u128, u32), core::option::Option<alloc::rc::Rc<kurbo::bezpath::BezPath>>)>>::reserve_rehash::<hashbrown::map::make_hasher<(u128, u32), core::option::Option<alloc::rc::Rc<kurbo::bezpath::BezPath>>, rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<((u128, u32), core::option::Option<alloc::rc::Rc<skrifa::scaler::ScalerFont>>)>>::reserve_rehash::<hashbrown::map::make_hasher<(u128, u32), core::option::Option<alloc::rc::Rc<skrifa::scaler::ScalerFont>>, rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<(hayro::glyph_cache::GlyphKey, ())>>::reserve_rehash::<hashbrown::map::make_hasher<hayro::glyph_cache::GlyphKey, (), rustc_hash::FxBuildHasher>::{closure#0}>
@@ -124,6 +124,7 @@
 <hayro_interpret::encode::EncodedRadialAxialShading>::as_svg_gradient::{closure#0}
 <hayro_interpret::function::Function>::stitching_bounds
 <hayro_interpret::interpret::InterpreterSettings as core::default::Default>::default::{closure#1}
+<hayro_interpret::interpret::Named>::shading
 <hayro_interpret::interpret::page_run::PageRun>::new
 <hayro_interpret::interpret::page_run::Slice>::tick
 <hayro_interpret::pattern::ShadingPattern>::encode
@@ -135,8 +136,8 @@
 <hayro_interpret::x_object::image::ImageXObject>::draw::<hayro::Renderer>
 <hayro_interpret::x_object::image::ImageXObject>::draw::<recto::device::PageDevice>
 <hayro_interpret::x_object::image::ImageXObject>::has_mask
-<hayro_interpret::x_object::image::ImageXObject>::new::<hayro_interpret::interpret::run_ops<hayro_interpret::pattern::StencilPatternDevice<hayro::Renderer>>::{closure#11}::{closure#0}>
-<hayro_interpret::x_object::image::ImageXObject>::new::<hayro_interpret::interpret::run_ops<recto::device::PageDevice>::{closure#11}::{closure#0}>
+<hayro_interpret::x_object::image::ImageXObject>::new::<hayro_interpret::interpret::run_ops<hayro_interpret::pattern::StencilPatternDevice<hayro::Renderer>>::{closure#10}::{closure#0}>
+<hayro_interpret::x_object::image::ImageXObject>::new::<hayro_interpret::interpret::run_ops<recto::device::PageDevice>::{closure#10}::{closure#0}>
 <hayro_interpret::x_object::image::ImageXObject>::new_mask
 <hayro_syntax::object::array::ArrayIter as core::iter::traits::iterator::Iterator>::next
 <hayro_syntax::object::dict::Dict>::get::<[f32; 6usize], &[u8]>
@@ -505,7 +506,7 @@ core::ptr::drop_in_place::<pic_scale::plan::trampoline_filtering::TrampolineFilt
 core::ptr::drop_in_place::<pic_scale::plan::vertical_filtering::VerticalFiltering<u8, i16, 1usize>>
 core::ptr::drop_in_place::<recto::wasm::RenderTask>
 core::ptr::drop_in_place::<skrifa::outline::autohint::instance::ScalingData>
-core::ptr::drop_in_place::<std::collections::hash::map::HashMap<hayro_syntax::object::name::Name, hayro_syntax::object::dict::Dict, rustc_hash::FxBuildHasher>>
+core::ptr::drop_in_place::<std::collections::hash::map::HashMap<hayro_syntax::object::name::Name, core::option::Option<hayro_interpret::interpret::state::TextStateFont>, rustc_hash::FxBuildHasher>>
 core::ptr::drop_in_place::<std::sync::poison::rwlock::RwLockWriteGuard<alloc::vec::Vec<core::option::Option<skrifa::outline::autohint::metrics::UnscaledStyleMetrics>>>>
 core::ptr::drop_in_place::<vello_common::clip::ClipContext>
 core::ptr::drop_in_place::<vello_common::clip::ClipState>

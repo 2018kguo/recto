@@ -304,14 +304,17 @@ pub fn interpret<'a>(
 /// the text-only interpreter can hand it the rest of a stream.
 /// recto: a stream's named resources, each looked up once (see `run_ops`).
 #[derive(Default)]
-pub(crate) struct Named<'a> {
-    ext_g_states: FxHashMap<Vec<u8>, Option<Dict<'a>>>,
-    x_objects: FxHashMap<Vec<u8>, Option<Stream<'a>>>,
-    shadings: FxHashMap<Vec<u8>, Option<Object<'a>>>,
-    patterns: FxHashMap<Vec<u8>, Option<Object<'a>>>,
-    color_spaces: FxHashMap<Vec<u8>, Option<ColorSpace>>,
-    #[allow(clippy::type_complexity)]
-    properties: FxHashMap<Vec<u8>, (Option<Dict<'a>>, Option<(Dict<'a>, hayro_syntax::object::ObjRef)>)>,
+pub(crate) struct Named<'a>(FxHashMap<Vec<u8>, [Option<Slot<'a>>; 6]>);
+
+#[derive(Clone)]
+enum Slot<'a> {
+    Dict(Option<Dict<'a>>),
+    Stream(Option<Stream<'a>>),
+    Object(Option<Object<'a>>),
+    ColorSpace(Option<ColorSpace>),
+    /// A `BDC`'s property list, and its optional content if it names a group: the dictionary and
+    /// its reference.
+    Properties(Option<Dict<'a>>, Option<(Dict<'a>, hayro_syntax::object::ObjRef)>),
 }
 
 std::thread_local! {
@@ -325,31 +328,43 @@ pub fn named_reads() -> usize {
     NAMED_READS.with(|n| n.get())
 }
 
-fn once<V: Clone>(map: &mut FxHashMap<Vec<u8>, V>, name: &[u8], read: impl FnOnce() -> V) -> V {
-    if let Some(value) = map.get(name) {
-        return value.clone();
-    }
-    NAMED_READS.with(|n| n.set(n.get() + 1));
-    let value = read();
-    map.insert(name.to_vec(), value.clone());
-    value
-}
-
 impl<'a> Named<'a> {
+    fn once(&mut self, kind: usize, name: &Name<'_>, read: impl FnOnce() -> Slot<'a>) -> Slot<'a> {
+        if let Some(Some(slot)) = self.0.get(name.as_ref()).map(|slots| &slots[kind]) {
+            return slot.clone();
+        }
+        NAMED_READS.with(|n| n.set(n.get() + 1));
+        let slot = read();
+        self.0.entry(name.as_ref().to_vec()).or_default()[kind] = Some(slot.clone());
+        slot
+    }
+
     pub(crate) fn ext_g_state(&mut self, resources: &Resources<'a>, name: &Name<'_>) -> Option<Dict<'a>> {
-        once(&mut self.ext_g_states, name.as_ref(), || resources.get_ext_g_state(name))
+        match self.once(0, name, || Slot::Dict(resources.get_ext_g_state(name))) {
+            Slot::Dict(dict) => dict,
+            _ => None,
+        }
     }
 
     pub(crate) fn x_object(&mut self, resources: &Resources<'a>, name: &Name<'_>) -> Option<Stream<'a>> {
-        once(&mut self.x_objects, name.as_ref(), || resources.get_x_object(name))
+        match self.once(1, name, || Slot::Stream(resources.get_x_object(name))) {
+            Slot::Stream(stream) => stream,
+            _ => None,
+        }
     }
 
     pub(crate) fn shading(&mut self, resources: &Resources<'a>, name: &Name<'_>) -> Option<Object<'a>> {
-        once(&mut self.shadings, name.as_ref(), || resources.get_shading(name))
+        match self.once(2, name, || Slot::Object(resources.get_shading(name))) {
+            Slot::Object(object) => object,
+            _ => None,
+        }
     }
 
     pub(crate) fn pattern(&mut self, resources: &Resources<'a>, name: &Name<'_>) -> Option<Object<'a>> {
-        once(&mut self.patterns, name.as_ref(), || resources.get_pattern(name))
+        match self.once(3, name, || Slot::Object(resources.get_pattern(name))) {
+            Slot::Object(object) => object,
+            _ => None,
+        }
     }
 
     pub(crate) fn color_space(
@@ -358,25 +373,30 @@ impl<'a> Named<'a> {
         resources: &Resources<'a>,
         name: &Name<'_>,
     ) -> Option<ColorSpace> {
-        once(&mut self.color_spaces, name.as_ref(), || context.get_color_space(resources, name))
+        match self.once(4, name, || Slot::ColorSpace(context.get_color_space(resources, name))) {
+            Slot::ColorSpace(cs) => cs,
+            _ => None,
+        }
     }
 
-    /// A `BDC`'s property list, and its optional content if it names a group: the dictionary
-    /// and its reference.
     #[allow(clippy::type_complexity)]
     pub(crate) fn properties(
         &mut self,
         resources: &Resources<'a>,
         name: &Name<'_>,
     ) -> (Option<Dict<'a>>, Option<(Dict<'a>, hayro_syntax::object::ObjRef)>) {
-        once(&mut self.properties, name.as_ref(), || {
+        let slot = self.once(5, name, || {
             let properties = resources.properties.get::<Dict<'_>>(name);
             let oc = resources
                 .properties
                 .get_ref(name.as_ref())
                 .map(|r| (properties.clone().unwrap_or_default(), r));
-            (properties, oc)
-        })
+            Slot::Properties(properties, oc)
+        });
+        match slot {
+            Slot::Properties(properties, oc) => (properties, oc),
+            _ => (None, None),
+        }
     }
 }
 
