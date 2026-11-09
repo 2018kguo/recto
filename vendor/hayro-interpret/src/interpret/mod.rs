@@ -161,10 +161,15 @@ pub fn interpret_page<'a>(
     let resources = page.resources();
     let render_content = context.settings.render_content;
 
+    // recto: the page's content counts against the limit on what's decoded while it's drawn.
     if render_content.contains(RenderContent::PAGE | RenderContent::TEXT_ONLY) {
-        text_only::interpret(page.contents().data(), resources, context, device);
+        let contents = page.contents();
+        let _held = hayro_syntax::hold_decoded(contents.data().len());
+        text_only::interpret(contents.data(), resources, context, device);
     } else if render_content.contains(RenderContent::PAGE) {
-        interpret(page.contents().typed_operations(), resources, context, device);
+        let contents = page.contents();
+        let _held = hayro_syntax::hold_decoded(contents.data().len());
+        interpret(contents.typed_operations(), resources, context, device);
     }
 
     if render_content.contains(RenderContent::ANNOTATIONS) {

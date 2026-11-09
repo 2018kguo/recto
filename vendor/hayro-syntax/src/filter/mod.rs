@@ -33,6 +33,32 @@ std::thread_local! {
     static MAX_DECODED_BYTES: core::cell::Cell<usize> = const { core::cell::Cell::new(DEFAULT_MAX_DECODED_BYTES) };
     static DECODES_CUT: core::cell::Cell<usize> = const { core::cell::Cell::new(0) };
     static LARGEST_DECODE: core::cell::Cell<usize> = const { core::cell::Cell::new(0) };
+    static HELD: core::cell::Cell<usize> = const { core::cell::Cell::new(0) };
+}
+
+/// recto: decoded content held while what it draws runs, which counts against the limit for
+/// everything decoded meanwhile: a form drawing a form drawing a form, each of 600 MiB, held 1.8 GB at
+/// once. Released when dropped; a clone counts again, as it's a copy.
+pub struct HeldDecoded(usize);
+
+/// recto: holds `bytes` of decoded content until the result is dropped; see [`HeldDecoded`].
+pub fn hold_decoded(bytes: usize) -> HeldDecoded {
+    #[cfg(feature = "std")]
+    HELD.with(|held| held.set(held.get().saturating_add(bytes)));
+    HeldDecoded(bytes)
+}
+
+impl Clone for HeldDecoded {
+    fn clone(&self) -> Self {
+        hold_decoded(self.0)
+    }
+}
+
+impl Drop for HeldDecoded {
+    fn drop(&mut self) {
+        #[cfg(feature = "std")]
+        let _ = HELD.try_with(|held| held.set(held.get().saturating_sub(self.0)));
+    }
 }
 
 /// recto: the most bytes a stream or image asked to decode to since the last call, for
@@ -56,11 +82,50 @@ pub fn decodes_cut() -> usize {
     DECODES_CUT.with(|n| n.get())
 }
 
-/// recto: the limit on what one stream may decode to, on this thread.
+/// recto: `f`'s result, and whether a stream or image was left out for its size while it ran. A
+/// cache keeps that with what it built, and calls [`repeat_cut`] each time it hands it out, so every
+/// call that uses it says so, not only the one that built it.
+pub fn noting_cuts<T>(f: impl FnOnce() -> T) -> (T, bool) {
+    #[cfg(feature = "std")]
+    {
+        let before = decodes_cut();
+        let value = f();
+        (value, decodes_cut() != before)
+    }
+    #[cfg(not(feature = "std"))]
+    (f(), false)
+}
+
+/// recto: counts a cut again, for what was built from a cut decode and is used once more.
+pub fn repeat_cut() {
+    #[cfg(feature = "std")]
+    DECODES_CUT.with(|n| n.set(n.get() + 1));
+}
+
+/// recto: `f` with the limit lowered to `max` (never raised), for decodes that add up to one
+/// buffer, as a page's content streams do.
+pub fn with_max_decoded<T>(max: usize, f: impl FnOnce() -> T) -> T {
+    #[cfg(feature = "std")]
+    {
+        let old = MAX_DECODED_BYTES.with(|max| max.get());
+        let held = HELD.with(|held| held.get());
+        set_max_decoded_bytes(max.saturating_add(held).min(old));
+        let value = f();
+        set_max_decoded_bytes(old);
+        value
+    }
+    #[cfg(not(feature = "std"))]
+    {
+        let _ = max;
+        f()
+    }
+}
+
+/// recto: what one stream may decode to now, on this thread: the limit, less what's held.
 #[doc(hidden)]
 pub fn max_decoded_bytes() -> usize {
     #[cfg(feature = "std")]
-    return MAX_DECODED_BYTES.with(|max| max.get());
+    return MAX_DECODED_BYTES.with(|max| max.get()).saturating_sub(HELD.with(|held| held.get()));
     #[cfg(not(feature = "std"))]
     DEFAULT_MAX_DECODED_BYTES
 }

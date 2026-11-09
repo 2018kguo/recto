@@ -225,3 +225,51 @@ test("a stream or image that decodes past maxDecodedBytes is left out, and the p
   assert.ok(String.fromCodePoint(...cutText.codepoints).includes("kept"), "the rest of the page still reads");
   await assert.rejects(createPdfEngine({ maxDecodedBytes: -1 }), RangeError);
 });
+
+// One stream listed five times in `/Contents`, or forms nested five deep, each under the limit, took
+// five times it at once and crashed the instance. And what a limit left out stays left out in what's
+// cached, so every call says so, not only the first that decoded it.
+test("maxDecodedBytes bounds what a page holds at once, and every call on it says truncated, in any order", async () => {
+  const { deflateSync } = await import("node:zlib");
+  const MAX = 1 << 20;
+  const spaces = deflateSync(Buffer.alloc(300 << 10, 0x20));
+  const form = (inner: number | null) => ({
+    dict: `/Type /XObject /Subtype /Form /BBox [0 0 100 100] /Filter /FlateDecode${inner ? ` /Resources << /XObject << /N ${inner} 0 R >> >>` : ""}`,
+    data: deflateSync(Buffer.concat([Buffer.from(inner ? "/N Do\n" : ""), Buffer.alloc(400 << 10, 0x20)])),
+  });
+  // Objects from 5: the font, the spaces, three nested forms.
+  // The page's content is object 4 and the spaces five times over.
+  const pdf = pagePdf(
+    "BT /H 10 Tf 10 10 Td (kept) Tj ET /N Do",
+    "/Font << /H 5 0 R >> /XObject << /N 7 0 R >>",
+    ["<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", { dict: "/Filter /FlateDecode", data: spaces }, form(8), form(9), form(null)],
+    "[4 0 R 6 0 R 6 0 R 6 0 R 6 0 R 6 0 R]"
+  );
+  type Doc = Awaited<ReturnType<Awaited<ReturnType<typeof createPdfEngine>>["open"]>>;
+  const reads: [string, (doc: Doc) => boolean | Promise<boolean>][] = [
+    ["text", (doc) => doc.text(0).truncated],
+    ["objects", (doc) => doc.objects(0).truncated],
+    ["render", (doc) => doc.render(0, { width: 50 }).truncated],
+    ["renderAsync", async (doc) => (await doc.renderAsync(0, { width: 50 })).truncated],
+  ];
+  for (const order of [[0, 1, 2, 3], [3, 2, 1, 0], [2, 0, 3, 1]]) {
+    const engine = await createPdfEngine({ maxDecodedBytes: MAX });
+    await using doc = await engine.open(pdf);
+    const before = engine.stats().heapBytes;
+    for (let round = 0; round < 2; round++) {
+      for (const index of order) {
+        const [name, read] = reads[index]!;
+        assert.equal(await read(doc), true, `${name}, order ${order}, round ${round}`);
+      }
+    }
+    assert.ok(engine.stats().heapBytes - before < 6 * MAX, `${engine.stats().heapBytes - before} bytes more`);
+  }
+  // The pool's threads run the built package.
+  const { createPdfPool } = await import("../dist/index.js");
+  using pool = await createPdfPool({ maxDecodedBytes: MAX, threads: 1 });
+  const pooled = await pool.open(pdf);
+  for (let i = 0; i < 2; i++) {
+    assert.equal((await pooled.render(0, { width: 50 })).truncated, true);
+    assert.equal((await pooled.text(0)).truncated, true);
+  }
+});

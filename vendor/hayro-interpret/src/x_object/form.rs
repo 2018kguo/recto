@@ -13,6 +13,8 @@ use std::borrow::Cow;
 
 pub(crate) struct FormXObject<'a> {
     pub(crate) decoded: Cow<'a, [u8]>,
+    /// recto: `decoded` counts against the limit on decoding while the form is held.
+    pub(crate) held: hayro_syntax::HeldDecoded,
     pub(crate) matrix: Affine,
     pub(crate) bbox: [f32; 4],
     is_transparency_group: bool,
@@ -28,6 +30,7 @@ impl<'a> FormXObject<'a> {
         let dict = stream.dict();
 
         let decoded = stream.decoded_data().ok()?;
+        let held = hayro_syntax::hold_decoded(decoded.len());
         let resources = dict.get(RESOURCES).map(Resources::new);
 
         let matrix = Affine::new(
@@ -45,6 +48,7 @@ impl<'a> FormXObject<'a> {
 
         Some(Self {
             decoded,
+            held,
             matrix,
             is_transparency_group,
             isolated,
@@ -131,6 +135,7 @@ impl<'a> FormXObject<'a> {
         let affordable = context.charge_nested();
         Some(Frame {
             data: FrameData::Form(if affordable { self.decoded } else { Default::default() }),
+            _held: self.held,
             pos: 0,
             resources,
             states,

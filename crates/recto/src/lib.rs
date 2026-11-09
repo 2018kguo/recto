@@ -460,6 +460,7 @@ impl RenderTask {
         max_height: f32,
     ) -> Result<Self, EngineError> {
         let settings = document.pixmap_settings(index, width, max_height)?;
+        let cuts = hayro::hayro_syntax::decodes_cut();
         let job = document.0.with_dependent(|pdf, caches| {
             let Some(page) = pdf.pages().get(index) else {
                 unreachable!("pixmap_settings found it")
@@ -482,7 +483,7 @@ impl RenderTask {
         Ok(Self {
             job,
             _document: document,
-            cut: false,
+            cut: hayro::hayro_syntax::decodes_cut() != cuts,
         })
     }
 
@@ -637,12 +638,112 @@ mod tests {
             "",
         )
         .unwrap();
-        hayro::hayro_syntax::set_max_decoded_bytes(1 << 20);
-        let cut = doc.text(0).unwrap();
-        hayro::hayro_syntax::set_max_decoded_bytes(hayro::hayro_syntax::DEFAULT_MAX_DECODED_BYTES);
         let whole = doc.text(0).unwrap();
+        hayro::hayro_syntax::set_max_decoded_bytes(1 << 20);
+        let cut = Document::open(doc.file_bytes().to_vec(), "").unwrap().text(0).unwrap();
+        hayro::hayro_syntax::set_max_decoded_bytes(hayro::hayro_syntax::DEFAULT_MAX_DECODED_BYTES);
         assert!(cut.truncated && !whole.truncated);
         assert!(cut.text().contains("kept"), "the page's other stream still reads: {:?}", cut.text());
+    }
+
+    /// A page's content streams are joined, and a form's content is held while what it draws runs,
+    /// so the limit is on what they add up to: one 700 MiB stream listed five times in `/Contents`,
+    /// or forms of 600 MiB nested five deep, crashed the wasm with the limit on each alone. And what
+    /// a limit left out is kept that way, in the page's content and in a font, so every call that
+    /// uses it says `truncated`, whatever was read before, and after the page's content is let go.
+    #[test]
+    fn what_a_limit_left_out_says_so_on_every_call_in_any_order() {
+        use std::io::Write;
+        const MAX: usize = 1 << 20;
+        let zip = |data: &[u8]| {
+            let mut zipped = flate2::write::ZlibEncoder::new(Vec::new(), flate2::Compression::best());
+            zipped.write_all(data).unwrap();
+            zipped.finish().unwrap()
+        };
+        let spaces = vec![b' '; 300 << 10];
+        let font = "/F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>";
+        let text = b"BT /F1 10 Tf 10 10 Td (kept) Tj ET";
+        // Page 1: one 300 KiB stream listed five times. Page 2: three nested forms of 400 KiB. Page 3:
+        // a font whose 2 MiB program is past the limit. Pages 4 to 8 read 300 KiB each, to let page 1's
+        // content go.
+        let page = |contents: &str, resources: &str| {
+            format!("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents {contents} /Resources << /Font << {font} >> {resources} >> >>")
+        };
+        let form = |inner: Option<u32>| {
+            let (resources, draw) = match inner {
+                Some(n) => (format!("/Resources << /XObject << /N {n} 0 R >> >>"), "/N Do\n"),
+                None => (String::new(), ""),
+            };
+            let mut data = draw.as_bytes().to_vec();
+            data.extend_from_slice(&[b' '; 400 << 10]);
+            stream(&format!("/Type /XObject /Subtype /Form /BBox [0 0 100 100] /Filter /FlateDecode {resources}"), &zip(&data))
+        };
+        let objects: Vec<Vec<u8>> = vec![
+            b"<< /Type /Catalog /Pages 2 0 R >>".to_vec(),
+            b"<< /Type /Pages /Kids [3 0 R 4 0 R 5 0 R 6 0 R 6 0 R 6 0 R 6 0 R 6 0 R 17 0 R 18 0 R] /Count 10 >>".to_vec(),
+            page("[7 0 R 8 0 R 8 0 R 8 0 R 8 0 R 8 0 R]", "").into_bytes(),
+            page("9 0 R", "/XObject << /N 10 0 R >>").into_bytes(),
+            page("13 0 R", "/Font << /F2 14 0 R >>").into_bytes(),
+            page("[7 0 R 8 0 R]", "").into_bytes(),
+            stream("", text),
+            stream("/Filter /FlateDecode", &zip(&spaces)),
+            stream("", b"/N Do"),
+            form(Some(11)),
+            form(Some(12)),
+            form(None),
+            stream("", b"BT /F2 10 Tf 10 10 Td (kept) Tj ET"),
+            b"<< /Type /Font /Subtype /TrueType /BaseFont /Big /FirstChar 32 /LastChar 126 /FontDescriptor 15 0 R >>".to_vec(),
+            b"<< /Type /FontDescriptor /FontName /Big /Flags 32 /FontBBox [0 0 1000 1000] /ItalicAngle 0 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 80 /FontFile2 16 0 R >>".to_vec(),
+            stream("/Filter /FlateDecode", &zip(&vec![0; 2 << 20])),
+            // Page 9 uses the same font, so reading it first caches the font before page 3 reads it.
+            page("13 0 R", "/Font << /F2 14 0 R >>").into_bytes(),
+            // Page 10: a colour space whose ICC profile is past the limit, kept in the object cache.
+            page("19 0 R", "/ColorSpace << /C 20 0 R >>").into_bytes(),
+            stream("", b"/C cs 0.5 0.5 0.5 sc 0 0 50 50 re f"),
+            b"[/ICCBased 21 0 R]".to_vec(),
+            stream("/N 3 /Filter /FlateDecode", &zip(&vec![0; 2 << 20])),
+        ];
+        let bytes = pdf(&objects.iter().map(Vec::as_slice).collect::<Vec<_>>());
+        hayro::hayro_syntax::set_max_decoded_bytes(MAX);
+        type Read = fn(&std::rc::Rc<Document>, usize) -> bool;
+        let reads: [(&str, Read); 4] = [
+            ("text", |d, i| d.text(i).unwrap().truncated),
+            ("objects", |d, i| d.scan(i, true, false).unwrap().objects.truncated),
+            ("render", |d, i| d.render(i, 50.0, f32::INFINITY).unwrap().truncated),
+            ("sliced", |d, i| {
+                let mut task = RenderTask::new(d.clone(), i, 50.0, f32::INFINITY).unwrap();
+                while !task.step(&|| true) {}
+                task.finish().truncated
+            }),
+        ];
+        let orders: [&[usize]; 4] = [&[0, 1, 2, 3], &[3, 2, 1, 0], &[2, 0, 3, 1], &[1, 3, 0, 2]];
+        for (o, order) in orders.iter().enumerate() {
+            let doc = std::rc::Rc::new(Document::open(bytes.clone(), "").unwrap());
+            // Different things read first: the font through page 9, page 1's content, or nothing.
+            match o {
+                1 => assert!(doc.render(8, 50.0, f32::INFINITY).unwrap().truncated),
+                2 => assert!(doc.text(0).unwrap().truncated),
+                _ => {}
+            }
+            for round in 0..2 {
+                for &r in *order {
+                    let (name, read) = reads[r];
+                    // Page 3's text: a font with no program reads the same, but it's still cut.
+                    for page in [0, 1, 2, 9] {
+                        // Text reads neither page 2's forms (no text in them) nor page 10's colours.
+                        if name == "text" && (page == 1 || page == 9) {
+                            continue;
+                        }
+                        assert!(read(&doc, page), "order {o} round {round}: {name} of page {} says nothing", page + 1);
+                    }
+                }
+                // Let page 1's content go, so it's decoded again.
+                for page in 3..8 {
+                    doc.text(page).unwrap();
+                }
+            }
+        }
+        hayro::hayro_syntax::set_max_decoded_bytes(hayro::hayro_syntax::DEFAULT_MAX_DECODED_BYTES);
     }
 
     /// A page switching among many fonts finds each one's id in one lookup: comparing with every

@@ -109,7 +109,7 @@
 <alloc::sync::Arc<smallvec::SmallVec<[hayro_syntax::object::ObjectIdentifier; 8usize]>>>::make_mut
 <alloc::sync::Arc<std::sync::once_lock::OnceLock<[u8; 256usize]>>>::drop_slow
 <alloc::sync::Arc<std::sync::once_lock::OnceLock<core::option::Option<alloc::boxed::Box<[[u8; 3usize]; 256usize]>>>>>::drop_slow
-<alloc::sync::Arc<std::sync::poison::mutex::Mutex<std::collections::hash::map::HashMap<u128, core::option::Option<alloc::boxed::Box<dyn core::any::Any + core::marker::Send + core::marker::Sync>>, rustc_hash::FxBuildHasher>>>>::drop_slow
+<alloc::sync::Arc<std::sync::poison::mutex::Mutex<std::collections::hash::map::HashMap<u128, (core::option::Option<alloc::boxed::Box<dyn core::any::Any + core::marker::Send + core::marker::Sync>>, bool), rustc_hash::FxBuildHasher>>>>::drop_slow
 <alloc::sync::Arc<std::sync::poison::rwlock::RwLock<hayro_syntax::xref::MapRepr>>>::drop_slow
 <alloc::vec::Vec<(f32, f32)> as hayro_syntax::reader::Readable>::read
 <alloc::vec::Vec<core::option::Option<read_fonts::model::charmap::EncodingTable>> as alloc::vec::spec_from_iter::SpecFromIter<core::option::Option<read_fonts::model::charmap::EncodingTable>, core::iter::adapters::flatten::FlatMap<core::option::IntoIter<read_fonts::tables::cmap::Cmap>, core::iter::adapters::map::Map<core::iter::adapters::enumerate::Enumerate<core::slice::iter::Iter<read_fonts::tables::cmap::EncodingRecord>>, <read_fonts::model::charmap::EncodingTables>::read<&read_fonts::model::font::tables::Tables>::{closure#0}::{closure#0}::{closure#0}>, <read_fonts::model::charmap::EncodingTables>::read<&read_fonts::model::font::tables::Tables>::{closure#0}::{closure#0}>>>::from_iter
@@ -159,9 +159,9 @@
 <hashbrown::map::HashMap<hayro_syntax::object::ObjectIdentifier, hayro_syntax::xref::EntryType, rustc_hash::FxBuildHasher>>::insert
 <hashbrown::map::HashMap<hayro_syntax::object::ObjectIdentifier, hayro_syntax::xref::EntryType, rustc_hash::FxBuildHasher>>::remove::<hayro_syntax::object::ObjectIdentifier>
 <hashbrown::map::HashMap<hayro_syntax::object::name::Name, usize, rustc_hash::FxBuildHasher>>::contains_key::<[u8]>
-<hashbrown::map::HashMap<u128, core::option::Option<alloc::boxed::Box<dyn core::any::Any + core::marker::Send + core::marker::Sync>>, rustc_hash::FxBuildHasher>>::insert
-<hashbrown::map::HashMap<u128, core::option::Option<alloc::boxed::Box<dyn core::any::Any + core::marker::Send + core::marker::Sync>>, rustc_hash::FxBuildHasher>>::rustc_entry
-<hashbrown::map::HashMap<u128, core::option::Option<hayro_font::program::FontProgram>, rustc_hash::FxBuildHasher>>::insert
+<hashbrown::map::HashMap<u128, (core::option::Option<alloc::boxed::Box<dyn core::any::Any + core::marker::Send + core::marker::Sync>>, bool), rustc_hash::FxBuildHasher>>::insert
+<hashbrown::map::HashMap<u128, (core::option::Option<alloc::boxed::Box<dyn core::any::Any + core::marker::Send + core::marker::Sync>>, bool), rustc_hash::FxBuildHasher>>::rustc_entry
+<hashbrown::map::HashMap<u128, (core::option::Option<hayro_font::program::FontProgram>, bool), rustc_hash::FxBuildHasher>>::insert
 <hashbrown::map::HashMap<u32, u32, rustc_hash::FxBuildHasher>>::insert
 <hashbrown::raw::RawTable<(&[u8], core::option::Option<hayro_interpret::interpret::state::TextStateFont>)>>::reserve_rehash::<hashbrown::map::make_hasher<&[u8], core::option::Option<hayro_interpret::interpret::state::TextStateFont>, rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<((hayro_syntax::object::ref::ObjRef, u8), (hayro_interpret::function::Function, u64))>>::reserve_rehash::<hashbrown::map::make_hasher<(hayro_syntax::object::ref::ObjRef, u8), (hayro_interpret::function::Function, u64), std::hash::random::RandomState>::{closure#0}>
@@ -173,9 +173,9 @@
 <hashbrown::raw::RawTable<(hayro_syntax::object::ObjectIdentifier, usize)>>::reserve_rehash::<hashbrown::map::make_hasher<hayro_syntax::object::ObjectIdentifier, usize, rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<(hayro_syntax::object::name::Name, core::option::Option<hayro_interpret::interpret::state::TextStateFont>)>>::reserve_rehash::<hashbrown::map::make_hasher<hayro_syntax::object::name::Name, core::option::Option<hayro_interpret::interpret::state::TextStateFont>, rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<(hayro_syntax::object::name::Name, usize)>>::reserve_rehash::<hashbrown::map::make_hasher<hayro_syntax::object::name::Name, usize, rustc_hash::FxBuildHasher>::{closure#0}>
-<hashbrown::raw::RawTable<(u128, core::option::Option<alloc::boxed::Box<dyn core::any::Any + core::marker::Send + core::marker::Sync>>)>>::reserve_rehash::<hashbrown::map::make_hasher<u128, core::option::Option<alloc::boxed::Box<dyn core::any::Any + core::marker::Send + core::marker::Sync>>, rustc_hash::FxBuildHasher>::{closure#0}>
-<hashbrown::raw::RawTable<(u128, core::option::Option<hayro_font::Font>)>>::reserve_rehash::<hashbrown::map::make_hasher<u128, core::option::Option<hayro_font::Font>, rustc_hash::FxBuildHasher>::{closure#0}>
-<hashbrown::raw::RawTable<(u128, core::option::Option<hayro_font::program::FontProgram>)>>::reserve_rehash::<hashbrown::map::make_hasher<u128, core::option::Option<hayro_font::program::FontProgram>, rustc_hash::FxBuildHasher>::{closure#0}>
+<hashbrown::raw::RawTable<(u128, (core::option::Option<alloc::boxed::Box<dyn core::any::Any + core::marker::Send + core::marker::Sync>>, bool))>>::reserve_rehash::<hashbrown::map::make_hasher<u128, (core::option::Option<alloc::boxed::Box<dyn core::any::Any + core::marker::Send + core::marker::Sync>>, bool), rustc_hash::FxBuildHasher>::{closure#0}>
+<hashbrown::raw::RawTable<(u128, (core::option::Option<hayro_font::Font>, bool))>>::reserve_rehash::<hashbrown::map::make_hasher<u128, (core::option::Option<hayro_font::Font>, bool), rustc_hash::FxBuildHasher>::{closure#0}>
+<hashbrown::raw::RawTable<(u128, (core::option::Option<hayro_font::program::FontProgram>, bool))>>::reserve_rehash::<hashbrown::map::make_hasher<u128, (core::option::Option<hayro_font::program::FontProgram>, bool), rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<(u128, u32)>>::reserve_rehash::<hashbrown::map::make_hasher<u128, u32, rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<(u32, f32)>>::reserve_rehash::<hashbrown::map::make_hasher<u32, f32, rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<(u32, u32)>>::reserve_rehash::<hashbrown::map::make_hasher<u32, u32, rustc_hash::FxBuildHasher>::{closure#0}>
@@ -332,6 +332,7 @@
 <hayro_syntax::data::PdfData as core::convert::AsRef<[u8]>>::as_ref
 <hayro_syntax::data::PdfData as core::convert::From<alloc::vec::Vec<u8>>>::from
 <hayro_syntax::filter::Filter>::from_name
+<hayro_syntax::filter::HeldDecoded as core::ops::drop::Drop>::drop
 <hayro_syntax::filter::lzw_flate::PredictorParams>::from_params
 <hayro_syntax::filter::lzw_flate::flate::fallback::FlateStream>::decode
 <hayro_syntax::filter::lzw_flate::flate::fallback::FlateStream>::read_compressed_block
@@ -904,6 +905,7 @@ hayro_syntax::crypto::sha256::compress
 hayro_syntax::crypto::sha512::calculate_with_initial_values
 hayro_syntax::filter::ascii_85::decode::{closure#1}
 hayro_syntax::filter::decodes_cut
+hayro_syntax::filter::hold_decoded
 hayro_syntax::filter::lzw_flate::apply_predictor
 hayro_syntax::filter::lzw_flate::apply_predictor_8bit_png
 hayro_syntax::filter::lzw_flate::flate::decode

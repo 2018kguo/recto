@@ -652,6 +652,8 @@ pub struct Page<'a> {
     rotation: Rotation,
     // recto: the decoded content, while `recent` keeps it or a caller holds it.
     page_streams: Mutex<Weak<Vec<u8>>>,
+    /// recto: whether a limit left part of the content out when it was last decoded.
+    content_cut: core::sync::atomic::AtomicBool,
     resources: Resources<'a>,
     ctx: ReaderContext<'a>,
 }
@@ -708,6 +710,7 @@ impl<'a> Page<'a> {
             crop_box,
             rotation,
             page_streams: Mutex::new(Weak::new()),
+            content_cut: core::sync::atomic::AtomicBool::new(false),
             resources,
             ctx: reader_ctx.clone(),
         })
@@ -720,6 +723,10 @@ impl<'a> Page<'a> {
     /// was open, so reading a document through held all of its pages' content.
     pub fn page_stream(&self) -> Option<Arc<Vec<u8>>> {
         if let Some(stream) = self.page_streams.get().upgrade() {
+            // recto: kept without what a limit left out, so it says so again.
+            if self.content_cut.load(core::sync::atomic::Ordering::Relaxed) {
+                crate::filter::repeat_cut();
+            }
             return Some(stream);
         }
         let convert_single = |s: Stream<'_>| {
@@ -727,26 +734,37 @@ impl<'a> Page<'a> {
             Some(data.into_owned())
         };
 
-        let stream = if let Some(stream) = self.inner.get::<Stream<'_>>(CONTENTS) {
-            convert_single(stream)
-        } else if let Some(array) = self.inner.get::<Array<'_>>(CONTENTS) {
-            let streams = array
-                .raw_iter()
-                .filter_map(|item| item.resolve(&self.ctx)?.into_stream())
-                .flat_map(convert_single);
+        let (stream, cut) = crate::filter::noting_cuts(|| {
+            if let Some(stream) = self.inner.get::<Stream<'_>>(CONTENTS) {
+                convert_single(stream)
+            } else if let Some(array) = self.inner.get::<Array<'_>>(CONTENTS) {
+                let mut collected = vec![];
 
-            let mut collected = vec![];
+                // recto: the streams are joined, so the limit is on all of them: one listed five
+                // times took five times the memory.
+                let max = crate::filter::max_decoded_bytes();
+                for item in array.raw_iter() {
+                    let Some(stream) = item.resolve(&self.ctx).and_then(|o| o.into_stream()) else {
+                        continue;
+                    };
+                    let room = max.saturating_sub(collected.len());
+                    let Some(stream) = crate::filter::with_max_decoded(room, || convert_single(stream)) else {
+                        continue;
+                    };
+                    if !crate::filter::fits_decoded(collected.len() + stream.len() + 1) {
+                        continue;
+                    }
+                    collected.extend(stream);
+                    // Streams must have at least one whitespace in-between.
+                    collected.push(b' ');
+                }
 
-            for stream in streams {
-                collected.extend(stream);
-                // Streams must have at least one whitespace in-between.
-                collected.push(b' ');
+                Some(collected)
+            } else {
+                None
             }
-
-            Some(collected)
-        } else {
-            None
-        };
+        });
+        self.content_cut.store(cut, core::sync::atomic::Ordering::Relaxed);
         let stream = Arc::new(stream?);
         #[cfg(feature = "std")]
         recent::DECODES.with(|n| n.set(n.get() + 1));

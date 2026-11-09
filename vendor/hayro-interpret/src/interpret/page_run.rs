@@ -68,6 +68,8 @@ pub(crate) enum Close {
 }
 
 pub(crate) struct Frame<'a> {
+    /// recto: the frame's content counts against the limit on decoding while it runs.
+    pub(crate) _held: hayro_syntax::HeldDecoded,
     pub(crate) data: FrameData<'a>,
     pub(crate) pos: usize,
     pub(crate) resources: Resources<'a>,
@@ -100,9 +102,11 @@ impl<'a> PageRun<'a> {
         // Reversed: popped from the end, in order.
         let mut annotations: Vec<Dict<'a>> = annotations;
         annotations.reverse();
+        let contents = page.page_stream();
         Self {
             frames: vec![Frame {
-                data: FrameData::Page(page.page_stream()),
+                _held: hayro_syntax::hold_decoded(contents.as_ref().map_or(0, |c| c.len())),
+                data: FrameData::Page(contents),
                 pos: 0,
                 resources: resources.clone(),
                 states,

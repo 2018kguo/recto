@@ -2,12 +2,17 @@
 // a PostScript function. Each draws something a test can state without another engine.
 import { readFileSync } from "node:fs";
 
-/** A one-page 100 x 100 PDF whose content and objects are given; objects start at 5. */
-export function pagePdf(content: string, resources: string, objects: (string | { dict: string; data: Uint8Array })[]): Uint8Array {
+/** A one-page 100 x 100 PDF whose content and objects are given; objects start at 5. `contents` can list more. */
+export function pagePdf(
+  content: string,
+  resources: string,
+  objects: (string | { dict: string; data: Uint8Array })[],
+  contents = "4 0 R"
+): Uint8Array {
   const body = [
     "<< /Type /Catalog /Pages 2 0 R >>",
     "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R /Resources << ${resources} >> >>`,
+    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents ${contents} /Resources << ${resources} >> >>`,
     { dict: "", data: new TextEncoder().encode(content) },
     ...objects,
   ];

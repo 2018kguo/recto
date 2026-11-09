@@ -413,7 +413,11 @@ impl<'a> FontCache<'a> {
     ) -> Option<Font<'a>> {
         let key = dict.cache_key();
 
-        if let Some(font) = self.0.fonts.borrow().get(&key) {
+        if let Some((font, cut)) = self.0.fonts.borrow().get(&key) {
+            // recto: built without what a limit left out, so it says so again.
+            if *cut {
+                hayro_syntax::repeat_cut();
+            }
             return font.clone();
         }
 
@@ -421,8 +425,8 @@ impl<'a> FontCache<'a> {
             programs: self.program_loader(font_resolver),
             cmap_resolver,
         };
-        let font = Font::new(dict, &loader);
-        self.0.fonts.borrow_mut().insert(key, font.clone());
+        let (font, cut) = hayro_syntax::noting_cuts(|| Font::new(dict, &loader));
+        self.0.fonts.borrow_mut().insert(key, (font.clone(), cut));
 
         font
     }
@@ -778,11 +782,12 @@ impl FontStretch {
 
 #[derive(Default)]
 struct FontCacheInner<'a> {
-    fonts: RefCell<FxHashMap<u128, Option<Font<'a>>>>,
+    /// recto: with whether a limit left out a stream it was built from, as for `programs`.
+    fonts: RefCell<FxHashMap<u128, (Option<Font<'a>>, bool)>>,
     programs: ProgramMap,
 }
 
-type ProgramMap = RefCell<FxHashMap<u128, Option<FontProgram>>>;
+type ProgramMap = RefCell<FxHashMap<u128, (Option<FontProgram>, bool)>>;
 type HintedScalers = FxHashMap<(u128, u32), Option<Rc<ScalerFont>>>;
 
 pub(crate) struct FontLoader<'l> {
@@ -818,12 +823,15 @@ impl ProgramLoader<'_> {
         key: u128,
         f: impl FnOnce() -> Option<FontProgram>,
     ) -> Option<FontProgram> {
-        if let Some(program) = self.cache.borrow().get(&key) {
+        if let Some((program, cut)) = self.cache.borrow().get(&key) {
+            if *cut {
+                hayro_syntax::repeat_cut();
+            }
             return program.clone();
         }
 
-        let program = f();
-        self.cache.borrow_mut().insert(key, program.clone());
+        let (program, cut) = hayro_syntax::noting_cuts(f);
+        self.cache.borrow_mut().insert(key, (program.clone(), cut));
 
         program
     }

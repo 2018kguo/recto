@@ -32,6 +32,7 @@ pub(crate) fn render_glyph<'a>(
 
     let program = glyph.glyph.program()?;
     let decoded = program.decoded_data().ok()?;
+    let _held = hayro_syntax::hold_decoded(decoded.len());
     let iter = TypedIter::new(decoded.as_ref());
 
     let is_shape_glyph = {
