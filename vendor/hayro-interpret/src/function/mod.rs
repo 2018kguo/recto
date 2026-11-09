@@ -20,21 +20,32 @@ use std::sync::{Arc, OnceLock};
 pub(crate) const MAX_COMPONENTS: usize = 32;
 
 const MAX_FUNCTION_DEPTH: u8 = 32;
-/// recto: the most functions one may hold, each repeat counted again. A stitching function can list
-/// the same one twice at every level, so a few KB asked for 2^32 of them: building, sampling and
-/// finding the stitching bounds of a 20-level chain took 17 s. The most any of 1,039 suite and public
-/// files held was 49.
-const MAX_FUNCTION_NODES: u32 = 1 << 14;
+/// recto: how many more functions one may hold than it has, each repeat of one counted again. A
+/// stitching function can list the same one twice at every level, so a few KB asked for 2^32 of them:
+/// building, sampling and finding the stitching bounds of a 20-level chain took 17 s. A repeat at
+/// the same depth is now built once and shared, so this bounds what finding the stitching bounds
+/// visits, not how many distinct functions a file may have. The most any of the 543 suite and
+/// public files that open repeated was 44.
+const MAX_FUNCTION_REPEATS: u64 = 1 << 14;
 
 std::thread_local! {
-    static BUILT: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+    static WORK: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
-/// recto: how many functions this thread has built, for the tests that a function listing the same
-/// one many times costs a bounded amount.
+/// recto: how many functions this thread has built and visited for stitching bounds, for the tests
+/// that a function listing the same one many times costs a bounded amount.
 #[doc(hidden)]
-pub fn functions_built() -> usize {
-    BUILT.with(|n| n.get())
+pub fn function_work() -> usize {
+    WORK.with(|n| n.get())
+}
+
+/// recto: what building one function has done: each function built from an indirect object at a
+/// depth, how many have been built, and how many it holds with every repeat counted.
+#[derive(Default)]
+pub(crate) struct Build {
+    built: std::collections::HashMap<(hayro_syntax::object::ObjRef, u8), (Function, u64)>,
+    distinct: u64,
+    held: u64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -91,16 +102,39 @@ pub struct Function(Arc<Repr>);
 impl Function {
     /// Create a new function.
     pub fn new(obj: &Object<'_>) -> Option<Self> {
-        Self::new_nested(obj, 0, &std::cell::Cell::new(0))
+        let mut build = Build::default();
+        let function = Self::new_nested(obj, 0, &mut build)?;
+        (build.held - build.distinct <= MAX_FUNCTION_REPEATS).then_some(function)
     }
 
-    /// recto: `nodes` counts the functions built for this one so far.
-    fn new_nested(obj: &Object<'_>, depth: u8, nodes: &std::cell::Cell<u32>) -> Option<Self> {
-        if depth >= MAX_FUNCTION_DEPTH || nodes.get() >= MAX_FUNCTION_NODES {
+    /// recto: `reference` is where `obj` came from, if it's an indirect object: one built from it at
+    /// this depth before is shared, since what it gives depends only on those.
+    pub(crate) fn new_shared(
+        obj: &Object<'_>,
+        reference: Option<hayro_syntax::object::ObjRef>,
+        depth: u8,
+        build: &mut Build,
+    ) -> Option<Self> {
+        if let Some(key) = reference.map(|r| (r, depth)) {
+            if let Some((function, held)) = build.built.get(&key) {
+                build.held = build.held.saturating_add(*held);
+                return (build.held - build.distinct <= MAX_FUNCTION_REPEATS).then(|| function.clone());
+            }
+            let before = build.held;
+            let function = Self::new_nested(obj, depth, build)?;
+            build.built.insert(key, (function.clone(), build.held - before));
+            return Some(function);
+        }
+        Self::new_nested(obj, depth, build)
+    }
+
+    fn new_nested(obj: &Object<'_>, depth: u8, build: &mut Build) -> Option<Self> {
+        if depth >= MAX_FUNCTION_DEPTH {
             return None;
         }
-        nodes.set(nodes.get() + 1);
-        BUILT.with(|n| n.set(n.get() + 1));
+        build.distinct += 1;
+        build.held = build.held.saturating_add(1);
+        WORK.with(|n| n.set(n.get() + 1));
 
         let (dict, stream) = dict_or_stream(obj)?;
         let function_type = dict.get::<u8>(FUNCTION_TYPE)?;
@@ -129,7 +163,7 @@ impl Function {
                 (FunctionType::Type2(function), num_outputs)
             }
             3 => {
-                let function = Type3::new(dict, domain[0], depth, nodes)?;
+                let function = Type3::new(dict, domain[0], depth, build)?;
                 let num_outputs = function.num_outputs();
 
                 (FunctionType::Type3(function), num_outputs)

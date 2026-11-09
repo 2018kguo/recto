@@ -654,58 +654,105 @@ mod tests {
     }
 
     /// A stitching function that lists the same function twice at every level asks for 2^levels of
-    /// them from a few hundred bytes: 20 levels took 17 s to draw. Building one stops at a limit.
+    /// them from a few hundred bytes: 20 levels took 17 s to draw. A repeat is built once, and one
+    /// holding more than 2^14 repeats isn't built.
     #[test]
-    fn a_function_listing_the_next_twice_is_built_a_bounded_number_of_times() {
-        use hayro::hayro_interpret::functions_built;
-        const LEVELS: usize = 20;
-        let page = b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R /Resources << /Shading << /S << /ShadingType 2 /ColorSpace /DeviceGray /Coords [0 0 100 0] /Function 5 0 R >> >> >> >>";
-        let content = stream("", b"/S sh");
-        let functions: Vec<String> = (0..LEVELS)
-            .map(|i| {
-                if i == LEVELS - 1 {
-                    "<< /FunctionType 2 /Domain [0 1] /C0 [0] /C1 [1] /N 1 >>".to_string()
-                } else {
-                    format!("<< /FunctionType 3 /Domain [0 1] /Functions [{n} 0 R {n} 0 R] /Bounds [0.5] /Encode [0 1 0 1] >>", n = 6 + i)
-                }
-            })
-            .collect();
-        let mut objects: Vec<&[u8]> = vec![b"<< /Type /Catalog /Pages 2 0 R >>", b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>", page, &content];
-        objects.extend(functions.iter().map(|f| f.as_bytes()));
-        let doc = Document::open(pdf(&objects), "").unwrap();
-        let before = functions_built();
-        doc.scan(0, true, false).unwrap();
-        doc.render(0, 100.0, f32::INFINITY).unwrap();
-        let built = functions_built() - before;
-        assert!(built <= 4 << 14, "{built} functions built");
+    fn a_function_listing_the_next_twice_costs_a_bounded_amount() {
+        use hayro::hayro_interpret::function_work;
+        let work = |levels: usize| {
+            let page = b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R /Resources << /Shading << /S << /ShadingType 2 /ColorSpace /DeviceGray /Coords [0 0 100 0] /Function 5 0 R >> >> >> >>";
+            let content = stream("", b"/S sh");
+            let functions: Vec<String> = (0..levels)
+                .map(|i| {
+                    if i == levels - 1 {
+                        "<< /FunctionType 2 /Domain [0 1] /C0 [0] /C1 [1] /N 1 >>".to_string()
+                    } else {
+                        format!("<< /FunctionType 3 /Domain [0 1] /Functions [{n} 0 R {n} 0 R] /Bounds [0.5] /Encode [0 1 0 1] >>", n = 6 + i)
+                    }
+                })
+                .collect();
+            let mut objects: Vec<&[u8]> = vec![b"<< /Type /Catalog /Pages 2 0 R >>", b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>", page, &content];
+            objects.extend(functions.iter().map(|f| f.as_bytes()));
+            let doc = Document::open(pdf(&objects), "").unwrap();
+            let before = function_work();
+            doc.scan(0, true, false).unwrap();
+            let bitmap = doc.render(0, 100.0, f32::INFINITY).unwrap();
+            (function_work() - before, bitmap)
+        };
+        // Under the limit it draws, as before: 2^11 pieces, black to white.
+        let (_, bitmap) = work(12);
+        assert!(bitmap.rgba[0] < 16 && bitmap.rgba[4 * 99] > 240, "{:?}", &bitmap.rgba[..8]);
+        let (work, _) = work(22);
+        assert!(work <= 4 << 14, "{work} functions built or visited");
     }
 
-    /// Every `EI` in an inline image's data is a candidate end, checked by reading on through the
-    /// later ones: 16,000 of them and a binary byte after them took 1.1 s a call. The reading is
-    /// bounded in all, and the page's text after the image still reads.
+    /// A stitching function of many distinct functions isn't a repeat, so it's drawn whole: one of
+    /// 20,000 was left blank by a limit on the functions one may hold.
     #[test]
-    fn ending_an_inline_image_reads_a_bounded_number_of_eis() {
-        use hayro::hayro_syntax::content::inline_image_events;
-        const EIS: usize = 4000;
-        let mut data = format!("q 10 0 0 10 0 0 cm BI /W 1 /H 1 /BPC 8 /CS /G ID {}", "EI ".repeat(EIS)).into_bytes();
-        // Binary after them: every EI before it is image data.
-        data.extend_from_slice(b"\x80 EI Q BT /F1 10 Tf (after) Tj ET");
-        let content = stream("", &data);
-        let doc = Document::open(
-            pdf(&[
-                b"<< /Type /Catalog /Pages 2 0 R >>",
-                b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-                b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> >>",
-                &content,
-            ]),
-            "",
-        )
-        .unwrap();
-        let before = inline_image_events();
-        let text = doc.text(0).unwrap().text();
-        let read = inline_image_events() - before;
-        assert!(text.contains("after"), "{text:?}");
-        assert!(read <= 2 << 10, "{read} EIs and BIs read");
+    fn a_function_of_many_distinct_ones_is_drawn() {
+        const N: usize = 20_000;
+        let functions: String = (0..N).map(|i| format!("<< /FunctionType 2 /Domain [0 1] /C0 [{}] /C1 [{}] /N 1 >> ", i as f32 / N as f32, (i + 1) as f32 / N as f32)).collect();
+        let bounds: String = (1..N).map(|i| format!("{} ", i as f32 / N as f32)).collect();
+        let page = format!("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R /Resources << /Shading << /S << /ShadingType 2 /ColorSpace /DeviceGray /Coords [0 0 100 0] /Function << /FunctionType 3 /Domain [0 1] /Functions [{functions}] /Bounds [{bounds}] /Encode [{}] >> >> >> >> >>", "0 1 ".repeat(N));
+        let content = stream("", b"/S sh");
+        let doc = Document::open(pdf(&[b"<< /Type /Catalog /Pages 2 0 R >>", b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>", page.as_bytes(), &content]), "").unwrap();
+        let bitmap = doc.render(0, 100.0, f32::INFINITY).unwrap();
+        assert!(bitmap.rgba[0] < 16 && bitmap.rgba[4 * 99] > 240 && (100..156).contains(&bitmap.rgba[4 * 50]), "{:?} {:?}", &bitmap.rgba[..4], &bitmap.rgba[4 * 50..4 * 51]);
+    }
+
+    /// Every `EI` in an inline image's data is a candidate end, which upstream checked by reading on
+    /// through the later ones: 16,000 of them and a binary byte after them took 1.1 s a call. The
+    /// work is linear now, and the text after the image still reads.
+    #[test]
+    fn ending_an_inline_image_is_linear_in_its_eis() {
+        use hayro::hayro_syntax::content::inline_image_work;
+        let work = |eis: usize| {
+            let mut data = format!("q 10 0 0 10 0 0 cm BI /W 1 /H 1 /BPC 8 /CS /G ID {}", "EI ".repeat(eis)).into_bytes();
+            // Binary after them: every EI before it is image data.
+            data.extend_from_slice(b"\x80 EI Q BT /F1 10 Tf (after) Tj ET");
+            let content = stream("", &data);
+            let doc = Document::open(
+                pdf(&[
+                    b"<< /Type /Catalog /Pages 2 0 R >>",
+                    b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                    b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> >>",
+                    &content,
+                ]),
+                "",
+            )
+            .unwrap();
+            let before = inline_image_work();
+            let text = doc.text(0).unwrap().text();
+            assert!(text.contains("after"), "{text:?}");
+            inline_image_work() - before
+        };
+        let (small, large) = (work(2000), work(8000));
+        assert!(large <= 5 * small, "{small} steps for 2,000 EIs, {large} for 8,000");
+        assert!(large <= 8 * 8000 * 3, "{large} steps for 8,000 EIs");
+    }
+
+    /// The one-pass search for an inline image's end answers what upstream's rereading does, on
+    /// random data made of what decides it: `EI`, `BI`, white space, strings and their escapes,
+    /// binary bytes, operators, and dictionaries that start an image.
+    #[test]
+    fn an_inline_image_ends_where_rereading_says() {
+        use hayro::hayro_syntax::content::{ends_by_rereading, inline_image_end_for_tests};
+        let pieces: [&[u8]; 16] = [
+            b"EI", b"EI ", b" EI\n", b"BI", b"BI /W 1 /H 1 /BPC 8 /CS /G ID ", b" ", b"(", b")", b"\\", b"\x80",
+            b"\xff", b"q ", b"Q ", b"(a) Tj ", b"x", b"1 0 0 1 0 0 cm ",
+        ];
+        let mut seed = 0x2545_f491_4f6c_dd1d_u64;
+        let mut next = move || {
+            seed ^= seed << 13;
+            seed ^= seed >> 7;
+            seed ^= seed << 17;
+            seed
+        };
+        for round in 0..20_000 {
+            let length = 1 + (next() % 60) as usize;
+            let data: Vec<u8> = (0..length).flat_map(|_| pieces[(next() % 16) as usize].iter().copied()).collect();
+            assert_eq!(inline_image_end_for_tests(&data), ends_by_rereading(&data), "round {round}: {:?} {:?}", String::from_utf8_lossy(&data), data);
+        }
     }
 
     /// A membership dictionary of n groups, named by m `BDC`s, was read m times: 16,000 of each took

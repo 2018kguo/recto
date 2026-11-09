@@ -1,4 +1,5 @@
-use crate::function::{Function, Interval, interpolate, read_intervals};
+use crate::function::{Build, Function, Interval, interpolate, read_intervals};
+use hayro_syntax::object::MaybeRef;
 use hayro_syntax::object::Array;
 use hayro_syntax::object::Dict;
 use hayro_syntax::object::Object;
@@ -18,12 +19,18 @@ impl Type3 {
         dict: &Dict<'_>,
         domain: Interval,
         depth: u8,
-        nodes: &std::cell::Cell<u32>,
+        build: &mut Build,
     ) -> Option<Self> {
-        let functions = dict
-            .get::<Array<'_>>(FUNCTIONS)?
+        // recto: each one with where it came from, so a repeat is built once.
+        let array = dict.get::<Array<'_>>(FUNCTIONS)?;
+        let references = array.raw_iter().map(|item| match item {
+            MaybeRef::Ref(reference) => Some(reference),
+            MaybeRef::NotRef(_) => None,
+        });
+        let functions = array
             .iter::<Object<'_>>()
-            .map(|o| Function::new_nested(&o, depth + 1, nodes))
+            .zip(references)
+            .map(|(o, reference)| Function::new_shared(&o, reference, depth + 1, build))
             .collect::<Option<Vec<_>>>()?;
 
         let num_outputs = functions.first().map(Function::num_outputs)?;
@@ -82,6 +89,7 @@ impl Type3 {
     }
 
     pub(crate) fn stitching_bounds(&self) -> Vec<f32> {
+        super::WORK.with(|n| n.set(n.get() + 1));
         let mut stitching_bounds = self.bounds[1..self.bounds.len() - 1].to_vec();
 
         for (index, function) in self.functions.iter().enumerate() {
