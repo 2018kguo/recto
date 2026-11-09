@@ -139,7 +139,6 @@
 <hayro_interpret::x_object::image::ImageXObject>::new::<hayro_interpret::interpret::run_ops<hayro_interpret::pattern::StencilPatternDevice<hayro::Renderer>>::{closure#10}::{closure#0}>
 <hayro_interpret::x_object::image::ImageXObject>::new::<hayro_interpret::interpret::run_ops<recto::device::PageDevice>::{closure#10}::{closure#0}>
 <hayro_interpret::x_object::image::ImageXObject>::new_mask
-<hayro_syntax::object::array::ArrayIter as core::iter::traits::iterator::Iterator>::next
 <hayro_syntax::object::dict::Dict>::get::<[f32; 6usize], &[u8]>
 <hayro_syntax::object::dict::Dict>::get::<hayro_syntax::object::stream::Stream, hayro_syntax::object::name::Name>
 <hayro_syntax::object::name::Name as core::cmp::PartialEq>::eq
@@ -292,7 +291,6 @@
 <recto::RenderTask>::new
 <recto::assets::resolve as core::ops::function::Fn<(&hayro_font::FontQuery,)>>::call
 <recto::device::PageDevice as hayro_interpret::device::Device>::draw_image
-<recto::wasm::Document>::objects
 <recto::wasm::RenderTask>::step::{closure#0}
 <skrifa::outline::autohint::context::FontContext as skrifa::outline::autohint::context::AutohintContext>::advance_width
 <skrifa::outline::autohint::context::FontContext as skrifa::outline::autohint::context::AutohintContext>::coords
@@ -353,7 +351,6 @@
 <smallvec::SmallVec<[skrifa::outline::autohint::topo::Edge; 12usize]>>::try_grow
 <smallvec::SmallVec<[skrifa::outline::autohint::topo::Segment; 18usize]>>::reserve_one_unchecked
 <smallvec::SmallVec<[skrifa::outline::autohint::topo::Segment; 18usize]>>::try_grow
-<std::hash::random::DefaultHasher as core::hash::Hasher>::write_u32
 <std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&hayro_syntax::object::ObjectIdentifier>
 <std::sync::once_lock::OnceLock<alloc::boxed::Box<[std::sync::once_lock::OnceLock<core::option::Option<read_fonts::ps::cff::font::Subfont>>]>>>::initialize::<<std::sync::once_lock::OnceLock<alloc::boxed::Box<[std::sync::once_lock::OnceLock<core::option::Option<read_fonts::ps::cff::font::Subfont>>]>>>::get_or_init<<read_fonts::model::font::Font>::cff_subfont::{closure#0}>::{closure#0}, !>
 <std::sync::once_lock::OnceLock<alloc::boxed::Box<dyn core::any::Any + core::marker::Send + core::marker::Sync>>>::initialize::<<std::sync::once_lock::OnceLock<alloc::boxed::Box<dyn core::any::Any + core::marker::Send + core::marker::Sync>>>::get_or_init<read_fonts::model::font::interop::_get_or_init_scaling_data<<skrifa::outline::autohint::instance::LocatedState>::of_outlines::{closure#1}>::{closure#0}>::{closure#0}, !>
@@ -572,6 +569,7 @@ hayro_interpret::interpret::text::show_glyph_run::<hayro::Renderer>
 hayro_interpret::x_object::decode::decode_context
 hayro_interpret::x_object::decode::mask::decode_mask
 hayro_syntax::content::ops::parse_named_color
+hayro_syntax::filter::fits_decoded
 kurbo::offset::offset_cubic
 kurbo::stroke::extend_reversed
 kurbo::stroke::round_join

@@ -29,13 +29,13 @@
 <alloc::raw_vec::RawVec<(hayro_interpret::interpret::state::TextState, u16)>>::grow_one
 <alloc::raw_vec::RawVec<(hayro_interpret::types::StrokeProps, u16)>>::grow_one
 <alloc::raw_vec::RawVec<(kurbo::affine::Affine, u16)>>::grow_one
-<alloc::raw_vec::RawVec<(usize, hayro_syntax::object::dict::Dict)>>::grow_one
 <alloc::raw_vec::RawVec<alloc::string::String>>::grow_one
 <alloc::raw_vec::RawVec<alloc::sync::Arc<alloc::vec::Vec<u8>>>>::grow_one
 <alloc::raw_vec::RawVec<alloc::vec::Vec<font_types::fixed::Fixed>>>::grow_one
 <alloc::raw_vec::RawVec<bool>>::grow_one
 <alloc::raw_vec::RawVec<core::ops::range::Range<usize>>>::grow_one
 <alloc::raw_vec::RawVec<core::option::Option<alloc::vec::Vec<u8>>>>::grow_one
+<alloc::raw_vec::RawVec<core::option::Option<usize>>>::grow_one
 <alloc::raw_vec::RawVec<f32>>::grow_one
 <alloc::raw_vec::RawVec<hayro_cmap::BfRange>>::grow_one
 <alloc::raw_vec::RawVec<hayro_cmap::CodespaceRange>>::grow_one
@@ -164,6 +164,7 @@
 <hashbrown::map::HashMap<u128, core::option::Option<hayro_font::program::FontProgram>, rustc_hash::FxBuildHasher>>::insert
 <hashbrown::map::HashMap<u32, u32, rustc_hash::FxBuildHasher>>::insert
 <hashbrown::raw::RawTable<(&[u8], core::option::Option<hayro_interpret::interpret::state::TextStateFont>)>>::reserve_rehash::<hashbrown::map::make_hasher<&[u8], core::option::Option<hayro_interpret::interpret::state::TextStateFont>, rustc_hash::FxBuildHasher>::{closure#0}>
+<hashbrown::raw::RawTable<((hayro_syntax::object::ref::ObjRef, u8), (hayro_interpret::function::Function, u64))>>::reserve_rehash::<hashbrown::map::make_hasher<(hayro_syntax::object::ref::ObjRef, u8), (hayro_interpret::function::Function, u64), std::hash::random::RandomState>::{closure#0}>
 <hashbrown::raw::RawTable<(alloc::vec::Vec<u8>, [core::option::Option<hayro_interpret::interpret::Slot>; 6usize])>>::reserve_rehash::<hashbrown::map::make_hasher<alloc::vec::Vec<u8>, [core::option::Option<hayro_interpret::interpret::Slot>; 6usize], rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<(alloc::vec::Vec<u8>, hayro_syntax::crypto::CryptDictionary)>>::reserve_rehash::<hashbrown::map::make_hasher<alloc::vec::Vec<u8>, hayro_syntax::crypto::CryptDictionary, std::hash::random::RandomState>::{closure#0}>
 <hashbrown::raw::RawTable<(hayro_syntax::object::ObjectIdentifier, ())>>::reserve_rehash::<hashbrown::map::make_hasher<hayro_syntax::object::ObjectIdentifier, (), rustc_hash::FxBuildHasher>::{closure#0}>
@@ -277,7 +278,9 @@
 <hayro_interpret::context::Context>::text_state_mut
 <hayro_interpret::context::InterpreterCache>::new
 <hayro_interpret::function::Function>::eval
+<hayro_interpret::function::Function>::new
 <hayro_interpret::function::Function>::new_nested
+<hayro_interpret::function::Function>::new_shared
 <hayro_interpret::function::type0::Type0>::new
 <hayro_interpret::function::type2::Type2>::new
 <hayro_interpret::function::type3::Type3>::new
@@ -342,6 +345,7 @@
 <hayro_syntax::object::array::Array as hayro_syntax::reader::Readable>::read
 <hayro_syntax::object::array::Array as hayro_syntax::reader::Skippable>::skip_with_depth
 <hayro_syntax::object::array::Array>::raw_iter
+<hayro_syntax::object::array::ArrayIter as core::iter::traits::iterator::Iterator>::next
 <hayro_syntax::object::array::FlexArrayIter>::new
 <hayro_syntax::object::array::FlexArrayIter>::next::<(u32, hayro_syntax::object::array::Array)>
 <hayro_syntax::object::array::FlexArrayIter>::next::<f32>
@@ -599,9 +603,9 @@
 <read_fonts::tables::post::GlyphNames as core::iter::traits::iterator::Iterator>::next
 <recto::Document>::annotations
 <recto::Document>::open_data
+<recto::Document>::scan
 <recto::Document>::scan::{closure#0}
 <recto::Document>::structure_truncated
-<recto::Document>::text
 <recto::Inner as core::ops::drop::Drop>::drop
 <recto::assets::host::set_loader::{closure#2} as core::ops::function::FnOnce<()>>::call_once
 <recto::ctext::Text>::first
@@ -613,6 +617,7 @@
 <recto::wasm::Document>::outline
 <recto::wasm::Document>::page_info
 <recto::wasm::Document>::page_labels
+<recto::wasm::Document>::page_text
 <recto::wasm::Document>::scan_parts
 <rustc_hash::FxBuildHasher as core::hash::BuildHasher>::hash_one::<&&[u8]>
 <rustc_hash::FxBuildHasher as core::hash::BuildHasher>::hash_one::<&[u8]>
@@ -629,6 +634,7 @@
 <smallvec::SmallVec<[u8; 23usize]>>::reserve_one_unchecked
 <smallvec::SmallVec<[u8; 23usize]>>::try_grow
 <std::hash::random::DefaultHasher as core::hash::Hasher>::write
+<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&(hayro_syntax::object::ref::ObjRef, u8)>
 <std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&alloc::vec::Vec<u8>>
 <std::io::error::Error>::_new
 <std::io::error::Error>::new::<&str>
@@ -897,6 +903,7 @@ hayro_syntax::crypto::sha256::calculate
 hayro_syntax::crypto::sha256::compress
 hayro_syntax::crypto::sha512::calculate_with_initial_values
 hayro_syntax::filter::ascii_85::decode::{closure#1}
+hayro_syntax::filter::decodes_cut
 hayro_syntax::filter::lzw_flate::apply_predictor
 hayro_syntax::filter::lzw_flate::apply_predictor_8bit_png
 hayro_syntax::filter::lzw_flate::flate::decode
