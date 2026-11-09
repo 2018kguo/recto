@@ -140,7 +140,6 @@
 <hayro_syntax::object::dict::Dict>::get::<[f32; 6usize], &[u8]>
 <hayro_syntax::object::dict::Dict>::get::<hayro_syntax::object::stream::Stream, hayro_syntax::object::name::Name>
 <hayro_syntax::object::name::Name as core::cmp::PartialEq>::eq
-<hayro_syntax::page::Page>::typed_operations
 <hayro_syntax::page::Resources>::get_shading
 <js_sys::Date>::now
 <kurbo::bezpath::BezPath as kurbo::shape::Shape>::bounding_box
@@ -607,6 +606,7 @@ read_fonts::mem::with_scratch::<skrifa::outline::autohint::style::GlyphStyleMap,
 read_fonts::mem::with_scratch_dyn
 read_fonts::mem::with_scratch_dyn::on_stack::<1024usize>
 read_fonts::mem::with_scratch_dyn::on_stack::<2048usize>
+read_fonts::mem::with_scratch_dyn::on_stack::<4096usize>
 read_fonts::mem::with_scratch_dyn::on_stack::<512usize>
 read_fonts::model::glyph::outline::glyf::draw_plan
 read_fonts::tables::glyf::outline::scale::read_points_and_phantom::<i32>
