@@ -31,6 +31,13 @@ pub fn set_asset_loader(loader: js_sys::Function) {
     crate::assets::set_loader(loader);
 }
 
+/// The most bytes one stream may decode to and one image hold, for this instance: past it, it's left
+/// out and the page's results say `truncated`.
+#[wasm_bindgen(js_name = setMaxDecodedBytes)]
+pub fn set_max_decoded_bytes(bytes: f64) {
+    hayro::hayro_syntax::set_max_decoded_bytes(if bytes >= usize::MAX as f64 { usize::MAX } else { bytes as usize });
+}
+
 /// SHA-256, for the JavaScript side's checks on large assets it read synchronously.
 #[wasm_bindgen]
 pub fn sha256(bytes: &[u8]) -> Vec<u8> {

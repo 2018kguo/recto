@@ -1,5 +1,6 @@
 //! How close real files come to each budget: the most any page or tree in the given directories used
-//! of each limit, as a ratio, and anything cut short. `cargo run --release -p recto --example budgets -- dir...`
+//! of each limit, as a ratio, and anything cut short. Decoded bytes are the most one stream or image of a
+//! page asked for, its text, objects and a render at 800 px. `cargo run --release -p recto --example budgets -- dir...`
 use std::path::PathBuf;
 use std::{env, fs};
 
@@ -19,8 +20,15 @@ impl Peak {
 }
 
 fn main() {
-    let (mut nested, mut points, mut expression, mut kids, mut labels, mut names) =
-        (Peak::default(), Peak::default(), Peak::default(), Peak::default(), Peak::default(), Peak::default());
+    let (mut nested, mut points, mut expression, mut kids, mut labels, mut names, mut decoded) = (
+        Peak::default(),
+        Peak::default(),
+        Peak::default(),
+        Peak::default(),
+        Peak::default(),
+        Peak::default(),
+        Peak::default(),
+    );
     let (mut files, mut pages) = (0, 0);
     let (mut truncated, mut empty, mut lost) = (Vec::new(), 0, Vec::new());
     for dir in env::args().skip(1) {
@@ -65,11 +73,13 @@ fn main() {
                 if let Ok((used, cut)) = doc.render_budget(index, 800.0) {
                     see(used, "render", cut);
                 }
+                let what = format!("{name} p{index}");
+                decoded.see(hayro::hayro_syntax::take_largest_decode() as f64, hayro::hayro_syntax::DEFAULT_MAX_DECODED_BYTES as f64, &what);
             }
         }
     }
     println!("{files} files, {pages} pages, {empty} with no pages, {} of them lost their kids", lost.len());
-    for (label, peak) in [("nested", &nested), ("annotation points", &points), ("/VE nodes", &expression), ("page tree kids", &kids), ("label nodes", &labels), ("name nodes", &names)] {
+    for (label, peak) in [("nested", &nested), ("annotation points", &points), ("/VE nodes", &expression), ("page tree kids", &kids), ("label nodes", &labels), ("name nodes", &names), ("decoded bytes", &decoded)] {
         println!("{label:20} {:.6}  {}", peak.0, peak.1);
     }
     println!("truncated: {truncated:#?}");

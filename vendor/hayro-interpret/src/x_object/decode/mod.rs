@@ -94,6 +94,15 @@ fn decode_context<'a>(
         .or(dict_bpc)
         .unwrap_or(fallback_bpc);
 
+    // recto: an image is unpacked to a byte a component, and padded to its height: that too is
+    // limited, so a few bytes of data can't declare a gigabyte of pixels.
+    let unpacked = (width as usize)
+        .saturating_mul(height as usize)
+        .saturating_mul(usize::from(color_space.num_components()).max(1));
+    if !hayro_syntax::fits_decoded(unpacked) {
+        return None;
+    }
+
     let decode_arr = dict
         .get::<Array<'_>>(D)
         .or_else(|| dict.get::<Array<'_>>(DECODE))

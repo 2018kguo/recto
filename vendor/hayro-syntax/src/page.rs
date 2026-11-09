@@ -590,6 +590,9 @@ mod recent {
 
     pub(crate) const PAGES: usize = 4;
     pub(crate) const BYTES: usize = 1 << 20;
+    /// Past this, only the last page read is kept: a few pages of hundreds of MB each would
+    /// otherwise all be held.
+    pub(crate) const MOST_BYTES: usize = 256 << 20;
 
     #[cfg(feature = "std")]
     std::thread_local! {
@@ -603,7 +606,7 @@ mod recent {
         KEPT.with_borrow_mut(|(kept, bytes)| {
             kept.push_back(stream.clone());
             *bytes += stream.len();
-            while kept.len() > PAGES && *bytes > BYTES {
+            while kept.len() > 1 && *bytes > BYTES && (kept.len() > PAGES || *bytes > MOST_BYTES) {
                 if let Some(old) = kept.pop_front() {
                     *bytes -= old.len();
                 }

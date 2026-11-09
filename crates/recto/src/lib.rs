@@ -265,6 +265,7 @@ impl Document {
         annotations: bool,
     ) -> Result<Scan, EngineError> {
         self.page(index)?;
+        let cuts = hayro::hayro_syntax::decodes_cut();
         Ok(self.0.with_dependent(|pdf, caches| {
             let Some(page) = pdf.pages().get(index) else {
                 unreachable!("self.page(index) found it")
@@ -293,7 +294,8 @@ impl Document {
             device.glyphs = caches.glyphs.take();
             interpret_page(page, &mut ctx, &mut device);
             let mut device = device.finish();
-            let tripped = ctx.budget_tripped();
+            // A stream or image past the limit on decoded bytes is left out, as a budget leaves out.
+            let tripped = ctx.budget_tripped() || hayro::hayro_syntax::decodes_cut() != cuts;
             let budget_used = ctx.budget_used();
             let mut text = text::build_page(&device.glyphs, &device.fonts, &device.runs);
             text.truncated = device.text_truncated || tripped;
@@ -418,6 +420,7 @@ impl Document {
         max_height: f32,
     ) -> Result<(hayro::vello_cpu::Pixmap, bool), EngineError> {
         let settings = self.pixmap_settings(index, width, max_height)?;
+        let cuts = hayro::hayro_syntax::decodes_cut();
         Ok(self.0.with_dependent(|pdf, caches| {
             let Some(page) = pdf.pages().get(index) else {
                 unreachable!("self.page(index) found it")
@@ -429,7 +432,7 @@ impl Document {
                 &RenderSettings::default(),
                 &settings,
             );
-            (pixmap, caches.render.take_degraded())
+            (pixmap, caches.render.take_degraded() || hayro::hayro_syntax::decodes_cut() != cuts)
         }))
     }
 
@@ -445,6 +448,8 @@ pub struct RenderTask {
     // Before the document it borrows from, so it's dropped first.
     job: hayro::PageJob<'static, 'static>,
     _document: std::rc::Rc<Document>,
+    /// Whether a stream or image was left out for its size, in any slice.
+    cut: bool,
 }
 
 impl RenderTask {
@@ -477,18 +482,24 @@ impl RenderTask {
         Ok(Self {
             job,
             _document: document,
+            cut: false,
         })
     }
 
     /// Runs until `expired` says so; true once the page's content is done.
     pub fn step(&mut self, expired: &dyn Fn() -> bool) -> bool {
-        self.job.step(expired)
+        let cuts = hayro::hayro_syntax::decodes_cut();
+        let done = self.job.step(expired);
+        self.cut |= hayro::hayro_syntax::decodes_cut() != cuts;
+        done
     }
 
     /// Rasterizes what `step` drew. One call, after `step` returned true.
     pub fn finish(&mut self) -> Bitmap {
+        let cuts = hayro::hayro_syntax::decodes_cut();
         let (pixmap, truncated) = self.job.finish();
-        bitmap_of(pixmap, truncated)
+        self.cut |= hayro::hayro_syntax::decodes_cut() != cuts;
+        bitmap_of(pixmap, truncated || self.cut)
     }
 }
 
@@ -579,6 +590,59 @@ mod tests {
         s.extend_from_slice(data);
         s.extend_from_slice(b"\nendstream");
         s
+    }
+
+    /// A stream or image that decodes past the limit is left out, and what the page says is
+    /// `truncated`, rather than taking memory it can't give back. 60,000 by 60,000 pixels declared by
+    /// 16 bytes of `CCITTFaxDecode` crashed the wasm; a content stream inflating past the limit is
+    /// cut there, and the page's other content still reads.
+    #[test]
+    fn what_decodes_past_the_limit_is_left_out_and_says_so() {
+        use std::io::Write;
+        let font = "/Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >>";
+        let page = |resources: String| format!("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents [4 0 R 5 0 R] /Resources << {resources} >> >>");
+
+        // An image declaring 3.6 GB, from 16 bytes.
+        let image = stream("/Type /XObject /Subtype /Image /Width 60000 /Height 60000 /BitsPerComponent 1 /ColorSpace /DeviceGray /Filter /CCITTFaxDecode /DecodeParms << /K -1 /Columns 60000 /Rows 60000 >>", &[0; 16]);
+        let doc = Document::open(
+            pdf(&[
+                b"<< /Type /Catalog /Pages 2 0 R >>",
+                b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                page(format!("{font} /XObject << /Im 6 0 R >>")).as_bytes(),
+                &stream("", b"BT /F1 10 Tf 10 10 Td (kept) Tj ET"),
+                &stream("", b"q 100 0 0 100 0 0 cm /Im Do Q"),
+                &image,
+            ]),
+            "",
+        )
+        .unwrap();
+        let bitmap = doc.render(0, 100.0, f32::INFINITY).unwrap();
+        assert!(bitmap.truncated);
+        assert!(bitmap.rgba.chunks(4).any(|px| px[0] < 128), "the text is still drawn");
+        let text = doc.text(0).unwrap();
+        assert!(text.text().contains("kept") && !text.truncated, "text doesn't decode the image");
+
+        // A content stream inflating to 4 MiB, under a limit of 1 MiB.
+        let mut zipped = flate2::write::ZlibEncoder::new(Vec::new(), flate2::Compression::best());
+        zipped.write_all(&vec![b' '; 4 << 20]).unwrap();
+        let bomb = stream("/Filter /FlateDecode", &zipped.finish().unwrap());
+        let doc = Document::open(
+            pdf(&[
+                b"<< /Type /Catalog /Pages 2 0 R >>",
+                b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                page(font.to_string()).as_bytes(),
+                &stream("", b"BT /F1 10 Tf 10 10 Td (kept) Tj ET"),
+                &bomb,
+            ]),
+            "",
+        )
+        .unwrap();
+        hayro::hayro_syntax::set_max_decoded_bytes(1 << 20);
+        let cut = doc.text(0).unwrap();
+        hayro::hayro_syntax::set_max_decoded_bytes(hayro::hayro_syntax::DEFAULT_MAX_DECODED_BYTES);
+        let whole = doc.text(0).unwrap();
+        assert!(cut.truncated && !whole.truncated);
+        assert!(cut.text().contains("kept"), "the page's other stream still reads: {:?}", cut.text());
     }
 
     /// A page switching among many fonts finds each one's id in one lookup: comparing with every

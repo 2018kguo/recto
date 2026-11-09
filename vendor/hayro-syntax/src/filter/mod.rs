@@ -20,10 +20,69 @@ use crate::object::dict::keys::*;
 use crate::object::stream::{DecodeFailure, FilterResult, ImageDecodeParams};
 use core::ops::Deref;
 
+/// recto: how many bytes one stream may decode to, and one image hold at a byte a component, before
+/// it's left out as if it couldn't be read. A few hundred bytes of `FlateDecode` can ask for a GB,
+/// and 16 bytes of `CCITTFaxDecode` declaring 32,000 by 32,000 pixels did; on wasm32, past about a
+/// GB, drawing it runs out of memory. A page 600 dpi at A0 in gray is 558 MB, and drew in 2.1 GB;
+/// in RGB it's 1.7 GB, and didn't draw before there was a limit. The most any page of the 543 suite
+/// and public files that open asked for was 151 MB (`examples/budgets.rs`).
+pub const DEFAULT_MAX_DECODED_BYTES: usize = 768 << 20;
+
+#[cfg(feature = "std")]
+std::thread_local! {
+    static MAX_DECODED_BYTES: core::cell::Cell<usize> = const { core::cell::Cell::new(DEFAULT_MAX_DECODED_BYTES) };
+    static DECODES_CUT: core::cell::Cell<usize> = const { core::cell::Cell::new(0) };
+    static LARGEST_DECODE: core::cell::Cell<usize> = const { core::cell::Cell::new(0) };
+}
+
+/// recto: the most bytes a stream or image asked to decode to since the last call, for
+/// `examples/budgets.rs`.
+#[cfg(feature = "std")]
+#[doc(hidden)]
+pub fn take_largest_decode() -> usize {
+    LARGEST_DECODE.with(|n| n.replace(0))
+}
+
+/// recto: sets, for this thread, how many bytes one stream may decode to and one image hold; see
+/// [`DEFAULT_MAX_DECODED_BYTES`].
+#[cfg(feature = "std")]
+pub fn set_max_decoded_bytes(bytes: usize) {
+    MAX_DECODED_BYTES.with(|max| max.set(bytes));
+}
+
+/// recto: how many streams or images this thread has left out for decoding to more than the limit.
+#[cfg(feature = "std")]
+pub fn decodes_cut() -> usize {
+    DECODES_CUT.with(|n| n.get())
+}
+
+/// recto: the limit on what one stream may decode to, on this thread.
+#[doc(hidden)]
+pub fn max_decoded_bytes() -> usize {
+    #[cfg(feature = "std")]
+    return MAX_DECODED_BYTES.with(|max| max.get());
+    #[cfg(not(feature = "std"))]
+    DEFAULT_MAX_DECODED_BYTES
+}
+
+/// recto: whether `bytes` is within the limit; if not, the decode is counted as cut.
+#[doc(hidden)]
+pub fn fits_decoded(bytes: usize) -> bool {
+    let fits = bytes <= max_decoded_bytes();
+    #[cfg(feature = "std")]
+    {
+        LARGEST_DECODE.with(|n| n.set(n.get().max(bytes)));
+        if !fits {
+            DECODES_CUT.with(|n| n.set(n.get() + 1));
+        }
+    }
+    fits
+}
+
 /// recto: a `FlateDecode` stream's data decoded as a stream's is, without parameters. For tests.
 #[doc(hidden)]
-pub fn flate_decode(data: &[u8]) -> Option<alloc::vec::Vec<u8>> {
-    lzw_flate::flate::decode(data, &crate::object::Dict::empty())
+pub fn flate_decode(data: &[u8]) -> Option<Vec<u8>> {
+    lzw_flate::flate::decode(data, &Dict::empty())
 }
 
 /// A data filter.

@@ -12,7 +12,7 @@ export type PoolRequest = {
   args: unknown[];
 };
 
-export type PoolStart = { assetBase: string | undefined };
+export type PoolStart = { assetBase: string | undefined; maxDecodedBytes: number | undefined };
 
 type Port = {
   postMessage(message: unknown, transfer: ArrayBuffer[]): void;
@@ -53,9 +53,9 @@ function failureOf(error: unknown) {
 
 async function handle(message: PoolRequest | PoolStart): Promise<void> {
   if (!("id" in message)) {
-    const { assetBase } = message;
+    const { assetBase, maxDecodedBytes } = message;
     try {
-      engine = await createPdfEngine(assetBase ? { assetBase } : {});
+      engine = await createPdfEngine({ ...(assetBase ? { assetBase } : {}), ...(maxDecodedBytes === undefined ? {} : { maxDecodedBytes }) });
       port.postMessage({ ready: true }, []);
     } catch (error) {
       port.postMessage({ startFailed: true, failure: failureOf(error) }, []);

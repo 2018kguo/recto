@@ -12,9 +12,12 @@ pub(crate) mod flate {
 
     #[cfg(feature = "unsafe")]
     pub(crate) fn decode(data: &[u8], params: &Dict<'_>) -> Option<Vec<u8>> {
+        // recto: a stream cut for its size isn't tried again another way.
+        let cut = crate::filter::decodes_cut();
+        let uncut = || crate::filter::decodes_cut() == cut;
         let decoded = inflate(data, true)
-            .or_else(|| inflate(data, false))
-            .or_else(|| fallback::decode(data))?;
+            .or_else(|| uncut().then(|| inflate(data, false)).flatten())
+            .or_else(|| uncut().then(|| fallback::decode(data)).flatten())?;
         let params = PredictorParams::from_params(params);
         apply_predictor(decoded, &params)
     }
@@ -28,17 +31,24 @@ pub(crate) mod flate {
         use flate2::{Decompress, FlushDecompress, Status};
 
         let mut decoder = Decompress::new(zlib);
-        // Most streams inflate to a few times their size; the output grows by doubling past that.
-        let mut out = Vec::with_capacity(data.len().saturating_mul(4).clamp(1 << 10, 1 << 24));
+        // Most streams inflate to a few times their size; the output grows by doubling past that. A
+        // power of two, as reading grew it, so the largest stream holds no more at its peak than it
+        // did: the room it ends with, and the half before it while that's copied.
+        let mut out = Vec::with_capacity(data.len().saturating_mul(4).clamp(1 << 10, 1 << 24).next_power_of_two());
+        // recto: past the limit it's left out: room for one byte more shows it's past.
+        let room = crate::filter::max_decoded_bytes().saturating_add(1);
         loop {
             let (read, written) = (decoder.total_in(), decoder.total_out());
             let input = data.get(read as usize..).unwrap_or_default();
             let status = decoder
                 .decompress_vec(input, &mut out, FlushDecompress::Finish)
                 .ok()?;
+            if !crate::filter::fits_decoded(out.len()) {
+                return None;
+            }
             match status {
                 Status::StreamEnd => break,
-                _ if out.len() == out.capacity() => out.reserve(out.capacity()),
+                _ if out.len() == out.capacity() => out.reserve_exact(out.capacity().min(room - out.len())),
                 // No room was missing, so the input ran out: what's decoded is the result.
                 _ if decoder.total_in() == read && decoder.total_out() == written => break,
                 _ => {}
@@ -110,6 +120,10 @@ pub(crate) mod flate {
             fn decode(&mut self) -> Option<Vec<u8>> {
                 while !self.eof && self.pos < self.data.len() {
                     self.read_block();
+                    // recto: a block can hold any amount, so its copies stop at the limit too.
+                    if !crate::filter::fits_decoded(self.output.len()) {
+                        return None;
+                    }
                 }
 
                 Some(core::mem::take(&mut self.output))
@@ -342,6 +356,11 @@ pub(crate) mod flate {
                                 let byte = self.output[self.output.len() - distance];
                                 self.output.push(byte);
                             }
+                        }
+                        // recto: `decode` leaves out what's past the limit.
+                        if self.output.len() > crate::filter::max_decoded_bytes() {
+                            self.eof = true;
+                            return;
                         }
                     }
                 }
@@ -594,7 +613,13 @@ pub(crate) mod lzw {
         let mut decoded = vec![];
         let mut prev = None;
 
+        let max = crate::filter::max_decoded_bytes();
         loop {
+            // recto: past the limit it's left out.
+            if decoded.len() > max {
+                crate::filter::fits_decoded(decoded.len());
+                return None;
+            }
             let next = match reader.read(bit_size) {
                 Some(code) => code as usize,
                 None => {

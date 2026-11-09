@@ -51,6 +51,11 @@ pub(crate) fn decode(data: &[u8], params: &ImageDecodeParams) -> Option<FilterRe
         },
     };
     let has_alpha = image.has_alpha();
+    // recto: what the image holds is limited, whatever its header says.
+    let channels = cs.num_components() as usize + usize::from(has_alpha);
+    if !crate::filter::fits_decoded((width as usize).saturating_mul(height as usize).saturating_mul(channels)) {
+        return None;
+    }
     let mut decoder_context = hayro_jpeg2000::DecoderContext::default();
     let bitmap = image.decode(&mut decoder_context).ok()?.data_u8();
 

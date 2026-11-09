@@ -5,6 +5,7 @@ import { test } from "node:test";
 
 import { createPdfEngine, openPdf, PdfError } from "../src/index.ts";
 import { syntheticPdf } from "./synthetic-pdf.ts";
+import { pagePdf } from "./rare-pdfs.ts";
 import { pdfOf } from "./transparency-cases.mjs";
 
 const fixture = (name: string) => new Uint8Array(readFileSync(new URL(`./fixtures/${name}`, import.meta.url)));
@@ -193,4 +194,34 @@ test("encrypted, trailer lost: revision 6 is repaired, with or without a passwor
 
 test("encrypted, trailer lost: before revision 6 the key died with it, and it says so, not blank", async () => {
   await assert.rejects(openPdf(fixture("encrypted-r4-no-trailer.pdf")), (error: PdfError) => error.code === "invalid-file");
+});
+
+// 16 bytes of CCITTFaxDecode declaring 60,000 by 60,000 pixels crashed the instance; a stream that
+// inflates past `maxDecodedBytes` took memory the instance never gives back.
+test("a stream or image that decodes past maxDecodedBytes is left out, and the page says so", async () => {
+  const { deflateSync } = await import("node:zlib");
+  const pdf = pagePdf("BT /H 10 Tf 10 10 Td (kept) Tj ET q 100 0 0 100 0 0 cm /Im Do Q /F Do", "/Font << /H 5 0 R >> /XObject << /Im 6 0 R /F 7 0 R >>", [
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    {
+      dict: "/Type /XObject /Subtype /Image /Width 60000 /Height 60000 /BitsPerComponent 1 /ColorSpace /DeviceGray /Filter /CCITTFaxDecode /DecodeParms << /K -1 /Columns 60000 /Rows 60000 >>",
+      data: new Uint8Array(16),
+    },
+    {
+      dict: "/Type /XObject /Subtype /Form /BBox [0 0 100 100] /Filter /FlateDecode",
+      data: deflateSync(Buffer.alloc(4 << 20, 0x20)),
+    },
+  ]);
+  const engine = await createPdfEngine();
+  await using whole = await engine.open(pdf);
+  assert.equal(whole.render(0, { width: 50 }).truncated, true, "the image is past the default");
+  const text = whole.text(0);
+  assert.equal(text.truncated, false, "text decodes neither the image nor, under 768 MiB, the form");
+  assert.ok(String.fromCodePoint(...text.codepoints).includes("kept"));
+
+  const small = await createPdfEngine({ maxDecodedBytes: 1 << 20 });
+  await using cut = await small.open(pdf);
+  const cutText = cut.text(0);
+  assert.equal(cutText.truncated, true, "the form inflates past 1 MiB");
+  assert.ok(String.fromCodePoint(...cutText.codepoints).includes("kept"), "the rest of the page still reads");
+  await assert.rejects(createPdfEngine({ maxDecodedBytes: -1 }), RangeError);
 });
