@@ -116,9 +116,14 @@ test("a thread whose open of a document fails can open it at its next call", asy
   const once = `if (open && globalThis.calls === undefined && method !== "pageCount") { globalThis.calls = 1; throw new Error("opening failed"); }`;
   using pool = await (await faulty(onCall(once)))({ threads: 2 });
   const doc = await bounded(pool.open(pdf()));
-  while (pool.stats().threads < 2) {
-    await bounded(Promise.allSettled(Array.from({ length: 12 }, (_, i) => doc.text(i))));
+  // Until the second thread's open has failed: a thread counts as soon as it starts, before it's
+  // given a call, so waiting for two threads could leave that failure to the batch below.
+  let failed = false;
+  for (let round = 0; round < 50 && !failed; round++) {
+    const batch = await bounded(Promise.allSettled(Array.from({ length: 12 }, (_, i) => doc.text(i))));
+    failed = batch.some((page) => page.status === "rejected");
   }
+  assert.ok(failed, "the second thread's open failed once");
   const pages = await bounded(Promise.allSettled(Array.from({ length: 12 }, (_, i) => doc.text(i))));
   assert.deepEqual(pages.filter((page) => page.status === "rejected"), [], "no call fails for ever after");
 });
