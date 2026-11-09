@@ -71,9 +71,11 @@
 <hashbrown::map::HashMap<hayro_syntax::object::name::Name, hayro_syntax::object::dict::Dict, rustc_hash::FxBuildHasher>>::insert
 <hashbrown::raw::RawTable<((u128, u32), core::option::Option<alloc::rc::Rc<kurbo::bezpath::BezPath>>)>>::reserve_rehash::<hashbrown::map::make_hasher<(u128, u32), core::option::Option<alloc::rc::Rc<kurbo::bezpath::BezPath>>, rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<((u128, u32), core::option::Option<alloc::rc::Rc<skrifa::scaler::ScalerFont>>)>>::reserve_rehash::<hashbrown::map::make_hasher<(u128, u32), core::option::Option<alloc::rc::Rc<skrifa::scaler::ScalerFont>>, rustc_hash::FxBuildHasher>::{closure#0}>
+<hashbrown::raw::RawTable<(hayro::glyph_cache::GlyphKey, ())>>::reserve_rehash::<hashbrown::map::make_hasher<hayro::glyph_cache::GlyphKey, (), rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<(hayro::glyph_cache::GlyphKey, core::option::Option<alloc::sync::Arc<hayro::glyph_cache::CachedGlyph>>)>>::reserve_rehash::<hashbrown::map::make_hasher<hayro::glyph_cache::GlyphKey, core::option::Option<alloc::sync::Arc<hayro::glyph_cache::CachedGlyph>>, rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<(hayro_syntax::object::ObjectIdentifier, ())>>::reserve_rehash::<hashbrown::map::make_hasher<hayro_syntax::object::ObjectIdentifier, (), std::hash::random::RandomState>::{closure#0}>
 <hashbrown::raw::RawTable<(u32, alloc::sync::Arc<dyn core::convert::AsRef<[u8]> + core::marker::Send + core::marker::Sync>)>>::reserve_rehash::<hashbrown::map::make_hasher<u32, alloc::sync::Arc<dyn core::convert::AsRef<[u8]> + core::marker::Send + core::marker::Sync>, std::hash::random::RandomState>::{closure#0}>
+<hayro::GlobalState>::new
 <hayro::PageJob>::finish
 <hayro::PageJob>::new
 <hayro::PageJob>::step

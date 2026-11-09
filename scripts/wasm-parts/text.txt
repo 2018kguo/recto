@@ -1020,3 +1020,11 @@ zlib_rs::inflate::inflate
 zlib_rs::inflate::inflate_fast_help
 zlib_rs::inflate::inftrees::inflate_table
 zlib_rs::inflate::init
+<alloc::raw_vec::RawVec<hayro_syntax::object::dict::Dict>>::grow_one
+<alloc::rc::Rc<core::cell::RefCell<hayro::glyph_cache::GlyphCache>>>::drop_slow
+<hashbrown::raw::RawTable<(usize, (hayro_font::OutlineGlyph, u32))>>::reserve_rehash::<hashbrown::map::make_hasher<usize, (hayro_font::OutlineGlyph, u32), rustc_hash::FxBuildHasher>::{closure#0}>
+<hashbrown::raw::RawTableInner>::fallible_with_capacity::<alloc::alloc::Global>
+<std::sync::once_lock::OnceLock<core::option::Option<alloc::vec::Vec<u8>>>>::initialize::<<std::sync::once_lock::OnceLock<core::option::Option<alloc::vec::Vec<u8>>>>::get_or_init<<hayro_syntax::page::Page>::page_stream::{closure#1}>::{closure#0}, !>
+core::ptr::drop_in_place::<hayro::glyph_cache::GlyphCache>
+flate2::zio::read::<flate2::bufreader::BufReader<&[u8]>, flate2::mem::Decompress>
+std::io::default_read_to_end::small_probe_read::<flate2::zlib::read::ZlibDecoder<&[u8]>>
