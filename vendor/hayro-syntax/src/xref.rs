@@ -522,7 +522,8 @@ impl XRef {
     }
 
     /// recto: whether the file's bytes are fetched on first use.
-    pub(crate) fn is_ranged(&self) -> bool {
+    /// recto: whether the file is read by range, its bytes arriving on first use.
+    pub fn is_ranged(&self) -> bool {
         match &self.0 {
             Inner::Some(r) => r.data.get().is_ranged(),
             Inner::Dummy => false,
@@ -744,17 +745,36 @@ impl XRef {
         // window until the object parses inside it (then every byte the
         // parse read was fetched); one that does not parse, up to the
         // next object's offset (a live object ends before it).
+        // The first window is 4 KB, and if that has to be fetched and the
+        // next object is at most `AHEAD` on, the fetch takes the rest up to
+        // it along: it costs the round trip it would anyway. One that doesn't
+        // parse there (a stream, mostly) is then asked for up to that offset
+        // in one go, if that's at most `JUMP` away: one round trip where
+        // growing took one for each fourfold step. Further, it grows fourfold
+        // as before. So a gap after an object, that nothing reads, is fetched
+        // only if it's under `AHEAD`, and only by a fetch that was needed.
         // (Before any Reader borrows the bytes: the fill writes into them.)
         if let EntryType::Normal(offset) = entry
             && repr.data.get().is_ranged()
         {
+            const JUMP: usize = 8 << 20;
+            const AHEAD: usize = 1 << 20;
             ctx.set_in_object_stream(false);
             let data = repr.data.get();
             let next = repr.starts.partition_point(|&start| start <= offset);
             let bound = repr.starts.get(next).copied().unwrap_or(data.as_ref().len());
+            let reach = bound.saturating_sub(offset);
+            let grow = |want: usize| {
+                if want < reach && reach <= JUMP {
+                    reach
+                } else {
+                    want.saturating_mul(4)
+                }
+            };
             let mut want: usize = 4096;
+            let ahead = if reach <= AHEAD { offset.saturating_add(reach) } else { offset };
             loop {
-                if !data.ensure(offset, offset.saturating_add(want)) {
+                if !data.ensure_ahead(offset, offset.saturating_add(want), ahead) {
                     break;
                 }
                 let mut probe = Reader::new(data.as_ref());
@@ -765,10 +785,11 @@ impl XRef {
                 match end {
                     Some(end) if end <= offset.saturating_add(want) => break,
                     // A parse over unfetched zeros can find a later
-                    // `endstream` far away: grow toward it, don't jump.
-                    Some(end) => want = want.saturating_mul(4).min(end - offset),
+                    // `endstream` far away: grow toward it, don't jump
+                    // past it (nor past the next object, if that's nearer).
+                    Some(end) => want = grow(want).min(end - offset),
                     None if offset.saturating_add(want) >= bound => break,
-                    None => want = want.saturating_mul(4).min(bound.saturating_sub(offset)),
+                    None => want = grow(want).min(reach),
                 }
             }
         }

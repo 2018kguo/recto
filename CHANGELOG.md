@@ -1,5 +1,49 @@
 # Changelog
 
+## 0.5.0
+
+What a viewer needs: a ranged open in one round trip, part of a page drawn on its own, and where links go.
+At 120 ms of latency the first page of 39 files comes 39% sooner, 10.2 → 6.1 s in all; see
+[the numbers](docs/benchmarks.md#the-first-page-over-a-slow-link). Everything 0.4.0 returned is byte for byte
+the same on 2,172 files, read whole and by range.
+
+### Added
+
+- **`render(i, { width, region })`** and `renderAsync` with the same: only the pixels of the whole page's bitmap
+  that `region` covers, given in points in the viewer frame (top left of the page as shown, after `/Rotate`
+  and the crop box), grown out to whole pixels and cut to the page. The result adds `x`, `y`, `pageWidth` and
+  `pageHeight`: where it is in the whole bitmap. The pixmap is the region's size, so memory follows it: the
+  caps (16,384 px a side, 64 Mpx) are on the region, past them it fails rather than shrinks, and `width` may
+  go to 262,144. A tile of a page drawn 200,000 px wide grows the heap by under 16 MiB. Against a crop of
+  the whole render, tested at every rotation and with an offset crop box: a channel differs by at most 2, on
+  under 1% of pixels, where the region's edge cuts an antialiased shape. One exception: an image drawn close
+  to 1:1, where nearest-neighbour sampling has ties, can differ fully on a few pixels (4 of 712 regions on
+  the public PDFs, at most 0.36% of a region). The pool's `render` takes it too.
+- **`links(i)`**: each `/Link` annotation's index in `annotations(i)`, its box, and its target: a URI; a page
+  and a destination (view, point, zoom, `FitR` box) moved into the target page's viewer frame, from a
+  `GoTo`, a `/Dest`, or a name in `/Dests` or the `/Names` tree, resolved as the outline's are; `GoToR` and
+  `Launch` reported with their file, never followed; any other action by its name. On a ranged read the
+  target page is found up its `/Parent` chain, checked, and the whole tree walked only if the check fails.
+  `annotations` is unchanged. In the pool too.
+- `bench/ranged-latency.mjs`: time and round trips to a ranged first page at a set of latencies, against
+  another build and pdf.js.
+
+### Changed
+
+- **A ranged open is one round trip**, from two or three: the head and the tail (a suffix range,
+  `bytes=-131072` by default) are asked for together. A server that won't answer the suffix with a 206
+  costs the round back, as the tail is then fetched by offset; cross-origin, the suffix range needs a CORS
+  preflight. In a browser the open's fetches are now async `fetch` calls rather than synchronous requests.
+- **Fewer rounds after the open**: an object's first window takes the bytes up to the next object along
+  (within 1 MiB) when it's fetched anyway, and a window too small jumps to the next object (within 8 MiB)
+  rather than growing fourfold a round at a time. Over every 12th page of the files above, rounds per page
+  went from 3.91 to 2.04. What's left is the object graph's depth: a page's resources, fonts and images found
+  one after another.
+- **More bytes for fewer rounds**: 25% more for the first pages above, 11% more for pages read one by one,
+  mostly the tail fetched beside a head that already held a small file.
+- **Download**: 3.6 KB more with brotli for text and 13.3 KB more for text and drawing. A ranged open no longer
+  fetches `recto-more.wasm` (251 KB), which in 0.4.0 it did.
+
 ## 0.4.0
 
 recto agrees with the other engines' pixels on 97.6% of the pages two of them agree on, from 96.9%, and a long

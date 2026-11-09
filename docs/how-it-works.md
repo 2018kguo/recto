@@ -27,6 +27,13 @@ hayro's renderer (vello_cpu) draws on a white pixmap. Each side rounds up, unles
 error of a whole number (612 pt at 800 px came to 800.00006), and the page stretches to fill that
 bitmap. Sizes are capped because hayro sizes pixmaps in `u16`.
 
+A region is drawn by the vendored renderer's `window`: the pixmap is the window's size, and the page's
+transform is the whole page's at that scale, moved by the window's corner. So each pixel is computed
+from the same coordinates as in a whole render, and memory follows the window. Points become pixels by
+the whole bitmap's size over the page's in f64; the renderer's `f32` scale put a region's edge a pixel
+off at large scales. What still differs from a crop is where the renderer's tiles and strips
+fall (antialiasing at a region's edge) and nearest-neighbour ties when an image is sampled close to 1:1.
+
 A page's decoded content stream is kept while the page is one of the last four read, or while the
 ones kept come to under 1 MiB, and decoded again after that; past 256 MiB, only the last one is kept.
 Holding every page's made a long document's memory grow with each page read.
@@ -108,6 +115,21 @@ memory, as above, and its offsets on wasm32 would still stop at 4 GiB.
 The loader (`js/src/ranged.ts`) keeps chunks in a flat array, so a read costs what it spans. A
 miss that continues the last fetch doubles the read-ahead, so a sequential scan of n chunks costs
 O(log n) round trips.
+
+**Rounds.** At 40 ms or more a round trip costs more than parsing a first page, so the open is one round:
+the head and a suffix range for the tail go out together, before the file's length is known. In Node both
+go through the fetcher thread; in a browser, the open is still async, so it uses `fetch`, which can run
+them in parallel where a synchronous request can't. Reads after the open block, as before. A suffix the
+server doesn't answer with a 206 is dropped unread and costs the round the open used to take.
+
+After the open, rounds come from objects. hayro-syntax first asks for a 4 KB window at an object's offset,
+and the xref knows where the next object starts. Two things use that: the window's fetch takes the bytes
+up to the next object along, if that's within 1 MiB (the "ahead", passed through `Fill` to the loader,
+which fetches it only when it fetches anyway, within the budget); and a window that's too small jumps to
+the next object, within 8 MiB, rather than growing fourfold a round at a time. What's left is the depth
+of the object graph: a page, its resources, a font, its descriptor, its program, each found only by
+reading the one before. Fetching a page's whole graph in one round would need the parser to say what it
+will read next, which it doesn't.
 
 ## Opening and slices
 

@@ -7,6 +7,7 @@
 
 mod annots;
 mod labels;
+pub mod links;
 pub mod outline;
 mod assets;
 mod ctext;
@@ -31,6 +32,7 @@ pub use ctext::Text;
 pub use device::{
     PATH_FILL, PATH_STROKE, PageObjects, SEGMENT_BEZIER, SEGMENT_CLOSE, SEGMENT_LINE, SEGMENT_MOVE,
 };
+pub use links::{Destination, Link, Target};
 pub use outline::OutlineItem;
 pub use text::{CHAR_GENERATED, CHAR_UNMAPPED, Char, Font, Run, TextPage, Word};
 
@@ -113,6 +115,22 @@ pub struct Bitmap {
     pub rgba: Vec<u8>,
     /// The page asked for more than one render may do; see `Engine::render`.
     pub truncated: bool,
+    /// Where this bitmap's top-left pixel is in the whole page's bitmap at the same scale, and
+    /// that bitmap's size: 0, 0 and this one's own size unless a region was asked for.
+    pub x: u32,
+    pub y: u32,
+    pub page_width: u32,
+    pub page_height: u32,
+}
+
+/// A part of a page to draw, in the viewer frame: points from the top-left of the page as it's
+/// shown, with `/Rotate` and the crop box applied, as char and annotation boxes are.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Region {
+    pub x: f64,
+    pub y: f64,
+    pub width: f64,
+    pub height: f64,
 }
 
 /// Font, CMap and glyph caches shared by every page of one document, so a
@@ -141,9 +159,23 @@ pub const MAX_RENDER_SIDE: f32 = 16384.0;
 /// 64 Mpx, 256 MiB of RGBA.
 pub const MAX_RENDER_PIXELS: f32 = 64.0 * 1024.0 * 1024.0;
 
+/// With a region, the whole page's bitmap at that scale may be this wide or high: past it, an f32
+/// coordinate on it is coarser than 1/64 of a pixel.
+pub const MAX_REGION_PAGE_SIDE: f32 = 262_144.0;
+
 /// `min(width / pageWidth, maxHeight / pageHeight)`, shrunk to fit the
 /// render limits. `max_height` may be infinite ("fit to width").
 fn render_scale(page_w: f32, page_h: f32, width: f32, max_height: f32) -> Result<f32, EngineError> {
+    let scale = unlimited_scale(page_w, page_h, width, max_height)?;
+    Ok(scale
+        .min(MAX_RENDER_SIDE / page_w)
+        .min(MAX_RENDER_SIDE / page_h)
+        .min((MAX_RENDER_PIXELS / (page_w * page_h)).sqrt()))
+}
+
+/// `min(width / pageWidth, maxHeight / pageHeight)`, the scale a region is drawn at: the limits
+/// are on the region's bitmap, not the page's.
+fn unlimited_scale(page_w: f32, page_h: f32, width: f32, max_height: f32) -> Result<f32, EngineError> {
     if !(width.is_finite() && width > 0.0 && max_height > 0.0) {
         return Err(EngineError::new(
             ErrorKind::Failed,
@@ -154,19 +186,42 @@ fn render_scale(page_w: f32, page_h: f32, width: f32, max_height: f32) -> Result
     if !(page_w > 0.0 && page_h > 0.0 && page_w.is_finite() && page_h.is_finite()) {
         return Err(EngineError::new(ErrorKind::Failed, "page has no area"));
     }
-    Ok((width / page_w)
-        .min(max_height / page_h)
-        .min(MAX_RENDER_SIDE / page_w)
-        .min(MAX_RENDER_SIDE / page_h)
-        .min((MAX_RENDER_PIXELS / (page_w * page_h)).sqrt()))
+    Ok((width / page_w).min(max_height / page_h))
 }
 
 /// A side of the bitmap: `page * scale`, rounded up. Within float error of a whole number it is that
 /// number: a page 612 wide asked for 800 pixels came to 800.00006 and drew 801.
 fn pixel_side(exact: f32) -> f32 {
+    whole_pixels(exact).clamp(1.0, MAX_RENDER_SIDE)
+}
+
+fn whole_pixels(exact: f32) -> f32 {
     let near = exact.round();
-    let side = if (exact - near).abs() <= near * f32::EPSILON * 4.0 { near } else { exact.ceil() };
-    side.clamp(1.0, MAX_RENDER_SIDE)
+    if (exact - near).abs() <= near * f32::EPSILON * 4.0 { near } else { exact.ceil() }
+}
+
+/// The scale that makes `page * scale` come to `side` once hayro floors it: `side / page`, stepped
+/// up by one ULP when float error would lose a pixel.
+fn fit_scale(page: f32, side: f32) -> f32 {
+    let exact = side / page;
+    if (page * exact) as u32 >= side as u32 { exact } else { exact.next_up() }
+}
+
+/// The pixels a region covers in the whole page's bitmap, `page` pixels for `points`: grown out to
+/// whole pixels, a coordinate within 1/1024 px of a whole one taken as it, and cut to the page.
+/// Points become pixels by `pixels / points` in f64, so a caller that scales by the bitmap's size
+/// over `pageInfo`'s lands on whole pixels exactly.
+fn region_pixels(region: Region, points: (f32, f32), page: (u32, u32)) -> Option<(u32, u32, u32, u32)> {
+    let snap = |v: f64| if (v - v.round()).abs() <= 1.0 / 1024.0 { v.round() } else { v };
+    let span = |start: f64, length: f64, points: f32, side: u32| {
+        let scale = f64::from(side) / f64::from(points);
+        let from = snap(start * scale).floor().max(0.0);
+        let to = snap((start + length) * scale).ceil().min(f64::from(side));
+        (to > from).then_some((from as u32, to as u32))
+    };
+    let (x0, x1) = span(region.x, region.width, points.0, page.0)?;
+    let (y0, y1) = span(region.y, region.height, points.1, page.1)?;
+    Some((x0, y0, x1 - x0, y1 - y0))
 }
 
 impl Document {
@@ -349,7 +404,7 @@ impl Document {
     /// For `examples/budgets.rs`: what a render of the page spent, and whether it was cut short.
     #[doc(hidden)]
     pub fn render_budget(&self, index: usize, width: f32) -> Result<((u32, usize, u32), bool), EngineError> {
-        let settings = self.pixmap_settings(index, width, 4096.0)?;
+        let (settings, _) = self.pixmap_settings(index, width, 4096.0, None)?;
         Ok(self.0.with_dependent(|pdf, caches| {
             let Some(page) = pdf.pages().get(index) else {
                 unreachable!("pixmap_settings found it")
@@ -370,6 +425,17 @@ impl Document {
         })
     }
 
+    /// The page's links, in the order `annotations` lists them, with where each goes.
+    pub fn links(&self, index: usize) -> Result<Vec<Link>, EngineError> {
+        self.page(index)?;
+        Ok(self.0.with_dependent(|pdf, _| {
+            let Some(page) = pdf.pages().get(index) else {
+                unreachable!("self.page(index) found it")
+            };
+            links::read(pdf, page, page.initial_transform(true).to_kurbo())
+        }))
+    }
+
     /// The document's outline, in order; each item's children follow it, one level deeper.
     pub fn outline(&self) -> Vec<outline::OutlineItem> {
         self.0.with_dependent(|pdf, _| outline::read(pdf))
@@ -386,40 +452,67 @@ impl Document {
         }))
     }
 
+    /// The pixmap's scales, and with a region, its window on the page's bitmap and that bitmap's size.
     fn pixmap_settings(
         &self,
         index: usize,
         width: f32,
         max_height: f32,
-    ) -> Result<PixmapSettings, EngineError> {
+        region: Option<Region>,
+    ) -> Result<(PixmapSettings, Option<(u32, u32)>), EngineError> {
         let info = self.page_info(index)?;
-        let scale = render_scale(info.width, info.height, width, max_height)?;
-        // Each side rounds up, and the page stretches to
-        // fill that bitmap (under a pixel). hayro floors `side * scale`, so
-        // step the exact scale up by one ULP when float error would lose a pixel.
-        let fit = |page: f32| {
-            let side = pixel_side(page * scale);
-            let exact = side / page;
-            if (page * exact) as u16 >= side as u16 {
-                exact
-            } else {
-                exact.next_up()
-            }
+        let Some(region) = region else {
+            let scale = render_scale(info.width, info.height, width, max_height)?;
+            // Each side rounds up, and the page stretches to
+            // fill that bitmap (under a pixel). hayro floors `side * scale`, so
+            // step the exact scale up by one ULP when float error would lose a pixel.
+            let fit = |page: f32| fit_scale(page, pixel_side(page * scale));
+            let settings = PixmapSettings {
+                x_scale: fit(info.width),
+                y_scale: fit(info.height),
+                bg_color: WHITE,
+                window: None,
+            };
+            return Ok((settings, None));
         };
-        Ok(PixmapSettings {
-            x_scale: fit(info.width),
-            y_scale: fit(info.height),
+        // The scale and sides the whole page would have, without the limits a whole page's
+        // bitmap has: those are on the region's.
+        let scale = unlimited_scale(info.width, info.height, width, max_height)?;
+        let (page_w, page_h) = (whole_pixels(info.width * scale), whole_pixels(info.height * scale));
+        if !(page_w <= MAX_REGION_PAGE_SIDE && page_h <= MAX_REGION_PAGE_SIDE) {
+            return Err(EngineError::new(
+                ErrorKind::Failed,
+                format!("at this scale the page is {page_w}x{page_h} px; a region's page may be up to {MAX_REGION_PAGE_SIDE} a side"),
+            ));
+        }
+        let (page_w, page_h) = (page_w.max(1.0), page_h.max(1.0));
+        let scales = (fit_scale(info.width, page_w), fit_scale(info.height, page_h));
+        let page = (page_w as u32, page_h as u32);
+        let finite = [region.x, region.y, region.width, region.height].iter().all(|v| v.is_finite());
+        let Some((x, y, w, h)) = region_pixels(region, (info.width, info.height), page).filter(|_| finite && region.width > 0.0 && region.height > 0.0)
+        else {
+            return Err(EngineError::new(ErrorKind::Failed, "the region has no area on the page"));
+        };
+        if w as f32 > MAX_RENDER_SIDE || h as f32 > MAX_RENDER_SIDE || (w as f32) * (h as f32) > MAX_RENDER_PIXELS {
+            return Err(EngineError::new(
+                ErrorKind::Failed,
+                format!("the region is {w}x{h} px; one render is at most {MAX_RENDER_SIDE} a side and {MAX_RENDER_PIXELS} px"),
+            ));
+        }
+        let settings = PixmapSettings {
+            x_scale: scales.0,
+            y_scale: scales.1,
             bg_color: WHITE,
-        })
+            window: Some(hayro::Window { x, y, width: w as u16, height: h as u16 }),
+        };
+        Ok((settings, Some(page)))
     }
 
     fn pixmap(
         &self,
         index: usize,
-        width: f32,
-        max_height: f32,
+        settings: &PixmapSettings,
     ) -> Result<(hayro::vello_cpu::Pixmap, bool), EngineError> {
-        let settings = self.pixmap_settings(index, width, max_height)?;
         let cuts = hayro::hayro_syntax::decodes_cut();
         Ok(self.0.with_dependent(|pdf, caches| {
             let Some(page) = pdf.pages().get(index) else {
@@ -430,7 +523,7 @@ impl Document {
                 &caches.render,
                 &crate::assets::settings(),
                 &RenderSettings::default(),
-                &settings,
+                settings,
             );
             (pixmap, caches.render.take_degraded() || hayro::hayro_syntax::decodes_cut() != cuts)
         }))
@@ -438,8 +531,16 @@ impl Document {
 
     /// Scale is `min(width / pageWidth, maxHeight / pageHeight)`.
     pub fn render(&self, index: usize, width: f32, max_height: f32) -> Result<Bitmap, EngineError> {
-        let (pixmap, truncated) = self.pixmap(index, width, max_height)?;
-        Ok(bitmap_of(pixmap, truncated))
+        self.render_region(index, width, max_height, None)
+    }
+
+    /// `render`, or with a region the part of that page's bitmap it covers, at the same scale
+    /// but without a whole page's size limits: those are on the region. The page's bitmap at that
+    /// scale may be up to `MAX_REGION_PAGE_SIDE` a side.
+    pub fn render_region(&self, index: usize, width: f32, max_height: f32, region: Option<Region>) -> Result<Bitmap, EngineError> {
+        let (settings, page) = self.pixmap_settings(index, width, max_height, region)?;
+        let (pixmap, truncated) = self.pixmap(index, &settings)?;
+        Ok(bitmap_of(pixmap, truncated, &settings, page))
     }
 }
 
@@ -450,6 +551,8 @@ pub struct RenderTask {
     _document: std::rc::Rc<Document>,
     /// Whether a stream or image was left out for its size, in any slice.
     cut: bool,
+    settings: PixmapSettings,
+    page: Option<(u32, u32)>,
 }
 
 impl RenderTask {
@@ -458,8 +561,9 @@ impl RenderTask {
         index: usize,
         width: f32,
         max_height: f32,
+        region: Option<Region>,
     ) -> Result<Self, EngineError> {
-        let settings = document.pixmap_settings(index, width, max_height)?;
+        let (settings, page) = document.pixmap_settings(index, width, max_height, region)?;
         let cuts = hayro::hayro_syntax::decodes_cut();
         let job = document.0.with_dependent(|pdf, caches| {
             let Some(page) = pdf.pages().get(index) else {
@@ -484,6 +588,8 @@ impl RenderTask {
             job,
             _document: document,
             cut: hayro::hayro_syntax::decodes_cut() != cuts,
+            settings,
+            page,
         })
     }
 
@@ -500,17 +606,29 @@ impl RenderTask {
         let cuts = hayro::hayro_syntax::decodes_cut();
         let (pixmap, truncated) = self.job.finish();
         self.cut |= hayro::hayro_syntax::decodes_cut() != cuts;
-        bitmap_of(pixmap, truncated || self.cut)
+        bitmap_of(pixmap, truncated || self.cut, &self.settings, self.page)
     }
 }
 
 /// The pixmap's own buffer, with no second page-sized allocation at the render's peak.
-fn bitmap_of(pixmap: hayro::vello_cpu::Pixmap, truncated: bool) -> Bitmap {
+fn bitmap_of(
+    pixmap: hayro::vello_cpu::Pixmap,
+    truncated: bool,
+    settings: &PixmapSettings,
+    page: Option<(u32, u32)>,
+) -> Bitmap {
+    let (width, height) = (u32::from(pixmap.width()), u32::from(pixmap.height()));
+    let window = settings.window.map_or((0, 0), |w| (w.x, w.y));
+    let (page_width, page_height) = page.unwrap_or((width, height));
     Bitmap {
-        width: u32::from(pixmap.width()),
-        height: u32::from(pixmap.height()),
+        width,
+        height,
         rgba: pixmap.take_rgba8(hayro::vello_cpu::peniko::ImageAlphaType::AlphaPremultiplied),
         truncated,
+        x: window.0,
+        y: window.1,
+        page_width,
+        page_height,
     }
 }
 
@@ -711,7 +829,7 @@ mod tests {
             ("objects", |d, i| d.scan(i, true, false).unwrap().objects.truncated),
             ("render", |d, i| d.render(i, 50.0, f32::INFINITY).unwrap().truncated),
             ("sliced", |d, i| {
-                let mut task = RenderTask::new(d.clone(), i, 50.0, f32::INFINITY).unwrap();
+                let mut task = RenderTask::new(d.clone(), i, 50.0, f32::INFINITY, None).unwrap();
                 while !task.step(&|| true) {}
                 task.finish().truncated
             }),

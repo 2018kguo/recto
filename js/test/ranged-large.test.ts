@@ -10,9 +10,10 @@ const SERVER = `
 const http = require("node:http");
 const { parentPort, workerData: { total, pieces } } = require("node:worker_threads");
 const server = http.createServer((req, res) => {
-  const m = /bytes=(\\d+)-(\\d+)/.exec(req.headers.range ?? "");
-  const start = m ? +m[1] : 0;
-  const end = m ? Math.min(+m[2], total - 1) : total - 1;
+  const m = /bytes=(\\d*)-(\\d+)/.exec(req.headers.range ?? "");
+  // A suffix (bytes=-n) is the last n bytes.
+  const start = m ? (m[1] === "" ? total - +m[2] : +m[1]) : 0;
+  const end = m ? (m[1] === "" ? total - 1 : Math.min(+m[2], total - 1)) : total - 1;
   const out = Buffer.alloc(end - start + 1);
   for (const [at, bytes] of pieces) {
     const b = Buffer.from(bytes);

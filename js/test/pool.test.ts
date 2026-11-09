@@ -131,3 +131,19 @@ test("every thread is told about one copy of the file, which the caller can't th
     Worker.prototype.postMessage = post;
   }
 });
+
+test("a pool's render takes a region, and its links come back", async () => {
+  const bytes = syntheticPdf({ pages: 3 });
+  using pool = await createPdfPool({ threads: 1 });
+  await using pooled = await pool.open(bytes);
+  const engine = await createPdfEngine();
+  const doc = await engine.open(bytes);
+  const region = { x: 10.5, y: 20.25, width: 200, height: 80 };
+  const there = await pooled.render(1, { width: 640, region });
+  const here = doc.render(1, { width: 640, region });
+  assert.deepEqual([there.x, there.y, there.width, there.height, there.pageWidth], [here.x, here.y, here.width, here.height, here.pageWidth]);
+  assert.ok(Buffer.from(there.rgba).equals(Buffer.from(here.rgba)));
+  assert.notEqual(there.width, (await pooled.render(1, { width: 640 })).width);
+  assert.deepEqual(await pooled.links(0), doc.links(0));
+  doc.close();
+});

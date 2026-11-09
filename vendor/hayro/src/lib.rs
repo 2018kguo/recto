@@ -336,6 +336,44 @@ pub struct PixmapSettings {
     pub y_scale: f32,
     /// Background color.
     pub bg_color: AlphaColor<Srgb>,
+    /// recto: only this window of the page's pixmap at this scale, or all of it.
+    pub window: Option<Window>,
+}
+
+/// recto: a window on a page's pixmap: its top-left pixel there, and its size. The pixmap is the
+/// window's size, so a part of a page costs what the part does, and the page's own size may be
+/// past what a pixmap holds.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Window {
+    /// The window's left edge, in the page's pixmap.
+    pub x: u32,
+    /// Its top edge.
+    pub y: u32,
+    /// Its width, and the pixmap's.
+    pub width: u16,
+    /// Its height, and the pixmap's.
+    pub height: u16,
+}
+
+impl PixmapSettings {
+    /// recto: the pixmap's size and the transform from the page's space into it.
+    fn target(&self, page: &Page<'_>) -> (u16, u16, Affine) {
+        let (width, height) = page.render_dimensions();
+        let scale = Affine::scale_non_uniform(self.x_scale as f64, self.y_scale as f64);
+        let initial = page.initial_transform(true).to_kurbo();
+        match self.window {
+            None => (
+                (width * self.x_scale) as u16,
+                (height * self.y_scale) as u16,
+                scale * initial,
+            ),
+            Some(window) => (
+                window.width,
+                window.height,
+                Affine::translate((-f64::from(window.x), -f64::from(window.y))) * scale * initial,
+            ),
+        }
+    }
 }
 
 impl Default for PixmapSettings {
@@ -344,6 +382,7 @@ impl Default for PixmapSettings {
             x_scale: 1.0,
             y_scale: 1.0,
             bg_color: TRANSPARENT,
+            window: None,
         }
     }
 }
@@ -362,15 +401,8 @@ pub fn render<'a>(
     render_settings: &RenderSettings,
     pixmap_settings: &PixmapSettings,
 ) -> Pixmap {
-    let (width, height) = page.render_dimensions();
-    let mut ctx = RenderContext::new(
-        (width * pixmap_settings.x_scale) as u16,
-        (height * pixmap_settings.y_scale) as u16,
-    );
-    let transform = Affine::scale_non_uniform(
-        pixmap_settings.x_scale as f64,
-        pixmap_settings.y_scale as f64,
-    ) * page.initial_transform(true).to_kurbo();
+    let (width, height, transform) = pixmap_settings.target(page);
+    let mut ctx = RenderContext::new(width, height);
     render_into(
         page,
         cache,
@@ -429,15 +461,8 @@ impl<'a, 'c> PageJob<'a, 'c> {
         render_settings: &RenderSettings,
         pixmap_settings: &PixmapSettings,
     ) -> Self {
-        let (width, height) = page.render_dimensions();
-        let mut ctx = RenderContext::new(
-            (width * pixmap_settings.x_scale) as u16,
-            (height * pixmap_settings.y_scale) as u16,
-        );
-        let transform = Affine::scale_non_uniform(
-            pixmap_settings.x_scale as f64,
-            pixmap_settings.y_scale as f64,
-        ) * page.initial_transform(true).to_kurbo();
+        let (width, height, transform) = pixmap_settings.target(page);
+        let mut ctx = RenderContext::new(width, height);
         let render_settings = RenderSettings {
             background: pixmap_settings.bg_color,
             ..*render_settings
@@ -650,6 +675,7 @@ pub fn render_pdf(
                     x_scale: scale,
                     y_scale: scale,
                     bg_color: WHITE,
+                    window: None,
                 },
             );
 

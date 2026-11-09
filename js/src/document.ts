@@ -201,6 +201,24 @@ export type PdfRenderOptions = {
   width: number;
   /** Default 4096. May be Infinity, to fit the width alone. A render is capped at 16,384 px a side and 64 Mpx. */
   maxHeight?: number;
+  /**
+   * Draws only this part of the page: x, y, width, height in points in the viewer frame, as text and
+   * annotation boxes are (top-left origin, `/Rotate` and the crop box applied). The bitmap holds the
+   * pixels of the whole page's bitmap at the scale `width` and `maxHeight` give that this covers,
+   * grown out to whole pixels and cut to the page, and says where they are. With a region the limits
+   * are on the region's bitmap, not the page's, and `width` may be up to 262,144.
+   */
+  region?: PdfBox;
+};
+
+/** A render of a region: where its pixels are in the whole page's bitmap at that scale. */
+export type PdfRegionBitmap = PdfBitmap & {
+  /** The bitmap's top-left pixel, in the whole page's bitmap. */
+  x: number;
+  y: number;
+  /** The whole page's bitmap's size at this scale: what `render` without a region and its limits would give. */
+  pageWidth: number;
+  pageHeight: number;
 };
 
 export type PdfRenderAsyncOptions = PdfRenderOptions & {
@@ -220,6 +238,51 @@ export type PdfBitmap = {
    * redrawn under them), so past that those groups are drawn as if isolated.
    */
   truncated: boolean;
+};
+
+/** Where a link in this file goes: a page, and the place on it in that page's viewer frame. */
+export type PdfDestination = {
+  /** The page's index, or -1 if it goes nowhere in this file. */
+  page: number;
+  /**
+   * How to show the page, as the file names it: "XYZ", "Fit", "FitH", "FitV", "FitR", "FitB", "FitBH",
+   * "FitBV"; null if it names none.
+   */
+  view: string | null;
+  /**
+   * The point to bring to the window's top-left, in points in the target page's viewer frame
+   * (top-left origin, its `/Rotate` and crop box applied). null for a coordinate the destination leaves
+   * as it was; under a quarter turn, the page's `left` is the viewer's `y`.
+   */
+  x: number | null;
+  y: number | null;
+  /** "XYZ"'s zoom, 1 for 100%; null to leave it as it was. */
+  zoom: number | null;
+  /** "FitR"'s rectangle, in the target page's viewer frame; null for any other view. */
+  box: PdfBox | null;
+};
+
+/** What a link does. Another file or a program is reported, never followed. */
+export type PdfLinkTarget =
+  | { kind: "uri"; uri: string }
+  /** A `GoTo` action or the link's `/Dest`, named destinations resolved. */
+  | { kind: "page"; destination: PdfDestination }
+  /** `GoToR`: a destination in another file, by name or by page number there. */
+  | { kind: "remote"; file: string; name: string | null; page: number | null }
+  /** `Launch`: a file or program. */
+  | { kind: "launch"; file: string }
+  /** Any other action by its `/S` ("JavaScript", "SubmitForm", ...); a `Named` action's `/N` ("NextPage", ...) is `name`. */
+  | { kind: "action"; action: string; name: string | null }
+  /** No action and no destination. */
+  | { kind: "none" };
+
+/** A `/Link` annotation and where it goes. */
+export type PdfLink = {
+  /** Its index in what `annotations` returns for the page. */
+  annotation: number;
+  /** Its `/Rect` in the viewer frame, as its annotation's `box`. */
+  box: PdfBox;
+  target: PdfLinkTarget;
 };
 
 export const ANNOT_SUBTYPE = {
@@ -269,11 +332,18 @@ export interface PdfDocument {
   };
   objects(index: number): PdfPageObjects;
   annotations(index: number): PdfAnnotation[];
+  /**
+   * The page's links, in the order `annotations` lists them, and where each goes. Loads drawing's
+   * part of the wasm, as `objects` does.
+   */
+  links(index: number): PdfLink[];
+  render(index: number, options: PdfRenderOptions & { region: PdfBox }): PdfRegionBitmap;
   render(index: number, options: PdfRenderOptions): PdfBitmap;
   /**
    * The same pixels as `render`, giving the thread back between slices, and stoppable with a
    * signal. The last step, rasterizing, is one piece: about a third of a heavy page's time.
    */
+  renderAsync(index: number, options: PdfRenderAsyncOptions & { region: PdfBox }): Promise<PdfRegionBitmap>;
   renderAsync(index: number, options: PdfRenderAsyncOptions): Promise<PdfBitmap>;
   close(): void;
   [Symbol.dispose](): void;
@@ -281,6 +351,41 @@ export interface PdfDocument {
 
 const DEFAULT_MAX_HEIGHT = 4096;
 const MAX_DIMENSION = 16_384;
+/** With a region, the whole page's bitmap may be up to this wide. */
+const MAX_REGION_DIMENSION = 262_144;
+
+/** `width`, `maxHeight` and the region as the engine takes them (NaNs for none), or a RangeError. */
+function renderArgs(options: PdfRenderOptions): [number, number, number, number, number, number] {
+  const maxHeight = options.maxHeight ?? DEFAULT_MAX_HEIGHT;
+  const { region } = options;
+  const most = region ? MAX_REGION_DIMENSION : MAX_DIMENSION;
+  if (!(options.width > 0 && options.width <= most) || !(maxHeight > 0)) {
+    throw new RangeError(
+      region
+        ? `with a region, render width must be in 1..${MAX_REGION_DIMENSION} and maxHeight above 0`
+        : `render width must be in 1..${MAX_DIMENSION} and maxHeight above 0`
+    );
+  }
+  if (!region) {
+    return [options.width, maxHeight, Number.NaN, Number.NaN, Number.NaN, Number.NaN];
+  }
+  const { x, y, width, height } = region;
+  if (![x, y, width, height].every((v) => typeof v === "number" && Number.isFinite(v)) || !(width > 0 && height > 0)) {
+    throw new RangeError("a render's region needs finite x and y, and width and height above 0");
+  }
+  return [options.width, maxHeight, x, y, width, height];
+}
+
+/** A rendered page as `render` returns it: with a region, where it is on the page. */
+function bitmapOf(page: Glue.RenderedPage, region: boolean): PdfBitmap | PdfRegionBitmap {
+  const bitmap: PdfBitmap = {
+    width: page.width,
+    height: page.height,
+    truncated: page.truncated,
+    rgba: page.takeRgba(),
+  };
+  return region ? { ...bitmap, x: page.x, y: page.y, pageWidth: page.pageWidth, pageHeight: page.pageHeight } : bitmap;
+}
 
 export type Instance = {
   glue: ReturnType<typeof createGlue>;
@@ -431,6 +536,41 @@ function toAnnotations(a: Glue.Annotations): PdfAnnotation[] {
     }
     return out;
   });
+}
+
+/** One link as the engine lists it: see `links` in wasm.rs. */
+type LinkEntry = [
+  number, number, number, number, number,
+  "none" | "uri" | "page" | "remote" | "launch" | "action", string,
+  number, string | null, number, number, number, number, number, number, number,
+  string | null,
+];
+
+function toLink([annotation, x, y, width, height, kind, text, page, view, destX, destY, zoom, rx, ry, rw, rh, name]: LinkEntry): PdfLink {
+  const number = (v: number) => (Number.isNaN(v) ? null : v);
+  const target: PdfLinkTarget =
+    kind === "uri"
+      ? { kind, uri: text }
+      : kind === "page"
+        ? {
+            kind,
+            destination: {
+              page,
+              view,
+              x: number(destX),
+              y: number(destY),
+              zoom: number(zoom),
+              box: Number.isNaN(rx) ? null : { x: rx, y: ry, width: rw, height: rh },
+            },
+          }
+        : kind === "remote"
+          ? { kind, file: text, name, page: page < 0 ? null : page }
+          : kind === "launch"
+            ? { kind, file: text }
+            : kind === "action"
+              ? { kind, action: text, name }
+              : { kind: "none" };
+  return { annotation, box: { x, y, width, height }, target };
 }
 
 const DEFAULT_SLICE_MS = 8;
@@ -596,6 +736,13 @@ export class RectoDocument implements PdfDocument {
     return this.#call(() => toAnnotations(this.#doc.annotations(index)));
   }
 
+  links(index: number): PdfLink[] {
+    this.#check(index);
+    // A viewer's call: its code is in drawing's part, so text alone downloads none of it.
+    this.#needsRender();
+    return this.#call(() => (this.#doc.links(index) as LinkEntry[]).map(toLink));
+  }
+
   scan(index: number) {
     this.#check(index);
     this.#needsRender();
@@ -618,43 +765,24 @@ export class RectoDocument implements PdfDocument {
     );
   }
 
+  render(index: number, options: PdfRenderOptions & { region: PdfBox }): PdfRegionBitmap;
+  render(index: number, options: PdfRenderOptions): PdfBitmap;
   render(index: number, options: PdfRenderOptions): PdfBitmap {
     this.#check(index);
-    const maxHeight = options.maxHeight ?? DEFAULT_MAX_HEIGHT;
-    if (
-      !(options.width > 0 && options.width <= MAX_DIMENSION) ||
-      !(maxHeight > 0)
-    ) {
-      throw new RangeError(
-        `render width must be in 1..${MAX_DIMENSION} and maxHeight above 0`
-      );
-    }
+    const args = renderArgs(options);
     this.#needsRender();
-    return this.#call(() =>
-      consume(this.#doc.render(index, options.width, maxHeight), (page) => ({
-        width: page.width,
-        height: page.height,
-        truncated: page.truncated,
-        rgba: page.takeRgba(),
-      }))
-    );
+    return this.#call(() => consume(this.#doc.render(index, ...args), (page) => bitmapOf(page, options.region !== undefined)));
   }
 
+  renderAsync(index: number, options: PdfRenderAsyncOptions & { region: PdfBox }): Promise<PdfRegionBitmap>;
+  renderAsync(index: number, options: PdfRenderAsyncOptions): Promise<PdfBitmap>;
   async renderAsync(index: number, options: PdfRenderAsyncOptions): Promise<PdfBitmap> {
     this.#check(index);
-    const maxHeight = options.maxHeight ?? DEFAULT_MAX_HEIGHT;
-    if (
-      !(options.width > 0 && options.width <= MAX_DIMENSION) ||
-      !(maxHeight > 0)
-    ) {
-      throw new RangeError(
-        `render width must be in 1..${MAX_DIMENSION} and maxHeight above 0`
-      );
-    }
+    const args = renderArgs(options);
     this.#needsRender();
     const instance = this.#instance;
     const sliceMs = options.sliceMs ?? DEFAULT_SLICE_MS;
-    const task = this.#call(() => this.#doc.renderTask(index, options.width, maxHeight));
+    const task = this.#call(() => this.#doc.renderTask(index, ...args));
     const stopIfAsked = () => {
       if (options.signal?.aborted) {
         throw new PdfError("aborted", "the signal was aborted", options.signal.reason);
@@ -677,14 +805,7 @@ export class RectoDocument implements PdfDocument {
       }
       await nextTask();
       stopIfAsked();
-      return this.#call(() =>
-        consume(task.finish(), (page) => ({
-          width: page.width,
-          height: page.height,
-          truncated: page.truncated,
-          rgba: page.takeRgba(),
-        }))
-      );
+      return this.#call(() => consume(task.finish(), (page) => bitmapOf(page, options.region !== undefined)));
     } finally {
       if (!instance.dead && !instance.abandoned) {
         task.free();

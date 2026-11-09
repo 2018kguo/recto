@@ -19,14 +19,16 @@ pub struct PdfData {
     ensure: Option<Ensure>,
 }
 
-/// Makes `[start, end)` of a ranged file's bytes present (clamped to its length). False if a read
+/// Makes `[start, end)` of a ranged file's bytes present (clamped to its length), and if that
+/// fetches, everything up to the third offset as well, in the same fetch. False if a read
 /// failed: the rest of the range is still zeros, and nothing should scan them.
 #[cfg(feature = "std")]
-pub type Ensure = Arc<dyn Fn(usize, usize) -> bool + Send + Sync>;
-/// Makes `[start, end)` of a ranged file's bytes present (clamped to its length). False if a read
+pub type Ensure = Arc<dyn Fn(usize, usize, usize) -> bool + Send + Sync>;
+/// Makes `[start, end)` of a ranged file's bytes present (clamped to its length), and if that
+/// fetches, everything up to the third offset as well, in the same fetch. False if a read
 /// failed: the rest of the range is still zeros, and nothing should scan them.
 #[cfg(not(feature = "std"))]
-pub type Ensure = Arc<dyn Fn(usize, usize) -> bool>;
+pub type Ensure = Arc<dyn Fn(usize, usize, usize) -> bool>;
 
 impl PdfData {
     /// recto: a file whose bytes are fetched on first use. `data` is the whole
@@ -46,10 +48,20 @@ impl PdfData {
         self.ensure.is_some()
     }
 
+
     #[inline]
     pub(crate) fn ensure(&self, start: usize, end: usize) -> bool {
+        self.ensure_ahead(start, end, end)
+    }
+
+    /// recto: `ensure`, and if that has to fetch, up to `ahead` along with it: what's likely read
+    /// next, for no more round trips than the fetch already costs.
+    pub(crate) fn ensure_ahead(&self, start: usize, end: usize, ahead: usize) -> bool {
         match &self.ensure {
-            Some(ensure) => ensure(start, end.min(self.as_ref().len())),
+            Some(ensure) => {
+                let len = self.as_ref().len();
+                ensure(start, end.min(len), ahead.max(end).min(len))
+            }
             None => true,
         }
     }

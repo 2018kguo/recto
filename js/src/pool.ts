@@ -10,10 +10,13 @@
 import type {
   PdfAnnotation,
   PdfBitmap,
+  PdfBox,
+  PdfLink,
   PdfOutlineItem,
   PdfPageInfo,
   PdfPageObjects,
   PdfPageText,
+  PdfRegionBitmap,
   PdfRenderOptions,
 } from "./document.ts";
 import { PdfError, type PdfErrorCode } from "./errors.ts";
@@ -37,8 +40,10 @@ export interface PdfPoolDocument {
   text(index: number): Promise<PdfPageText>;
   objects(index: number): Promise<PdfPageObjects>;
   annotations(index: number): Promise<PdfAnnotation[]>;
+  links(index: number): Promise<PdfLink[]>;
   outline(): Promise<PdfOutlineItem[]>;
   /** Takes no `signal`: a call that's running can't be stopped. */
+  render(index: number, options: PdfRenderOptions & { region: PdfBox }): Promise<PdfRegionBitmap>;
   render(index: number, options: PdfRenderOptions): Promise<PdfBitmap>;
   /** Frees it on every thread, and fails its calls still waiting with `closed`. */
   close(): Promise<void>;
@@ -317,15 +322,17 @@ class Pool implements PdfPool {
       text: (index) => call("text", index) as Promise<PdfPageText>,
       objects: (index) => call("objects", index) as Promise<PdfPageObjects>,
       annotations: (index) => call("annotations", index) as Promise<PdfAnnotation[]>,
+      links: (index) => call("links", index) as Promise<PdfLink[]>,
       outline: () => call("outline") as Promise<PdfOutlineItem[]>,
-      render: (index, renderOptions) => {
+      render: ((index: number, renderOptions: PdfRenderOptions) => {
         if ((renderOptions as { signal?: unknown } | undefined)?.signal) {
           return Promise.reject(
             new TypeError("a pool's render takes no signal: a call that's running can't be stopped. pool.close() ends all of them.")
           );
         }
-        return call("render", index, { width: renderOptions?.width, maxHeight: renderOptions?.maxHeight }) as Promise<PdfBitmap>;
-      },
+        const { width, maxHeight, region } = renderOptions ?? {};
+        return call("render", index, region === undefined ? { width, maxHeight } : { width, maxHeight, region }) as Promise<PdfBitmap>;
+      }) as PdfPoolDocument["render"],
       close,
       [Symbol.asyncDispose]: close,
     };

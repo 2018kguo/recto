@@ -462,7 +462,8 @@ test("totalTimeoutMs bounds the whole read, a stalled round included", async () 
     await using doc = await engine.openRanged(slow.url, { totalTimeoutMs: 400 });
     await sleep(500);
     const before = slow.served().requests;
-    assert.throws(() => doc.text(39), hasCode("timeout"));
+    // A page in the middle: the first round's head and tail hold the ends.
+    assert.throws(() => doc.text(20), hasCode("timeout"));
     assert.equal(slow.served().requests, before);
   } finally {
     await slow.close();

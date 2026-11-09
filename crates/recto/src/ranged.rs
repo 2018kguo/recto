@@ -6,8 +6,10 @@
 use hayro::hayro_syntax::PdfData;
 use std::sync::{Arc, Mutex};
 
-/// Copies `out.len()` bytes at the offset into `out`; false when they could not be read.
-pub type Fill = Box<dyn Fn(usize, &mut [u8]) -> bool + Send + Sync>;
+/// Copies `out.len()` bytes at the offset into `out`; false when they could not be read. If that
+/// has to fetch, the last argument is how many bytes past `out` the fetch may take along: what's
+/// likely read next, for no more round trips.
+pub type Fill = Box<dyn Fn(usize, &mut [u8], usize) -> bool + Send + Sync>;
 
 /// The most one `fill` call asks for.
 const MAX_FILL: usize = 1 << 20;
@@ -59,8 +61,8 @@ fn zeroed(len: usize) -> Option<*mut u8> {
 }
 
 impl Ranged {
-    /// False if a read failed.
-    fn ensure(&self, start: usize, end: usize) -> bool {
+    /// False if a read failed. A fill that has to fetch may take bytes up to `ahead` along.
+    fn ensure(&self, start: usize, end: usize, ahead: usize) -> bool {
         if start >= end {
             return true;
         }
@@ -83,7 +85,7 @@ impl Ranged {
             let (a, b) = (first * self.chunk, (c * self.chunk).min(self.len));
             let out = unsafe { std::slice::from_raw_parts_mut(self.ptr.add(a), b - a) };
             // A failed read leaves zeros; the host fails the call that made it.
-            if !(self.fill)(a, out) {
+            if !(self.fill)(a, out, ahead.saturating_sub(b)) {
                 return false;
             }
             held[first..c].fill(true);
@@ -103,7 +105,7 @@ pub fn data(len: usize, chunk: usize, fill: Fill) -> Option<PdfData> {
         fill,
     });
     let ensure = ranged.clone();
-    Some(PdfData::ranged(ranged, Arc::new(move |a, b| ensure.ensure(a, b))))
+    Some(PdfData::ranged(ranged, Arc::new(move |a, b, ahead| ensure.ensure(a, b, ahead))))
 }
 
 #[cfg(test)]
@@ -141,7 +143,7 @@ mod tests {
     ) -> Result<Document, crate::EngineError> {
         let source = bytes.clone();
         let middle = 4096..PADDING / 2;
-        let fill = move |offset: usize, out: &mut [u8]| {
+        let fill = move |offset: usize, out: &mut [u8], _ahead: usize| {
             let touches = offset < middle.end && offset + out.len() > middle.start;
             if fail && touches {
                 failed.fetch_add(1, Ordering::Relaxed);
@@ -174,7 +176,7 @@ mod tests {
     fn an_open_stops_reading_at_the_first_failure() {
         let calls = Arc::new(AtomicUsize::new(0));
         let counted = calls.clone();
-        let fill = move |_: usize, _: &mut [u8]| {
+        let fill = move |_: usize, _: &mut [u8], _: usize| {
             counted.fetch_add(1, Ordering::Relaxed);
             false
         };
