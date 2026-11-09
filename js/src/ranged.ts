@@ -92,11 +92,18 @@ const TAIL_CHUNKS = 2;
  */
 const MAX_FILE_BYTES = 3584 * 1024 * 1024;
 
-type Range = { start: number; end: number };
+/**
+ * Bytes `start..end`. With `yieldTail`, read no further than that many bytes before the file's
+ * end, where a suffix asked for beside it starts, so no byte comes twice.
+ */
+type Range = { start: number; end: number; yieldTail?: number };
 /** The file's last `suffix` bytes (`bytes=-n`), asked for before its size is known. */
 type Suffix = { suffix: number };
 type Request = Range | Suffix;
-type Answer = { start: number; bytes: Uint8Array; length: number; etag: string | null; status: number };
+/** `received`: the bytes read off the response, `bytes` and any read past it. */
+type Answer = { start: number; bytes: Uint8Array; length: number; etag: string | null; status: number; received: number };
+/** Part of a chunk: what a range that doesn't start or end on a boundary brought of it. */
+type Piece = { start: number; bytes: Uint8Array };
 /**
  * Fetches `requests` in parallel; `limit` is how many bytes may still arrive. A range that
  * fails throws. A suffix that isn't answered as one (a server that ignores or refuses it)
@@ -111,6 +118,8 @@ class RangeLoader {
   readonly chunkBytes: number;
   /** Fetched chunks by chunk number (a flat array, sized once the length is known). */
   #chunks: (Uint8Array | undefined)[] = [];
+  /** A chunk's start or end, by chunk number, until the rest of it arrives. */
+  #pieces = new Map<number, Piece[]>();
   /** Set once a fetch failed; every later read fails and every call throws it. */
   failure: PdfError | null = null;
   #bytesFetched = 0;
@@ -169,14 +178,20 @@ class RangeLoader {
 
   /** The same, through `fetchAsync` when there is one: before the parse, a browser need not block. */
   async #fetchChunksAsync(firstChunk: number, endChunk: number, fetchAsync: FetchAsync | null): Promise<void> {
-    if (!fetchAsync) {
-      this.fetchChunks(firstChunk, endChunk);
+    await this.#fetchRunsAsync(this.#missing(firstChunk, endChunk), fetchAsync);
+  }
+
+  async #fetchRunsAsync(runs: Range[], fetchAsync: FetchAsync | null): Promise<void> {
+    if (runs.length === 0) {
       return;
     }
-    const runs = this.#missing(firstChunk, endChunk);
-    if (runs.length > 0) {
-      this.#absorb(await this.#round(runs, (limit, timeoutMs, passesTotal) => this.#timedAsync(passesTotal, fetchAsync(runs, timeoutMs, limit))));
-    }
+    this.#absorb(
+      await this.#round(runs, (limit, timeoutMs, passesTotal) =>
+        fetchAsync
+          ? this.#timedAsync(passesTotal, fetchAsync(runs, timeoutMs, limit))
+          : this.#timed(passesTotal, () => this.#fetch(runs, timeoutMs, limit))
+      )
+    );
   }
 
   /**
@@ -185,26 +200,29 @@ class RangeLoader {
    * a server that doesn't answer the suffix gets the tail by offset in a round of its own.
    */
   async begin(fetchAsync: FetchAsync | null): Promise<void> {
-    const head: Range = { start: 0, end: HEAD_CHUNKS * this.chunkBytes };
-    const requests: Request[] = [head, { suffix: TAIL_CHUNKS * this.chunkBytes }];
-    const [first, tail] = await this.#round(requests, (limit, timeoutMs, passesTotal) =>
+    const tail = TAIL_CHUNKS * this.chunkBytes;
+    // The head stops where the suffix starts, in a file shorter than the two.
+    const head: Range = { start: 0, end: HEAD_CHUNKS * this.chunkBytes, yieldTail: tail };
+    const requests: Request[] = [head, { suffix: tail }];
+    const answers = await this.#round(requests, (limit, timeoutMs, passesTotal) =>
       fetchAsync
         ? this.#timedAsync(passesTotal, fetchAsync(requests, timeoutMs, limit))
         : this.#timed(passesTotal, () => this.#fetch(requests, timeoutMs, limit))
     );
-    // A range is never null: it throws. The tail is counted even where the head held it all, but
-    // not past maxBytes: then it's dropped, and asking for it by offset fails as it always did.
-    this.#absorb([first ?? null]);
-    if (tail && this.#bytesFetched + tail.bytes.byteLength <= this.#maxBytes) {
-      this.#absorb([tail]);
-    }
+    this.#absorb(answers);
     if (this.length <= 0) {
       throw new PdfError("invalid-file", "the file is empty");
     }
-    // A file the head covered is read whole; any other one gets its tail.
+    if (this.#bytesFetched > this.#maxBytes) {
+      throw tooLarge(this.#maxBytes);
+    }
+    // Without the suffix's answer, the head and the last chunk by their offsets, as one round.
     const totalChunks = Math.ceil(this.length / this.chunkBytes);
+    await this.#fetchRunsAsync(
+      [...this.#missing(0, Math.min(HEAD_CHUNKS, totalChunks)), ...this.#missing(Math.max(HEAD_CHUNKS, totalChunks - 1), totalChunks)],
+      fetchAsync
+    );
     if (totalChunks > HEAD_CHUNKS) {
-      await this.#fetchChunksAsync(Math.max(HEAD_CHUNKS, totalChunks - 1), totalChunks, fetchAsync);
       // The tail names the last cross-reference section (`startxref`). Fetch all of it in one
       // round, rather than letting the parser discover it a chunk at a time.
       const xrefAt = this.startxref();
@@ -214,18 +232,29 @@ class RangeLoader {
     }
   }
 
-  /** The runs of chunks in `firstChunk..endChunk` not held yet. */
+  /**
+   * The runs of bytes in chunks `firstChunk..endChunk` not held yet. A chunk a range brought
+   * the start or end of needs only the rest.
+   */
   #missing(firstChunk: number, endChunk: number): Range[] {
     const runs: Range[] = [];
     for (let chunk = firstChunk; chunk < endChunk; chunk++) {
       if (this.#chunks[chunk]) {
         continue;
       }
-      const start = chunk * this.chunkBytes;
-      const end =
+      let start = chunk * this.chunkBytes;
+      let end =
         this.length > 0
           ? Math.min(this.length, start + this.chunkBytes)
           : start + this.chunkBytes;
+      for (const piece of this.#pieces.get(chunk) ?? []) {
+        const pieceEnd = piece.start + piece.bytes.byteLength;
+        if (piece.start <= start) {
+          start = Math.max(start, pieceEnd);
+        } else {
+          end = Math.min(end, piece.start);
+        }
+      }
       const last = runs.at(-1);
       if (last && last.end === start) {
         last.end = end;
@@ -288,7 +317,7 @@ class RangeLoader {
         continue;
       }
       this.#requests += 1;
-      this.#bytesFetched += answer.bytes.byteLength;
+      this.#bytesFetched += answer.received;
       if (this.length > 0 && answer.length !== this.length) {
         throw new PdfError(
           "fetch-failed",
@@ -314,21 +343,47 @@ class RangeLoader {
   }
 
   #store(answer: Answer): void {
-    // A range starts on a chunk boundary (we asked for one); a suffix may not, and the part of
-    // a chunk before its first boundary isn't kept. Views, not copies.
-    const { bytes } = answer;
+    // Whole chunks are kept as views, not copies; a chunk the answer has only part of is kept
+    // as a piece until the rest arrives.
+    const { bytes, start } = answer;
     if (this.#chunks.length === 0) {
       this.#chunks = Array.from<Uint8Array | undefined>({
         length: Math.ceil(answer.length / this.chunkBytes),
       });
     }
-    const skip = (this.chunkBytes - (answer.start % this.chunkBytes)) % this.chunkBytes;
-    for (let at = skip; at < bytes.byteLength; at += this.chunkBytes) {
-      const chunk = (answer.start + at) / this.chunkBytes;
-      this.#chunks[chunk] ??= bytes.subarray(
-        at,
-        Math.min(bytes.byteLength, at + this.chunkBytes)
-      );
+    const end = start + bytes.byteLength;
+    for (let chunk = Math.floor(start / this.chunkBytes); chunk * this.chunkBytes < end; chunk++) {
+      if (this.#chunks[chunk]) {
+        continue;
+      }
+      const from = chunk * this.chunkBytes;
+      const to = Math.min(from + this.chunkBytes, answer.length);
+      const part = bytes.subarray(Math.max(from, start) - start, Math.min(to, end) - start);
+      if (from >= start && to <= end) {
+        this.#chunks[chunk] = part;
+        continue;
+      }
+      const pieces = this.#pieces.get(chunk) ?? [];
+      pieces.push({ start: Math.max(from, start), bytes: part });
+      pieces.sort((a, b) => a.start - b.start);
+      // Whole once its pieces meet end to end.
+      let at = from;
+      for (const piece of pieces) {
+        if (piece.start > at) {
+          break;
+        }
+        at = Math.max(at, piece.start + piece.bytes.byteLength);
+      }
+      if (at >= to) {
+        const whole = new Uint8Array(to - from);
+        for (const piece of pieces) {
+          whole.set(piece.bytes.subarray(0, Math.min(piece.bytes.byteLength, to - piece.start)), piece.start - from);
+        }
+        this.#chunks[chunk] = whole;
+        this.#pieces.delete(chunk);
+      } else {
+        this.#pieces.set(chunk, pieces);
+      }
     }
   }
 
@@ -483,9 +538,8 @@ function fetcherFor(source: string | Uint8Array): Fetch {
     const bytes = source;
     return (requests) =>
       requests.map((request) => {
-        const start = "suffix" in request ? Math.max(0, bytes.byteLength - request.suffix) : request.start;
-        const end = "suffix" in request ? bytes.byteLength : Math.min(request.end, bytes.byteLength);
-        return { start, bytes: bytes.subarray(start, end), length: bytes.byteLength, etag: null, status: 206 };
+        const { start, end } = asked(request, bytes.byteLength);
+        return { start, bytes: bytes.subarray(start, end), length: bytes.byteLength, etag: null, status: 206, received: end - start };
       });
   }
   const url = source;
@@ -512,6 +566,26 @@ function isNode(): boolean {
   return Boolean(globalThis.process?.getBuiltinModule?.("node:worker_threads"));
 }
 
+/** The bytes `request` asks for of a file of `length`, or of a range with `yieldTail`, those it reads. */
+function asked(request: Request, length: number): Range {
+  if ("suffix" in request) {
+    return { start: Math.max(0, length - request.suffix), end: length };
+  }
+  const end = Math.min(request.end, length);
+  return { start: request.start, end: request.yieldTail === undefined ? end : Math.min(end, Math.max(request.start, length - request.yieldTail)) };
+}
+
+/** How much of a 206 answer to `request` to read, from its total; past it is the suffix's. */
+function readsOf(request: Request, contentRange: string | null): { most: number; exact: boolean } {
+  const size = "suffix" in request ? request.suffix : request.end - request.start;
+  const total = Number(/\/(\d+)$/u.exec(contentRange?.trim() ?? "")?.[1] ?? Number.NaN);
+  if ("suffix" in request || request.yieldTail === undefined || !(total >= 0)) {
+    return { most: size, exact: false };
+  }
+  const most = Math.max(0, Math.min(size, asked(request, total).end - request.start));
+  return { most, exact: most < size };
+}
+
 function rangeHeader(request: Request): string {
   return "suffix" in request ? `bytes=-${request.suffix}` : `bytes=${request.start}-${request.end - 1}`;
 }
@@ -533,7 +607,8 @@ function answerOf(
   contentRange: string | null,
   etag: string | null,
   bytes: Uint8Array,
-  limit: number
+  limit: number,
+  received = bytes.byteLength
 ): Answer {
   if (status === 200 && !("suffix" in range)) {
     // The server ignored Range and sent the whole file: use it, while the budget allows.
@@ -543,7 +618,7 @@ function answerOf(
         `the server does not answer Range requests, and the whole file is past the ${limit} bytes left of maxBytes`
       );
     }
-    return { start: 0, bytes, length: bytes.byteLength, etag, status };
+    return { start: 0, bytes, length: bytes.byteLength, etag, status, received };
   }
   if (status !== 206) {
     throw new PdfError("fetch-failed", `the ranged read failed (HTTP ${status})`, undefined, status);
@@ -561,16 +636,16 @@ function answerOf(
   const start = Number(match[1]);
   const length = Number(match[2]);
   // A short or shifted answer (a proxy capping ranges) would store a partial chunk.
-  const asked = "suffix" in range ? { start: Math.max(0, length - range.suffix), end: length } : range;
-  if (start !== asked.start || bytes.byteLength !== Math.min(asked.end, length) - asked.start) {
+  const want = asked(range, length);
+  if (start !== want.start || bytes.byteLength !== want.end - want.start) {
     throw new PdfError(
       "fetch-failed",
-      `the server answered a different range than asked (asked ${asked.start}-${asked.end - 1}, got ${bytes.byteLength} bytes from ${start})`,
+      `the server answered a different range than asked (asked ${want.start}-${want.end - 1}, got ${bytes.byteLength} bytes from ${start})`,
       undefined,
       status
     );
   }
-  return { start, bytes, length, etag, status };
+  return { start, bytes, length, etag, status, received };
 }
 
 /** A suffix's answer, or null if it isn't one: the tail is then asked for by its offset. */
@@ -579,13 +654,14 @@ function suffixAnswerOf(
   status: number,
   contentRange: string | null,
   etag: string | null,
-  bytes: Uint8Array
+  bytes: Uint8Array,
+  received = bytes.byteLength
 ): Answer | null {
   if (status !== 206) {
     return null;
   }
   try {
-    return answerOf(suffix, status, contentRange, etag, bytes, Number.POSITIVE_INFINITY);
+    return answerOf(suffix, status, contentRange, etag, bytes, Number.POSITIVE_INFINITY, received);
   } catch {
     return null;
   }
@@ -633,80 +709,152 @@ function fetchOverXhr(url: string, ranges: Request[], timeoutMs: number, limit: 
 
 /**
  * The XMLHttpRequest path's answers and failures, from `fetch`, with a round's requests in
- * parallel. Used before the parse starts, when this thread may await.
+ * parallel. Used before the parse starts, when this thread may await. A suffix still out when the
+ * ranges are in gets as long again as they took, then counts as unanswered.
  */
 async function fetchOverFetch(url: string, requests: Request[], timeoutMs: number, limit: number): Promise<(Answer | null)[]> {
-  const controller = new AbortController();
+  const started = performance.now();
+  const controllers = requests.map(() => new AbortController());
   let timedOut = false;
   const timer = setTimeout(() => {
     timedOut = true;
-    controller.abort();
+    for (const controller of controllers) {
+      controller.abort();
+    }
   }, timeoutMs);
   const failure = (error: unknown) =>
     timedOut
       ? new PdfError("timeout", `the ranged read timed out after ${timeoutMs} ms`, error)
       : new PdfError("fetch-failed", NO_ANSWER, error);
+  const one = async (request: Request, signal: AbortSignal): Promise<Answer | null> => {
+    const suffix = "suffix" in request;
+    try {
+      const response = await fetch(url, { headers: { Range: rangeHeader(request) }, signal });
+      const contentRange = response.headers.get("Content-Range");
+      const etag = response.headers.get("ETag");
+      if (suffix && response.status !== 206) {
+        // Not a suffix: a whole file, or a refusal. Read none of it.
+        await response.body?.cancel();
+        return null;
+      }
+      if (response.status !== 206) {
+        // A whole file, used if it fits the budget: read no further than one byte past it.
+        const { bytes, received } = await readBody(response.body, limit + 1, false);
+        return answerOf(request, response.status, contentRange, etag, bytes, limit, received);
+      }
+      const { most, exact } = readsOf(request, contentRange);
+      const { bytes, received } = await readBody(response.body, exact ? most : most + 1, exact);
+      return suffix
+        ? suffixAnswerOf(request, response.status, contentRange, etag, bytes, received)
+        : answerOf(request, response.status, contentRange, etag, bytes, limit, received);
+    } catch (error) {
+      // A suffix never fails the round: the tail is then asked for by its offset.
+      if (suffix) {
+        return null;
+      }
+      throw error instanceof PdfError ? error : failure(error);
+    }
+  };
   try {
+    const ranges = Promise.all(requests.map((request, i) => ("suffix" in request ? null : one(request, controllers[i]!.signal))));
+    const suffixes = requests.map((request, i) => {
+      if (!("suffix" in request)) {
+        return null;
+      }
+      return one(request, controllers[i]!.signal);
+    });
+    const answers = await ranges;
+    const grace = suffixGrace(performance.now() - started);
     return await Promise.all(
-      requests.map(async (request): Promise<Answer | null> => {
-        let response: Response;
-        let bytes: Uint8Array;
-        try {
-          response = await fetch(url, { headers: { Range: rangeHeader(request) }, signal: controller.signal });
-          if ("suffix" in request && response.status !== 206) {
-            // Not a suffix: a whole file, or a refusal. Read none of it.
-            await response.body?.cancel();
-            return null;
-          }
-          bytes = "suffix" in request ? await upTo(response, request.suffix) : new Uint8Array(await response.arrayBuffer());
-          if (bytes.byteLength > ("suffix" in request ? request.suffix : Number.POSITIVE_INFINITY)) {
-            // Longer than asked: not a suffix.
-            return null;
-          }
-        } catch (error) {
-          if ("suffix" in request && !timedOut) {
-            return null;
-          }
-          throw failure(error);
+      requests.map(async (request, i) => {
+        const pending = suffixes[i];
+        if (!pending) {
+          return answers[i]!;
         }
-        const contentRange = response.headers.get("Content-Range");
-        const etag = response.headers.get("ETag");
-        return "suffix" in request
-          ? suffixAnswerOf(request, response.status, contentRange, etag, bytes)
-          : answerOf(request, response.status, contentRange, etag, bytes, limit);
+        let late: ReturnType<typeof setTimeout> | undefined;
+        const giveUp = new Promise<null>((resolve) => {
+          late = setTimeout(() => {
+            controllers[i]!.abort();
+            resolve(null);
+          }, grace);
+        });
+        try {
+          return await Promise.race([pending, giveUp]);
+        } finally {
+          clearTimeout(late);
+        }
       })
     );
   } finally {
     clearTimeout(timer);
     // A round that failed leaves nothing downloading.
-    controller.abort();
+    for (const controller of controllers) {
+      controller.abort();
+    }
   }
 }
 
-/** A body, read no further than one byte past `most`. */
-async function upTo(response: Response, most: number): Promise<Uint8Array> {
+/**
+ * How long a suffix may still take once the round's ranges are in, `took` after they went out:
+ * as long again, and at least a quarter second, since both went out together. Past it the tail
+ * is asked for by its offset, a round later, as a server that refuses suffixes gets it.
+ */
+function suffixGrace(took: number): number {
+  return Math.max(took, 250);
+}
+
+/**
+ * A body read to `most` bytes: exactly, by a reader that fills a buffer of that size where the
+ * stream has one, or past it by what its last part held. `received` counts all of it.
+ */
+async function readBody(body: ReadableStream<Uint8Array> | null, most: number, exact: boolean): Promise<{ bytes: Uint8Array; received: number }> {
+  if (!body || most === 0) {
+    await body?.cancel();
+    return { bytes: new Uint8Array(0), received: 0 };
+  }
+  if (exact) {
+    let reader: ReadableStreamBYOBReader | null = null;
+    try {
+      reader = body.getReader({ mode: "byob" });
+    } catch {
+      // Not a byte stream: read by parts below.
+    }
+    if (reader) {
+      let buffer = new ArrayBuffer(most);
+      let got = 0;
+      while (got < most) {
+        const { value, done } = await reader.read(new Uint8Array(buffer, got, most - got));
+        if (value) {
+          buffer = value.buffer as ArrayBuffer;
+          got += value.byteLength;
+        }
+        if (done) {
+          break;
+        }
+      }
+      await reader.cancel();
+      return { bytes: new Uint8Array(buffer, 0, got), received: got };
+    }
+  }
   const parts: Uint8Array[] = [];
   let size = 0;
-  const reader = response.body?.getReader();
-  while (reader) {
+  const reader = body.getReader();
+  while (size < most) {
     const { done, value } = await reader.read();
     if (done) {
       break;
     }
     parts.push(value);
     size += value.byteLength;
-    if (size > most) {
-      await reader.cancel();
-      break;
-    }
   }
+  await reader.cancel();
   const out = new Uint8Array(size);
   let at = 0;
   for (const part of parts) {
     out.set(part, at);
     at += part.byteLength;
   }
-  return out;
+  return { bytes: out.subarray(0, Math.min(size, most)), received: size };
 }
 
 // The fetcher thread: plain JS (eval), so it needs no loader or bundler entry. It answers
@@ -729,17 +877,54 @@ async function get(m, signal) {
   // A suffix answered with anything else (a whole file) isn't read.
   if (!response.ok || (m.suffix && response.status !== 206)) {
     if (response.body) await response.body.cancel();
-    return { ...reply, bytes: new ArrayBuffer(0) };
+    return { ...reply, bytes: new ArrayBuffer(0), received: 0 };
+  }
+  // A 206 is read as far as the range runs (see readsOf), and a byte past to catch a longer one;
+  // a whole file, to a byte past the limit.
+  let most = m.limit + 1;
+  let exact = false;
+  if (response.status === 206) {
+    const total = Number((reply.contentRange || "").trim().split("/").pop());
+    most = m.size;
+    if (m.yieldTail !== undefined && total >= 0) {
+      most = Math.max(0, Math.min(m.size, Math.min(m.end, Math.max(m.start, total - m.yieldTail)) - m.start));
+      exact = most < m.size;
+    }
+    if (!exact) most += 1;
+  }
+  const { bytes, received } = await readBody(response.body, most, exact);
+  if (response.status !== 206 && received > m.limit) return { ...reply, overLimit: true, bytes: new ArrayBuffer(0), received };
+  return { ...reply, bytes: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), received };
+}
+async function readBody(body, most, exact) {
+  if (!body || most === 0) {
+    if (body) await body.cancel();
+    return { bytes: new Uint8Array(0), received: 0 };
+  }
+  if (exact) {
+    let buffer = new ArrayBuffer(most);
+    let got = 0;
+    const reader = body.getReader({ mode: "byob" });
+    while (got < most) {
+      const { value, done } = await reader.read(new Uint8Array(buffer, got, most - got));
+      if (value) { buffer = value.buffer; got += value.byteLength; }
+      if (done) break;
+    }
+    await reader.cancel();
+    return { bytes: new Uint8Array(buffer, 0, got), received: got };
   }
   const parts = [];
   let size = 0;
-  for await (const part of response.body ?? []) {
-    size += part.byteLength;
-    if (size > m.limit) return { ...reply, overLimit: true, bytes: new ArrayBuffer(0) };
-    parts.push(part);
+  const reader = body.getReader();
+  while (size < most) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    parts.push(value);
+    size += value.byteLength;
   }
-  const { buffer, byteOffset, byteLength } = Buffer.concat(parts);
-  return { ...reply, bytes: buffer.slice(byteOffset, byteOffset + byteLength) };
+  await reader.cancel();
+  const all = Buffer.concat(parts);
+  return { bytes: all.subarray(0, Math.min(size, most)), received: size };
 }
 port.on("message", async (m) => {
   if (m.abort) { const c = controllers.get(m.id); if (c) c.abort(); return; }
@@ -768,6 +953,7 @@ type FetcherReply = {
   contentRange: string | null;
   etag: string | null;
   bytes: ArrayBuffer;
+  received: number;
   overLimit?: true;
   failed?: string;
 };
@@ -804,7 +990,10 @@ function fetchOverThread(
   limit: number
 ): (Answer | null)[] {
   const current = (fetcher ??= startFetcher());
-  const deadline = performance.now() + timeoutMs;
+  const started = performance.now();
+  const deadline = started + timeoutMs;
+  let suffixDeadline = Number.POSITIVE_INFINITY;
+  let expired = false;
   const pending = new Map<number, Request>();
   const order = new Map<Request, number>();
   for (const range of ranges) {
@@ -813,7 +1002,17 @@ function fetchOverThread(
     order.set(range, order.size);
     // A suffix's answer is read no further than the suffix: past it, it isn't one.
     const suffix = "suffix" in range;
-    current.port.postMessage({ id, url, range: rangeHeader(range), suffix, limit: suffix ? Math.min(range.suffix, limit) : limit });
+    current.port.postMessage({
+      id,
+      url,
+      range: rangeHeader(range),
+      suffix,
+      limit: suffix ? Math.min(range.suffix, limit) : limit,
+      size: suffix ? Math.min(range.suffix, limit) : range.end - range.start,
+      start: suffix ? 0 : range.start,
+      end: suffix ? 0 : range.end,
+      yieldTail: suffix ? undefined : range.yieldTail,
+    });
   }
   const answers: (Answer | null)[] = ranges.map(() => null);
   let failure: PdfError | null = null;
@@ -833,7 +1032,7 @@ function fetchOverThread(
       if ("suffix" in range) {
         answers[order.get(range)!] =
           reply.failed === undefined && !reply.overLimit
-            ? suffixAnswerOf(range, reply.status, reply.contentRange, reply.etag, new Uint8Array(reply.bytes))
+            ? suffixAnswerOf(range, reply.status, reply.contentRange, reply.etag, new Uint8Array(reply.bytes), reply.received)
             : null;
         continue;
       }
@@ -844,7 +1043,7 @@ function fetchOverThread(
         if (reply.overLimit) {
           throw tooLarge(limit);
         }
-        answers[order.get(range)!] = answerOf(range, reply.status, reply.contentRange, reply.etag, new Uint8Array(reply.bytes), limit);
+        answers[order.get(range)!] = answerOf(range, reply.status, reply.contentRange, reply.etag, new Uint8Array(reply.bytes), limit, reply.received);
       } catch (error) {
         failure ??= error as PdfError;
       }
@@ -852,16 +1051,30 @@ function fetchOverThread(
     if (pending.size === 0) {
       break;
     }
-    const remaining = deadline - performance.now();
-    if (remaining <= 0 || Atomics.wait(current.flag, 0, seen, remaining) === "timed-out") {
+    // Only suffixes left: they get a grace, then count as unanswered (suffixGrace).
+    const now = performance.now();
+    if (suffixDeadline === Number.POSITIVE_INFINITY && [...pending.values()].every((request) => "suffix" in request)) {
+      suffixDeadline = now + suffixGrace(now - started);
+    }
+    const until = Math.min(suffixDeadline, deadline);
+    if (now < until && Atomics.wait(current.flag, 0, seen, until - now) !== "timed-out") {
+      seen = Atomics.load(current.flag, 0);
+      continue;
+    }
+    if (expired) {
       for (const id of pending.keys()) {
         current.port.postMessage({ id, abort: true });
+      }
+      if ([...pending.values()].every((request) => "suffix" in request)) {
+        break; // the suffixes stay unanswered
       }
       throw new PdfError(
         "timeout",
         `the ranged read timed out after ${timeoutMs} ms. This thread is blocked while it waits, so a server running on the same thread can never answer; run the read on a worker thread.`
       );
     }
+    // Once more through what arrived, then give up.
+    expired = true;
     seen = Atomics.load(current.flag, 0);
   }
   if (failure) {

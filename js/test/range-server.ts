@@ -15,6 +15,7 @@ export type RangeServerMode =
   | "huge" // Claims 1.9 GiB, serving zeros: address space, not memory, to exhaust.
   | "no-content" // A 204.
   | "no-suffix" // Answers a suffix range (`bytes=-n`) with the whole file, as a 200; other ranges as asked.
+  | "suffix-stall" // Never answers a suffix range; other ranges as asked.
   | "stalled"; // Takes the request and never answers.
 
 export type RangeServer = {
@@ -31,7 +32,7 @@ const http = require("node:http");
 const { parentPort, workerData } = require("node:worker_threads");
 const { bytes, counters, mode, latencyMs } = workerData;
 const body = new Uint8Array(bytes);
-const MODES = ["range", "ignore", "forbidden", "short", "unknown-total", "changed", "replaced", "absurd-total", "huge", "stalled", "no-content", "no-suffix"];
+const MODES = ["range", "ignore", "forbidden", "short", "unknown-total", "changed", "replaced", "absurd-total", "huge", "stalled", "no-content", "no-suffix", "suffix-stall"];
 const HUGE = 1900 * 1024 * 1024;
 // Streams in pieces and counts only what was written, so a client that
 // drops a whole-file response after its headers (pdf.js probing for Range
@@ -57,6 +58,7 @@ const server = http.createServer((req, res) => {
     if (current === "forbidden") { res.writeHead(403).end("no"); return; }
     if (current === "no-content") { res.writeHead(204).end(); return; }
     const match = /bytes=(\\d*)-(\\d*)/u.exec(req.headers.range || "");
+    if (current === "suffix-stall" && match && match[1] === "") return;
     Atomics.add(counters, 1, 1);
     if (current === "ignore" || !match || (current === "no-suffix" && match[1] === "")) {
       send(res, 200, {}, body);
@@ -93,7 +95,7 @@ server.listen(0, "127.0.0.1", () => parentPort.postMessage(server.address().port
 parentPort.on("message", () => { server.closeAllConnections(); server.close(() => process.exit(0)); });
 `;
 
-const MODES: RangeServerMode[] = ["range", "ignore", "forbidden", "short", "unknown-total", "changed", "replaced", "absurd-total", "huge", "stalled", "no-content", "no-suffix"];
+const MODES: RangeServerMode[] = ["range", "ignore", "forbidden", "short", "unknown-total", "changed", "replaced", "absurd-total", "huge", "stalled", "no-content", "no-suffix", "suffix-stall"];
 
 export async function startRangeServer(
   bytes: Uint8Array,

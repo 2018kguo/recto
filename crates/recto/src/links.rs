@@ -6,7 +6,7 @@ use crate::annots::{ANNOT_LINK, subtype_number, text_string, viewer_box};
 use crate::outline::Destinations;
 use hayro::hayro_interpret::util::TransformExt;
 use hayro::hayro_syntax::Pdf;
-use hayro::hayro_syntax::object::{Array, Dict, MaybeRef, Name, Null, Object, ObjectIdentifier, String as PdfString};
+use hayro::hayro_syntax::object::{Dict, MaybeRef, Name, Null, Object, String as PdfString};
 use hayro::hayro_syntax::page::{Page, Rotation};
 use hayro::kurbo::{Affine, Point, Rect};
 
@@ -138,7 +138,9 @@ fn destination<'a>(dests: &mut Destinations<'a>, pdf: &'a Pdf, dest: Object<'a>)
     let Some(array) = dests.explicit(dest, 0) else {
         return Destination::nowhere();
     };
-    let page = ranged_page(pdf, &array).unwrap_or_else(|| dests.page_of_array(&array));
+    // The outline's page map, built once a call however many links there are, so a link goes
+    // where a bookmark to the same place does, whole or ranged.
+    let page = dests.page_of_array(&array);
     // By position: a resolving iterator would skip an entry that names nothing, the page first.
     let mut entries = array.raw_iter().skip(1).map(|entry| match entry {
         MaybeRef::NotRef(object) => object,
@@ -190,52 +192,76 @@ fn destination<'a>(dests: &mut Destinations<'a>, pdf: &'a Pdf, dest: Object<'a>)
     out
 }
 
-/// A ranged file's page for a destination that names its page object: found up its `/Parent`
-/// chain, counting the pages before it, and checked against the page at that index, so that
-/// only that chain is read and not the whole tree. None for anything else, which the outline's
-/// page map then finds.
-fn ranged_page(pdf: &Pdf, array: &Array<'_>) -> Option<i32> {
-    let xref = pdf.xref();
-    if !xref.is_ranged() {
-        return None;
-    }
-    let Some(MaybeRef::Ref(first)) = array.raw_iter().next() else {
-        return None;
-    };
-    let id: ObjectIdentifier = first.into();
-    let mut node = xref.get::<Dict<'_>>(id)?;
-    let mut current = id;
-    let mut index: usize = 0;
-    for _ in 0..64 {
-        let Some(parent_ref) = node.get_ref(b"Parent") else {
-            break;
-        };
-        let parent = node.get::<Dict<'_>>(b"Parent")?;
-        let kids: Vec<MaybeRef<Object<'_>>> = parent.get::<Array<'_>>(b"Kids")?.raw_iter().collect();
-        let at = kids.iter().position(|kid| matches!(kid, MaybeRef::Ref(r) if ObjectIdentifier::from(*r) == current))?;
-        // As the ranged descent takes it: a wide node with a kid per page holds one page each.
-        if kids.len() > 32 && parent.get::<i64>(b"Count") == Some(kids.len() as i64) {
-            index += at;
-        } else {
-            for kid in &kids[..at] {
-                let kid = match kid {
-                    MaybeRef::Ref(r) => xref.get::<Dict<'_>>((*r).into()),
-                    MaybeRef::NotRef(Object::Dict(d)) => Some(d.clone()),
-                    MaybeRef::NotRef(_) => None,
-                };
-                index += match kid {
-                    Some(kid) if kid.get::<Name<'_>>(b"Type").as_deref() == Some(&b"Pages"[..]) => {
-                        usize::try_from(kid.get::<i64>(b"Count")?).ok()?
-                    }
-                    Some(_) => 1,
-                    None => 0,
-                };
-            }
+#[cfg(test)]
+mod tests {
+    use crate::{Document, Target};
+    use hayro::hayro_syntax::xref::object_reads;
+
+    /// `pages` pages in one node whose `/Count` is off by one, so nothing can take the node's kids
+    /// as a page each; page 0 links to the last `links` pages.
+    fn wide(pages: usize, links: usize) -> Vec<u8> {
+        let mut objects = vec![
+            "<</Type/Catalog/Pages 2 0 R>>".to_string(),
+            format!("<</Type/Pages/Count {}/Kids[{}]>>", pages + 1, (0..pages).map(|i| format!("{} 0 R", i + 3)).collect::<Vec<_>>().join(" ")),
+        ];
+        let annots: String = (0..links)
+            .map(|i| format!("<</Type/Annot/Subtype/Link/Rect[0 0 1 1]/Dest[{} 0 R/Fit]>>", pages + 2 - i))
+            .collect();
+        for i in 0..pages {
+            let extra = if i == 0 { format!("/Annots[{annots}]") } else { String::new() };
+            objects.push(format!("<</Type/Page/Parent 2 0 R/MediaBox[0 0 10 10]{extra}>>"));
         }
-        current = parent_ref.into();
-        node = parent;
+        let mut out = b"%PDF-1.7\n".to_vec();
+        let mut offsets = vec![];
+        for (i, body) in objects.iter().enumerate() {
+            offsets.push(out.len());
+            out.extend(format!("{} 0 obj\n{body}\nendobj\n", i + 1).bytes());
+        }
+        let xref = out.len();
+        out.extend(format!("xref\n0 {}\n0000000000 65535 f \n", objects.len() + 1).bytes());
+        for at in offsets {
+            out.extend(format!("{at:010} 00000 n \n").bytes());
+        }
+        out.extend(format!("trailer\n<</Size {}/Root 1 0 R>>\nstartxref\n{xref}\n%%EOF\n", objects.len() + 1).bytes());
+        out
     }
-    let index = i32::try_from(index).ok()?;
-    let found = pdf.pages().get(index as usize)?;
-    (found.raw().obj_id() == Some(id)).then_some(index)
+
+    fn ranged(bytes: Vec<u8>) -> Document {
+        let len = bytes.len();
+        let fill = move |offset: usize, out: &mut [u8], _: usize| {
+            out.copy_from_slice(&bytes[offset..offset + out.len()]);
+            true
+        };
+        Document::open_ranged(len, 1024, Box::new(fill), "").unwrap()
+    }
+
+    /// Objects read by `links(0)`, and the pages its links go to.
+    fn reads(doc: &Document) -> (usize, Vec<i32>) {
+        let before = object_reads();
+        let pages = doc
+            .links(0)
+            .unwrap()
+            .into_iter()
+            .map(|l| match l.target {
+                Target::Page(d) => d.page,
+                other => panic!("{other:?}"),
+            })
+            .collect();
+        (object_reads() - before, pages)
+    }
+
+    // A link's page is found once a call: links to many pages cost what one does, whole or ranged,
+    // and not a walk of the tree each.
+    #[test]
+    fn links_to_many_pages_read_the_tree_once() {
+        let pages = 4000;
+        for open in [|b: Vec<u8>| Document::open(b, "").unwrap(), ranged as fn(Vec<u8>) -> Document] {
+            let (one, to) = reads(&open(wide(pages, 1)));
+            assert_eq!(to, [pages as i32 - 1]);
+            let (many, to) = reads(&open(wide(pages, 400)));
+            assert_eq!(to, (0..400).map(|i| pages as i32 - 1 - i).collect::<Vec<_>>());
+            // What 400 links add is theirs: a few reads each, not the 4,000 pages again.
+            assert!(many < one + 400 * 8, "{one} reads for one link, {many} for 400");
+        }
+    }
 }

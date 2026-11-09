@@ -129,14 +129,26 @@ draws only the pixels of the whole page's bitmap that the region covers, for a t
   is taken as it) and cut to the page. The result says where they are: `x`, `y` is its top-left pixel in
   the whole page's bitmap, and `pageWidth`, `pageHeight` that bitmap's size. To name pixels exactly, scale
   points by `pageWidth / pageInfo(i).width`.
-- **They match a whole render** at the same scale, cropped: on the 37 public PDFs, 676 of 712 regions are
-  identical and 32 differ by 1 or 2 in a channel on a few edge pixels, where the region's edge cuts an
-  antialiased shape. The other 4 are scanned images drawn at close to 1:1, where nearest-neighbour
-  sampling falls on a tie that the region's offset breaks the other way: pixels can differ fully, on at
-  most 0.36% of the region. Vector content and text are within 2.
-- **Memory** follows the region: the page's content is read as for a whole render, but nothing the
-  size of the page is allocated. A tile of a page drawn 200,000 px wide, 120 GB whole, grows the heap by
-under 16 MiB.
+- **They match a whole render** at the same scale, cropped. On the 37 public PDFs and 2 generated ones,
+  at 400 and 1000 px wide, 734 of 760 regions are identical and 22 differ by 1 or 2 in a channel on a
+  few edge pixels, where the region's edge cuts an antialiased shape. Two kinds of content can differ
+  by more, because the renderer steps its sampling position across a run of pixels in single precision,
+  from where the run starts, and a region starts runs elsewhere:
+  - **An image drawn close to 1:1**, where nearest-neighbour sampling falls on a tie: the other 4 of the
+    760, scanned pages, with pixels off by up to 156 on at most 0.17% of the region.
+  - **A tiling pattern at large scales**, at the edges inside its tile. In a sweep of patterns with tiles
+    of 0.7 to 10 points, none differed by more than 2 at 1,000 px wide or under; between 1,000 and 8,000
+    px wide, pixels at tile edges differed by up to 72 on up to 16% of a small region.
+
+  Which tiles a pattern repeats, and where, is decided over the whole page, as the page's own render
+  decides it, for a tile of up to 4,096 px a side; a larger one is drawn across the region instead.
+- **Memory** follows the region, not the page at that scale: the pixmap is the region's size, plus up
+  to 255 px to its left and 3 above, where the renderer's tiles start in the whole page's bitmap; a
+  mesh shading is sampled only over the region; a tiling pattern's tile is drawn once, up to 4,096 px a
+  side. A tile of a page drawn 200,000 px wide, 120 GB whole, grows the heap by under 16 MiB, and a 500 px
+  square of a mesh-shaded page 100,000 px wide by 12 MiB (a mesh holds about 60 bytes a pixel of what it
+  covers, for the region alone). The page's content is still interpreted whole, so
+  time follows what the page draws as much as the region.
 
 `truncated` means what it does for a whole render.
 
@@ -222,9 +234,9 @@ type PdfDestination = {
 - **Another file or a program** (`GoToR`, `Launch`) is reported, with the file's name from a string or a
   file specification's `/UF`, `/F` or a platform's key, and never opened or followed. Neither is JavaScript, which is
   `{ kind: "action", action: "JavaScript" }` without its script.
-- **On a ranged read**, a target page is found up its `/Parent` chain, so only the nodes on the way are
-  fetched, then checked against the page at that index; if they disagree the whole tree is walked, as
-  a whole-file read does. The answer is the same as a whole-file read's.
+- **The page** is found in the page tree's order, once a call however many links there are, as the
+  outline's are: a page the tree lists twice is where it first appears. On a ranged read that reads the
+  whole tree, as `outline()` does, so a link's page is the same whole or ranged.
 
 `links` loads `recto-render.wasm`, as `render` does: the code is in that part.
 
@@ -265,17 +277,27 @@ try {
 cross-reference section, then each object on first use. `doc.stats()` reports `bytesFetched`,
 `requests` and `rounds`, the round trips; a round's requests run in parallel.
 
-**The open is one round.** It asks for the head (4 chunks) and the last 2 chunks at once, the second by
-a suffix range (`bytes=-131072`), since the file's length isn't known yet. That covers a small file's
-objects and most files' cross-reference tables, so the first page usually costs one or two rounds more,
-for its objects and their fonts and images. Two cases take more:
+**The open is one round** from the same origin. It asks for the head (4 chunks) and the last 2 chunks at
+once, the second by a suffix range (`bytes=-131072`), since the file's length isn't known yet. In a file
+shorter than the two, the head is read only up to where the suffix starts, so no byte is fetched twice, and
+a chunk that the suffix starts inside of is kept in its two parts. So `bytesFetched` never passes the file's
+length, and a `maxBytes` of the file's length is always enough. That covers a small file's objects and
+most files' cross-reference tables, so the first page usually costs one or two rounds more, for its
+objects and their fonts and images. These cases take more:
 
 - **A cross-reference table longer than the tail**, or one the tail's doesn't lead to, takes a round for
   each section.
 - **A server that won't answer the suffix** with a 206 (it sends 200, 416 or the wrong range) costs one
-  more round: the tail is fetched by its offset, as before, and the answer to the suffix is dropped
-  unread. Cross-origin, `bytes=-n` isn't a safelisted `Range` value, so the browser sends a preflight
-  first, and a server that refuses it lands here.
+  more round: what the head left and the last chunk are fetched by their offsets, and the answer to the
+  suffix is cancelled unread. A suffix still unanswered once the head is in gets as long again as the
+  head took (at least 250 ms), then counts as refused: it never fails the open.
+- **Cross-origin**, `bytes=-n` isn't a safelisted `Range` value, so the browser sends a preflight first:
+  two rounds for the suffix unless the preflight is cached (`Access-Control-Max-Age`), and a server that
+  refuses it lands in the case above.
+
+`bytesFetched` counts what was read from each response. A response that's cancelled (a 200 to the suffix,
+the head of a file the suffix covers) isn't read, but a server may have sent some of it before the cancel
+reached it: on a local server, all of a 0.4 MB file and 0.9 MB of a 9 MB one.
 
 An object that doesn't parse in its first 4 KB window is asked for up to the next object in the file, in
 one round, when that's within 8 MiB; past that the window grows fourfold, a round each. When a window is

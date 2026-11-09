@@ -459,7 +459,7 @@ impl Document {
         width: f32,
         max_height: f32,
         region: Option<Region>,
-    ) -> Result<(PixmapSettings, Option<(u32, u32)>), EngineError> {
+    ) -> Result<(PixmapSettings, Option<Placed>), EngineError> {
         let info = self.page_info(index)?;
         let Some(region) = region else {
             let scale = render_scale(info.width, info.height, width, max_height)?;
@@ -499,13 +499,16 @@ impl Document {
                 format!("the region is {w}x{h} px; one render is at most {MAX_RENDER_SIDE} a side and {MAX_RENDER_PIXELS} px"),
             ));
         }
+        // The window drawn starts where the renderer's own tiles do in the whole page's pixmap, so
+        // each pixel is computed as there, from the same tile's start; the region is cut from it.
+        let (wx, wy) = (x - x % WINDOW_ALIGN.0, y - y % WINDOW_ALIGN.1);
         let settings = PixmapSettings {
             x_scale: scales.0,
             y_scale: scales.1,
             bg_color: WHITE,
-            window: Some(hayro::Window { x, y, width: w as u16, height: h as u16 }),
+            window: Some(hayro::Window { x: wx, y: wy, width: (w + x - wx) as u16, height: (h + y - wy) as u16 }),
         };
-        Ok((settings, Some(page)))
+        Ok((settings, Some(Placed { page, region: (x, y, w, h) })))
     }
 
     fn pixmap(
@@ -552,7 +555,7 @@ pub struct RenderTask {
     /// Whether a stream or image was left out for its size, in any slice.
     cut: bool,
     settings: PixmapSettings,
-    page: Option<(u32, u32)>,
+    page: Option<Placed>,
 }
 
 impl RenderTask {
@@ -611,25 +614,43 @@ impl RenderTask {
 }
 
 /// The pixmap's own buffer, with no second page-sized allocation at the render's peak.
+/// A region's place: the whole page's pixmap's size, and the region's pixels in it.
+#[derive(Clone, Copy, Debug)]
+struct Placed {
+    page: (u32, u32),
+    region: (u32, u32, u32, u32),
+}
+
+/// Where a region's window starts: on the renderer's wide tiles across (256 px) and its strips
+/// down (4 px). A window there draws each pixel as the whole page's pixmap does; one elsewhere
+/// starts the renderer's per-tile stepping somewhere else, and a tiling pattern sampled far from
+/// its origin, or an image on a nearest-neighbour tie, can come out differently.
+const WINDOW_ALIGN: (u32, u32) = (256, 4);
+
 fn bitmap_of(
     pixmap: hayro::vello_cpu::Pixmap,
     truncated: bool,
     settings: &PixmapSettings,
-    page: Option<(u32, u32)>,
+    placed: Option<Placed>,
 ) -> Bitmap {
     let (width, height) = (u32::from(pixmap.width()), u32::from(pixmap.height()));
-    let window = settings.window.map_or((0, 0), |w| (w.x, w.y));
-    let (page_width, page_height) = page.unwrap_or((width, height));
-    Bitmap {
-        width,
-        height,
-        rgba: pixmap.take_rgba8(hayro::vello_cpu::peniko::ImageAlphaType::AlphaPremultiplied),
-        truncated,
-        x: window.0,
-        y: window.1,
-        page_width,
-        page_height,
-    }
+    let rgba = pixmap.take_rgba8(hayro::vello_cpu::peniko::ImageAlphaType::AlphaPremultiplied);
+    let (Some(placed), Some(window)) = (placed, settings.window) else {
+        return Bitmap { width, height, rgba, truncated, x: 0, y: 0, page_width: width, page_height: height };
+    };
+    // The region, cut from the window drawn round it.
+    let (x, y, w, h) = placed.region;
+    let (dx, dy) = ((x - window.x) as usize, (y - window.y) as usize);
+    let rgba = if (dx, dy, w, h) == (0, 0, width, height) {
+        rgba
+    } else {
+        let (stride, row) = (width as usize * 4, w as usize * 4);
+        (0..h as usize).flat_map(|r| {
+            let at = (dy + r) * stride + dx * 4;
+            rgba[at..at + row].iter().copied()
+        }).collect()
+    };
+    Bitmap { width: w, height: h, rgba, truncated, x, y, page_width: placed.page.0, page_height: placed.page.1 }
 }
 
 #[cfg(test)]

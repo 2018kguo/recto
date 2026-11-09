@@ -187,6 +187,14 @@ impl EncodedShadingPattern {
 impl ShadingPattern {
     /// Encode the shading pattern.
     pub fn encode(&self) -> EncodedShadingPattern {
+        self.encode_within(None)
+    }
+
+    /// recto: [`Self::encode`], with a mesh's triangles sampled only where they meet `area` (in
+    /// device pixels, and a pixel round it), the only pixels a texture over `area` reads. A mesh
+    /// sampled whole costs the page's size in pixels, which in a window's render is the page's
+    /// at a scale far past what a pixmap holds.
+    pub fn encode_within(&self, area: Option<Rect>) -> EncodedShadingPattern {
         let base_transform;
 
         let shading_type = match self.shading.shading_type.as_ref() {
@@ -217,7 +225,7 @@ impl ShadingPattern {
                 function,
             } => {
                 let full_transform = self.matrix;
-                let samples = sample_triangles(triangles, full_transform);
+                let samples = sample_triangles(triangles, full_transform, area);
 
                 base_transform = Affine::IDENTITY;
 
@@ -233,7 +241,7 @@ impl ShadingPattern {
                 }
 
                 let full_transform = self.matrix;
-                let samples = sample_triangles(&triangles, full_transform);
+                let samples = sample_triangles(&triangles, full_transform, area);
 
                 base_transform = Affine::IDENTITY;
 
@@ -249,7 +257,7 @@ impl ShadingPattern {
                 }
 
                 let full_transform = self.matrix;
-                let samples = sample_triangles(&triangles, full_transform);
+                let samples = sample_triangles(&triangles, full_transform, area);
 
                 base_transform = Affine::IDENTITY;
 
@@ -332,7 +340,9 @@ fn encode_axial_shading(
 fn sample_triangles(
     triangles: &[Triangle],
     transform: Affine,
+    area: Option<Rect>,
 ) -> FxHashMap<(u16, u16), ColorComponents> {
+    let area = area.map(|a| a.inflate(1.0, 1.0));
     let mut map = FxHashMap::default();
 
     for t in triangles {
@@ -351,7 +361,15 @@ fn sample_triangles(
             Triangle::new(v0, v1, v2)
         };
 
-        let bbox = t.bounding_box();
+        let mut bbox = t.bounding_box();
+        if let Some(area) = area {
+            bbox = Rect::new(
+                bbox.x0.max(area.x0.floor()),
+                bbox.y0.max(area.y0.floor()),
+                bbox.x1.min(area.x1.ceil()),
+                bbox.y1.min(area.y1.ceil()),
+            );
+        }
 
         for y in (bbox.y0.floor() as u16)..(bbox.y1.ceil() as u16) {
             for x in (bbox.x0.floor() as u16)..(bbox.x1.ceil() as u16) {

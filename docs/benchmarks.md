@@ -444,28 +444,29 @@ unmeasured; sums of per-file medians.
 |---|---:|---:|---:|
 | Round trips to the first pixels, all 39 | 79 | 47 | |
 | Files done in one round trip | 19 | 34 | |
-| 0 ms: first text | 89 ms | 86 ms | 352 ms |
-| 0 ms: first pixels | 233 ms | 230 ms | 772 ms |
-| 40 ms: first text | 3,507 ms | 2,113 ms | 2,126 ms |
-| 40 ms: first pixels | 3,733 ms | 2,312 ms | 2,674 ms |
-| 120 ms: first text | 9,894 ms | 5,900 ms | 5,350 ms |
-| 120 ms: first pixels | 10,160 ms | 6,144 ms | 5,959 ms |
-| Bytes fetched, all 39 | 8.3 MB | 10.4 MB | |
+| 0 ms: first text | 83 ms | 82 ms | 330 ms |
+| 0 ms: first pixels | 223 ms | 224 ms | 734 ms |
+| 40 ms: first text | 3,453 ms | 2,077 ms | 2,133 ms |
+| 40 ms: first pixels | 3,703 ms | 2,282 ms | 2,710 ms |
+| 120 ms: first text | 9,936 ms | 5,925 ms | 5,446 ms |
+| 120 ms: first pixels | 10,227 ms | 6,209 ms | 6,102 ms |
+| Bytes fetched, all 39 | 8.3 MB | 9.5 MB | |
 
-**At 120 ms the time is the round trips**: 47 of them are 5.6 s of the 5.9. The open is now one: the head and
+**At 120 ms the time is the round trips**: 47 of them are 5.6 s of the 5.9 to first text. The open is now one: the head and
 the tail go out together. Of the 5 files that take more, each pays for its object graph, a page's fonts and
 images found one after another, which the fetch-ahead and the jump to the next object shorten but can't
 remove. pdf.js's first request streams the file from the start, so it often has the first page when its
-first response is in: at 120 ms it reads text first, by 10%, and draws first, by 3%. Its bytes weren't
+first response is in: at 120 ms it reads text first, by 8%, and draws first, by 2%. Its bytes weren't
 counted. At 40 ms and below recto is ahead.
 
-**The bytes are 25% more**: the tail is 2 chunks, asked for before the file's length is known, so for a file
-of 4 chunks or fewer the head and the tail overlap and both count. Over every 12th page of the same files read
-one by one (225 pages), the rounds per page went from 3.91 to 2.04 and the bytes from 105.0 to 116.4 MB (+11%).
+**The bytes are 14% more**: the tail is 2 chunks where 0.4.0 fetched 1, since it's asked for before the file's
+length is known and so before `startxref` says how much is needed. No byte is fetched twice: in a file shorter
+than the head and the tail, the head stops where the suffix starts. Over every 12th page of the same files read
+one by one (225 pages), the rounds per page went from 3.91 to 2.04 and the bytes from 105.0 to 112.7 MB (+7%).
 
-**What it adds to the download**, with brotli, from `scripts/check-wasm-budget.mjs`: text 411,549 → 415,119 bytes
-(+3.6 KB, the ranged loader's new paths, which a ranged open needs before it draws), text and drawing 672,177 →
-685,390 (+13.2 KB: the region and links code, 5.6 KB of it links, in `recto-render.wasm`, which `links` loads).
+**What it adds to the download**, with brotli, from `scripts/check-wasm-budget.mjs`: text 411,549 → 415,372 bytes
+(+3.8 KB, the ranged loader's new paths, which a ranged open needs before it draws), text and drawing 672,177 →
+683,494 (+11.3 KB: the region and links code, in `recto-render.wasm`, which `links` loads).
 A ranged open in 0.4.0 also fetched `recto-more.wasm` (251 KB) for code its lists hadn't profiled; the lists now
 include a ranged read, so it fetches no part, and the budget check says so.
 

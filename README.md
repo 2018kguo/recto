@@ -145,8 +145,10 @@ doc.pageCount;
 doc.stats().bytesFetched;
 ```
 
-The open is one round trip: the start and the end of the file are asked for together. Each read that
-misses after that blocks its thread for a round trip, so run it on a worker thread. A server
+The start and the end of the file are asked for together, so the open is one round trip from the same
+origin. Cross-origin it's two unless the browser has cached the CORS preflight that a suffix range
+(`bytes=-n`) needs. Each read that misses after that blocks its thread for a round trip, so run it on a
+worker thread. A server
 that ignores `Range` is read whole, within `maxBytes`; a wrong answer fails clearly. See
 [ranged reads](docs/reference.md#ranged-reads).
 
@@ -226,9 +228,9 @@ on anything a user might upload, use one of those two.
 | File | Size | When it loads |
 |---|---:|---|
 | `wasm/recto.wasm` | 1.4 MB (0.39 MB brotli) | Creating an engine |
-| `wasm/recto-render.wasm` | 0.89 MB (0.27 MB brotli) | The first `render`, `objects` or `links` |
+| `wasm/recto-render.wasm` | 0.88 MB (0.27 MB brotli) | The first `render`, `objects` or `links` |
 | `wasm/recto-more.wasm`, `recto-rare.wasm` | 0.98, 0.89 MB (0.25, 0.19 MB brotli) | A file that runs a function the first two left out; on a main thread, up front |
-| `wasm/recto.gen.mjs`, `dist/` | 41 KB, 116 KB of JavaScript | Importing the package |
+| `wasm/recto.gen.mjs`, `dist/` | 41 KB, 124 KB of JavaScript | Importing the package |
 | `wasm/Foxit*.pfb` | 14 files, 15–30 KB each | Drawing a standard font the document doesn't embed |
 | `wasm/cmaps.deflate` | 0.36 MB | A document uses a predefined CJK CMap |
 | `wasm/cjk-fallback.ttf` | 5.1 MB | Rendering CJK from a font the document doesn't embed |

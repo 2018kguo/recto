@@ -61,7 +61,7 @@
 <core::iter::adapters::flatten::FlattenCompat<_, _> as core::iter::traits::iterator::Iterator>::try_fold::flatten::<core::iter::adapters::flatten::FlatMap<core::option::IntoIter<&read_fonts::tables::cmap::CmapSubtable>, read_fonts::tables::cmap::CmapSubtableIter, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#1}::{closure#0}>, (), core::ops::control_flow::ControlFlow<(u32, font_types::glyph_id::GlyphId)>, core::iter::adapters::filter::filter_try_fold<(u32, font_types::glyph_id::GlyphId), (), core::ops::control_flow::ControlFlow<(u32, font_types::glyph_id::GlyphId)>, <read_fonts::model::charmap::SfntUnicodeCharmap>::iter::{closure#0}, &mut &mut core::iter::traits::iterator::Iterator::find::check<(u32, font_types::glyph_id::GlyphId), &mut <read_fonts::model::charmap::Charmap>::unicodes::{closure#1}>::{closure#0}>::{closure#0}>::{closure#0}
 <core::iter::adapters::flatten::FlattenCompat<_, _> as core::iter::traits::iterator::Iterator>::try_fold::flatten::<core::iter::adapters::flatten::FlatMap<core::option::IntoIter<&read_fonts::tables::cmap::CmapSubtable>, read_fonts::tables::cmap::CmapSubtableIter, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#1}::{closure#0}>, (), core::ops::control_flow::ControlFlow<(u32, font_types::glyph_id::GlyphId)>, core::iter::adapters::filter::filter_try_fold<(u32, font_types::glyph_id::GlyphId), (), core::ops::control_flow::ControlFlow<(u32, font_types::glyph_id::GlyphId)>, <read_fonts::model::charmap::SfntUnicodeCharmap>::iter::{closure#1}, &mut core::iter::traits::iterator::Iterator::find::check<(u32, font_types::glyph_id::GlyphId), &mut <read_fonts::model::charmap::Charmap>::unicodes::{closure#1}>::{closure#0}>::{closure#0}>::{closure#0}
 <core::iter::adapters::map::Map<core::iter::adapters::filter::Filter<core::iter::adapters::enumerate::Enumerate<alloc::vec::into_iter::IntoIter<hayro_syntax::object::dict::Dict>>, recto::links::read::{closure#0}>, recto::links::read::{closure#1}> as core::iter::traits::iterator::Iterator>::next
-<core::iter::adapters::map::Map<core::iter::adapters::take::Take<core::iter::adapters::map::Map<core::iter::adapters::skip::Skip<hayro_syntax::object::array::ArrayIter>, recto::links::destination::{closure#1}>>, recto::links::destination::{closure#3}> as core::iter::traits::iterator::Iterator>::next
+<core::iter::adapters::map::Map<core::iter::adapters::take::Take<core::iter::adapters::map::Map<core::iter::adapters::skip::Skip<hayro_syntax::object::array::ArrayIter>, recto::links::destination::{closure#0}>>, recto::links::destination::{closure#2}> as core::iter::traits::iterator::Iterator>::next
 <core::iter::adapters::take::Take<core::iter::adapters::enumerate::Enumerate<core::slice::iter::Iter<u32>>> as core::iter::traits::iterator::Iterator>::nth
 <core::str::iter::SplitInternal<char>>::next
 <f64 as core::fmt::Display>::fmt
@@ -101,8 +101,8 @@
 <hayro::Renderer>::fill_outline_run
 <hayro::Renderer>::fill_path
 <hayro::Renderer>::push_transparency_group
-<hayro::Renderer>::set_paint::<<hayro::Renderer>::begin_fill_run::{closure#0}>
 <hayro::Renderer>::set_paint::<<hayro::Renderer>::begin_stroke_run::{closure#0}>
+<hayro::Renderer>::set_paint::<<hayro::Renderer>::draw_rect::{closure#0}>
 <hayro::Renderer>::set_stroke_properties
 <hayro::Renderer>::stroke_outline_run
 <hayro::Renderer>::stroke_path
@@ -135,7 +135,7 @@
 <hayro_interpret::interpret::Named>::shading
 <hayro_interpret::interpret::page_run::PageRun>::new
 <hayro_interpret::interpret::page_run::Slice>::tick
-<hayro_interpret::pattern::ShadingPattern>::encode
+<hayro_interpret::pattern::ShadingPattern>::encode_within
 <hayro_interpret::types::StrokeProps as core::default::Default>::default
 <hayro_interpret::x_object::form::FormXObject>::draw::<hayro::Renderer>
 <hayro_interpret::x_object::form::FormXObject>::draw_contents::<hayro::Renderer>
@@ -571,7 +571,7 @@ hayro::draw_page
 hayro::image::downscale_with_alpha::<3usize>
 hayro::image::resize_image_data
 hayro::render
-hayro::render_into
+hayro::render_into_page
 hayro_interpret::gradient::approximate_gradient_interval::<<hayro_interpret::encode::EncodedRadialAxialShading>::as_svg_gradient::{closure#0}>
 hayro_interpret::interpret::annot_fallback::appearance
 hayro_interpret::interpret::annot_fallback::appearance::{closure#6}
@@ -642,9 +642,10 @@ read_fonts::mem::with_scratch_dyn::on_stack::<512usize>
 read_fonts::model::glyph::outline::glyf::draw_plan
 read_fonts::tables::glyf::outline::scale::read_points_and_phantom::<i32>
 recto::assets::resolve
+recto::bitmap_of
 recto::device::path_box
 recto::links::destination
-recto::links::destination::{closure#6}
+recto::links::destination::{closure#5}
 recto::links::file_spec
 recto::links::target::{closure#1}
 recto::links::whole_number

@@ -522,8 +522,7 @@ impl XRef {
     }
 
     /// recto: whether the file's bytes are fetched on first use.
-    /// recto: whether the file is read by range, its bytes arriving on first use.
-    pub fn is_ranged(&self) -> bool {
+    pub(crate) fn is_ranged(&self) -> bool {
         match &self.0 {
             Inner::Some(r) => r.data.get().is_ranged(),
             Inner::Dummy => false,
@@ -689,6 +688,7 @@ impl XRef {
     where
         T: ObjectLike<'a>,
     {
+        object_read();
         // recto: where the object is doesn't depend on T, and this is called for dozens of Ts:
         // it's 10% of the wasm with all of it in here.
         match self.locate(id, ctx)? {
@@ -1442,6 +1442,25 @@ fn parse_metadata(info_dict: &Dict<'_>) -> Metadata {
             .get::<object::String<'_>>(PRODUCER)
             .map(|t| Box::from(t.as_bytes())),
     }
+}
+
+#[cfg(feature = "std")]
+std::thread_local! {
+    static OBJECT_READS: core::cell::Cell<usize> = const { core::cell::Cell::new(0) };
+}
+
+/// recto: the objects this thread has asked the cross-reference table for, for tests that count a
+/// call's work.
+#[cfg(feature = "std")]
+#[doc(hidden)]
+pub fn object_reads() -> usize {
+    OBJECT_READS.with(|n| n.get())
+}
+
+#[inline]
+fn object_read() {
+    #[cfg(feature = "std")]
+    OBJECT_READS.with(|n| n.set(n.get() + 1));
 }
 
 #[cfg(test)]

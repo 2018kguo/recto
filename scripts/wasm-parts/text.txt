@@ -406,7 +406,6 @@
 <hayro_syntax::object::dict::Dict>::get_raw::<hayro_syntax::object::stream::Stream, &[u8]>
 <hayro_syntax::object::dict::Dict>::get_raw::<hayro_syntax::object::string::String, &[u8]>
 <hayro_syntax::object::dict::Dict>::get_raw::<i32, &[u8]>
-<hayro_syntax::object::dict::Dict>::get_raw::<i64, &[u8]>
 <hayro_syntax::object::dict::Dict>::get_raw::<u32, &[u8]>
 <hayro_syntax::object::dict::Dict>::get_raw::<u8, &[u8]>
 <hayro_syntax::object::dict::Dict>::get_raw::<usize, &[u8]>

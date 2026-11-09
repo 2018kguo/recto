@@ -4,7 +4,6 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { createPdfEngine, type PdfDocument, type PdfLink } from "../src/index.ts";
-import { startRangeServer } from "./range-server.ts";
 
 const engine = await createPdfEngine();
 const encoder = new TextEncoder();
@@ -134,43 +133,37 @@ test("a link with neither an action nor a destination says so", async () => {
   doc.close();
 });
 
-/**
- * `pages` pages in one flat `/Kids` (the shape a ranged read jumps through by `/Count`), each with
- * a little padding so the tree is spread out; page 0 links to `target`.
- */
-function flatPdf(pages: number, target: number): Uint8Array {
-  const objects = [
-    "<< /Type /Catalog /Pages 2 0 R >>",
-    `<< /Type /Pages /Kids [${Array.from({ length: pages }, (_, i) => `${i + 4} 0 R`).join(" ")}] /Count ${pages} >>`,
-    link("10 10 50 50", `/Dest [${target + 4} 0 R /XYZ 10 20 null]`),
-  ];
-  for (let i = 0; i < pages; i++) {
-    objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] ${i === 0 ? "/Annots [3 0 R]" : ""} /Pad (${"x".repeat(2000)}) >>`);
-  }
-  return pdfOf(objects);
-}
-
-test("a ranged read finds a link's page up its parents, without reading the whole tree", async () => {
-  const bytes = flatPdf(2000, 1500);
+test("a ranged read finds a link's page where a whole read and the outline do, a page the tree repeats too", async () => {
+  // Page 6 0 R is listed twice: page 1 under node 3, and page 2 under node 4, which its /Parent names.
+  // It goes to where it first appears, as a bookmark to it does.
+  const bytes = pdfOf([
+    "<< /Type /Catalog /Pages 2 0 R /Outlines << /First 9 0 R >> >>",
+    "<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 3 >>",
+    "<< /Type /Pages /Parent 2 0 R /Kids [5 0 R 6 0 R] /Count 2 >>",
+    "<< /Type /Pages /Parent 2 0 R /Kids [6 0 R] /Count 1 >>",
+    "<< /Type /Page /Parent 3 0 R /MediaBox [0 0 100 100] /Annots [7 0 R] >>",
+    "<< /Type /Page /Parent 4 0 R /MediaBox [0 0 200 300] /Rotate 90 >>",
+    link("0 0 10 10", "/Dest [6 0 R /XYZ 10 20 0]"),
+    "<< >>",
+    "<< /Title (a) /Dest [6 0 R /XYZ 10 20 0] >>",
+  ]);
   const whole = await engine.open(bytes);
-  const expected = whole.links(0);
-  assert.equal(expected[0]?.target.kind === "page" && expected[0].target.destination.page, 1500);
-  whole.close();
-  const server = await startRangeServer(bytes);
+  const ranged = await engine.openRanged(bytes, { chunkBytes: 256 });
   try {
-    await using doc = await engine.openRanged(server.url);
-    assert.deepEqual(doc.links(0), expected);
-    // The page, its parent and the root, not 2,000 pages' dictionaries (4 MB).
-    assert.ok(doc.stats().bytesFetched < bytes.byteLength / 8, `fetched ${doc.stats().bytesFetched} of ${bytes.byteLength}`);
+    const expected = whole.links(0);
+    assert.equal(expected[0]?.target.kind === "page" && expected[0].target.destination.page, 1);
+    assert.equal(whole.outline()[0]?.page, 1);
+    assert.deepEqual(ranged.links(0), expected);
+    assert.equal(ranged.outline()[0]?.page, 1);
   } finally {
-    await server.close();
+    whole.close();
+    ranged.close();
   }
 });
 
 test("a link whose page its parents place wrongly is found by the whole tree, as the outline's is", async () => {
   // Object 4 is the root's second kid, page 1, but its /Parent is a node outside the tree that
-  // lists it first: up its parents it would be page 0. That page isn't object 4, so the tree is
-  // walked, as the outline's page map does.
+  // lists it first: up its parents it would be page 0. The tree says page 1, whole or ranged.
   const pages = 40;
   const stray = pages + 4;
   const objects = [

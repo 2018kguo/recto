@@ -87,6 +87,8 @@ pub(crate) struct GlobalState {
     hinting: bool,
     glyph_caching: bool,
     degraded: Rc<std::cell::Cell<bool>>,
+    // recto: in a window's render, the whole page's pixmap in the window's pixels; see `Window`.
+    page: Option<Rect>,
 }
 
 impl GlobalState {
@@ -105,6 +107,7 @@ impl GlobalState {
             hinting: settings.hinting,
             glyph_caching: settings.glyph_caching,
             degraded: cache.degraded.clone(),
+            page: None,
         }
     }
 }
@@ -121,6 +124,9 @@ pub(crate) struct Renderer<'r> {
     pub(crate) events: u32,
     pub(crate) range: (u32, u32),
     pub(crate) replay: Option<&'r (dyn group::Backdrop + 'r)>,
+    /// recto: the whole page's pixmap in this context's pixels, in a window's render, where this
+    /// context is the window's (or one in its space); None where this context is all of it.
+    pub(crate) page: Option<Rect>,
 }
 
 impl<'r> Renderer<'r> {
@@ -136,6 +142,7 @@ impl<'r> Renderer<'r> {
             events: 0,
             range: (0, u32::MAX),
             replay: None,
+            page: global.page,
         }
     }
 
@@ -356,8 +363,9 @@ pub struct Window {
 }
 
 impl PixmapSettings {
-    /// recto: the pixmap's size and the transform from the page's space into it.
-    fn target(&self, page: &Page<'_>) -> (u16, u16, Affine) {
+    /// recto: the pixmap's size, the transform from the page's space into it, and in a window's
+    /// render, the whole page's pixmap in the window's pixels.
+    fn target(&self, page: &Page<'_>) -> (u16, u16, Affine, Option<Rect>) {
         let (width, height) = page.render_dimensions();
         let scale = Affine::scale_non_uniform(self.x_scale as f64, self.y_scale as f64);
         let initial = page.initial_transform(true).to_kurbo();
@@ -366,12 +374,23 @@ impl PixmapSettings {
                 (width * self.x_scale) as u16,
                 (height * self.y_scale) as u16,
                 scale * initial,
+                None,
             ),
-            Some(window) => (
-                window.width,
-                window.height,
-                Affine::translate((-f64::from(window.x), -f64::from(window.y))) * scale * initial,
-            ),
+            Some(window) => {
+                let (x, y) = (f64::from(window.x), f64::from(window.y));
+                let whole = Rect::new(
+                    -x,
+                    -y,
+                    f64::from(width * self.x_scale).floor() - x,
+                    f64::from(height * self.y_scale).floor() - y,
+                );
+                (
+                    window.width,
+                    window.height,
+                    Affine::translate((-x, -y)) * scale * initial,
+                    Some(whole),
+                )
+            }
         }
     }
 }
@@ -401,9 +420,9 @@ pub fn render<'a>(
     render_settings: &RenderSettings,
     pixmap_settings: &PixmapSettings,
 ) -> Pixmap {
-    let (width, height, transform) = pixmap_settings.target(page);
+    let (width, height, transform, whole) = pixmap_settings.target(page);
     let mut ctx = RenderContext::new(width, height);
-    render_into(
+    render_into_page(
         page,
         cache,
         interpreter_settings,
@@ -413,6 +432,7 @@ pub fn render<'a>(
         },
         &mut ctx,
         transform,
+        whole,
     );
     ctx.flush();
 
@@ -461,7 +481,7 @@ impl<'a, 'c> PageJob<'a, 'c> {
         render_settings: &RenderSettings,
         pixmap_settings: &PixmapSettings,
     ) -> Self {
-        let (width, height, transform) = pixmap_settings.target(page);
+        let (width, height, transform, whole) = pixmap_settings.target(page);
         let mut ctx = RenderContext::new(width, height);
         let render_settings = RenderSettings {
             background: pixmap_settings.bg_color,
@@ -471,6 +491,7 @@ impl<'a, 'c> PageJob<'a, 'c> {
         let mut global = GlobalState::new(cache, &render_settings);
         // Its own, so a synchronous render between two slices can't take this job's.
         global.degraded = degraded.clone();
+        global.page = whole;
         let global = Rc::new(global);
         let replay = group::PageReplay::new(
             page,
@@ -581,7 +602,22 @@ pub fn render_into<'a>(
     ctx: &mut RenderContext,
     transform: Affine,
 ) {
-    let global = Rc::new(GlobalState::new(cache, render_settings));
+    render_into_page(page, cache, interpreter_settings, render_settings, ctx, transform, None);
+}
+
+/// recto: [`render_into`], with the whole page's pixmap in `ctx`'s pixels when `ctx` is a window.
+fn render_into_page<'a>(
+    page: &'a Page<'a>,
+    cache: &RenderCache<'a>,
+    interpreter_settings: &InterpreterSettings,
+    render_settings: &RenderSettings,
+    ctx: &mut RenderContext,
+    transform: Affine,
+    whole: Option<Rect>,
+) {
+    let mut global = GlobalState::new(cache, render_settings);
+    global.page = whole;
+    let global = Rc::new(global);
     let replay = group::PageReplay::new(
         page,
         cache,

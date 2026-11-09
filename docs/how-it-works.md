@@ -29,10 +29,26 @@ bitmap. Sizes are capped because hayro sizes pixmaps in `u16`.
 
 A region is drawn by the vendored renderer's `window`: the pixmap is the window's size, and the page's
 transform is the whole page's at that scale, moved by the window's corner. So each pixel is computed
-from the same coordinates as in a whole render, and memory follows the window. Points become pixels by
-the whole bitmap's size over the page's in f64; the renderer's `f32` scale put a region's edge a pixel
-off at large scales. What still differs from a crop is where the renderer's tiles and strips
-fall (antialiasing at a region's edge) and nearest-neighbour ties when an image is sampled close to 1:1.
+from the same coordinates as in a whole render. Points become pixels by the whole bitmap's size over the
+page's in f64; the renderer's `f32` scale put a region's edge a pixel off at large scales. The window
+starts on the renderer's tiles in the whole bitmap (256 px across, 4 down) and the region is cut from it,
+which halved the pixels that differed from a crop (5,015 to 2,640 over 760 regions).
+
+Three things a page draws were sized by the page's pixmap, not by what's visible, and a window at a
+large scale made them huge; each is now bounded by the window:
+
+- **A mesh shading** (types 4 to 7) is sampled into a map of every pixel its triangles cover. It's
+  sampled only where they meet the area being painted, already cut to the pixmap. A 1 px region of a
+  page 40,000 px wide used to sample most of its 1.6 billion pixels, past 3 GB, and trap.
+- **A tiling pattern** decides whether its tile repeats from the area it covers: if that's at least a
+  step, the tile is drawn once and repeated, otherwise its copies are drawn across the area. A window
+  cut the area and changed the decision. In a window it's made over the whole page, as the page's own
+  render makes it, while the tile is at most 4,096 px a side; a larger one is drawn across the window
+  and two pixels round it.
+- What's left of a difference is the renderer's: it steps a texture's sampling position across a run of
+  pixels in `f32`, from where the run starts, so at a few thousand pixels a whole render has drifted
+  where a window, starting nearer, hasn't. That shows at a sharp edge inside a pattern's tile and on
+  an image's nearest-neighbour ties.
 
 A page's decoded content stream is kept while the page is one of the last four read, or while the
 ones kept come to under 1 MiB, and decoded again after that; past 256 MiB, only the last one is kept.
@@ -120,7 +136,14 @@ O(log n) round trips.
 the head and a suffix range for the tail go out together, before the file's length is known. In Node both
 go through the fetcher thread; in a browser, the open is still async, so it uses `fetch`, which can run
 them in parallel where a synchronous request can't. Reads after the open block, as before. A suffix the
-server doesn't answer with a 206 is dropped unread and costs the round the open used to take.
+server doesn't answer with a 206 is dropped unread and costs the round the open used to take; so does one
+still out once the head is in and as long again has passed.
+
+No byte is fetched twice, so a budget of the file's size is enough, as it was before the suffix. The head
+learns the file's length from its own `Content-Range` before its body, and reads no further than where the
+suffix starts (with a reader that fills a buffer of exactly that size, where the stream has one). The
+suffix starts inside a chunk; the loader keeps a chunk's start and end as pieces until the rest arrives,
+and a later fetch of that chunk asks only for the gap.
 
 After the open, rounds come from objects. hayro-syntax first asks for a 4 KB window at an object's offset,
 and the xref knows where the next object starts. Two things use that: the window's fetch takes the bytes

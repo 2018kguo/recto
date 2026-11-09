@@ -6,6 +6,7 @@ import { test } from "node:test";
 import { degrees, PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
 import { createPdfEngine, PdfError, type PdfBitmap, type PdfBox, type PdfDocument } from "../src/index.ts";
+import { pdfOf } from "./transparency-cases.mjs";
 
 const engine = await createPdfEngine();
 
@@ -218,6 +219,54 @@ test("a region of a page far past a whole render's limits: drawn, in memory the 
   }
   assert.equal(at(left + 10, top - 1), 255);
   assert.equal(at(left + 10, top), 0);
+  doc.close();
+});
+
+test("a mesh shading in a region costs the region, not the page at that scale", async () => {
+  // A type 4 mesh: one triangle across the page, red, green and blue at its corners.
+  const doc = await engine.open(
+    pdfOf({
+      content: "/S sh",
+      resources: "/Shading <</S 5 0 R>>",
+      objects: [
+        {
+          dict: " /ShadingType 4 /ColorSpace /DeviceRGB /BitsPerCoordinate 8 /BitsPerComponent 8 /BitsPerFlag 8 /Decode [0 100 0 100 0 1 0 1 0 1]",
+          data: "\x00\x00\x00\xff\x00\x00\x00\xff\x00\x00\xff\x00\x00\x00\xff\x00\x00\xff\x00\x00\xff",
+        },
+      ],
+    })
+  );
+  const whole = doc.render(0, { width: 600 });
+  for (const box of [{ x: 10.3, y: 40.1, width: 30.7, height: 22.2 }, { x: 60, y: 70, width: 40, height: 30 }]) {
+    assertSameAsCrop(whole, doc.render(0, { width: 600, region: box }), `mesh ${JSON.stringify(box)}`);
+  }
+  // At 100,000 px wide the whole page's mesh would be sampled over 10^10 pixels: the region's are.
+  const before = engine.stats().heapBytes;
+  const part = doc.render(0, { width: 100_000, maxHeight: Infinity, region: { x: 40, y: 40, width: 0.5, height: 0.5 } });
+  assert.deepEqual([part.width, part.height], [500, 500]);
+  assert.ok(engine.stats().heapBytes - before < 64 * 1024 * 1024, `grew ${engine.stats().heapBytes - before} bytes`);
+  assert.ok(part.rgba.some((v, i) => i % 4 !== 3 && v < 250), "the mesh is drawn");
+  doc.close();
+});
+
+test("a tiling pattern repeats in a region as it does across the whole page", async () => {
+  // The pattern fills the page's right half; a region over only a few points of it still repeats
+  // the tile, as the page's render does, and doesn't draw the copies across the region instead.
+  const doc = await engine.open(
+    pdfOf({
+      content: "/Pattern cs /P scn 50 0 50 100 re f 0 0 1 rg 0 0 50 50 re f",
+      resources: "/Pattern <</P 5 0 R>>",
+      objects: [{ dict: " /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10", data: "1 0 0 rg 0 0 5 5 re f" }],
+    })
+  );
+  for (const width of [97, 233, 1000]) {
+    const whole = doc.render(0, { width, maxHeight: Infinity });
+    for (const box of [{ x: 10.84, y: 26.77, width: 45.58, height: 57.12 }, { x: 48.2, y: 3.3, width: 4.1, height: 7.7 }, { x: 70.1, y: 60.6, width: 29.9, height: 9.1 }]) {
+      // Within 2, as an edge is; here the edge is the pattern's, a column of this small region.
+      const { most } = diffFromCrop(whole, doc.render(0, { width, maxHeight: Infinity, region: box }));
+      assert.ok(most <= 2, `pattern at ${width} px, ${JSON.stringify(box)}: off by up to ${most}`);
+    }
+  }
   doc.close();
 });
 

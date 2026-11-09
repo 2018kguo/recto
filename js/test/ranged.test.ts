@@ -195,6 +195,47 @@ test("an object too far from its window to fetch ahead is asked for whole in one
   assert.ok(doc.stats().bytesFetched - before < streamBytes + 3 * 64 * 1024, `${doc.stats().bytesFetched - before}`);
 });
 
+test("a budget of the file's size is always enough: no byte is fetched twice", async () => {
+  // Sizes either side of the head, the tail and the two together, in 1 KB chunks: the head (4 KB)
+  // and the suffix (2 KB) overlap in a file under 6 KB, and the suffix starts mid-chunk in most.
+  const sizes = new Set<number>();
+  for (const pages of [1, 2, 3, 4, 6, 9, 14, 20, 40]) {
+    for (const charsPerPage of [50, 333, 900]) {
+      const bytes = syntheticPdf({ pages, charsPerPage });
+      sizes.add(bytes.byteLength);
+      for (const source of ["bytes", "http"] as const) {
+        const server = source === "http" ? await startRangeServer(bytes) : null;
+        try {
+          await using doc = await engine.openRanged(server ? server.url : bytes, { chunkBytes: 1024, maxBytes: bytes.byteLength });
+          for (let i = 0; i < doc.pageCount; i++) {
+            doc.text(i);
+          }
+          const label = `${source}, ${bytes.byteLength} bytes`;
+          assert.ok(doc.stats().bytesFetched <= bytes.byteLength, `${label}: fetched ${doc.stats().bytesFetched}`);
+          assert.equal(doc.stats().rounds >= 1 && doc.pageCount, pages, label);
+        } finally {
+          await server?.close();
+        }
+      }
+    }
+  }
+  assert.ok([...sizes].some((n) => n < 2048) && [...sizes].some((n) => n > 2048 && n < 6144) && [...sizes].some((n) => n > 6144), [...sizes].join());
+});
+
+test("a suffix that never answers: the open goes on, with the tail by its offset", { timeout: 10_000 }, async () => {
+  const bytes = syntheticPdf({ pages: 8000 });
+  const server = await startRangeServer(bytes);
+  server.setMode("suffix-stall");
+  try {
+    await using doc = await engine.openRanged(server.url, { maxBytes: 2 ** 30, timeoutMs: 20_000 });
+    // The head with the suffix, given up on; then the tail by its offset; then the xref table.
+    assert.equal(doc.stats().rounds, 3);
+    assert.equal(doc.pageCount, 8000);
+  } finally {
+    await server.close();
+  }
+});
+
 test("a server that won't answer a suffix range gets the tail by its offset, a round later", async () => {
   // An xref table longer than the tail, so the open needs the tail's `startxref` to fetch it whole.
   const bytes = syntheticPdf({ pages: 8000 });
