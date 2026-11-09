@@ -24,6 +24,9 @@ They are patched for what upstream does not have:
   (for a ranged file, from a descent by `/Count` until something doesn't add up), and reading through
   a ranged buffer; **hayro-interpret** and **hayro**: a page drawn a slice at a time (`PageRun`,
   `PageJob`) and a `raster` feature the text build leaves out.
+- **hayro-syntax**: a page's decoded content kept only while it's among the last read, not for as
+  long as its document is open (`recent` in `src/page.rs`), and `FlateDecode` inflated in one call
+  into a sized buffer rather than through a reader.
 - **hayro-cmap**: `host-cmaps`, so a WebAssembly build gets its CMaps from the host on first
   use instead of embedding them, deflated rather than brotli so the wasm needs no brotli decoder.
 
