@@ -599,6 +599,53 @@ mod tests {
         }
     }
 
+    /// A page's decoded content is kept while it's among the last read, so its text and then its
+    /// pixels decode it once, and reading a document through holds a few pages' worth, not all.
+    #[test]
+    fn page_content_is_decoded_once_per_use_and_not_kept_for_every_page() {
+        use hayro::hayro_syntax::page::Page;
+        const N: usize = 30;
+        // Half a MiB of content per page, mostly a comment: past the bytes kept, so only the last
+        // few pages hold theirs.
+        let content = format!("BT /F1 12 Tf 10 50 Td (Hello) Tj ET\n%{}\n", "x".repeat(512 << 10));
+        let mut objects: Vec<Vec<u8>> = vec![
+            b"<< /Type /Catalog /Pages 2 0 R >>".to_vec(),
+            format!(
+                "<< /Type /Pages /Count {N} /Kids [{}] >>",
+                (0..N).map(|i| format!("{} 0 R ", 4 + 2 * i)).collect::<String>()
+            )
+            .into_bytes(),
+            b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>".to_vec(),
+        ];
+        for i in 0..N {
+            objects.push(
+                format!(
+                    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents {} 0 R \
+                     /Resources << /Font << /F1 3 0 R >> >> >>",
+                    5 + 2 * i
+                )
+                .into_bytes(),
+            );
+            objects.push(stream("", content.as_bytes()));
+        }
+        let refs: Vec<&[u8]> = objects.iter().map(Vec::as_slice).collect();
+        let doc = Document::open(pdf(&refs), "").unwrap();
+        let before = Page::content_decodes();
+        for i in 0..N {
+            assert!(doc.text(i).unwrap().text().starts_with("Hello"));
+            doc.render(i, 20.0, f32::INFINITY).unwrap();
+            doc.annotations(i).unwrap();
+        }
+        assert_eq!(Page::content_decodes() - before, N, "each page's content decoded once");
+        let held = doc.0.with_dependent(|pdf, _| {
+            (0..N).filter(|&i| pdf.pages().get(i).unwrap().holds_contents()).count()
+        });
+        assert!(held <= 4, "{held} pages of {N} still hold their content");
+        // Read again, a page decodes it again.
+        doc.text(0).unwrap();
+        assert_eq!(Page::content_decodes() - before, N + 1);
+    }
+
     /// The flate decoder's single call gives what reading the stream did, for whole, raw,
     /// truncated, trailing and damaged data.
     #[test]

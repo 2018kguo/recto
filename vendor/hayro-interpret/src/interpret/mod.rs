@@ -162,14 +162,9 @@ pub fn interpret_page<'a>(
     let render_content = context.settings.render_content;
 
     if render_content.contains(RenderContent::PAGE | RenderContent::TEXT_ONLY) {
-        text_only::interpret(
-            page.page_stream().unwrap_or_default(),
-            resources,
-            context,
-            device,
-        );
+        text_only::interpret(page.contents().data(), resources, context, device);
     } else if render_content.contains(RenderContent::PAGE) {
-        interpret(page.typed_operations(), resources, context, device);
+        interpret(page.contents().typed_operations(), resources, context, device);
     }
 
     if render_content.contains(RenderContent::ANNOTATIONS) {

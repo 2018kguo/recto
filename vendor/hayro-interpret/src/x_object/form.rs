@@ -1,7 +1,7 @@
 use super::xobject_oc;
 use crate::context::Context;
 use crate::device::Device;
-use crate::interpret::page_run::{Close, Frame};
+use crate::interpret::page_run::{Close, Frame, FrameData};
 use crate::{BlendMode, ClipPath, FillRule, interpret};
 use hayro_syntax::content::TypedIter;
 use hayro_syntax::object::Dict;
@@ -130,7 +130,7 @@ impl<'a> FormXObject<'a> {
         // recto: this path doesn't go through `interpret`, which pays for a nested stream.
         let affordable = context.charge_nested();
         Some(Frame {
-            data: if affordable { self.decoded } else { Default::default() },
+            data: FrameData::Form(if affordable { self.decoded } else { Default::default() }),
             pos: 0,
             resources,
             states,

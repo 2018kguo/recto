@@ -45,13 +45,30 @@ pub(crate) enum Step<'a> {
     Enter(FormXObject<'a>),
 }
 
+/// A frame's content: a form's, or the page's, which the page keeps only while it's in use.
+pub(crate) enum FrameData<'a> {
+    Form(Cow<'a, [u8]>),
+    Page(Option<std::sync::Arc<Vec<u8>>>),
+}
+
+impl std::ops::Deref for FrameData<'_> {
+    type Target = [u8];
+
+    fn deref(&self) -> &[u8] {
+        match self {
+            Self::Form(data) => data,
+            Self::Page(data) => data.as_deref().map_or(&[], Vec::as_slice),
+        }
+    }
+}
+
 pub(crate) enum Close {
     Page,
     Form { group: bool, has_oc: bool },
 }
 
 pub(crate) struct Frame<'a> {
-    pub(crate) data: Cow<'a, [u8]>,
+    pub(crate) data: FrameData<'a>,
     pub(crate) pos: usize,
     pub(crate) resources: Resources<'a>,
     pub(crate) states: usize,
@@ -85,7 +102,7 @@ impl<'a> PageRun<'a> {
         annotations.reverse();
         Self {
             frames: vec![Frame {
-                data: Cow::Borrowed(page.page_stream().unwrap_or_default()),
+                data: FrameData::Page(page.page_stream()),
                 pos: 0,
                 resources: resources.clone(),
                 states,

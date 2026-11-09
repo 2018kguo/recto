@@ -251,8 +251,10 @@ test("navigation reuses memory after visiting every large page", async () => {
     }
   };
   try {
-    // Two visits settle the allocator (the engine's free lists grow
-    // once after the first); a leak still grows on every later round.
+    // Three visits settle the allocator (the engine's free lists grow
+    // after the first, and once more as pages past the last few decode
+    // their content again); a leak still grows on every later round.
+    visit();
     visit();
     visit();
     const highWater = isolated.stats().heapBytes;
