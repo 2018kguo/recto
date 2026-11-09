@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.4.0
+
+recto agrees with the other engines' pixels on 97.6% of the pages two of them agree on, from 96.9%, and a long
+document read page by page no longer holds every page's decoded content. Measured with paired, alternating
+runs against 0.3.0 on the same machine; see [the numbers](docs/benchmarks.md#before-and-after-040).
+
+### Changed
+
+- **Memory**: a page's decoded content stream is kept while the page is among the last four read (or the
+  ones kept come to under 1 MiB), not for as long as the document is open. WebAssembly memory after reading
+  the text of every page: a 2,000-page report 36.8 → 21.7 MB, an 85-page credit agreement 15.3 → 6.1 MB; after
+  drawing every page of the agreement, 20.1 → 9.9 MB. Reading the same pages a second time decodes them again,
+  about 3% more on the agreement.
+- **Speed**: reading text costs 4.1% fewer instructions over the corpus (3.5% fewer cycles): a FlateDecode
+  stream inflates in one call into a buffer sized from its input, fake-bold copies are found in a flat table
+  instead of a hash map, and a glyph-name lookup bisects entries instead of bytes. Rendering is within 0.5%.
+
+### Fixed
+
+Rendering, each checked against pdfium, pdf.js and poppler in the scorecard:
+
+- An image drawn at under twice its size was sampled without smoothing, so a slightly enlarged image looked
+  blocky. It's smoothed now, as pdfium does.
+- A luminosity soft mask weighed its colours by the wrong coefficients; it uses PDF's 0.30, 0.59 and 0.11.
+- A hairline inside a tiling pattern could be thinner than a pixel and disappear.
+- A page asked for at 800 px could come out 801 wide, when its scale times its width landed a hair above a
+  whole number.
+- The scorecard's cache of recto's renders was keyed by `recto.wasm` alone, so a change in another part
+  reused stale pixels.
+
 ## 0.3.0
 
 Rendered pixels are now compared with pdfium, pdf.js and poppler, with `bench/scorecard.mjs`: on 539

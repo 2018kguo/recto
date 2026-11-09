@@ -180,7 +180,7 @@ faster: 2.8 ms against 4.1 ms for 2,000 pages, where recto took 4.8 ms. pdf.js h
 (5.6 MB of JS heap, against recto's 1.7 MB and 11.9 MB of WebAssembly memory), and recto now gives all of it back a
 second after the close. On text
 quality against poppler recto leads narrowly (F1 98.7%, pdf.js 97.8%, pdfium 97.0%, on 87 documents), and it
-agrees with the other engines' pixels on 96.9% of the pages two of them agree on (small, mostly adversarial files, and the threshold can hide a missing line). [benchmarks.md](docs/benchmarks.md) has all of it, what each
+agrees with the other engines' pixels on 97.6% of the pages two of them agree on (small, mostly adversarial files, and the threshold can hide a missing line). [benchmarks.md](docs/benchmarks.md) has all of it, what each
 number means and how it's measured. To rerun it on PDFs of your own (it commits none):
 
 ```sh

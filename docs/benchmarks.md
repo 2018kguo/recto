@@ -411,7 +411,7 @@ each other, by whether it agrees with either. Each engine gets the same test.
 
 | Of the pages two others agree on | recto | pdfium | pdf.js | poppler |
 |---|---:|---:|---:|---:|
-| Agrees with them | **96.9%** of 546 | 92.2% of 564 | 88.0% of 582 | 76.5% of 600 |
+| Agrees with them | **97.6%** of 546 | 92.2% of 567 | 88.2% of 583 | 76.7% of 601 |
 | Blank where they draw | 2 | 6 | 4 | 9 |
 | Fails where they draw | 1 | 4 | 3 | 4 |
 | A different page shape | 0 | 2 | 0 | 3 |
@@ -419,21 +419,21 @@ each other, by whether it agrees with either. Each engine gets the same test.
 | By set (recto) | Pages judged | Agrees |
 |---|---:|---:|
 | 39 public PDFs | 79 | 98.7% |
-| 250 from pdf.js's test suite | 239 | 96.7% |
+| 250 from pdf.js's test suite | 239 | 97.1% |
 | 100 from pdfium's | 100 | 98.0% |
-| 150 from hayro's | 128 | 95.3% |
+| 150 from hayro's | 128 | 97.7% |
 
-Before this round recto agreed on 93.8%. Don't read 96.9% as "better than pdfium". Poppler's low score
+0.3.0 agreed on 96.9%, and 0.2.0 on 93.8%. Don't read 97.6% as "better than pdfium". Poppler's low score
 is mostly how it hints small text at this size, and that makes pages count against pdf.js and pdfium that
 it wouldn't against recto: the others are judged on pages where recto is one of the two that agree. The set is
 539 small files, mostly written to break things, and the limit is generous: a missing line of text can
 pass, which is why the report also ranks pages under the limit that are well past the references' own
 difference. Of 632 pages, 86 aren't judged at all, because no two others agree.
 
-What's left of the 17 pages, from looking at each: 3 where recto follows the spec and the references don't (a Type 3 glyph's `ca`, knockout groups), 8 of
-rounding and thin-line noise, a Brotli stream two references can't read, a file with no page tree that recto refuses,
-a tiling pattern on text and a blend against bare paper the references don't agree on either, and 2 small differences in a
-mask and an image's edges.
+0.4.0 fixed 4 pages: an image enlarged under 2×, a luminosity mask, a hairline in a pattern, and a page a pixel too
+wide. What's left of the 13, from looking at each: 3 where recto follows the spec and the references don't (a Type 3
+glyph's `ca`, knockout groups), 6 of rounding and thin-line noise, a Brotli stream two references can't read, a file with no page tree that recto refuses,
+a tiling pattern on text and a blend against bare paper the references don't agree on either.
 
 Reports (side-by-side crops, every rank) go in `--out`, not the repository. References are cached there, so a rerun
 renders recto alone. `bench/api-cases.mjs` writes small PDFs for rotation, boxes, user units and widgets
