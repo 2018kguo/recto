@@ -262,10 +262,12 @@ export function loadAssetSync(name: AssetName, base: URL | null, hash?: SyncHash
 
 /** A file, read now and hashed before it's returned, and not kept: a part is compiled once. */
 export function readCheckedSync(name: AssetName, base: URL | null, hash?: SyncHash): Uint8Array {
-  return located(name, base, (url) => {
+  const [url, bytes] = located(name, base, (url) => {
     if (!canReadSync()) {
       throw new Error("this thread can only use assets fetched up front, and it was left out of preloadAssets");
     }
-    return checked(name, url, nodeFs() ? readFromDisk(url) : readSync(url), hash);
+    return [url, nodeFs() ? readFromDisk(url) : readSync(url)] as const;
   });
+  // Outside: a trap in the instance's hash is a crash, not a missing file.
+  return checked(name, url, bytes, hash);
 }
