@@ -30,8 +30,20 @@ struct ImageDecoder<'a, 'b> {
 
 impl<'a, 'b> ImageDecoder<'a, 'b> {
     fn new(obj: &'a ImageXObject<'b>, target_dimension: Option<(u32, u32)>) -> Option<Self> {
+        let dict = obj.stream.dict();
+        let color_key_mask = dict.get::<SmallVec<[u16; 4]>>(MASK);
+        // recto: a smaller decode only where the pixels can be averaged: not an index into a
+        // palette, not values a colour key matches exactly, and not an image whose soft mask's
+        // `/Matte` is undone pixel by pixel against a mask of the same size.
+        let has_matte = dict
+            .get::<Stream<'_>>(SMASK)
+            .is_some_and(|s| s.dict().contains_key(MATTE));
+        let target_dimension = target_dimension.filter(|_| {
+            color_key_mask.is_none()
+                && !has_matte
+                && !obj.color_space.as_ref().is_some_and(|cs| cs.is_indexed())
+        });
         let ctx = decode_context(obj, target_dimension)?;
-        let color_key_mask = obj.stream.dict().get::<SmallVec<[u16; 4]>>(MASK);
 
         Some(Self {
             obj,

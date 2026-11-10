@@ -29,6 +29,34 @@ std::thread_local! {
     static DECODES_CUT: core::cell::Cell<usize> = const { core::cell::Cell::new(0) };
     static LARGEST_DECODE: core::cell::Cell<usize> = const { core::cell::Cell::new(0) };
     static HELD: core::cell::Cell<usize> = const { core::cell::Cell::new(0) };
+    static SCALED_DCT: core::cell::Cell<bool> = const { core::cell::Cell::new(true) };
+}
+
+/// recto: whether a JPEG drawn well under its size is decoded at 1/2, 1/4 or 1/8 of it, on this
+/// thread (on by default). Off, for tests and comparisons, every JPEG decodes at full size.
+#[doc(hidden)]
+pub fn set_scaled_dct_decode(on: bool) {
+    SCALED_DCT.with(|scaled| scaled.set(on));
+}
+
+/// recto: how far a JPEG of `width` by `height` can be reduced in its decode, as log2 of the factor
+/// (0 to 3), and still be at least `target` (the size it's drawn at in device pixels, each side
+/// rounded up): the largest reduction that leaves it at or above that size on both axes, so a
+/// renderer scaling it down to the target loses nothing it would have shown.
+pub fn dct_scale_shift(width: u32, height: u32, target: Option<(u32, u32)>) -> u8 {
+    let Some((target_width, target_height)) = target else {
+        return 0;
+    };
+    if !SCALED_DCT.with(|scaled| scaled.get()) {
+        return 0;
+    }
+    (1..=3u8)
+        .rev()
+        .find(|&shift| {
+            width.div_ceil(1 << shift) >= target_width.max(1)
+                && height.div_ceil(1 << shift) >= target_height.max(1)
+        })
+        .unwrap_or(0)
 }
 
 /// recto: decoded content held while what it draws runs, which counts against the limit for
@@ -79,6 +107,17 @@ pub fn noting_cuts<T>(f: impl FnOnce() -> T) -> (T, bool) {
     let before = decodes_cut();
     let value = f();
     (value, decodes_cut() != before)
+}
+
+/// recto: `f`'s result, and the most bytes a stream or image asked to decode to while it ran: a
+/// cache keeps that with what it built, and hands it out only while the limit would let it be built
+/// again ([`max_decoded_bytes`]), so a cache never lets through what a decode would have cut.
+pub fn noting_largest_decode<T>(f: impl FnOnce() -> T) -> (T, usize) {
+    let outer = LARGEST_DECODE.with(|n| n.replace(0));
+    let value = f();
+    let inner = LARGEST_DECODE.with(|n| n.get());
+    LARGEST_DECODE.with(|n| n.set(outer.max(inner)));
+    (value, inner)
 }
 
 /// recto: counts a cut again, for what was built from a cut decode and is used once more.

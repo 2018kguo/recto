@@ -35,5 +35,15 @@ They are patched for what upstream does not have:
 - **hayro-cmap**: `host-cmaps`, so a WebAssembly build gets its CMaps from the host on first
   use instead of embedding them, deflated rather than brotli so the wasm needs no brotli decoder.
 
+- **hayro-syntax** and **hayro-interpret**: a JPEG decoded at 1/2, 1/4 or 1/8 when it's drawn that much
+  smaller (`dct_scale_shift`), but never under a `/Matte`, a colour key or an indexed colour space; **hayro**:
+  the images a document draws again at the same size kept as drawn (`src/image_cache.rs`).
+
+`zune-jpeg` (0.5.15, by Caleb Etemesi, MIT, Apache-2.0 or Zlib) is vendored as well, for the decode at
+1/2, 1/4 or 1/8 it lacks (`src/scaled.rs`): each component's blocks go through a truncated IDCT, as
+libjpeg's `jidctred.c`, into a plane at the reduced size, chroma at as many pixels a block as its sampling
+gives it, so nothing is upsampled. A decoder only scales where its sampling allows and falls back to the
+full decode otherwise.
+
 Every change is marked with a `recto:` comment. The Foxit fonts and their licence are in
 `hayro-font/assets`, the CMaps and theirs in `hayro-cmap/assets`.

@@ -22,6 +22,8 @@ pub(crate) struct ImageXObject<'a> {
     pub(crate) stream: Stream<'a>,
     pub(crate) transfer_function: Option<ActiveTransferFunction>,
     pub(crate) warning_sink: WarningSinkFn,
+    /// recto: whether its colour space came from the page's resources by name, not from the image.
+    color_space_by_name: bool,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -82,6 +84,7 @@ impl<'a> ImageXObject<'a> {
             kind = ImageKind::StencilMask;
         }
 
+        let mut color_space_by_name = false;
         let image_cs = if kind.is_mask() {
             // Masks are always single-channel.
             Some(ColorSpace::device_gray())
@@ -97,6 +100,7 @@ impl<'a> ImageXObject<'a> {
                 // Apparently, some PDF producers also do this for normal images,
                 // though the PDF spec forbids it. See https://github.com/LaurenzV/hayro/pull/1311.
                 .or_else(|| {
+                    color_space_by_name = true;
                     cs_obj
                         .and_then(|c| c.into_name())
                         .and_then(|n| resolve_cs(&n))
@@ -125,6 +129,7 @@ impl<'a> ImageXObject<'a> {
             interpolate,
             stream: stream.clone(),
             kind,
+            color_space_by_name,
         })
     }
 
@@ -242,6 +247,18 @@ impl<'a> ImageXObject<'a> {
         }
 
         decode_image(self, target_dimension)
+    }
+
+    /// recto: what decides this image's decode at `target_dimension`, for a cache of what's drawn
+    /// from it: the image object and the target (which can choose a smaller decode, of the image or
+    /// its soft mask). None where the object alone doesn't decide it: an inline image, a transfer
+    /// function from the graphics state, a colour space found by name in the page's resources.
+    pub(crate) fn decode_key(&self, target_dimension: Option<(u32, u32)>) -> Option<u128> {
+        let id = self.stream.dict().obj_id()?;
+        if self.transfer_function.is_some() || self.color_space_by_name {
+            return None;
+        }
+        Some(crate::util::hash128(&(id, self.kind == ImageKind::Image, target_dimension)))
     }
 
     pub(crate) fn width(&self) -> u32 {

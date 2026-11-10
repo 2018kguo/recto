@@ -68,6 +68,7 @@
 <alloc::raw_vec::RawVecInner>::try_reserve_exact
 <alloc::rc::Rc<core::cell::Cell<bool>>>::drop_slow
 <alloc::rc::Rc<core::cell::RefCell<hayro::glyph_cache::GlyphCache>>>::drop_slow
+<alloc::rc::Rc<core::cell::RefCell<hayro::image_cache::ImageCache>>>::drop_slow
 <alloc::rc::Rc<core::cell::RefCell<std::collections::hash::map::HashMap<(u128, u32), core::option::Option<alloc::rc::Rc<kurbo::bezpath::BezPath>>, rustc_hash::FxBuildHasher>>>>::drop_slow
 <alloc::rc::Rc<core::cell::RefCell<std::collections::hash::map::HashMap<(u128, u32), core::option::Option<alloc::rc::Rc<skrifa::scaler::ScalerFont>>, rustc_hash::FxBuildHasher>>>>::drop_slow
 <alloc::rc::Rc<hayro_font::FontCacheInner>>::drop_slow
@@ -97,7 +98,6 @@
 <alloc::sync::Arc<hayro_interpret::shading::ShadingType>>::drop_slow
 <alloc::sync::Arc<hayro_syntax::crypto::Decryptor>>::drop_slow
 <alloc::sync::Arc<hayro_syntax::data::Data>>::drop_slow
-<alloc::sync::Arc<hayro_syntax::metadata::Metadata>>::drop_slow
 <alloc::sync::Arc<hayro_syntax::object::dict::Repr>>::drop_slow
 <alloc::sync::Arc<hayro_syntax::xref::SomeRepr>>::drop_slow
 <alloc::sync::Arc<hayro_syntax::xref::SomeRepr>>::make_mut
@@ -365,8 +365,6 @@
 <hayro_syntax::object::array::ResolvedArrayIter<(f32, f32)> as core::iter::traits::iterator::Iterator>::next
 <hayro_syntax::object::array::ResolvedArrayIter<bool> as core::iter::traits::iterator::Iterator>::next
 <hayro_syntax::object::array::ResolvedArrayIter<f32> as core::iter::traits::iterator::Iterator>::next
-<hayro_syntax::object::date::DateTime>::from_bytes
-<hayro_syntax::object::date::DateTime>::from_bytes::{closure#0}
 <hayro_syntax::object::dict::Dict as core::convert::TryFrom<hayro_syntax::object::Object>>::try_from
 <hayro_syntax::object::dict::Dict as hayro_font::util::CacheKey>::cache_key
 <hayro_syntax::object::dict::Dict as hayro_syntax::reader::Readable>::read
@@ -779,7 +777,6 @@ core::ptr::drop_in_place::<hayro_interpret::pattern::Pattern>
 core::ptr::drop_in_place::<hayro_interpret::types::DrawProps>
 core::ptr::drop_in_place::<hayro_interpret::x_object::form::FormXObject>
 core::ptr::drop_in_place::<hayro_syntax::crypto::Decryptor>
-core::ptr::drop_in_place::<hayro_syntax::metadata::Metadata>
 core::ptr::drop_in_place::<hayro_syntax::object::Object>
 core::ptr::drop_in_place::<hayro_syntax::object::array::Array>
 core::ptr::drop_in_place::<hayro_syntax::object::array::ResolvedArrayIter<(u32, u32)>>

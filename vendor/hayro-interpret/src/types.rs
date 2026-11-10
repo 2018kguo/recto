@@ -101,6 +101,13 @@ impl RasterImage<'_> {
         self.0.stream()
     }
 
+    /// recto: a key for what [`with_rgba`](Self::with_rgba) gives at `target_dimension`, within one
+    /// document, or None where something besides the image object decides it.
+    #[doc(hidden)]
+    pub fn decode_key(&self, target_dimension: Option<(u32, u32)>) -> Option<u128> {
+        self.0.decode_key(target_dimension)
+    }
+
     // These are hidden since clients are supposed to call get the
     // width/height from `LumaData` instead.
     #[doc(hidden)]

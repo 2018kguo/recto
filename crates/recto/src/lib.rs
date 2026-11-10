@@ -412,6 +412,12 @@ impl Document {
         self.0.with_dependent(|_, caches| caches.render.glyph_cache_bytes())
     }
 
+    /// For tests: the bytes of decoded images the render cache holds.
+    #[doc(hidden)]
+    pub fn image_cache_bytes(&self) -> usize {
+        self.0.with_dependent(|_, caches| caches.render.image_cache_bytes())
+    }
+
     /// For `examples/budgets.rs`: what a render of the page spent, and whether it was cut short.
     #[doc(hidden)]
     pub fn render_budget(&self, index: usize, width: f32) -> Result<((u32, usize, u32), bool), EngineError> {

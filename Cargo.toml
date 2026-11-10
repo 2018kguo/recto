@@ -17,3 +17,4 @@ hayro-interpret = { path = "vendor/hayro-interpret" }
 hayro-font = { path = "vendor/hayro-font" }
 hayro-cmap = { path = "vendor/hayro-cmap" }
 hayro-syntax = { path = "vendor/hayro-syntax" }
+zune-jpeg = { path = "vendor/zune-jpeg" }

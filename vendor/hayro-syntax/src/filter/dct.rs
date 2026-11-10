@@ -61,10 +61,22 @@ pub(crate) fn decode(
     }
 
     decoder.set_options(DecoderOptions::default().jpeg_set_out_colorspace(out_colorspace));
-    // recto: what the image holds is limited, whatever its header says.
-    if !crate::filter::fits_decoded(decoder.output_buffer_size()?) {
+    // recto: what the image holds is limited, whatever its header says. At full size whatever the
+    // decode's scale: a progressive file's coefficients are held at full size either way, and an
+    // image cut before is cut now.
+    let (full_width, full_height) = decoder.dimensions()?;
+    let full = full_width
+        .checked_mul(full_height)?
+        .checked_mul(out_colorspace.num_components())?;
+    if !crate::filter::fits_decoded(full) {
         return None;
     }
+    // recto: decoded at 1/2, 1/4 or 1/8 where it's drawn that much smaller (see `dct_scale_shift`).
+    decoder.set_scale_shift(crate::filter::dct_scale_shift(
+        full_width as u32,
+        full_height as u32,
+        image_params.target_dimension,
+    ));
     let mut decoded = decoder.decode().ok()?;
 
     if out_colorspace == ColorSpace::YCCK {
@@ -79,8 +91,8 @@ pub(crate) fn decode(
         }
     }
 
-    let width = decoder.dimensions().unwrap().0 as u32;
-    let height = decoder.dimensions().unwrap().1 as u32;
+    let (width, height) = decoder.output_dimensions()?;
+    let (width, height) = (width as u32, height as u32);
 
     let image_data = ImageData {
         alpha: None,

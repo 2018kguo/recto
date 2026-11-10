@@ -1,0 +1,197 @@
+{
+  "node": "v25.9.0",
+  "dist": "js/dist",
+  "runs": 9,
+  "pages": {
+    "scan-baseline.pdf @1600": {
+      "ms": 58.5,
+      "opened": 2.9,
+      "peak": 38.6
+    },
+    "scan-baseline.pdf @1024": {
+      "ms": 34.3,
+      "opened": 2.9,
+      "peak": 22.4
+    },
+    "scan-baseline.pdf @400": {
+      "ms": 21.7,
+      "opened": 2.9,
+      "peak": 8.3
+    },
+    "scan-progressive.pdf @1600": {
+      "ms": 69.9,
+      "opened": 3.1,
+      "peak": 54.1
+    },
+    "scan-progressive.pdf @1024": {
+      "ms": 43.6,
+      "opened": 3.1,
+      "peak": 48
+    },
+    "scan-progressive.pdf @400": {
+      "ms": 29.8,
+      "opened": 3.1,
+      "peak": 33.7
+    },
+    "scan-gray.pdf @1600": {
+      "ms": 32.8,
+      "opened": 2.8,
+      "peak": 41.3
+    },
+    "scan-gray.pdf @1024": {
+      "ms": 22.3,
+      "opened": 2.8,
+      "peak": 20.1
+    },
+    "scan-gray.pdf @400": {
+      "ms": 17.1,
+      "opened": 2.8,
+      "peak": 5.4
+    }
+  },
+  "stages": {
+    "400": {
+      "raw": {
+        "1": 10.1,
+        "2": 2.7,
+        "4": 1.2,
+        "8": 0.6
+      },
+      "device": 0.3
+    },
+    "1024": {
+      "raw": {
+        "1": 12.5,
+        "2": 6.5,
+        "4": 3.3,
+        "8": 1.2
+      },
+      "device": 1.9
+    },
+    "1600": {
+      "raw": {
+        "1": 22.1,
+        "2": 9.5,
+        "4": 3.3,
+        "8": 3
+      },
+      "device": 5
+    }
+  },
+  "documents": {
+    "region: top-left quarter at a 3200 px page": {
+      "ms": 47,
+      "opened": 2.9,
+      "peak": 62.3
+    },
+    "thumbnail at 160 px": {
+      "ms": 16.8,
+      "opened": 2.9,
+      "peak": 4.7
+    },
+    "letterhead scan on 6 pages @1024": {
+      "ms": 69.9,
+      "opened": 2.9,
+      "peak": 26.7
+    },
+    "letterhead scan on 6 pages @1600": {
+      "ms": 117.6,
+      "opened": 2.9,
+      "peak": 63.9
+    },
+    "logo on 12 pages @1024": {
+      "ms": 9.5,
+      "opened": 1.7,
+      "peak": 8.1
+    }
+  },
+  "compare": {
+    "against": "../scan-base/dist",
+    "pages": {
+      "scan-baseline.pdf @1600": {
+        "mae": 0,
+        "max": 0,
+        "over48": 0,
+        "cellMae": 0,
+        "cells16": 0
+      },
+      "scan-baseline.pdf @1024": {
+        "mae": 1.03,
+        "max": 33,
+        "over48": 0,
+        "cellMae": 0.36,
+        "cells16": 0
+      },
+      "scan-baseline.pdf @400": {
+        "mae": 2.4,
+        "max": 55,
+        "over48": 0.009,
+        "cellMae": 0.61,
+        "cells16": 0
+      },
+      "scan-baseline.pdf @160": {
+        "mae": 2.36,
+        "max": 38,
+        "over48": 0,
+        "cellMae": 0.61,
+        "cells16": 0
+      },
+      "scan-progressive.pdf @1600": {
+        "mae": 0,
+        "max": 0,
+        "over48": 0,
+        "cellMae": 0,
+        "cells16": 0
+      },
+      "scan-progressive.pdf @1024": {
+        "mae": 1.03,
+        "max": 33,
+        "over48": 0,
+        "cellMae": 0.36,
+        "cells16": 0
+      },
+      "scan-progressive.pdf @400": {
+        "mae": 2.4,
+        "max": 55,
+        "over48": 0.009,
+        "cellMae": 0.61,
+        "cells16": 0
+      },
+      "scan-progressive.pdf @160": {
+        "mae": 2.36,
+        "max": 38,
+        "over48": 0,
+        "cellMae": 0.61,
+        "cells16": 0
+      },
+      "scan-gray.pdf @1600": {
+        "mae": 0,
+        "max": 0,
+        "over48": 0,
+        "cellMae": 0,
+        "cells16": 0
+      },
+      "scan-gray.pdf @1024": {
+        "mae": 0.98,
+        "max": 20,
+        "over48": 0,
+        "cellMae": 0.35,
+        "cells16": 0
+      },
+      "scan-gray.pdf @400": {
+        "mae": 2.07,
+        "max": 55,
+        "over48": 0.008,
+        "cellMae": 0.58,
+        "cells16": 0
+      },
+      "scan-gray.pdf @160": {
+        "mae": 2.31,
+        "max": 38,
+        "over48": 0,
+        "cellMae": 0.58,
+        "cells16": 0
+      }
+    }
+  }
+}

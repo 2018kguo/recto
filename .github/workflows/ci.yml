@@ -41,6 +41,8 @@ jobs:
           echo "$RUNNER_TEMP/binaryen-$BINARYEN_VERSION/bin" >> "$GITHUB_PATH"
       - run: npm install --no-audit --no-fund
       - run: cargo test
+      - name: The scaled JPEG decode against its definition
+        run: cargo test --manifest-path vendor/zune-jpeg/Cargo.toml --target-dir target --lib scaled
       - name: JavaScript package
         working-directory: js
         run: |
