@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.5.1
+
+Fixes and a cleanup pass. Text on pages with only left-to-right text is unchanged apart from rotated pages, and
+the scorecard is unchanged.
+
+### Fixed
+
+- **Quarter-turned text read in the wrong order.** The page's `/Rotate` was combined with each character's angle
+  with the wrong sign, so a `/Rotate 90` page drawn to read upright came out bottom-up, and sideways table
+  headers came out as separate lines after the table body. Both now read as the page is shown.
+- **Mixed right-to-left lines.** A Latin word and a number drawn by separate operators inside an RTL line now
+  read back as two runs in RTL order (`هذه الاتفاقية 123 ABC سارية`); one operator drawing both keeps them
+  together, and a hyphen or slash never splits.
+- **Clearer errors for a link that isn't a PDF.** A 4xx or 5xx answer (after redirects) is `fetch-failed` with
+  `error.status`, and its body is no longer read in a browser. Bytes with no `%PDF` near the start and no
+  `endobj` or `startxref` at either end are `invalid-file` "not a PDF", where a ranged open used to report
+  `maxBytes`.
+- Tests that read a child process's output pass when run in a terminal (`node --test` colours it there).
+
+### Changed
+
+- About 1,000 lines of unused vendored code removed (features every build enables, the `/Info` chain nothing
+  read, unused render entry points), the ranged loader's round helpers merged, one page lookup in place of six.
+  `recto.wasm` is 0.4% smaller.
+
 ## 0.5.0
 
 What a viewer needs: a ranged open in one round trip, part of a page drawn on its own, and where links go.
