@@ -28,6 +28,7 @@ import {
   BREAK_SPACE,
   isInvisibleCodepoint,
   readingOrder,
+  viewerTurn,
 } from "./reading-order.ts";
 
 const SPACE_IN_FLOW_MAX_FACTOR = 0.6;
@@ -36,12 +37,6 @@ const VERTICAL_SHIFT_RATIO = 0.25;
 const DESCENT_SHARE = 0.2;
 const HYPHEN_MARK = 0x02;
 const HYPHEN = 0x2d;
-
-/** Quarter turns clockwise in the viewer frame that a char reads along. */
-function viewerTurn(rotation: number, angle: number): number {
-  const degrees = rotation - (angle * 180) / Math.PI;
-  return ((Math.round(degrees / 90) % 4) + 4) % 4;
-}
 
 /** The token direction (counter-clockwise, y up) of a clockwise viewer turn. */
 const DIRECTION_OF_TURN = [0, 270, 180, 90] as const;

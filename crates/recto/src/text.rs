@@ -786,12 +786,7 @@ fn rtl_segment(seg: &mut [Char]) {
             continue;
         }
         let mut start = i;
-        let mut end = run_end(
-            seg,
-            i,
-            &[Dir::Ltr, Dir::Number],
-            &[Dir::Neutral, Dir::Terminator],
-        );
+        let mut end = ltr_run_end(seg, i);
         while start > 0 && seg[start - 1].dir() == Dir::Terminator {
             start -= 1;
         }
@@ -811,6 +806,50 @@ fn rtl_segment(seg: &mut [Char]) {
         }
         i = end + 1;
     }
+}
+
+/// The end of the left-to-right run from `i` in a reversed RTL segment:
+/// letters and numbers, and the neutrals between them. A number before a
+/// word across a gap (`321 CBA`, drawn `ABC 123`) is the one place the drawn
+/// order is ambiguous (a gap with a space: `ABC-123` and `ABC:12` read as
+/// one run, as codes and references nearly always are). Read as one run, the number came after the word (UBA
+/// W7 turns it into L); read as two, it came before it (`… 123 ABC …`, the
+/// number EN, the gap taking the paragraph's direction under N1). Only the
+/// file can tell: the two read as one run when one text-showing operator
+/// drew both sides of the gap and everything in it, as a layout engine that
+/// shaped them as one run does. Otherwise they are two runs. The split is
+/// only ever before the first word: of LTR runs side by side in an RTL line,
+/// all but the last (in logical order) are numbers alone, since a word
+/// before a number joins it (W7). So `ABC 123 DEF` on the page is one run.
+fn ltr_run_end(seg: &[Char], i: usize) -> usize {
+    let mut end = i;
+    let mut word = seg[i].dir() == Dir::Ltr;
+    for (j, c) in seg.iter().enumerate().skip(i + 1) {
+        match c.dir() {
+            Dir::Ltr | Dir::Number => {
+                if c.dir() == Dir::Ltr {
+                    if !word
+                        && seg[end + 1..j].iter().any(Char::is_space)
+                        && !one_run(&seg[end..=j])
+                    {
+                        break;
+                    }
+                    word = true;
+                }
+                end = j;
+            }
+            Dir::Neutral | Dir::Terminator => {}
+            Dir::Rtl => break,
+        }
+    }
+    end
+}
+
+/// Whether one text-showing operator drew every char here that the file drew.
+fn one_run(chars: &[Char]) -> bool {
+    let mut drawn = chars.iter().filter(|c| c.flags & CHAR_GENERATED == 0);
+    let run = drawn.next().map(|c| c.run);
+    drawn.all(|c| Some(c.run) == run)
 }
 
 /// Numbers alone in right-to-left text: each number reads left to right,
@@ -1021,6 +1060,58 @@ mod tests {
         assert_eq!(line("1,234.5% ךס"), "סך 1,234.5%");
         // A word and the number after it read as one run.
         assert_eq!(line("תכרעמ Windows 11 לש"), "של Windows 11 מערכת");
+    }
+
+    /// A line drawn left to right as `pieces`, one text-showing operator each.
+    fn runs(pieces: &[&str]) -> String {
+        let mut glyphs = Vec::new();
+        for (run, piece) in pieces.iter().enumerate() {
+            for c in piece.chars() {
+                let x = 10.0 + 5.0 * glyphs.len() as f64;
+                glyphs.push(in_run(at(&c.to_string(), x, 100.0, 10.0), run));
+            }
+        }
+        build(glyphs).text()
+    }
+
+    #[test]
+    fn rtl_latin_and_number_shown_apart_keep_their_logical_order() {
+        // "هذه الاتفاقية 123 ABC سارية": in an RTL paragraph the number and
+        // the word after it are two LTR runs (W7 needs a strong L before the
+        // digits), so on the page the word sits left of the number. Shown as
+        // separate runs, they read back right to left: 123, then ABC.
+        assert_eq!(
+            runs(&["ةيراس", " ", "ABC", " ", "123", " ", "ةيقافتالا هذه"]),
+            "هذه الاتفاقية 123 ABC سارية"
+        );
+        assert_eq!(
+            runs(&["ףקותב", " ", "ABC", " ", "123", " ", "םכסה"]),
+            "הסכם 123 ABC בתוקף"
+        );
+        // One run from the word through the number: they were laid out as one
+        // LTR run, "ABC 123" (W7), and stay so.
+        assert_eq!(
+            runs(&["ףקותב ", "ABC 123", " םכסה"]),
+            "הסכם ABC 123 בתוקף"
+        );
+        // Words and numbers shown apart: Latin words with only neutrals
+        // between them are one LTR run whatever drew them (N1), numbers keep
+        // RTL order between them.
+        assert_eq!(
+            runs(&["ةيراس", " ", "DEF", " ", "ABC", " ", "456", " ", "123", " ", "هذه"]),
+            "هذه 123 456 DEF ABC سارية"
+        );
+        // Joined by a hyphen or slash, not a space: one run, as codes are.
+        assert_eq!(
+            runs(&["ףקותב", " ", "ABC", "-", "123", " ", "םכסה"]),
+            "הסכם ABC-123 בתוקף"
+        );
+        // A number between two words can't stand apart: the word before it
+        // would have joined it (W7). One LTR run, however it was drawn.
+        assert_eq!(
+            runs(&["ףקותב", " ", "ABC", " ", "123", " ", "DEF", " ", "םכסה"]),
+            "הסכם ABC 123 DEF בתוקף"
+        );
     }
 
     #[test]

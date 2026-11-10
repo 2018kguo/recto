@@ -10,8 +10,10 @@ import { degrees, PDFDocument, StandardFonts } from "pdf-lib";
 import {
   annotationTextItems,
   BREAK_LINE,
+  BREAK_SPACE,
   createPdfEngine,
   NOT_TEXT,
+  type PdfDocument,
   readingOrder,
   rasterMeasures,
   showsGlyphs,
@@ -54,12 +56,14 @@ async function languageRotationsPdf(): Promise<Uint8Array> {
 
 const words = (text: string) => text.split(/\s+/u).filter(Boolean);
 
+const HELVETICA = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>";
+
 /** One page drawing `content` with font /F1, cross-reference table and all. */
-function pdfOf(content: string, font: string): Uint8Array {
+function pdfOf(content: string, font: string, page = "/MediaBox [0 0 400 200]"): Uint8Array {
   const objects = [
     "<< /Type /Catalog /Pages 2 0 R >>",
     "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 200] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+    `<< /Type /Page /Parent 2 0 R ${page} /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>`,
     `<< /Length ${content.length} >>\nstream\n${content}\nendstream`,
     font,
   ];
@@ -77,7 +81,7 @@ function pdfOf(content: string, font: string): Uint8Array {
 }
 
 test("letter spacing is no word gap, in every way a file can draw it", async () => {
-  const helvetica = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>";
+  const helvetica = HELVETICA;
   const substituted =
     "<< /Type /Font /Subtype /TrueType /BaseFont /NoSuchFont /FirstChar 99 /LastChar 99 /Widths [300] /Encoding /WinAnsiEncoding >>";
   const cases = [
@@ -176,6 +180,100 @@ test("text items read every page's words in order, upright or under /Rotate 90, 
     }
   } finally {
     doc.close();
+  }
+});
+
+/** The plan as text: chars in reading order, a space or newline at each break. */
+function planText(page: ReturnType<PdfDocument["text"]>, info: ReturnType<PdfDocument["pageInfo"]>): string {
+  const plan = readingOrder(page, info);
+  let out = "";
+  for (let k = 0; k < plan.length; k++) {
+    const brk = plan.breaks[k];
+    out += brk === BREAK_LINE ? "\n" : brk === BREAK_SPACE ? " " : "";
+    out += String.fromCodePoint(page.codepoints[plan.order[k] ?? 0] ?? 0);
+  }
+  return out;
+}
+
+test("a landscape page stored as /Rotate 90 reads its lines top to bottom, as displayed", async () => {
+  // /Rotate 90 shows PDF (x, y) at viewer (y, x). Text turned a quarter
+  // counter-clockwise on the page reads upright on screen, line i at viewer
+  // y = 100 + 30i: the first line drawn is the top one.
+  const lines = ["Success factor relevance by contract", "Relevance Yes Yes No Yes", "Third line here"];
+  const content = lines
+    .map((line, i) => `BT /F1 12 Tf 0 1 -1 0 ${100 + 30 * i} 72 Tm (${line}) Tj ET`)
+    .join("\n");
+  const doc = await engine.open(pdfOf(content, HELVETICA, "/MediaBox [0 0 612 792] /Rotate 90"));
+  try {
+    const info = doc.pageInfo(0);
+    const page = doc.text(0);
+    assert.equal(planText(page, info), lines.join("\n"));
+    const items = textItems(page, info);
+    assert.deepEqual(
+      items.map((item) => item.str),
+      lines
+    );
+    for (const [i, item] of items.entries()) {
+      // Upright to the viewer, at the viewer position the matrix gave it (y up).
+      assert.equal(item.direction, undefined, item.str);
+      assert.ok(Math.abs(item.x - 72) < 0.01 && Math.abs(item.y - (612 - 100 - 30 * i)) < 0.01, item.str);
+    }
+  } finally {
+    doc.close();
+  }
+});
+
+test("sideways header cells read up the page as one row, in reading order", async () => {
+  // A table whose header cells are turned a quarter counter-clockwise and
+  // bottom-aligned on y = 700, then upright rows; and one sideways label
+  // drawn as two runs ("% " then "Dissolved").
+  const headers = [
+    ["Drug", 100],
+    ["Dose mg", 200],
+    ["Route", 300],
+  ] as const;
+  const content = [
+    ...headers.map(([text, x]) => `BT /F1 10 Tf 0 1 -1 0 ${x} 700 Tm (${text}) Tj ET`),
+    "BT /F1 10 Tf 1 0 0 1 90 680 Tm (Aspirin 100 oral) Tj ET",
+    "BT /F1 10 Tf 0 1 -1 0 60 500 Tm (% ) Tj ET",
+    "BT /F1 10 Tf 0 1 -1 0 60 511.67 Tm (Dissolved) Tj ET",
+  ].join("\n");
+  // The same table on a /Rotate 90 page, landscape: the rows upright to the
+  // viewer, the header cells reading up the screen above them. Viewer (X, Y)
+  // is PDF (Y, X); a cell bottom-aligned on viewer Y = 130 starts at PDF x = 130.
+  const turned = [
+    ...headers.map(([text, x]) => `BT /F1 10 Tf -1 0 0 -1 130 ${x} Tm (${text}) Tj ET`),
+    "BT /F1 10 Tf 0 1 -1 0 150 90 Tm (Aspirin 100 oral) Tj ET",
+  ].join("\n");
+  for (const [bytes, row] of [
+    [pdfOf(content, HELVETICA, "/MediaBox [0 0 612 792]"), 700],
+    [pdfOf(turned, HELVETICA, "/MediaBox [0 0 612 792] /Rotate 90"), 612 - 130],
+  ] as const) {
+    const doc = await engine.open(bytes);
+    try {
+      const info = doc.pageInfo(0);
+      const items = textItems(doc.text(0), info);
+      assert.deepEqual(
+        items.slice(0, 4).map((item) => item.str),
+        ["Drug", "Dose mg", "Route", "Aspirin 100 oral"],
+        `rotation ${info.rotation}`
+      );
+      // Each cell reads up the page (90 counter-clockwise) from the shared
+      // baseline start: one row, left to right.
+      for (const [i, item] of items.slice(0, 3).entries()) {
+        assert.equal(item.direction, 90, item.str);
+        assert.ok(Math.abs(item.y - row) < 0.01, `${item.str} starts at ${item.y}`);
+        assert.ok(Math.abs(item.x - (headers[i]?.[1] ?? 0)) < 0.01, `${item.str} at ${item.x}`);
+      }
+      if (info.rotation === 0) {
+        // The label's two runs join in the order they read, up the page.
+        const label = items.at(-1);
+        assert.deepEqual([label?.str, label?.direction], ["% Dissolved", 90]);
+        assert.ok(Math.abs((label?.y ?? 0) - 500) < 0.01 && label?.x === 60);
+      }
+    } finally {
+      doc.close();
+    }
   }
 });
 

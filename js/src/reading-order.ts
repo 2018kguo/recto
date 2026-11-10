@@ -74,11 +74,13 @@ function streamOrder(
 }
 
 /**
- * A char's quarter turn in the viewer frame: the page's clockwise /Rotate
- * less the char's own counter-clockwise angle, snapped to 0, 90, 180, 270.
+ * Quarter turns clockwise in the viewer frame that a char reads along: the
+ * page's clockwise /Rotate plus the char's angle, snapped to 0, 1, 2, 3. A
+ * char's angle is `atan2(c, a)`, which grows clockwise on the page (text
+ * turned θ counter-clockwise reads 2π - θ), so the two turns add.
  */
-function viewerTurn(rotation: number, angle: number): number {
-  const degrees = rotation - (angle * 180) / Math.PI;
+export function viewerTurn(rotation: number, angle: number): number {
+  const degrees = rotation + (angle * 180) / Math.PI;
   return ((Math.round(degrees / 90) % 4) + 4) % 4;
 }
 
@@ -150,10 +152,17 @@ function reflowedOrder(
   }
   // Lines: sort by turn, then across; a new line starts where the centre
   // moves past the tolerance. Native traversal within a line is independent
-  // of the page rotation.
+  // of the page rotation. The turns come in the order the content stream
+  // first draws them, as on an upright page: a table's sideways header row
+  // drawn before its rows reads before them.
+  const turnRank = [n, n, n, n];
+  for (let k = n - 1; k >= 0; k--) {
+    turnRank[turnOf[k] ?? 0] = k;
+  }
   const byLine = Array.from({ length: n }, (_, k) => k).toSorted(
     (p, q) =>
-      (turnOf[p] ?? 0) - (turnOf[q] ?? 0) || (across[p] ?? 0) - (across[q] ?? 0)
+      (turnRank[turnOf[p] ?? 0] ?? 0) - (turnRank[turnOf[q] ?? 0] ?? 0) ||
+      (across[p] ?? 0) - (across[q] ?? 0)
   );
   const lineOf = new Uint32Array(n);
   let line = 0;

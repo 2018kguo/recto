@@ -65,6 +65,20 @@ the same on 2,172 files, read whole and by range, and the scorecard is unchanged
   damaged PDF without its header still has) fails with `invalid-file` "not a PDF: no %PDF header…".
   A 4xx or 5xx, after any redirects, is `fetch-failed` with the status in `error.status` and the message "the server
   answered HTTP 404, not the file", and in a browser its body is no longer downloaded up to the budget first.
+- **Turned text in `readingOrder` and `textItems`** read a char's angle the wrong way round, so text turned a
+  quarter on the page took the opposite turn. On a `/Rotate 90` page drawn to read upright (a landscape page
+  stored portrait), lines came out bottom to top. Text reading up the page had `direction: 270` and an origin at
+  its far end, so the header cells of a table, turned and bottom-aligned, didn't line up as one row. Every
+  direction now agrees with pdf.js's. On a rotated page, text in more than one direction reads each direction's
+  lines in the order the content stream first draws that direction, not by the angle, so a sideways header row
+  drawn before its table reads before it.
+- **An RTL line's number and Latin word drawn by separate text-showing operators** read in the order they were
+  laid out. `هذه الاتفاقية 123 ABC سارية`, printed by a browser, came back with `ABC 123`. The page alone can't
+  say whether `ABC 123` on it is one left-to-right run (the number after the word) or two (the number before
+  it), so where a space parts them recto takes them as one run if one operator drew the word, the number and the
+  space, and as two otherwise, which is what a layout engine that shaped them separately draws. Text from one
+  operator, as Word writes a line, and `ABC-123` without a space are unchanged. A file that draws every glyph by
+  its own operator now reads `… Windows 11 …` in an RTL line as two runs, `11 Windows`, as pdfium does.
 
 ## 0.4.0
 
