@@ -261,6 +261,11 @@ const pdfs = (req, res) => {
     res.writeHead(200, cors).end(body);
     return;
   }
+  // As Express's range-parser: a suffix longer than the file is a 416.
+  if (mode === "suffix416" && match[1] === "" && Number(match[2]) > body.byteLength) {
+    res.writeHead(416, { ...cors, "Content-Range": `bytes */${body.byteLength}` }).end();
+    return;
+  }
   // A suffix, bytes=-n, is the last n bytes.
   const start = match[1] === "" ? Math.max(0, body.byteLength - Number(match[2])) : Number(match[1]);
   const end = match[1] === "" ? body.byteLength - 1 : Math.min(Number(match[2]), body.byteLength - 1);
@@ -365,6 +370,8 @@ async function checkPages(browserName, label, origin) {
       [nodeSmallChunks.rounds, nodeSmallChunks.requests, nodeSmallChunks.bytesFetched],
       "a browser's ranged read fetches what Node's does, in as many rounds",
     );
+    // The head reads on when the suffix is refused: still one round, and the file once.
+    assert.deepEqual([checks.refused.pageCount, checks.refused.rounds, checks.refused.bytesFetched], [2, 1, sample.length]);
     assert.equal(checks.ignored.pageCount, 2);
     assert.equal(checks.ignored.requests, 1);
     assert.equal(checks.short, "fetch-failed");

@@ -137,7 +137,9 @@ the head and a suffix range for the tail go out together, before the file's leng
 go through the fetcher thread; in a browser, the open is still async, so it uses `fetch`, which can run
 them in parallel where a synchronous request can't. Reads after the open block, as before. A suffix the
 server doesn't answer with a 206 is dropped unread and costs the round the open used to take; so does one
-still out once the head is in and as long again has passed.
+still out once the head is in and as long again has passed. Not on a file shorter than the head: there the
+head has paused where the suffix starts, and it reads on to its end. In Node the two requests are one group
+on the fetcher thread, and the head waits there on what the suffix came to.
 
 No byte is fetched twice, so a budget of the file's size is enough, as it was before the suffix. The head
 learns the file's length from its own `Content-Range` before its body, and reads no further than where the

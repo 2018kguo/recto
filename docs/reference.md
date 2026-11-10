@@ -288,16 +288,20 @@ objects and their fonts and images. These cases take more:
 - **A cross-reference table longer than the tail**, or one the tail's doesn't lead to, takes a round for
   each section.
 - **A server that won't answer the suffix** with a 206 (it sends 200, 416 or the wrong range) costs one
-  more round: what the head left and the last chunk are fetched by their offsets, and the answer to the
-  suffix is cancelled unread. A suffix still unanswered once the head is in gets as long again as the
-  head took (at least 250 ms), then counts as refused: it never fails the open.
+  more round on a file longer than the head: the last chunk is fetched by its offset, and the answer to
+  the suffix is cancelled unread. On a shorter one the head, which paused where the suffix starts, reads
+  on to its end instead, so the open is still one round: Express answers a suffix longer than the file
+  with a 416. A suffix still unanswered once the head is in gets as long again as the head took (at least
+  250 ms), then counts as refused: it never fails the open.
 - **Cross-origin**, `bytes=-n` isn't a safelisted `Range` value, so the browser sends a preflight first:
   two rounds for the suffix unless the preflight is cached (`Access-Control-Max-Age`), and a server that
   refuses it lands in the case above.
 
 `bytesFetched` counts what was read from each response. A response that's cancelled (a 200 to the suffix,
 the head of a file the suffix covers) isn't read, but a server may have sent some of it before the cancel
-reached it: on a local server, all of a 0.4 MB file and 0.9 MB of a 9 MB one.
+reached it. So on a small file, or from a server that ignores Range, the server can send more than
+`bytesFetched` counts: on a local server, a whole small file twice, all of a 0.4 MB file again, and 0.9 MB
+of a 9 MB one.
 
 An object that doesn't parse in its first 4 KB window is asked for up to the next object in the file, in
 one round, when that's within 8 MiB; past that the window grows fourfold, a round each. When a window is

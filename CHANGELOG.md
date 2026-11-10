@@ -38,7 +38,8 @@ the same on 2,172 files, read whole and by range, and the scorecard is unchanged
   the two, the head stops where the suffix starts, and a chunk the suffix starts inside of is kept in parts. So
   a `maxBytes` of the file's size is still always enough, and `bytesFetched` never passes it. A server that
   won't answer the suffix with a 206, or hasn't once the head is in and as long again has passed, costs the
-  round back: the rest is fetched by offset, and the open never fails for it. Cross-origin the suffix range
+  round back on a file longer than the head (the tail is fetched by offset), and none on a shorter one, whose
+  head reads on to its end; the open never fails for it. Cross-origin the suffix range
   needs a CORS preflight, a second round unless it's cached. In a browser the open's fetches are now async
   `fetch` calls, and a whole-file answer to a range is read no further than the budget.
 - **Fewer rounds after the open**: an object's first window takes the bytes up to the next object along

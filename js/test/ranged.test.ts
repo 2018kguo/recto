@@ -222,6 +222,26 @@ test("a budget of the file's size is always enough: no byte is fetched twice", a
   assert.ok([...sizes].some((n) => n < 2048) && [...sizes].some((n) => n > 2048 && n < 6144) && [...sizes].some((n) => n > 6144), [...sizes].join());
 });
 
+test("a server that refuses a suffix longer than the file still opens a small one in one round", async () => {
+  // Express's range-parser answers bytes=-131072 on a smaller file with a 416. The head, which
+  // stopped where the suffix would start, reads on to its end instead of asking again.
+  for (const pages of [1, 40, 120]) {
+    const bytes = syntheticPdf({ pages, charsPerPage: 900 });
+    assert.ok(bytes.byteLength < 256 * 1024);
+    const server = await startRangeServer(bytes);
+    server.setMode("suffix-416");
+    try {
+      await using doc = await engine.openRanged(server.url, { maxBytes: bytes.byteLength });
+      assert.deepEqual([doc.stats().rounds, doc.stats().bytesFetched], [1, bytes.byteLength], `${bytes.byteLength} bytes`);
+      assert.equal(doc.pageCount, pages);
+      doc.text(pages - 1);
+      assert.equal(doc.stats().rounds, 1);
+    } finally {
+      await server.close();
+    }
+  }
+});
+
 test("a suffix that never answers: the open goes on, with the tail by its offset", { timeout: 10_000 }, async () => {
   const bytes = syntheticPdf({ pages: 8000 });
   const server = await startRangeServer(bytes);
