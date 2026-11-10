@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.5.2
+
+Scanned pages draw faster at the sizes viewers and thumbnails use, with the scorecard unchanged.
+
+### Changed
+
+- **A JPEG drawn at under half its size decodes at 1/2, 1/4 or 1/8 scale**, the largest reduction that still
+  covers its drawn size on both axes. A 2550×3300 scan as a 160 px thumbnail takes 17 ms and 4.7 MB of heap
+  instead of 60 ms and 28.6 MB; at 400 px, 22 ms instead of 41. At 1600 px nothing changes. Against full-size
+  decoding, no 4×4 cell differs by more than 16 at any width; see [Scanned pages](docs/benchmarks.md).
+- **An image drawn more than once is decoded once**: a cache of up to 256 images and 48 MiB (or
+  `maxDecodedBytes / 8`), least recently used first, keeping an image from its second draw. The same scan on
+  6 pages at 1600 px renders in 118 ms instead of 358; a logo on 12 pages in 10 ms instead of 60.
+
 ## Unreleased
 
 Scanned and image-heavy pages draw faster and in less memory. See
