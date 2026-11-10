@@ -140,6 +140,23 @@ function loadFailure(name: AssetName, url: URL | null, reason: string, cause?: u
   );
 }
 
+/**
+ * `read` of an asset's URL, sync or async, with any failure but a PdfError reported as that asset's
+ * `missing-asset`. Resolving the URL is inside it: under a blob: worker `import.meta.url` is no base.
+ */
+function located<T>(name: AssetName, base: URL | null, read: (url: URL) => T): T {
+  let url: URL | null = null;
+  const failure = (error: unknown) =>
+    error instanceof PdfError ? error : loadFailure(name, url, error instanceof Error ? error.message : String(error), error);
+  try {
+    url = assetUrl(name, base);
+    const result = read(url);
+    return (result instanceof Promise ? result.catch((error: unknown) => Promise.reject(failure(error))) : result) as T;
+  } catch (error) {
+    throw failure(error);
+  }
+}
+
 /** A hash to use where there is no native one to call synchronously. A live instance's is quicker than this file's. */
 export type SyncHash = (bytes: Uint8Array) => string | null;
 
@@ -201,19 +218,8 @@ async function fetchBytes(name: AssetName, url: URL): Promise<Uint8Array<ArrayBu
 
 /** The wasm, verified and then compiled. */
 export async function compileWasm(name: WasmName, base: URL | null): Promise<WebAssembly.Module> {
-  let url: URL | null = null;
-  let bytes: Uint8Array<ArrayBuffer>;
-  try {
-    // Inside the try: under a blob: worker `import.meta.url` is no base for a URL.
-    url = assetUrl(name, base);
-    bytes = (nodeFs() ? checked(name, url, readFromDisk(url)) : await fetchBytes(name, url)) as Uint8Array<ArrayBuffer>;
-  } catch (error) {
-    if (error instanceof PdfError) {
-      throw error;
-    }
-    throw loadFailure(name, url, error instanceof Error ? error.message : String(error), error);
-  }
-  return await compiling(name, WebAssembly.compile(bytes));
+  const bytes = await located(name, base, async (url) => (nodeFs() ? checked(name, url, readFromDisk(url)) : await fetchBytes(name, url)));
+  return await compiling(name, WebAssembly.compile(bytes as Uint8Array<ArrayBuffer>));
 }
 
 function compiling(name: WasmName, module: Promise<WebAssembly.Module>): Promise<WebAssembly.Module> {
@@ -232,55 +238,34 @@ const loaded = new Map<string, Uint8Array>();
 /** Fetches and verifies assets ahead of time; a thread that can't read them when needed has to. */
 export async function preloadAssets(base: URL | null, names: AssetName[]): Promise<void> {
   await Promise.all(
-    names.map(async (name) => {
-      let url: URL | null = null;
-      let bytes: Uint8Array;
-      try {
-        url = assetUrl(name, base);
-        if (loaded.has(url.href)) {
-          return;
+    names.map((name) =>
+      located(name, base, async (url) => {
+        if (!loaded.has(url.href)) {
+          loaded.set(url.href, nodeFs() ? checked(name, url, readFromDisk(url)) : await fetchBytes(name, url));
         }
-        bytes = nodeFs() ? checked(name, url, readFromDisk(url)) : await fetchBytes(name, url);
-      } catch (error) {
-        if (error instanceof PdfError) {
-          throw error;
-        }
-        throw loadFailure(name, url, error instanceof Error ? error.message : String(error), error);
-      }
-      loaded.set(url.href, bytes);
-    })
+      })
+    )
   );
 }
 
 /** An asset, read synchronously. Throws a PdfError rather than returning nothing. */
 export function loadAssetSync(name: AssetName, base: URL | null, hash?: SyncHash): Uint8Array {
-  let url: URL | null = null;
-  try {
-    url = assetUrl(name, base);
-    const cached = loaded.get(url.href);
-    if (cached) {
-      return cached;
+  return located(name, base, (url) => {
+    let bytes = loaded.get(url.href);
+    if (!bytes) {
+      bytes = readCheckedSync(name, base, hash);
+      loaded.set(url.href, bytes);
     }
-  } catch (error) {
-    throw loadFailure(name, url, error instanceof Error ? error.message : String(error), error);
-  }
-  const bytes = readCheckedSync(name, base, hash);
-  loaded.set(url.href, bytes);
-  return bytes;
+    return bytes;
+  });
 }
 
 /** A file, read now and hashed before it's returned, and not kept: a part is compiled once. */
 export function readCheckedSync(name: AssetName, base: URL | null, hash?: SyncHash): Uint8Array {
-  let url: URL | null = null;
-  let bytes: Uint8Array;
-  try {
-    url = assetUrl(name, base);
+  return located(name, base, (url) => {
     if (!canReadSync()) {
       throw new Error("this thread can only use assets fetched up front, and it was left out of preloadAssets");
     }
-    bytes = nodeFs() ? readFromDisk(url) : readSync(url);
-  } catch (error) {
-    throw loadFailure(name, url, error instanceof Error ? error.message : String(error), error);
-  }
-  return checked(name, url, bytes, hash);
+    return checked(name, url, nodeFs() ? readFromDisk(url) : readSync(url), hash);
+  });
 }
