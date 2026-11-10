@@ -1,0 +1,108 @@
+{
+  "node": "v25.9.0",
+  "dist": "../scan-base/dist",
+  "runs": 9,
+  "pages": {
+    "scan-baseline.pdf @1600": {
+      "ms": 69.4,
+      "opened": 2.9,
+      "peak": 38.6
+    },
+    "scan-baseline.pdf @1024": {
+      "ms": 45.8,
+      "opened": 2.9,
+      "peak": 32.8
+    },
+    "scan-baseline.pdf @400": {
+      "ms": 40.7,
+      "opened": 2.9,
+      "peak": 29.2
+    },
+    "scan-progressive.pdf @1600": {
+      "ms": 63.9,
+      "opened": 3.1,
+      "peak": 54.1
+    },
+    "scan-progressive.pdf @1024": {
+      "ms": 65.1,
+      "opened": 3.1,
+      "peak": 54.1
+    },
+    "scan-progressive.pdf @400": {
+      "ms": 59.7,
+      "opened": 3.1,
+      "peak": 54.1
+    },
+    "scan-gray.pdf @1600": {
+      "ms": 40.3,
+      "opened": 2.8,
+      "peak": 41.3
+    },
+    "scan-gray.pdf @1024": {
+      "ms": 30.2,
+      "opened": 2.8,
+      "peak": 18.2
+    },
+    "scan-gray.pdf @400": {
+      "ms": 32.3,
+      "opened": 2.8,
+      "peak": 11.5
+    }
+  },
+  "stages": {
+    "400": {
+      "raw": {
+        "1": 8.7,
+        "2": 2.8,
+        "4": 1.3,
+        "8": 0.6
+      },
+      "device": 0.3
+    },
+    "1024": {
+      "raw": {
+        "1": 14.2,
+        "2": 7.2,
+        "4": 3.7,
+        "8": 1.3
+      },
+      "device": 2
+    },
+    "1600": {
+      "raw": {
+        "1": 22.1,
+        "2": 10,
+        "4": 3.7,
+        "8": 3.5
+      },
+      "device": 5.4
+    }
+  },
+  "documents": {
+    "region: top-left quarter at a 3200 px page": {
+      "ms": 46.7,
+      "opened": 2.9,
+      "peak": 62.3
+    },
+    "thumbnail at 160 px": {
+      "ms": 59.5,
+      "opened": 2.9,
+      "peak": 28.6
+    },
+    "letterhead scan on 6 pages @1024": {
+      "ms": 285.1,
+      "opened": 2.9,
+      "peak": 32.8
+    },
+    "letterhead scan on 6 pages @1600": {
+      "ms": 357.7,
+      "opened": 2.9,
+      "peak": 38.6
+    },
+    "logo on 12 pages @1024": {
+      "ms": 60.4,
+      "opened": 1.7,
+      "peak": 8.2
+    }
+  }
+}

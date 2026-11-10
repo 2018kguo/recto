@@ -17,8 +17,10 @@
 <ab_glyph_rasterizer::raster::Rasterizer>::new
 <ab_glyph_rasterizer::raster::Rasterizer>::tessellate_cubic
 <alloc::boxed::Box<hayro_interpret::pattern::Pattern> as core::clone::Clone>::clone
+<alloc::raw_vec::RawVec<(u128, [u64; 4usize], bool)>>::grow_one
 <alloc::raw_vec::RawVec<alloc::vec::Vec<u8>>>::grow_one
 <alloc::raw_vec::RawVec<hayro::group::GroupFrame>>::grow_one
+<alloc::raw_vec::RawVec<hayro::image_cache::Entry>>::grow_one
 <alloc::raw_vec::RawVec<hayro_interpret::gradient::SvgGradientStop>>::grow_one
 <alloc::raw_vec::RawVec<hayro_interpret::interpret::page_run::Frame>>::grow_one
 <alloc::raw_vec::RawVec<usize>>::grow_one
@@ -44,6 +46,7 @@
 <alloc::sync::Arc<std::sync::poison::rwlock::RwLock<alloc::vec::Vec<core::option::Option<skrifa::outline::autohint::metrics::UnscaledStyleMetrics>>>>>::drop_slow
 <alloc::sync::Arc<vello_common::pixmap::Pixmap>>::drop_slow
 <alloc::vec::Vec<&str> as alloc::vec::spec_from_iter_nested::SpecFromIterNested<&str, core::str::iter::SplitAsciiWhitespace>>::from_iter
+<alloc::vec::Vec<(usize, usize)> as alloc::vec::spec_from_iter::SpecFromIter<(usize, usize), core::iter::adapters::map::Map<core::slice::iter::Iter<zune_jpeg::components::Components>, <zune_jpeg::decoder::JpegDecoder<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>::effective_scale_shift::{closure#0}>>>::from_iter
 <alloc::vec::Vec<u8>>::append_elements
 <alloc::vec::Vec<vello_common::flatten_simd::Point32>>::resize
 <alloc::vec::Vec<vello_cpu::coarse::bucketer::RowState>>::resize_with::<&mut <vello_cpu::coarse::bucketer::RowState>::new>
@@ -100,6 +103,7 @@
 <hayro::Renderer>::fill_outline
 <hayro::Renderer>::fill_outline_run
 <hayro::Renderer>::fill_path
+<hayro::Renderer>::image_pixmap
 <hayro::Renderer>::push_transparency_group
 <hayro::Renderer>::set_paint::<<hayro::Renderer>::begin_stroke_run::{closure#0}>
 <hayro::Renderer>::set_paint::<<hayro::Renderer>::draw_rect::{closure#0}>
@@ -136,11 +140,14 @@
 <hayro_interpret::interpret::page_run::PageRun>::new
 <hayro_interpret::interpret::page_run::Slice>::tick
 <hayro_interpret::pattern::ShadingPattern>::encode_within
+<hayro_interpret::types::RasterImage>::decode_key
 <hayro_interpret::types::StrokeProps as core::default::Default>::default
+<hayro_interpret::x_object::decode::mask::BILEVEL_MASK_LUT::{closure#0} as core::ops::function::FnOnce<()>>::call_once
 <hayro_interpret::x_object::form::FormXObject>::draw::<hayro::Renderer>
 <hayro_interpret::x_object::form::FormXObject>::draw_contents::<hayro::Renderer>
 <hayro_interpret::x_object::image::ImageXObject as core::clone::Clone>::clone
 <hayro_interpret::x_object::image::ImageXObject>::decoded_image
+<hayro_interpret::x_object::image::ImageXObject>::decoded_mask
 <hayro_interpret::x_object::image::ImageXObject>::draw::<hayro::Renderer>
 <hayro_interpret::x_object::image::ImageXObject>::draw::<recto::device::PageDevice>
 <hayro_interpret::x_object::image::ImageXObject>::has_mask
@@ -377,6 +384,7 @@
 <std::sync::once_lock::OnceLock<core::option::Option<alloc::boxed::Box<[[u8; 3usize]; 256usize]>>>>::initialize::<<std::sync::once_lock::OnceLock<core::option::Option<alloc::boxed::Box<[[u8; 3usize]; 256usize]>>>>::get_or_init<<hayro_interpret::color::U8Lookup<[u8; 3usize]>>::get_or_init_with<<hayro_interpret::color::U8Lookup<[u8; 3usize]>>::get_or_init<<hayro_interpret::color::indexed::Indexed>::u8_lookup::{closure#0}>::{closure#0}>::{closure#0}>::{closure#0}, !>
 <std::sync::once_lock::OnceLock<core::option::Option<alloc::boxed::Box<[u8; 256usize]>>>>::initialize::<<std::sync::once_lock::OnceLock<core::option::Option<alloc::boxed::Box<[u8; 256usize]>>>>::get_or_init<<hayro_interpret::color::U8Lookup<u8>>::get_or_init_with<<hayro_interpret::color::indexed::Indexed>::u8_luma_lookup::{closure#0}>::{closure#0}>::{closure#0}, !>
 <std::sync::once_lock::OnceLock<core::option::Option<read_fonts::ps::cff::font::Subfont>>>::initialize::<<std::sync::once_lock::OnceLock<core::option::Option<read_fonts::ps::cff::font::Subfont>>>::get_or_init<<read_fonts::model::font::Font>::cff_subfont::{closure#1}>::{closure#0}, !>
+<std::sys::sync::once::no_threads::Once>::call::<<std::sync::once::Once>::call_once_force<<std::sync::lazy_lock::LazyLock<alloc::boxed::Box<[u64; 256usize]>>>::force::{closure#0}>::{closure#0}>
 <u8 as core::fmt::LowerHex>::fmt
 <vello_common::clip::ClipContext>::push_generated_clip::<<vello_common::clip::ClipContext>::push_clip_path<core::iter::adapters::copied::Copied<core::slice::iter::Iter<kurbo::bezpath::PathEl>>>::{closure#0}>
 <vello_common::clip::ClipContext>::push_generated_clip::<<vello_common::clip::ClipContext>::push_clip_rect::{closure#0}>
@@ -386,6 +394,7 @@
 <vello_common::encode::FocalData>::create
 <vello_common::paint::Paint as core::convert::From<color::color::AlphaColor<color::colorspace::Srgb>>>::from
 <vello_common::paint::PremulColor>::from_alpha_color
+<vello_common::pixmap::Pixmap>::data_as_u8_slice
 <vello_common::pixmap::Pixmap>::from_parts
 <vello_common::pixmap::Pixmap>::new
 <vello_common::pixmap::Pixmap>::take_rgba8
@@ -470,14 +479,18 @@
 <zune_jpeg::decoder::JpegDecoder<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>::decode_headers_internal
 <zune_jpeg::decoder::JpegDecoder<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>::decode_mcu_ycbcr_baseline
 <zune_jpeg::decoder::JpegDecoder<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>::decode_mcu_ycbcr_progressive
+<zune_jpeg::decoder::JpegDecoder<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>::effective_scale_shift
 <zune_jpeg::decoder::JpegDecoder<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>::finish_progressive_decoding
+<zune_jpeg::decoder::JpegDecoder<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>::finish_scaled
 <zune_jpeg::decoder::JpegDecoder<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>::handle_rst
 <zune_jpeg::decoder::JpegDecoder<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>::handle_rst_main
+<zune_jpeg::decoder::JpegDecoder<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>::output_dimensions
 <zune_jpeg::decoder::JpegDecoder<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>::parse_entropy_coded_data
 <zune_jpeg::decoder::JpegDecoder<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>::parse_marker_inner
 <zune_jpeg::decoder::JpegDecoder<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>::post_process
 <zune_jpeg::decoder::JpegDecoder<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>::post_process::{closure#1}
 <zune_jpeg::decoder::JpegDecoder<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>::set_upsampling
+<zune_jpeg::decoder::JpegDecoder<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>>::setup_scaled_planes
 <zune_jpeg::huffman::HuffmanTable>::new
 <zune_jpeg::marker::Marker>::from_u8
 __wbg_get_renderedpage_height
@@ -568,10 +581,8 @@ fmax
 fmod
 foldhash::seed::gen_per_hasher_seed
 hayro::draw_page
-hayro::image::downscale_with_alpha::<3usize>
 hayro::image::resize_image_data
 hayro::render
-hayro::render_into_page
 hayro_interpret::gradient::approximate_gradient_interval::<<hayro_interpret::encode::EncodedRadialAxialShading>::as_svg_gradient::{closure#0}>
 hayro_interpret::interpret::annot_fallback::appearance
 hayro_interpret::interpret::annot_fallback::appearance::{closure#6}
@@ -600,6 +611,7 @@ hayro_interpret::x_object::decode::decode_context
 hayro_interpret::x_object::decode::mask::decode_mask
 hayro_syntax::content::ops::parse_named_color
 hayro_syntax::filter::fits_decoded
+hayro_syntax::filter::max_decoded_bytes
 kurbo::offset::offset_cubic
 kurbo::stroke::extend_reversed
 kurbo::stroke::round_join
@@ -687,6 +699,10 @@ zune_jpeg::idct::scalar::idct_int
 zune_jpeg::idct::scalar::idct_int_1x1
 zune_jpeg::mcu_prog::get_marker::<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>
 zune_jpeg::misc::setup_component_params::<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>
+zune_jpeg::scaled::allocate_planes
+zune_jpeg::scaled::block_sizes
+zune_jpeg::scaled::convert
+zune_jpeg::scaled::idct_block
 zune_jpeg::upsampler::scalar::upsample_horizontal
 zune_jpeg::upsampler::scalar::upsample_hv
 zune_jpeg::upsampler::scalar::upsample_vertical

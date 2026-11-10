@@ -65,6 +65,7 @@ mod glyph;
 mod glyph_cache;
 mod group;
 mod image;
+mod image_cache;
 mod mask;
 mod paint;
 mod path;
@@ -87,6 +88,8 @@ pub(crate) struct GlobalState {
     degraded: Rc<std::cell::Cell<bool>>,
     // recto: in a window's render, the whole page's pixmap in the window's pixels; see `Window`.
     page: Option<Rect>,
+    // recto: see `image_cache`.
+    image_cache: Rc<RefCell<image_cache::ImageCache>>,
 }
 
 impl GlobalState {
@@ -106,6 +109,7 @@ impl GlobalState {
             glyph_caching: settings.glyph_caching,
             degraded: cache.degraded.clone(),
             page: None,
+            image_cache: cache.image_cache.clone(),
         }
     }
 }
@@ -275,6 +279,8 @@ pub struct RenderCache<'a> {
     pub(crate) glyph_cache: Rc<RefCell<GlyphCache>>,
     pub(crate) hinting_cache: HintingCache,
     pub(crate) degraded: Rc<std::cell::Cell<bool>>,
+    // recto: see `image_cache`.
+    pub(crate) image_cache: Rc<RefCell<image_cache::ImageCache>>,
 }
 
 impl<'a> RenderCache<'a> {
@@ -290,6 +296,12 @@ impl<'a> RenderCache<'a> {
         self.glyph_cache.borrow().bytes()
     }
 
+    /// recto: the bytes of decoded images the cache holds, for tests.
+    #[doc(hidden)]
+    pub fn image_cache_bytes(&self) -> usize {
+        self.image_cache.borrow().bytes()
+    }
+
     /// Create a new render cache.
     pub fn new() -> Self {
         Self {
@@ -298,6 +310,7 @@ impl<'a> RenderCache<'a> {
             glyph_cache: Rc::new(RefCell::new(GlyphCache::default())),
             hinting_cache: HintingCache::new(),
             degraded: Rc::default(),
+            image_cache: Rc::default(),
         }
     }
 }

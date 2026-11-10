@@ -1,4 +1,6 @@
 use crate::Renderer;
+use crate::image_cache::DrawnImage;
+use hayro_interpret::hayro_syntax;
 use fearless_simd::{Level, Select, Simd, SimdBase, SimdInto, mask8x32, u8x32, u16x16};
 use hayro_interpret::util::x_y_advances;
 use hayro_interpret::{FillRule, ImageData, ImageDrawProps, LumaData, Paint, RgbData};
@@ -121,6 +123,22 @@ impl Renderer<'_> {
 
     fn draw_image(&mut self, image_data: impl Into<RenderImageData>, alpha_data: Option<LumaData>) {
         let image_data = image_data.into();
+        if let Some(a) = &alpha_data
+            && (a.width != image_data.width()
+                || a.height != image_data.height()
+                || (a.interpolate || self.global.force_image_interpolation)
+                    != (image_data.interpolate() || self.global.force_image_interpolation))
+        {
+            return self.draw_image_with_alpha_mask(image_data, alpha_data.unwrap());
+        }
+        let cur_transform = *self.ctx.transform();
+        let drawn = self.image_pixmap(image_data, alpha_data);
+        self.draw_pixmap(drawn.pixmap, drawn.quality, cur_transform * drawn.transform);
+    }
+
+    /// recto: what `draw_image` draws, for an image whose alpha, if any, is its own size: the pixmap,
+    /// how it's sampled, and its transform from the image's pixels.
+    fn image_pixmap(&mut self, image_data: RenderImageData, alpha_data: Option<LumaData>) -> DrawnImage {
         let cur_transform = *self.ctx.transform();
         let mut additional_transform = Affine::IDENTITY;
 
@@ -131,14 +149,6 @@ impl Renderer<'_> {
         let mut img_width = image_data.width();
         let mut img_height = image_data.height();
         let interpolate = image_data.interpolate() || self.global.force_image_interpolation;
-
-        if let Some(a) = &alpha_data
-            && (a.width != img_width
-                || a.height != img_height
-                || (a.interpolate || self.global.force_image_interpolation) != interpolate)
-        {
-            return self.draw_image_with_alpha_mask(image_data, alpha_data.unwrap());
-        }
 
         let mut quality = if interpolate {
             ImageQuality::Medium
@@ -409,11 +419,11 @@ impl Renderer<'_> {
             },
         );
 
-        self.draw_pixmap(
-            Arc::new(pixmap),
+        DrawnImage {
+            pixmap: Arc::new(pixmap),
             quality,
-            cur_transform * additional_transform,
-        );
+            transform: additional_transform,
+        }
     }
 
     fn draw_pixmap(&mut self, pixmap: Arc<Pixmap>, quality: ImageQuality, transform: Affine) {
@@ -557,15 +567,50 @@ impl Renderer<'_> {
                 );
             }
             hayro_interpret::Image::Raster(r) => {
-                r.with_rgba(
-                    |image, alpha| {
-                        let (sx, sy) = image.scale_factors();
-                        transform *= Affine::scale_non_uniform(sx as f64, sy as f64);
-                        self.ctx.set_transform(transform);
-                        self.draw_image(image, alpha);
-                    },
-                    Some((target_width, target_height)),
-                );
+                let target = Some((target_width, target_height));
+                // recto: an image drawn before at this size comes from the document's cache, and
+                // one with no alpha of its own goes into it (see `image_cache`).
+                let [a, b, c, d, _, _] = transform.as_coeffs();
+                let key = r
+                    .decode_key(target)
+                    .filter(|_| !self.in_type3_glyph)
+                    .map(|key| (key, [a, b, c, d].map(f64::to_bits), self.global.force_image_interpolation));
+                if let Some(key) = key
+                    && let Some(drawn) = self.global.image_cache.borrow_mut().get(key)
+                {
+                    self.draw_pixmap(drawn.pixmap, drawn.quality, transform * drawn.transform);
+                    self.ctx.set_aliasing_threshold(self.global.aliasing_threshold);
+                    return;
+                }
+                let ((drawn, asked), cut) = hayro_syntax::noting_cuts(|| {
+                    hayro_syntax::noting_largest_decode(|| {
+                        let mut drawn = None;
+                        r.with_rgba(
+                            |image, alpha| {
+                                let (sx, sy) = image.scale_factors();
+                                transform *= Affine::scale_non_uniform(sx as f64, sy as f64);
+                                self.ctx.set_transform(transform);
+                                if key.is_some() && alpha.is_none() {
+                                    let mut image = self.image_pixmap(image.into(), None);
+                                    image.transform = Affine::scale_non_uniform(sx as f64, sy as f64) * image.transform;
+                                    drawn = Some(image);
+                                } else {
+                                    self.draw_image(image, alpha);
+                                }
+                            },
+                            target,
+                        );
+                        drawn
+                    })
+                });
+                if let Some(drawn) = drawn {
+                    if let Some(key) = key
+                        && !cut
+                    {
+                        self.global.image_cache.borrow_mut().insert(key, &drawn, asked);
+                    }
+                    self.draw_pixmap(drawn.pixmap, drawn.quality, props.transform * drawn.transform);
+                }
             }
         }
 

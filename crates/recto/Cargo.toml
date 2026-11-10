@@ -38,3 +38,5 @@ js-sys = { version = "0.3", optional = true }
 [dev-dependencies]
 # Already in the tree through hayro-syntax: the reference decoder for its own inflate.
 flate2 = "1"
+# Synthetic scanned pages for tests/scans.rs and examples/scans.rs; never in the build.
+jpeg-encoder = "=0.6.1"
