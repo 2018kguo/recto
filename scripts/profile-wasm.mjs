@@ -55,8 +55,9 @@ async function profile(label, pass) {
     const engine = await createPdfEngine({ recycleAboveBytes: 2 ** 32 });
     for (const password of [undefined, "secret"]) {
       try {
-        const doc = await engine.open(fs.readFileSync(file), { password });
-        await pass(doc);
+        const bytes = fs.readFileSync(file);
+        const doc = await engine.open(bytes, { password });
+        await pass(doc, () => engine.openRanged(bytes, { password }));
         doc.close();
         break;
       } catch (error) {
@@ -80,7 +81,12 @@ async function profile(label, pass) {
   );
 }
 
-const text = await profile("text", async (doc) => {
+const text = await profile("text", async (doc, openRanged) => {
+  // A ranged read of the first and last pages, as a viewer's first look does.
+  const ranged = await openRanged();
+  ranged.text(0);
+  ranged.text(ranged.pageCount - 1);
+  ranged.close();
   doc.outline();
   doc.pageLabels();
   doc.structureTruncated();
@@ -91,10 +97,19 @@ const text = await profile("text", async (doc) => {
     doc.textAndAnnotations(i);
   }
 });
-const drawn = await profile("render", async (doc) => {
+const drawn = await profile("render", async (doc, openRanged) => {
+  // Links are a viewer's, which draws: they're in drawing's part, not text's.
+  const ranged = await openRanged();
+  ranged.links(0);
+  ranged.close();
   for (let i = 0; i < Math.min(doc.pageCount, 8); i++) {
+    doc.links(i);
     doc.render(i, { width: 800 });
     await doc.renderAsync(i, { width: 400 });
+    // Part of a page, as a viewer zoomed in draws it.
+    const region = { x: 10, y: 10, width: 100, height: 100 };
+    doc.render(i, { width: 4000, maxHeight: Infinity, region });
+    await doc.renderAsync(i, { width: 4000, maxHeight: Infinity, region });
     // Thumbnails: images shrink by another path.
     for (const width of [32, 64, 100, 150, 200, 300]) {
       doc.render(i, { width });

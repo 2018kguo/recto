@@ -105,6 +105,7 @@
 <alloc::sync::Arc<read_fonts::model::font::SharedFontRepr>>::drop_slow
 <alloc::sync::Arc<read_fonts::model::font::blob::Blob>>::drop_slow
 <alloc::sync::Arc<read_fonts::model::font::tables::Tables>>::drop_slow
+<alloc::sync::Arc<recto::ranged::Ranged>>::drop_slow
 <alloc::sync::Arc<smallvec::SmallVec<[hayro_syntax::object::ObjectIdentifier; 8usize]>>>::drop_slow
 <alloc::sync::Arc<smallvec::SmallVec<[hayro_syntax::object::ObjectIdentifier; 8usize]>>>::make_mut
 <alloc::sync::Arc<std::sync::once_lock::OnceLock<[u8; 256usize]>>>::drop_slow
@@ -180,7 +181,9 @@
 <hashbrown::raw::RawTable<(u32, f32)>>::reserve_rehash::<hashbrown::map::make_hasher<u32, f32, rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<(u32, u32)>>::reserve_rehash::<hashbrown::map::make_hasher<u32, u32, rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<(u8, alloc::string::String)>>::reserve_rehash::<hashbrown::map::make_hasher<u8, alloc::string::String, rustc_hash::FxBuildHasher>::{closure#0}>
+<hashbrown::raw::RawTable<(usize, ())>>::reserve_rehash::<hashbrown::map::make_hasher<usize, (), rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<(usize, (hayro_font::OutlineGlyph, u32))>>::reserve_rehash::<hashbrown::map::make_hasher<usize, (hayro_font::OutlineGlyph, u32), rustc_hash::FxBuildHasher>::{closure#0}>
+<hashbrown::raw::RawTable<(usize, hayro_syntax::page::NodeKids)>>::reserve_rehash::<hashbrown::map::make_hasher<usize, hayro_syntax::page::NodeKids, rustc_hash::FxBuildHasher>::{closure#0}>
 <hayro::RenderCache>::new
 <hayro_cmap::CMap>::identity
 <hayro_cmap::CMap>::identity_h
@@ -331,6 +334,7 @@
 <hayro_syntax::data::Data>::object_stream
 <hayro_syntax::data::PdfData as core::convert::AsRef<[u8]>>::as_ref
 <hayro_syntax::data::PdfData as core::convert::From<alloc::vec::Vec<u8>>>::from
+<hayro_syntax::data::PdfData>::ensure_ahead
 <hayro_syntax::filter::Filter>::from_name
 <hayro_syntax::filter::HeldDecoded as core::ops::drop::Drop>::drop
 <hayro_syntax::filter::lzw_flate::PredictorParams>::from_params
@@ -346,6 +350,7 @@
 <hayro_syntax::object::array::Array as hayro_syntax::reader::Readable>::read
 <hayro_syntax::object::array::Array as hayro_syntax::reader::Skippable>::skip_with_depth
 <hayro_syntax::object::array::Array>::raw_iter
+<hayro_syntax::object::array::ArrayIter as core::iter::traits::iterator::Iterator>::fold::<usize, core::iter::traits::iterator::Iterator::count::plus_one<hayro_syntax::object::ref::MaybeRef<hayro_syntax::object::Object>>>
 <hayro_syntax::object::array::ArrayIter as core::iter::traits::iterator::Iterator>::next
 <hayro_syntax::object::array::FlexArrayIter>::new
 <hayro_syntax::object::array::FlexArrayIter>::next::<(u32, hayro_syntax::object::array::Array)>
@@ -478,6 +483,8 @@
 <js_sys::Array>::new
 <js_sys::Array>::new::__wbg_new externref shim
 <js_sys::Function<_>>::call1::__wbg_call externref shim
+<js_sys::Function<_>>::call3::__wbg_call externref shim
+<js_sys::Uint8Array>::copy_to
 <js_sys::Uint8Array>::copy_to_slice::__wbg_prototypesetcall externref shim
 <js_sys::Uint8Array>::length
 <js_sys::Uint8Array>::length::__wbg_length externref shim
@@ -604,6 +611,7 @@
 <read_fonts::tables::post::GlyphNames as core::iter::traits::iterator::Iterator>::next
 <recto::Document>::annotations
 <recto::Document>::open_data
+<recto::Document>::open_ranged
 <recto::Document>::scan
 <recto::Document>::scan::{closure#0}
 <recto::Document>::structure_truncated
@@ -613,8 +621,11 @@
 <recto::device::PageDevice as hayro_interpret::device::Device>::draw_glyph_run
 <recto::device::PageDevice as hayro_interpret::device::Device>::draw_path
 <recto::device::PageDevice>::font_id
+<recto::ranged::Ranged as core::convert::AsRef<[u8]>>::as_ref
 <recto::wasm::Annotations as core::convert::From<alloc::vec::Vec<recto::annots::Annotation>>>::from
 <recto::wasm::Document>::open
+<recto::wasm::Document>::open_ranged
+<recto::wasm::Document>::open_ranged::{closure#0}
 <recto::wasm::Document>::outline
 <recto::wasm::Document>::page_info
 <recto::wasm::Document>::page_labels
@@ -735,6 +746,7 @@ core::fmt::write
 core::iter::adapters::flatten::and_then_or_clear::<core::iter::adapters::map::Map<core::iter::adapters::enumerate::Enumerate<core::slice::iter::Iter<read_fonts::tables::cmap::EncodingRecord>>, <read_fonts::model::charmap::EncodingTables>::read<&read_fonts::model::font::tables::Tables>::{closure#0}::{closure#0}::{closure#0}>, core::option::Option<read_fonts::model::charmap::EncodingTable>, <core::iter::adapters::map::Map<core::iter::adapters::enumerate::Enumerate<core::slice::iter::Iter<read_fonts::tables::cmap::EncodingRecord>>, <read_fonts::model::charmap::EncodingTables>::read<&read_fonts::model::font::tables::Tables>::{closure#0}::{closure#0}::{closure#0}> as core::iter::traits::iterator::Iterator>::next>
 core::iter::adapters::try_process::<core::iter::adapters::map::Map<core::ops::range::Range<usize>, <hayro_interpret::function::type0::Type0>::new::{closure#2}>, f32, core::option::Option<core::convert::Infallible>, <core::option::Option<alloc::vec::Vec<f32>> as core::iter::traits::collect::FromIterator<core::option::Option<f32>>>::from_iter<core::iter::adapters::map::Map<core::ops::range::Range<usize>, <hayro_interpret::function::type0::Type0>::new::{closure#2}>>::{closure#0}, alloc::vec::Vec<f32>>
 core::ptr::drop_in_place::<<alloc::boxed::Box<dyn core::error::Error + core::marker::Send + core::marker::Sync> as core::convert::From<alloc::string::String>>::from::StringError>
+core::ptr::drop_in_place::<<recto::wasm::Document>::open_ranged::{closure#0}>
 core::ptr::drop_in_place::<alloc::vec::Vec<recto::annots::Annotation>>
 core::ptr::drop_in_place::<alloc::vec::Vec<u8>>
 core::ptr::drop_in_place::<core::iter::adapters::zip::Zip<core::iter::adapters::zip::Zip<core::slice::iter::Iter<hayro_interpret::function::Interval>, alloc::vec::into_iter::IntoIter<hayro_interpret::function::Interval>>, alloc::vec::into_iter::IntoIter<u32>>>
@@ -744,6 +756,7 @@ core::ptr::drop_in_place::<core::option::Option<hayro_cmap::CharacterCollection>
 core::ptr::drop_in_place::<core::option::Option<hayro_interpret::interpret::state::ActiveTransferFunction>>
 core::ptr::drop_in_place::<core::option::Option<hayro_interpret::interpret::state::TextStateFont>>
 core::ptr::drop_in_place::<core::option::Option<hayro_syntax::object::dict::Dict>>
+core::ptr::drop_in_place::<core::option::Option<hayro_syntax::page::Descent>>
 core::ptr::drop_in_place::<core::option::Option<moxcms::profile::LutWarehouse>>
 core::ptr::drop_in_place::<core::option::Option<moxcms::profile::ProfileText>>
 core::ptr::drop_in_place::<core::option::Option<moxcms::trc::ToneReprCurve>>
@@ -778,6 +791,7 @@ core::ptr::drop_in_place::<hayro_syntax::xref::ObjectStream>
 core::ptr::drop_in_place::<moxcms::conversions::lut4::Lut4x3>
 core::ptr::drop_in_place::<moxcms::conversions::rgbxyz::TransformMatrixShaperOptScalar<u8, 0u8, 0u8, 256usize>>
 core::ptr::drop_in_place::<moxcms::profile::ColorProfile>
+core::ptr::drop_in_place::<recto::ranged::data::{closure#0}>
 core::ptr::drop_in_place::<recto::text::TextPage>
 core::ptr::drop_in_place::<recto::wasm::Annotations>
 core::ptr::drop_in_place::<recto::wasm::PageObjects>
@@ -789,9 +803,11 @@ core::ptr::drop_in_place::<std::collections::hash::map::HashMap<u8, alloc::strin
 core::slice::memchr::memchr_aligned
 core::slice::sort::shared::pivot::median3_rec::<(u32, u32, u32), <[(u32, u32, u32)]>::sort_unstable_by<<read_fonts::model::name::glyph::GlyphNameIndex>::new::{closure#1}>::{closure#0}>
 core::slice::sort::shared::pivot::median3_rec::<hayro_cmap::BfRange, <[hayro_cmap::BfRange]>::sort_by_key<u32, hayro_cmap::bcmap::parse<hayro_font::read_to_unicode::{closure#2}::{closure#0}>::{closure#2}>::{closure#0}>
+core::slice::sort::shared::pivot::median3_rec::<usize, <usize as core::cmp::PartialOrd>::lt>
 core::slice::sort::shared::smallsort::bidirectional_merge::<(u32, u32, u32), <[(u32, u32, u32)]>::sort_unstable_by<<read_fonts::model::name::glyph::GlyphNameIndex>::new::{closure#1}>::{closure#0}>
 core::slice::sort::shared::smallsort::insert_tail::<(u32, u32, u32), <[(u32, u32, u32)]>::sort_unstable_by<<read_fonts::model::name::glyph::GlyphNameIndex>::new::{closure#1}>::{closure#0}>
 core::slice::sort::shared::smallsort::insertion_sort_shift_left::<hayro_cmap::BfRange, <[hayro_cmap::BfRange]>::sort_by_key<u32, hayro_cmap::bcmap::parse<hayro_font::read_to_unicode::{closure#2}::{closure#0}>::{closure#2}>::{closure#0}>
+core::slice::sort::shared::smallsort::insertion_sort_shift_left::<usize, <usize as core::cmp::PartialOrd>::lt>
 core::slice::sort::shared::smallsort::sort4_stable::<(u32, u32, u32), <[(u32, u32, u32)]>::sort_unstable_by<<read_fonts::model::name::glyph::GlyphNameIndex>::new::{closure#1}>::{closure#0}>
 core::slice::sort::shared::smallsort::sort8_stable::<hayro_cmap::CidRange, <[hayro_cmap::CidRange]>::sort_by_key<u32, <hayro_cmap::PartitionedRanges>::sort::{closure#0}>::{closure#0}>
 core::slice::sort::stable::drift::sort::<hayro_cmap::BfRange, <[hayro_cmap::BfRange]>::sort_by_key<u32, hayro_cmap::bcmap::parse<<hayro_font::cid::Type0Font>::new::{closure#5}>::{closure#2}>::{closure#0}>
@@ -805,7 +821,9 @@ core::slice::sort::stable::quicksort::quicksort::<hayro_cmap::BfRange, <[hayro_c
 core::slice::sort::stable::quicksort::quicksort::<hayro_cmap::BfRange, <[hayro_cmap::BfRange]>::sort_by_key<u32, hayro_cmap::parse::parse_inner<hayro_font::read_to_unicode::{closure#2}::{closure#0}>::{closure#2}>::{closure#0}>
 core::slice::sort::stable::quicksort::quicksort::<hayro_cmap::CidRange, <[hayro_cmap::CidRange]>::sort_by_key<u32, <hayro_cmap::PartitionedRanges>::sort::{closure#0}>::{closure#0}>
 core::slice::sort::unstable::ipnsort::<(u32, u32, u32), <[(u32, u32, u32)]>::sort_unstable_by<<read_fonts::model::name::glyph::GlyphNameIndex>::new::{closure#1}>::{closure#0}>
+core::slice::sort::unstable::ipnsort::<usize, <usize as core::cmp::PartialOrd>::lt>
 core::slice::sort::unstable::quicksort::quicksort::<(u32, u32, u32), <[(u32, u32, u32)]>::sort_unstable_by<<read_fonts::model::name::glyph::GlyphNameIndex>::new::{closure#1}>::{closure#0}>
+core::slice::sort::unstable::quicksort::quicksort::<usize, <usize as core::cmp::PartialOrd>::lt>
 core::str::converts::from_utf8
 core::unicode::unicode_data::alphabetic::lookup_slow
 core::unicode::unicode_data::n::lookup_slow
@@ -815,6 +833,9 @@ document_fileLength
 document_filePointer
 document_open
 document_open multivalue shim
+document_openRanged
+document_openRanged externref shim
+document_openRanged externref shim multivalue shim
 document_outline
 document_outline externref shim
 document_pageCount
@@ -914,6 +935,9 @@ hayro_syntax::filter::lzw_flate::flate::inflate
 hayro_syntax::filter::png::unfilter
 hayro_syntax::object::dict::read_inner
 hayro_syntax::object::rect::from_arr
+hayro_syntax::page::counts_add_up
+hayro_syntax::page::inherit
+hayro_syntax::page::is_node
 hayro_syntax::pdf::find_version
 hayro_syntax::sha256
 hayro_syntax::util::find_needle
@@ -1001,6 +1025,7 @@ recto::annots::object_text
 recto::annots::read
 recto::annots::text_string
 recto::annots::text_string::{closure#0}
+recto::annots::viewer_box
 recto::assets::host::fetch
 recto::assets::text_settings::{closure#0}
 recto::device::rgba
@@ -1009,6 +1034,7 @@ recto::labels::collect
 recto::labels::read_walked
 recto::outline::read_walked
 recto::outline::walked
+recto::ranged::data::{closure#0}
 recto::text::classify
 recto::text::mirrored
 recto::text::rtl_segment

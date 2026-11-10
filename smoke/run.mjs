@@ -256,13 +256,19 @@ const pdfs = (req, res) => {
     return;
   }
   const body = name === "cjk.pdf" ? cjk : Buffer.from(sample, "latin1");
-  const match = /bytes=(\d+)-(\d+)/u.exec(req.headers.range ?? "");
+  const match = /bytes=(\d*)-(\d+)/u.exec(req.headers.range ?? "");
   if (mode === "ignore" || !match) {
     res.writeHead(200, cors).end(body);
     return;
   }
-  const start = Number(match[1]);
-  const end = Math.min(Number(match[2]), body.byteLength - 1);
+  // As Express's range-parser: a suffix longer than the file is a 416.
+  if (mode === "suffix416" && match[1] === "" && Number(match[2]) > body.byteLength) {
+    res.writeHead(416, { ...cors, "Content-Range": `bytes */${body.byteLength}` }).end();
+    return;
+  }
+  // A suffix, bytes=-n, is the last n bytes.
+  const start = match[1] === "" ? Math.max(0, body.byteLength - Number(match[2])) : Number(match[1]);
+  const end = match[1] === "" ? body.byteLength - 1 : Math.min(Number(match[2]), body.byteLength - 1);
   const part = body.subarray(start, end + 1);
   const headers = { ...cors, "Content-Range": `bytes ${start}-${end}/${body.byteLength}` };
   if (mode !== "noexpose") {
@@ -289,6 +295,17 @@ const shut = (server) =>
       server.closeAllConnections();
     }),
   );
+// What Node's ranged read of the sample takes, in 64-byte chunks, for a browser's to match.
+const nodeSmallChunks = await (async () => {
+  const { createPdfEngine } = await import(path.join(dir, "node_modules/@2018kguo/recto/dist/index.js"));
+  const engine = await createPdfEngine();
+  const doc = await engine.openRanged(Buffer.from(sample, "latin1"), { chunkBytes: 64 });
+  doc.text(1);
+  const stats = doc.stats();
+  doc.close();
+  assert.ok(stats.rounds > 2, `the 64-byte read needs rounds past the first (${stats.rounds})`);
+  return stats;
+})();
 const pdfServer = await listen(pdfs);
 const pdfBase = `http://127.0.0.1:${pdfServer.address().port}`;
 
@@ -345,6 +362,16 @@ async function checkPages(browserName, label, origin) {
     assert.ok(checks.cjk.ink > 100, `CJK ink ${checks.cjk.ink}`);
     assert.equal(checks.ranged.pageCount, 2);
     assert.match(checks.ranged.text, /second page/u);
+    // The head and the tail, asked for together: the head is the whole file here.
+    assert.deepEqual([checks.ranged.rounds, checks.ranged.requests], [1, 2]);
+    assert.match(checks.smallChunks.text, /second page/u);
+    assert.deepEqual(
+      [checks.smallChunks.rounds, checks.smallChunks.requests, checks.smallChunks.bytesFetched],
+      [nodeSmallChunks.rounds, nodeSmallChunks.requests, nodeSmallChunks.bytesFetched],
+      "a browser's ranged read fetches what Node's does, in as many rounds",
+    );
+    // The head reads on when the suffix is refused: still one round, and the file once.
+    assert.deepEqual([checks.refused.pageCount, checks.refused.rounds, checks.refused.bytesFetched], [2, 1, sample.length]);
     assert.equal(checks.ignored.pageCount, 2);
     assert.equal(checks.ignored.requests, 1);
     assert.equal(checks.short, "fetch-failed");

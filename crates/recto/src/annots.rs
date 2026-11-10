@@ -12,6 +12,7 @@ use hayro::kurbo::{self, Affine};
 
 use crate::device::PageDevice;
 
+pub const ANNOT_LINK: u8 = 2;
 pub const ANNOT_WIDGET: u8 = 20;
 
 /// Subtype numbers in the PDF spec's table order; 0 for an unknown or missing /Subtype.
@@ -268,6 +269,19 @@ fn appearance<'a>(
     (objects, texts, lines.join("\n"))
 }
 
+/// An annotation's `/Rect` in the viewer frame, `viewer` mapping page space to it: x, y, width, height.
+pub(crate) fn viewer_box(annot: &Dict<'_>, viewer: Affine) -> [f32; 4] {
+    annot.get::<Rect>(b"Rect").map_or([0.0; 4], |r| {
+        let b = viewer.transform_rect_bbox(kurbo::Rect::new(r.x0, r.y0, r.x1, r.y1).abs());
+        [
+            b.x0 as f32,
+            b.y0 as f32,
+            b.width() as f32,
+            b.height() as f32,
+        ]
+    })
+}
+
 /// The annotations of `page`, `viewer` mapping page space to the viewer frame.
 pub(crate) fn read<'a>(
     page: &Page<'a>,
@@ -280,15 +294,7 @@ pub(crate) fn read<'a>(
             let subtype = annot
                 .get::<Name<'_>>(b"Subtype")
                 .map_or(0, |n| subtype_number(&n));
-            let bbox = annot.get::<Rect>(b"Rect").map_or([0.0; 4], |r| {
-                let b = viewer.transform_rect_bbox(kurbo::Rect::new(r.x0, r.y0, r.x1, r.y1).abs());
-                [
-                    b.x0 as f32,
-                    b.y0 as f32,
-                    b.width() as f32,
-                    b.height() as f32,
-                ]
-            });
+            let bbox = viewer_box(&annot, viewer);
             let contents = annot
                 .get::<Object<'_>>(b"Contents")
                 .map(|o| object_text(&o))

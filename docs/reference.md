@@ -51,9 +51,10 @@ isn't there. Fonts and CMaps can be named the same way.
 | `text(i)` | `PdfPageText`: the page's `text`, and columns per char: `codepoints`, `boxes`, `fontSizes`, `tfSizes`, `angles`, `fills`, `fontIds`, `flags`, `runIds`; plus `fonts`, `words`, `runs`, `truncated` |
 | `objects(i)` | `PdfPageObjects`: image boxes and pixel sizes, path boxes and flags, path segments, `truncated` |
 | `annotations(i)` | `PdfAnnotation[]`: subtype, box, contents, form field, appearance text |
+| `links(i)` | `PdfLink[]`: each `/Link` annotation's index in `annotations(i)`, its box, and its `target`. [Links](#links) |
 | `scan(i)` | `text`, `objects` and `annotations` from one interpretation of the page |
 | `textAndAnnotations(i)` | `text` and `annotations` from one interpretation of the page |
-| `render(i, { width, maxHeight? })` | `{ width, height, rgba, truncated }`: opaque RGBA, four bytes a pixel, on white |
+| `render(i, { width, maxHeight?, region? })` | `{ width, height, rgba, truncated }`: opaque RGBA, four bytes a pixel, on white. With a `region`, only that part, and where it is: [part of a page](#part-of-a-page) |
 | `renderAsync(i, { width, maxHeight?, signal?, sliceMs? })` | A promise of the same bitmap, the same pixels, with the thread given back every `sliceMs` (8 by default). A `signal` stops it at the next pause, with `aborted` |
 | `close()`, `[Symbol.dispose]()` | Frees the document. Closing twice does nothing |
 
@@ -112,6 +113,45 @@ under the limit can still add up to more than the instance has.
 A render is capped at 16,384 px a side and 64 Mpx, and shrinks to fit. `maxHeight` defaults to
 4096; pass `Infinity` to fit the width alone.
 
+### Part of a page
+
+`render(i, { width, maxHeight?, region: { x, y, width, height } })`, and `renderAsync` with the same,
+draws only the pixels of the whole page's bitmap that the region covers, for a tile or a zoomed-in view.
+
+- **The region** is in points in the viewer frame, as text and annotation boxes are: origin at the top
+  left of the page as shown, after its `/Rotate` and with its crop box's corner at 0, 0; x to the right, y
+  down, up to `pageInfo(i).width` and `height`. On a page turned a quarter, `width` runs along the PDF's y.
+- **The scale** is the one `width` and `maxHeight` give the whole page, without the whole page's caps:
+  `width` may be up to 262,144 with a region. The region's bitmap is capped instead, at 16,384 px a side
+  and 64 Mpx, and a larger one fails with `failed` rather than shrinking, since a tile shrunk is at the
+  wrong scale. A region with no area on the page fails with `failed` too.
+- **The pixels** are the region grown out to whole pixels (a coordinate within 1/1024 px of a whole one
+  is taken as it) and cut to the page. The result says where they are: `x`, `y` is its top-left pixel in
+  the whole page's bitmap, and `pageWidth`, `pageHeight` that bitmap's size. To name pixels exactly, scale
+  points by `pageWidth / pageInfo(i).width`.
+- **They match a whole render** at the same scale, cropped. On the 37 public PDFs and 2 generated ones,
+  at 400 and 1000 px wide, 734 of 760 regions are identical and 22 differ by 1 or 2 in a channel on a
+  few edge pixels, where the region's edge cuts an antialiased shape. Two kinds of content can differ
+  by more, because the renderer steps its sampling position across a run of pixels in single precision,
+  from where the run starts, and a region starts runs elsewhere:
+  - **An image drawn close to 1:1**, where nearest-neighbour sampling falls on a tie: the other 4 of the
+    760, scanned pages, with pixels off by up to 156 on at most 0.17% of the region.
+  - **A tiling pattern at large scales**, at the edges inside its tile. In a sweep of patterns with tiles
+    of 0.7 to 10 points, none differed by more than 2 at 1,000 px wide or under; between 1,000 and 8,000
+    px wide, pixels at tile edges differed by up to 72 on up to 16% of a small region.
+
+  Which tiles a pattern repeats, and where, is decided over the whole page, as the page's own render
+  decides it, for a tile of up to 4,096 px a side; a larger one is drawn across the region instead.
+- **Memory** follows the region, not the page at that scale: the pixmap is the region's size, plus up
+  to 255 px to its left and 3 above, where the renderer's tiles start in the whole page's bitmap; a
+  mesh shading is sampled only over the region; a tiling pattern's tile is drawn once, up to 4,096 px a
+  side. A tile of a page drawn 200,000 px wide, 120 GB whole, grows the heap by under 16 MiB, and a 500 px
+  square of a mesh-shaded page 100,000 px wide by 12 MiB (a mesh holds about 60 bytes a pixel of what it
+  covers, for the region alone). The page's content is still interpreted whole, so
+  time follows what the page draws as much as the region.
+
+`truncated` means what it does for a whole render.
+
 **`renderAsync`** pauses between a page's drawing operators, including inside forms. Three things
 run whole: the final rasterizing (about a quarter of a render, the longest hold on a heavy page),
 and a pattern, soft mask or Type 3 glyph, or a knockout or backdrop group. Other calls may run
@@ -134,8 +174,8 @@ pool.stats(): { threads: number; queued: number }
 pool.close()      // or `using`: stops every thread; what's unfinished fails with `closed`
 
 doc.pageCount
-doc.text(i)  doc.render(i, { width, maxHeight? })  doc.objects(i)
-doc.annotations(i)  doc.pageInfo(i)  doc.outline()     // each a promise
+doc.text(i)  doc.render(i, { width, maxHeight?, region? })  doc.objects(i)
+doc.annotations(i)  doc.links(i)  doc.pageInfo(i)  doc.outline()     // each a promise
 doc.close()       // or `await using`: frees it on every thread
 ```
 
@@ -154,9 +194,51 @@ the CDN must send CORS headers for `dist/` as it does for the wasm, and a Conten
 
 A thread that can't start fails what's waiting with its reason, usually `missing-asset`, and the next call tries again; one
 that says nothing for 90 seconds counts as stopped. A thread that stops fails its call with `crash`, and another takes its
-place. An argument or result that can't cross between threads fails that call alone. `render` takes `width` and
-`maxHeight`, and refuses `signal` with a `TypeError`: a call can't be stopped once it runs, only `pool.close()` ends all of them.
+place. An argument or result that can't cross between threads fails that call alone. `render` takes `width`,
+`maxHeight` and `region`, and refuses `signal` with a `TypeError`: a call can't be stopped once it runs, only `pool.close()` ends all of them.
 The synchronous API doesn't change, and the pool's code loads only when `createPdfPool` is called.
+
+## Links
+
+`doc.links(i)` lists page `i`'s `/Link` annotations, in the order `annotations(i)` has them:
+
+```ts
+type PdfLink = { annotation: number; box: PdfBox; target: PdfLinkTarget };
+
+type PdfLinkTarget =
+  | { kind: "uri"; uri: string }
+  | { kind: "page"; destination: PdfDestination }      // GoTo, or the link's /Dest
+  | { kind: "remote"; file: string; name: string | null; page: number | null }  // GoToR
+  | { kind: "launch"; file: string }
+  | { kind: "action"; action: string; name: string | null }  // any other /S; Named's /N is name
+  | { kind: "none" };
+
+type PdfDestination = {
+  page: number;              // -1 if it goes nowhere in this file
+  view: string | null;       // "XYZ", "Fit", "FitH", "FitV", "FitR", "FitB", "FitBH", "FitBV"
+  x: number | null;          // the point to bring to the top left, in the target page's viewer frame
+  y: number | null;
+  zoom: number | null;       // XYZ's, 1 for 100%
+  box: PdfBox | null;        // FitR's rectangle, in the target page's viewer frame
+};
+```
+
+- **`annotation` and `box`** are the link's index in `annotations(i)` and the box it has there, in the
+  viewer frame.
+- **A destination** is resolved as the outline's are: an explicit array, a name in the catalog's `/Dests`
+  or its `/Names` tree, a `/D` dictionary. Its coordinates are moved into the target page's viewer frame,
+  so they compare with that page's boxes and a region to render. A coordinate the destination leaves as
+  it was is `null`; on a page turned a quarter, a `FitH`'s top is a viewer `x`, so `y` is the null one.
+  `zoom` is `null` for none, 0 or less.
+- **An action wins over `/Dest`** when a link has both, as the spec says.
+- **Another file or a program** (`GoToR`, `Launch`) is reported, with the file's name from a string or a
+  file specification's `/UF`, `/F` or a platform's key, and never opened or followed. Neither is JavaScript, which is
+  `{ kind: "action", action: "JavaScript" }` without its script.
+- **The page** is found in the page tree's order, once a call however many links there are, as the
+  outline's are: a page the tree lists twice is where it first appears. On a ranged read that reads the
+  whole tree, as `outline()` does, so a link's page is the same whole or ranged.
+
+`links` loads `recto-render.wasm`, as `render` does: the code is in that part.
 
 ## Errors
 
@@ -192,8 +274,39 @@ try {
 ## Ranged reads
 
 `engine.openRanged(url)` fetches only the chunks the parser reads: the head, the tail and last
-cross-reference section, then each object on first use. `doc.stats()` reports the bytes
-fetched.
+cross-reference section, then each object on first use. `doc.stats()` reports `bytesFetched`,
+`requests` and `rounds`, the round trips; a round's requests run in parallel.
+
+**The open is one round** from the same origin. It asks for the head (4 chunks) and the last 2 chunks at
+once, the second by a suffix range (`bytes=-131072`), since the file's length isn't known yet. In a file
+shorter than the two, the head is read only up to where the suffix starts, so no byte is fetched twice, and
+a chunk that the suffix starts inside of is kept in its two parts. So `bytesFetched` never passes the file's
+length, and a `maxBytes` of the file's length is always enough. That covers a small file's objects and
+most files' cross-reference tables, so the first page usually costs one or two rounds more, for its
+objects and their fonts and images. These cases take more:
+
+- **A cross-reference table longer than the tail**, or one the tail's doesn't lead to, takes a round for
+  each section.
+- **A server that won't answer the suffix** with a 206 (it sends 200, 416 or the wrong range) costs one
+  more round on a file longer than the head: the last chunk is fetched by its offset, and the answer to
+  the suffix is cancelled unread. On a shorter one the head, which paused where the suffix starts, reads
+  on to its end instead, so the open is still one round: Express answers a suffix longer than the file
+  with a 416. A suffix still unanswered once the head is in gets as long again as the head took (at least
+  250 ms), then counts as refused: it never fails the open.
+- **Cross-origin**, `bytes=-n` isn't a safelisted `Range` value, so the browser sends a preflight first:
+  two rounds for the suffix unless the preflight is cached (`Access-Control-Max-Age`), and a server that
+  refuses it lands in the case above.
+
+`bytesFetched` counts what was read from each response. A response that's cancelled (a 200 to the suffix,
+the head of a file the suffix covers) isn't read, but a server may have sent some of it before the cancel
+reached it. So on a small file, or from a server that ignores Range, the server can send more than
+`bytesFetched` counts: on a local server, a whole small file twice, all of a 0.4 MB file again, and 0.9 MB
+of a 9 MB one.
+
+An object that doesn't parse in its first 4 KB window is asked for up to the next object in the file, in
+one round, when that's within 8 MiB; past that the window grows fourfold, a round each. When a window is
+fetched anyway, the bytes up to the next object (within 1 MiB) come with it, so a content stream or font
+next to what's read costs no round of its own.
 
 The engine's calls are synchronous, so a read that misses **blocks its thread for the round
 trip**. In Node a small fetcher thread does the fetch while yours waits on `Atomics.wait`; in a

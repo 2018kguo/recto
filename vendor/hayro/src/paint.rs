@@ -28,7 +28,8 @@ impl Renderer<'_> {
             }
             Paint::Pattern(p) => {
                 let path_transform = self.ctx.transform();
-                let bbox = {
+                // recto: `painted` is uncut, for a tiling pattern in a window's render.
+                let painted = {
                     let mut bbox = path_transform.transform_rect_bbox(path_bbox());
 
                     if is_stroke {
@@ -38,20 +39,21 @@ impl Renderer<'_> {
                         bbox = bbox.inflate(factor, factor);
                     }
 
-                    bbox.intersect(Rect::new(
-                        0.0,
-                        0.0,
-                        self.ctx.width() as f64,
-                        self.ctx.height() as f64,
-                    ))
+                    bbox
                 };
+                let bbox = painted.intersect(Rect::new(
+                    0.0,
+                    0.0,
+                    self.ctx.width() as f64,
+                    self.ctx.height() as f64,
+                ));
 
                 match *p {
                     Pattern::Shading(s) => {
                         const NATIVE_GRADIENT_TOLERANCE: f32 = 0.01;
 
                         clip_path = s.shading.clip_path.clone();
-                        let encoded = s.encode();
+                        let encoded = s.encode_within(Some(bbox));
 
                         if let EncodedShadingType::RadialAxial(gradient) = &encoded.shading_type
                             && let Some(native) =
@@ -129,7 +131,7 @@ impl Renderer<'_> {
                         }
                     }
                     Pattern::Tiling(t) => {
-                        let (image, transform) = self.tiling_paint(&t, bbox, is_stroke);
+                        let (image, transform) = self.tiling_paint(&t, bbox, painted, is_stroke);
                         paint_transform = path_transform.inverse() * transform;
 
                         PaintType::Image(image)

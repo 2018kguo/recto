@@ -421,10 +421,10 @@ class RectoEngine implements PdfEngine {
     }
     const owned = ownedSource(source);
     const instance = await this.#live();
-    const loader = startRangeLoader(owned, options);
-    const read = (offset: number, length: number) => {
+    const loader = await startRangeLoader(owned, options);
+    const read = (offset: number, length: number, ahead: number) => {
       const out = new Uint8Array(length);
-      return loader.read(offset, out) ? out : undefined;
+      return loader.read(offset, out, ahead) ? out : undefined;
     };
     const password = options.password ?? null;
     let doc: RectoDocument;

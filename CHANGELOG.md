@@ -1,5 +1,57 @@
 # Changelog
 
+## 0.5.0
+
+What a viewer needs: a ranged open in one round trip, part of a page drawn on its own, and where links go.
+At 120 ms of latency the first page of 39 files comes 39% sooner, 10.2 → 6.2 s in all; see
+[the numbers](docs/benchmarks.md#the-first-page-over-a-slow-link). Everything 0.4.0 returned is byte for byte
+the same on 2,172 files, read whole and by range, and the scorecard is unchanged.
+
+### Added
+
+- **`render(i, { width, region })`** and `renderAsync` with the same: only the pixels of the whole page's bitmap
+  that `region` covers, given in points in the viewer frame (top left of the page as shown, after `/Rotate`
+  and the crop box), grown out to whole pixels and cut to the page. The result adds `x`, `y`, `pageWidth` and
+  `pageHeight`: where it is in the whole bitmap. The caps (16,384 px a side, 64 Mpx) are on the region, past
+  them it fails rather than shrinks, and `width` may go to 262,144. Memory follows the region: its pixmap, a
+  mesh shading sampled over it alone, and a tiling pattern's tile, up to 4,096 px a side. A tile of a page
+  drawn 200,000 px wide grows the heap by under 16 MiB. Against a crop of the whole render, tested at every
+  rotation and with an offset crop box: a channel differs by at most 2, on under 1% of pixels, where the
+  region's edge cuts an antialiased shape (734 of 760 regions on 39 files identical). Two exceptions,
+  from the renderer stepping its sampling position in single precision from where a run of pixels starts: an
+  image drawn close to 1:1 on a nearest-neighbour tie (4 of the 760, up to 156 on at most 0.17% of a region),
+  and a tiling pattern past 1,000 px wide, at edges inside its tile (up to 72 on up to 16% of a small region,
+  in a sweep to 8,000 px). The pool's `render` takes it too.
+- **`links(i)`**: each `/Link` annotation's index in `annotations(i)`, its box, and its target: a URI; a page
+  and a destination (view, point, zoom, `FitR` box) moved into the target page's viewer frame, from a
+  `GoTo`, a `/Dest`, or a name in `/Dests` or the `/Names` tree, resolved as the outline's are, with the page
+  found once a call in the tree's order, so whole and ranged agree and a page listed twice is where it first
+  appears; `GoToR` and `Launch` reported with their file, never followed; any other action by its name.
+  `annotations` is unchanged. In the pool too.
+- `bench/ranged-latency.mjs`: time and round trips to a ranged first page at a set of latencies, against
+  another build and pdf.js.
+
+### Changed
+
+- **A ranged open is one round trip** from the same origin, from two or three: the head and the tail (a suffix
+  range, `bytes=-131072` by default) are asked for together. No byte is fetched twice: in a file shorter than
+  the two, the head stops where the suffix starts, and a chunk the suffix starts inside of is kept in parts. So
+  a `maxBytes` of the file's size is still always enough, and `bytesFetched` never passes it. A server that
+  won't answer the suffix with a 206, or hasn't once the head is in and as long again has passed, costs the
+  round back on a file longer than the head (the tail is fetched by offset), and none on a shorter one, whose
+  head reads on to its end; the open never fails for it. Cross-origin the suffix range
+  needs a CORS preflight, a second round unless it's cached. In a browser the open's fetches are now async
+  `fetch` calls, and a whole-file answer to a range is read no further than the budget.
+- **Fewer rounds after the open**: an object's first window takes the bytes up to the next object along
+  (within 1 MiB) when it's fetched anyway, and a window too small jumps to the next object (within 8 MiB)
+  rather than growing fourfold a round at a time. Over every 12th page of the files above, rounds per page
+  went from 3.91 to 2.04. What's left is the object graph's depth: a page's resources, fonts and images found
+  one after another.
+- **More bytes for fewer rounds**: 14% more for the first pages above, 7% more for pages read one by one, from
+  a tail of 2 chunks where 0.4.0 fetched 1.
+- **Download**: 3.8 KB more with brotli for text and 11.3 KB more for text and drawing. A ranged open no longer
+  fetches `recto-more.wasm` (251 KB), which in 0.4.0 it did.
+
 ## 0.4.0
 
 recto agrees with the other engines' pixels on 97.6% of the pages two of them agree on, from 96.9%, and a long

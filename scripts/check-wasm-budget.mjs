@@ -35,6 +35,10 @@ for (let i = 0; i < doc.pageCount; i++) {
   assert.ok(doc.text(i).text.length > 0, `page ${i} has text`);
 }
 doc.outline();
+// A ranged read's own code is text's too: a viewer's first look at a file by URL waits on no part.
+const ranged = await engine.openRanged(bytes);
+assert.ok(ranged.text(ranged.pageCount - 1).text.length > 0, "a ranged read has text");
+ranged.close();
 assert.equal(engine.stats().generation, 0, "reading text fetched a part");
 put("recto-render.wasm");
 for (const font of fs.readdirSync(here("wasm")).filter((name) => name.endsWith(".pfb"))) put(font);
@@ -43,4 +47,4 @@ for (let i = 0; i < 4; i++) {
 }
 assert.equal(engine.stats().generation, 0, "drawing fetched more than its part");
 doc.close();
-console.log("text-only fetches no part; drawing fetches recto-render only");
+console.log("text-only fetches no part, whole or ranged; drawing fetches recto-render only");

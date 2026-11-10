@@ -12,21 +12,36 @@ impl Renderer<'_> {
         &self,
         t: &TilingPattern<'_>,
         area: Rect,
+        painted: Rect,
         is_stroke: bool,
     ) -> (Image, Affine) {
-        let area = t.matrix.inverse().transform_rect_bbox(area);
+        // recto: in a window's render, whether the tile repeats is decided over the whole page, as
+        // the page's own render decides it, so a window's pixels are the page's. What's drawn
+        // otherwise covers the window and two pixels round it, not the page.
+        let (area, whole) = match self.page {
+            None => (area, None),
+            Some(page) => {
+                let near = Rect::new(-2.0, -2.0, self.ctx.width() as f64 + 2.0, self.ctx.height() as f64 + 2.0);
+                (painted.intersect(near).intersect(page), Some(painted.intersect(page)))
+            }
+        };
+        let inverse = t.matrix.inverse();
+        let area = inverse.transform_rect_bbox(area);
+        let whole = whole.map(|whole| inverse.transform_rect_bbox(whole));
         let (x_advance, y_advance) = x_y_advances(&t.matrix);
         let x = TileAxis::new(
             x_advance.length(),
             t.bbox.x0..t.bbox.x1,
             t.x_step,
             area.x0..area.x1,
+            whole.map(|w| w.x0..w.x1),
         );
         let y = TileAxis::new(
             y_advance.length(),
             t.bbox.y0..t.bbox.y1,
             t.y_step,
             area.y0..area.y1,
+            whole.map(|w| w.y0..w.y1),
         );
 
         let image = Image {
@@ -60,6 +75,8 @@ impl Renderer<'_> {
             Affine::scale_non_uniform(x.scale, y.scale) * Affine::translate((-x.start, -y.start));
         let mut ctx = self.child_context(x.size, y.size);
         let mut renderer = Renderer::new(&mut ctx, self.global);
+        // recto: the tile's own space, not the page's.
+        renderer.page = None;
 
         for j in y.copies.clone() {
             for i in x.copies.clone() {
@@ -86,13 +103,17 @@ struct TileAxis {
 }
 
 impl TileAxis {
-    fn new(scale: f64, cell: Range<f64>, step: f32, area: Range<f64>) -> Self {
+    /// `whole`, in a window's render: the page's extent, which decides whether the tile repeats
+    /// unless a tile is past `MAX_WINDOW_TILE` pixels.
+    fn new(scale: f64, cell: Range<f64>, step: f32, area: Range<f64>, whole: Option<Range<f64>>) -> Self {
+        const MAX_WINDOW_TILE: f64 = 4096.0;
         let step = f64::from(step.abs());
         let width = cell.end - cell.start;
-        let visible = (area.end - area.start).max(0.0);
-        let repeat = visible >= step;
-
         let scale = (step * scale).round().max(1.0) / step;
+        let repeat = match &whole {
+            None => (area.end - area.start).max(0.0) >= step,
+            Some(whole) => (whole.end - whole.start).max(0.0) >= step && (step * scale).round() <= MAX_WINDOW_TILE,
+        };
 
         if repeat {
             Self {

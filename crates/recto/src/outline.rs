@@ -21,12 +21,20 @@ pub struct OutlineItem {
 }
 
 struct Reader<'a> {
-    pages: FxHashMap<ObjectIdentifier, i32>,
+    dests: Destinations<'a>,
+    items: Vec<OutlineItem>,
+    seen: FxHashSet<ObjectIdentifier>,
+}
+
+/// Where destinations go: by name (the catalog's `Dests` and its name tree), and to which page.
+/// The outline's, and links'.
+pub(crate) struct Destinations<'a> {
+    pdf: &'a Pdf,
+    /// Each page's object and its index, made on first use: it walks the whole page tree.
+    pages: Option<FxHashMap<ObjectIdentifier, i32>>,
     /// `Dests` of the catalog, and the name tree's entries, read on first use.
     names: Option<FxHashMap<Vec<u8>, Object<'a>>>,
     root: Dict<'a>,
-    items: Vec<OutlineItem>,
-    seen: FxHashSet<ObjectIdentifier>,
     walked: Walked,
 }
 
@@ -42,7 +50,16 @@ pub struct Walked {
 /// A name tree's nodes can name each other twice, so depth alone leaves 2^32 visits.
 pub const MAX_NAME_NODES: usize = MAX_ITEMS * 4;
 
-impl<'a> Reader<'a> {
+impl<'a> Destinations<'a> {
+    pub(crate) fn new(pdf: &'a Pdf, root: Dict<'a>) -> Self {
+        Self { pdf, pages: None, names: None, root, walked: Walked::default() }
+    }
+
+    fn pages(&mut self) -> &FxHashMap<ObjectIdentifier, i32> {
+        let pdf = self.pdf;
+        self.pages.get_or_insert_with(|| page_map(pdf))
+    }
+
     fn names(&mut self) -> &FxHashMap<Vec<u8>, Object<'a>> {
         let root = self.root.clone();
         let walked = &mut self.walked;
@@ -64,44 +81,51 @@ impl<'a> Reader<'a> {
 
     /// A destination: an array whose first entry is the page, a name for one, or either of those
     /// wrapped in a dictionary with a `D`.
-    fn page_of(&mut self, dest: Object<'a>, hops: u32) -> i32 {
+    pub(crate) fn page_of(&mut self, dest: Object<'a>) -> i32 {
+        self.explicit(dest, 0).map_or(-1, |array| self.page_of_array(&array))
+    }
+
+    /// The array a destination comes to, following names and dictionaries.
+    pub(crate) fn explicit(&mut self, dest: Object<'a>, hops: u32) -> Option<Array<'a>> {
         if hops > 4 {
-            return -1;
+            return None;
         }
         match dest {
-            Object::Array(array) => self.page_of_array(&array),
-            Object::Dict(dict) => dict.get::<Object<'_>>(b"D").map_or(-1, |d| self.page_of(d, hops + 1)),
+            Object::Array(array) => Some(array),
+            Object::Dict(dict) => dict.get::<Object<'_>>(b"D").and_then(|d| self.explicit(d, hops + 1)),
             Object::Name(name) => {
                 let found = self.names().get(name.as_ref()).cloned();
-                found.map_or(-1, |d| self.page_of(d, hops + 1))
+                found.and_then(|d| self.explicit(d, hops + 1))
             }
             Object::String(string) => {
                 let found = self.names().get(string.as_bytes()).cloned();
-                found.map_or(-1, |d| self.page_of(d, hops + 1))
+                found.and_then(|d| self.explicit(d, hops + 1))
             }
-            _ => -1,
+            _ => None,
         }
     }
 
-    fn page_of_array(&self, array: &Array<'a>) -> i32 {
+    pub(crate) fn page_of_array(&mut self, array: &Array<'a>) -> i32 {
         use hayro::hayro_syntax::object::MaybeRef;
         match array.raw_iter().next() {
-            Some(MaybeRef::Ref(r)) => self.pages.get(&r.into()).copied().unwrap_or(-1),
+            Some(MaybeRef::Ref(r)) => self.pages().get(&r.into()).copied().unwrap_or(-1),
             // Some producers write the page's index rather than a reference to it.
             Some(MaybeRef::NotRef(Object::Number(n))) => {
                 let page = n.as_i64();
-                i32::try_from(page).ok().filter(|p| self.pages.values().any(|v| v == p)).unwrap_or(-1)
+                i32::try_from(page).ok().filter(|p| self.pages().values().any(|v| v == p)).unwrap_or(-1)
             }
             _ => -1,
         }
     }
+}
 
+impl<'a> Reader<'a> {
     fn walk(&mut self, first: Option<(Dict<'a>, Option<ObjectIdentifier>)>, level: u32) {
         let mut next = first;
         while let Some((item, id)) = next.take() {
             // A sibling or child list that loops back on itself ends there.
             if self.items.len() >= MAX_ITEMS || level > MAX_DEPTH {
-                self.walked.stopped = true;
+                self.dests.walked.stopped = true;
                 return;
             }
             if let Some(id) = id
@@ -119,7 +143,7 @@ impl<'a> Reader<'a> {
                     .filter(|a| a.get::<Name<'_>>(b"S").is_some_and(|s| s.as_ref() == b"GoTo"))
                     .and_then(|a| a.get::<Object<'_>>(b"D"))
             });
-            let page = dest.map_or(-1, |d| self.page_of(d, 0));
+            let page = dest.map_or(-1, |d| self.dests.page_of(d));
             let url = action
                 .as_ref()
                 .filter(|a| a.get::<Name<'_>>(b"S").is_some_and(|s| s.as_ref() == b"URI"))
@@ -179,22 +203,24 @@ fn read_walked(pdf: &Pdf) -> (Vec<OutlineItem>, Walked) {
         return Default::default();
     };
     let first_id = outlines.get_ref(b"First").map(Into::into);
-    let pages = pdf
-        .pages()
+    let mut reader = Reader {
+        dests: Destinations::new(pdf, root),
+        items: Vec::new(),
+        seen: FxHashSet::default(),
+    };
+    // Up front, as it always was: the walk it takes is what `structure_truncated` reports on.
+    reader.dests.pages();
+    reader.walk(Some((first, first_id)), 0);
+    (reader.items, reader.dests.walked)
+}
+
+/// Each page's object and its index: every page, so it walks the whole tree.
+pub(crate) fn page_map(pdf: &Pdf) -> FxHashMap<ObjectIdentifier, i32> {
+    pdf.pages()
         .iter()
         .enumerate()
         // Last first: a page the tree repeats goes to where it first appears.
         .rev()
         .filter_map(|(i, page)| Some((page.raw().obj_id()?, i as i32)))
-        .collect();
-    let mut reader = Reader {
-        pages,
-        names: None,
-        root,
-        items: Vec::new(),
-        seen: FxHashSet::default(),
-        walked: Walked::default(),
-    };
-    reader.walk(Some((first, first_id)), 0);
-    (reader.items, reader.walked)
+        .collect()
 }

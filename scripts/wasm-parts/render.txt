@@ -44,6 +44,7 @@
 <alloc::sync::Arc<std::sync::poison::rwlock::RwLock<alloc::vec::Vec<core::option::Option<skrifa::outline::autohint::metrics::UnscaledStyleMetrics>>>>>::drop_slow
 <alloc::sync::Arc<vello_common::pixmap::Pixmap>>::drop_slow
 <alloc::vec::Vec<&str> as alloc::vec::spec_from_iter_nested::SpecFromIterNested<&str, core::str::iter::SplitAsciiWhitespace>>::from_iter
+<alloc::vec::Vec<u8>>::append_elements
 <alloc::vec::Vec<vello_common::flatten_simd::Point32>>::resize
 <alloc::vec::Vec<vello_cpu::coarse::bucketer::RowState>>::resize_with::<&mut <vello_cpu::coarse::bucketer::RowState>::new>
 <color::dynamic::DynamicColor>::convert
@@ -54,10 +55,13 @@
 <core::fmt::Formatter>::write_formatted_parts
 <core::iter::adapters::chain::Chain<core::iter::adapters::chain::Chain<core::iter::adapters::chain::Chain<core::iter::adapters::flatten::Flatten<core::option::IntoIter<core::iter::adapters::map::Map<core::slice::iter::Iter<font_types::raw::BigEndian<font_types::glyph_id::GlyphId16>>, <read_fonts::tables::layout::CoverageTable>::iter::{closure#0}>>>, core::iter::adapters::flatten::Flatten<core::option::IntoIter<core::iter::adapters::flatten::FlatMap<core::slice::iter::Iter<read_fonts::tables::layout::RangeRecord>, core::iter::adapters::map::Map<core::iter::adapters::map::Map<core::ops::range::RangeInclusive<u16>, <font_types::glyph_id::GlyphId16>::new>, <font_types::glyph_id::GlyphId as core::convert::From<font_types::glyph_id::GlyphId16>>::from>, <read_fonts::tables::layout::CoverageTable>::iter::{closure#1}>>>>, core::iter::adapters::flatten::Flatten<core::option::IntoIter<core::iter::adapters::map::Map<core::slice::iter::Iter<font_types::raw::BigEndian<font_types::glyph_id::GlyphId24>>, <read_fonts::tables::layout::CoverageTable>::iter::{closure#2}>>>>, core::iter::adapters::flatten::Flatten<core::option::IntoIter<core::iter::adapters::flatten::FlatMap<core::slice::iter::Iter<read_fonts::tables::layout::RangeRecord2>, core::iter::adapters::map::Map<core::ops::range::RangeInclusive<u32>, <font_types::glyph_id::GlyphId>::new>, <read_fonts::tables::layout::RangeRecord2>::iter>>>> as core::iter::traits::iterator::Iterator>::next
 <core::iter::adapters::chain::Chain<core::iter::adapters::flatten::Flatten<core::option::IntoIter<core::iter::sources::from_fn::FromFn<<read_fonts::offset_array::ArrayOfOffsets<read_fonts::tables::layout::ChainedSequenceContext>>::iter::{closure#0}>>>, core::iter::adapters::flatten::Flatten<core::option::IntoIter<core::iter::adapters::map::Map<core::iter::sources::from_fn::FromFn<<read_fonts::offset_array::ArrayOfOffsets<read_fonts::tables::gsub::ExtensionSubstFormat1<read_fonts::tables::layout::ChainedSequenceContext>>>::iter::{closure#0}>, <read_fonts::tables::layout::Subtables<read_fonts::tables::layout::ChainedSequenceContext, read_fonts::tables::gsub::ExtensionSubstFormat1<read_fonts::tables::layout::ChainedSequenceContext>>>::iter::{closure#0}>>>> as core::iter::traits::iterator::Iterator>::try_fold::<(), core::iter::traits::iterator::Iterator::find_map::check<core::result::Result<read_fonts::tables::layout::ChainedSequenceContext, read_fonts::read::ReadError>, read_fonts::tables::layout::ChainedSequenceContext, &mut <skrifa::outline::autohint::shape::GsubHandler>::process_lookup_inner::{closure#22}>::{closure#0}, core::ops::control_flow::ControlFlow<read_fonts::tables::layout::ChainedSequenceContext>>
+<core::iter::adapters::filter_map::FilterMap<core::ops::range::Range<usize>, <hayro_syntax::page::Pages as core::ops::deref::Deref>::deref::{closure#0}::{closure#0}> as core::iter::traits::iterator::Iterator>::next
 <core::iter::adapters::flatten::FlattenCompat<_, _> as core::iter::traits::iterator::Iterator>::try_fold::flatten::<core::iter::adapters::chain::Chain<core::iter::adapters::filter::Filter<core::iter::adapters::chain::Chain<core::iter::adapters::flatten::FlatMap<core::option::IntoIter<&read_fonts::model::charmap::UnicodeSubtables>, core::iter::adapters::filter_map::FilterMap<core::iter::adapters::map::Map<core::ops::range::RangeInclusive<u8>, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#0}::{closure#0}>, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#0}::{closure#1}>, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#0}>, core::iter::adapters::flatten::FlatMap<core::option::IntoIter<&read_fonts::model::charmap::UnicodeSubtables>, core::iter::adapters::flatten::FlatMap<core::option::IntoIter<&read_fonts::tables::cmap::CmapSubtable>, read_fonts::tables::cmap::CmapSubtableIter, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#1}::{closure#0}>, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#1}>>, <read_fonts::model::charmap::SfntUnicodeCharmap>::iter::{closure#0}>, core::iter::adapters::filter::Filter<core::iter::adapters::chain::Chain<core::iter::adapters::flatten::FlatMap<core::option::IntoIter<&read_fonts::model::charmap::UnicodeSubtables>, core::iter::adapters::filter_map::FilterMap<core::iter::adapters::map::Map<core::ops::range::RangeInclusive<u8>, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#0}::{closure#0}>, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#0}::{closure#1}>, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#0}>, core::iter::adapters::flatten::FlatMap<core::option::IntoIter<&read_fonts::model::charmap::UnicodeSubtables>, core::iter::adapters::flatten::FlatMap<core::option::IntoIter<&read_fonts::tables::cmap::CmapSubtable>, read_fonts::tables::cmap::CmapSubtableIter, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#1}::{closure#0}>, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#1}>>, <read_fonts::model::charmap::SfntUnicodeCharmap>::iter::{closure#1}>>, (), core::ops::control_flow::ControlFlow<(u32, font_types::glyph_id::GlyphId)>, core::iter::traits::iterator::Iterator::find::check<(u32, font_types::glyph_id::GlyphId), &mut <read_fonts::model::charmap::Charmap>::unicodes::{closure#1}>::{closure#0}>::{closure#0}
 <core::iter::adapters::flatten::FlattenCompat<_, _> as core::iter::traits::iterator::Iterator>::try_fold::flatten::<core::iter::adapters::filter_map::FilterMap<core::iter::adapters::map::Map<core::ops::range::RangeInclusive<u8>, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#0}::{closure#0}>, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#0}::{closure#1}>, (), core::ops::control_flow::ControlFlow<(u32, font_types::glyph_id::GlyphId)>, &mut core::iter::adapters::filter::filter_try_fold<(u32, font_types::glyph_id::GlyphId), (), core::ops::control_flow::ControlFlow<(u32, font_types::glyph_id::GlyphId)>, <read_fonts::model::charmap::SfntUnicodeCharmap>::iter::{closure#1}, &mut core::iter::traits::iterator::Iterator::find::check<(u32, font_types::glyph_id::GlyphId), &mut <read_fonts::model::charmap::Charmap>::unicodes::{closure#1}>::{closure#0}>::{closure#0}>::{closure#0}
 <core::iter::adapters::flatten::FlattenCompat<_, _> as core::iter::traits::iterator::Iterator>::try_fold::flatten::<core::iter::adapters::flatten::FlatMap<core::option::IntoIter<&read_fonts::tables::cmap::CmapSubtable>, read_fonts::tables::cmap::CmapSubtableIter, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#1}::{closure#0}>, (), core::ops::control_flow::ControlFlow<(u32, font_types::glyph_id::GlyphId)>, core::iter::adapters::filter::filter_try_fold<(u32, font_types::glyph_id::GlyphId), (), core::ops::control_flow::ControlFlow<(u32, font_types::glyph_id::GlyphId)>, <read_fonts::model::charmap::SfntUnicodeCharmap>::iter::{closure#0}, &mut &mut core::iter::traits::iterator::Iterator::find::check<(u32, font_types::glyph_id::GlyphId), &mut <read_fonts::model::charmap::Charmap>::unicodes::{closure#1}>::{closure#0}>::{closure#0}>::{closure#0}
 <core::iter::adapters::flatten::FlattenCompat<_, _> as core::iter::traits::iterator::Iterator>::try_fold::flatten::<core::iter::adapters::flatten::FlatMap<core::option::IntoIter<&read_fonts::tables::cmap::CmapSubtable>, read_fonts::tables::cmap::CmapSubtableIter, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#1}::{closure#0}>, (), core::ops::control_flow::ControlFlow<(u32, font_types::glyph_id::GlyphId)>, core::iter::adapters::filter::filter_try_fold<(u32, font_types::glyph_id::GlyphId), (), core::ops::control_flow::ControlFlow<(u32, font_types::glyph_id::GlyphId)>, <read_fonts::model::charmap::SfntUnicodeCharmap>::iter::{closure#1}, &mut core::iter::traits::iterator::Iterator::find::check<(u32, font_types::glyph_id::GlyphId), &mut <read_fonts::model::charmap::Charmap>::unicodes::{closure#1}>::{closure#0}>::{closure#0}>::{closure#0}
+<core::iter::adapters::map::Map<core::iter::adapters::filter::Filter<core::iter::adapters::enumerate::Enumerate<alloc::vec::into_iter::IntoIter<hayro_syntax::object::dict::Dict>>, recto::links::read::{closure#0}>, recto::links::read::{closure#1}> as core::iter::traits::iterator::Iterator>::next
+<core::iter::adapters::map::Map<core::iter::adapters::take::Take<core::iter::adapters::map::Map<core::iter::adapters::skip::Skip<hayro_syntax::object::array::ArrayIter>, recto::links::destination::{closure#0}>>, recto::links::destination::{closure#2}> as core::iter::traits::iterator::Iterator>::next
 <core::iter::adapters::take::Take<core::iter::adapters::enumerate::Enumerate<core::slice::iter::Iter<u32>>> as core::iter::traits::iterator::Iterator>::nth
 <core::str::iter::SplitInternal<char>>::next
 <f64 as core::fmt::Display>::fmt
@@ -67,18 +71,22 @@
 <foldhash::seed::SharedSeed>::from_u64
 <foldhash::seed::global::GlobalSeed>::init_slow
 <hashbrown::map::HashMap<(u128, u32), core::option::Option<alloc::rc::Rc<kurbo::bezpath::BezPath>>, rustc_hash::FxBuildHasher>>::insert
+<hashbrown::map::HashMap<alloc::vec::Vec<u8>, hayro_syntax::object::Object, rustc_hash::FxBuildHasher>>::insert
 <hashbrown::map::HashMap<hayro_syntax::object::ObjectIdentifier, (), std::hash::random::RandomState>>::insert
 <hashbrown::map::HashMap<hayro_syntax::object::name::Name, core::option::Option<hayro_interpret::interpret::state::TextStateFont>, rustc_hash::FxBuildHasher>>::insert
 <hashbrown::raw::RawTable<((u128, u32), core::option::Option<alloc::rc::Rc<kurbo::bezpath::BezPath>>)>>::reserve_rehash::<hashbrown::map::make_hasher<(u128, u32), core::option::Option<alloc::rc::Rc<kurbo::bezpath::BezPath>>, rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<((u128, u32), core::option::Option<alloc::rc::Rc<skrifa::scaler::ScalerFont>>)>>::reserve_rehash::<hashbrown::map::make_hasher<(u128, u32), core::option::Option<alloc::rc::Rc<skrifa::scaler::ScalerFont>>, rustc_hash::FxBuildHasher>::{closure#0}>
+<hashbrown::raw::RawTable<(alloc::vec::Vec<u8>, hayro_syntax::object::Object)>>::reserve_rehash::<hashbrown::map::make_hasher<alloc::vec::Vec<u8>, hayro_syntax::object::Object, rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<(hayro::glyph_cache::GlyphKey, ())>>::reserve_rehash::<hashbrown::map::make_hasher<hayro::glyph_cache::GlyphKey, (), rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<(hayro::glyph_cache::GlyphKey, core::option::Option<alloc::sync::Arc<hayro::glyph_cache::CachedGlyph>>)>>::reserve_rehash::<hashbrown::map::make_hasher<hayro::glyph_cache::GlyphKey, core::option::Option<alloc::sync::Arc<hayro::glyph_cache::CachedGlyph>>, rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<(hayro_syntax::object::ObjectIdentifier, ())>>::reserve_rehash::<hashbrown::map::make_hasher<hayro_syntax::object::ObjectIdentifier, (), std::hash::random::RandomState>::{closure#0}>
+<hashbrown::raw::RawTable<(hayro_syntax::object::ObjectIdentifier, i32)>>::reserve_rehash::<hashbrown::map::make_hasher<hayro_syntax::object::ObjectIdentifier, i32, rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<(u32, alloc::sync::Arc<dyn core::convert::AsRef<[u8]> + core::marker::Send + core::marker::Sync>)>>::reserve_rehash::<hashbrown::map::make_hasher<u32, alloc::sync::Arc<dyn core::convert::AsRef<[u8]> + core::marker::Send + core::marker::Sync>, std::hash::random::RandomState>::{closure#0}>
 <hayro::GlobalState>::new
 <hayro::PageJob>::finish
 <hayro::PageJob>::new
 <hayro::PageJob>::step
+<hayro::PixmapSettings>::target
 <hayro::Renderer>::apply_soft_mask
 <hayro::Renderer>::cached_outline
 <hayro::Renderer>::draw_glyph_run
@@ -93,8 +101,8 @@
 <hayro::Renderer>::fill_outline_run
 <hayro::Renderer>::fill_path
 <hayro::Renderer>::push_transparency_group
-<hayro::Renderer>::set_paint::<<hayro::Renderer>::begin_fill_run::{closure#0}>
 <hayro::Renderer>::set_paint::<<hayro::Renderer>::begin_stroke_run::{closure#0}>
+<hayro::Renderer>::set_paint::<<hayro::Renderer>::draw_rect::{closure#0}>
 <hayro::Renderer>::set_stroke_properties
 <hayro::Renderer>::stroke_outline_run
 <hayro::Renderer>::stroke_path
@@ -127,7 +135,7 @@
 <hayro_interpret::interpret::Named>::shading
 <hayro_interpret::interpret::page_run::PageRun>::new
 <hayro_interpret::interpret::page_run::Slice>::tick
-<hayro_interpret::pattern::ShadingPattern>::encode
+<hayro_interpret::pattern::ShadingPattern>::encode_within
 <hayro_interpret::types::StrokeProps as core::default::Default>::default
 <hayro_interpret::x_object::form::FormXObject>::draw::<hayro::Renderer>
 <hayro_interpret::x_object::form::FormXObject>::draw_contents::<hayro::Renderer>
@@ -140,10 +148,14 @@
 <hayro_interpret::x_object::image::ImageXObject>::new::<hayro_interpret::interpret::run_ops<recto::device::PageDevice>::{closure#10}::{closure#0}>
 <hayro_interpret::x_object::image::ImageXObject>::new_mask
 <hayro_syntax::object::dict::Dict>::get::<[f32; 6usize], &[u8]>
+<hayro_syntax::object::dict::Dict>::get::<hayro_syntax::object::Object, &[u8; 1usize]>
 <hayro_syntax::object::dict::Dict>::get::<hayro_syntax::object::stream::Stream, hayro_syntax::object::name::Name>
+<hayro_syntax::object::dict::Dict>::get::<hayro_syntax::object::string::String, &[u8; 3usize]>
 <hayro_syntax::object::name::Name as core::cmp::PartialEq>::eq
+<hayro_syntax::page::Pages as core::ops::deref::Deref>::deref
 <hayro_syntax::page::Resources>::get_shading
 <js_sys::Date>::now
+<kurbo::affine::Affine>::transform_rect_bbox
 <kurbo::bezpath::BezPath as kurbo::shape::Shape>::bounding_box
 <kurbo::bezpath::BezPath>::control_box
 <kurbo::bezpath::PathSeg as kurbo::param_curve::ParamCurve>::eval
@@ -286,11 +298,17 @@
 <read_fonts::tables::math::MathGlyphConstruction>::glyph_assembly
 <read_fonts::tables::name::MacRomanMapping>::decode
 <read_fonts::tables::name::MacRomanMapping>::encode
+<recto::Document>::links
 <recto::Document>::pixmap_settings
-<recto::Document>::render
+<recto::Document>::render_region
 <recto::RenderTask>::new
 <recto::assets::resolve as core::ops::function::Fn<(&hayro_font::FontQuery,)>>::call
 <recto::device::PageDevice as hayro_interpret::device::Device>::draw_image
+<recto::outline::Destinations>::explicit
+<recto::outline::Destinations>::names
+<recto::outline::Destinations>::page_of_array
+<recto::outline::Destinations>::pages
+<recto::wasm::Document>::links
 <recto::wasm::RenderTask>::step::{closure#0}
 <skrifa::outline::autohint::context::FontContext as skrifa::outline::autohint::context::AutohintContext>::advance_width
 <skrifa::outline::autohint::context::FontContext as skrifa::outline::autohint::context::AutohintContext>::coords
@@ -355,6 +373,7 @@
 <std::sync::once_lock::OnceLock<alloc::boxed::Box<[std::sync::once_lock::OnceLock<core::option::Option<read_fonts::ps::cff::font::Subfont>>]>>>::initialize::<<std::sync::once_lock::OnceLock<alloc::boxed::Box<[std::sync::once_lock::OnceLock<core::option::Option<read_fonts::ps::cff::font::Subfont>>]>>>::get_or_init<<read_fonts::model::font::Font>::cff_subfont::{closure#0}>::{closure#0}, !>
 <std::sync::once_lock::OnceLock<alloc::boxed::Box<dyn core::any::Any + core::marker::Send + core::marker::Sync>>>::initialize::<<std::sync::once_lock::OnceLock<alloc::boxed::Box<dyn core::any::Any + core::marker::Send + core::marker::Sync>>>::get_or_init<read_fonts::model::font::interop::_get_or_init_scaling_data<<skrifa::outline::autohint::instance::LocatedState>::of_outlines::{closure#1}>::{closure#0}>::{closure#0}, !>
 <std::sync::once_lock::OnceLock<alloc::sync::Arc<skrifa::outline::autohint::instance::LocatedState>>>::initialize::<<std::sync::once_lock::OnceLock<alloc::sync::Arc<skrifa::outline::autohint::instance::LocatedState>>>::get_or_init<<skrifa::outline::autohint::instance::LocatedState>::of_outlines::{closure#0}>::{closure#0}, !>
+<std::sync::once_lock::OnceLock<alloc::vec::Vec<hayro_syntax::page::Page>>>::initialize::<<std::sync::once_lock::OnceLock<alloc::vec::Vec<hayro_syntax::page::Page>>>::get_or_init<<hayro_syntax::page::Pages as core::ops::deref::Deref>::deref::{closure#0}>::{closure#0}, !>
 <std::sync::once_lock::OnceLock<core::option::Option<alloc::boxed::Box<[[u8; 3usize]; 256usize]>>>>::initialize::<<std::sync::once_lock::OnceLock<core::option::Option<alloc::boxed::Box<[[u8; 3usize]; 256usize]>>>>::get_or_init<<hayro_interpret::color::U8Lookup<[u8; 3usize]>>::get_or_init_with<<hayro_interpret::color::U8Lookup<[u8; 3usize]>>::get_or_init<<hayro_interpret::color::indexed::Indexed>::u8_lookup::{closure#0}>::{closure#0}>::{closure#0}>::{closure#0}, !>
 <std::sync::once_lock::OnceLock<core::option::Option<alloc::boxed::Box<[u8; 256usize]>>>>::initialize::<<std::sync::once_lock::OnceLock<core::option::Option<alloc::boxed::Box<[u8; 256usize]>>>>::get_or_init<<hayro_interpret::color::U8Lookup<u8>>::get_or_init_with<<hayro_interpret::color::indexed::Indexed>::u8_luma_lookup::{closure#0}>::{closure#0}>::{closure#0}, !>
 <std::sync::once_lock::OnceLock<core::option::Option<read_fonts::ps::cff::font::Subfont>>>::initialize::<<std::sync::once_lock::OnceLock<core::option::Option<read_fonts::ps::cff::font::Subfont>>>::get_or_init<<read_fonts::model::font::Font>::cff_subfont::{closure#1}>::{closure#0}, !>
@@ -462,8 +481,12 @@
 <zune_jpeg::huffman::HuffmanTable>::new
 <zune_jpeg::marker::Marker>::from_u8
 __wbg_get_renderedpage_height
+__wbg_get_renderedpage_pageHeight
+__wbg_get_renderedpage_pageWidth
 __wbg_get_renderedpage_truncated
 __wbg_get_renderedpage_width
+__wbg_get_renderedpage_x
+__wbg_get_renderedpage_y
 __wbg_pageobjects_free
 __wbg_renderedpage_free
 __wbg_rendertask_free
@@ -497,10 +520,13 @@ core::ptr::drop_in_place::<hayro_interpret::types::Paint>
 core::ptr::drop_in_place::<hayro_interpret::x_object::XObject>
 core::ptr::drop_in_place::<hayro_interpret::x_object::image::ImageXObject>
 core::ptr::drop_in_place::<hayro_syntax::object::array::FlexArrayIter>
+core::ptr::drop_in_place::<hayro_syntax::object::array::ResolvedArrayIter<hayro_syntax::object::Object>>
 core::ptr::drop_in_place::<pic_scale::plan::horizontal_filtering::HorizontalFiltering<u8, i16, 1usize>>
 core::ptr::drop_in_place::<pic_scale::plan::non_alpha_plan::BothAxesConvolvePlan<f32, 1usize>>
 core::ptr::drop_in_place::<pic_scale::plan::trampoline_filtering::TrampolineFiltering<f32, 1usize>>
 core::ptr::drop_in_place::<pic_scale::plan::vertical_filtering::VerticalFiltering<u8, i16, 1usize>>
+core::ptr::drop_in_place::<recto::links::Target>
+core::ptr::drop_in_place::<recto::outline::Destinations>
 core::ptr::drop_in_place::<recto::wasm::RenderTask>
 core::ptr::drop_in_place::<skrifa::outline::autohint::instance::ScalingData>
 core::ptr::drop_in_place::<std::collections::hash::map::HashMap<hayro_syntax::object::name::Name, core::option::Option<hayro_interpret::interpret::state::TextStateFont>, rustc_hash::FxBuildHasher>>
@@ -527,6 +553,8 @@ core::slice::sort::unstable::quicksort::quicksort::<i32, <i32 as core::cmp::Part
 core::slice::sort::unstable::quicksort::quicksort::<usize, <[usize]>::sort_unstable_by<pic_scale::filter_weights::quantize_kernel::{closure#0}>::{closure#0}>
 core::slice::sort::unstable::quicksort::quicksort::<vello_common::tile::Tile, <vello_common::tile::Tile as core::cmp::PartialOrd>::lt>
 cos
+document_links
+document_links multivalue shim
 document_objects
 document_objects multivalue shim
 document_render
@@ -543,10 +571,12 @@ hayro::draw_page
 hayro::image::downscale_with_alpha::<3usize>
 hayro::image::resize_image_data
 hayro::render
-hayro::render_into
+hayro::render_into_page
 hayro_interpret::gradient::approximate_gradient_interval::<<hayro_interpret::encode::EncodedRadialAxialShading>::as_svg_gradient::{closure#0}>
 hayro_interpret::interpret::annot_fallback::appearance
+hayro_interpret::interpret::annot_fallback::appearance::{closure#6}
 hayro_interpret::interpret::annot_fallback::border
+hayro_interpret::interpret::annot_fallback::colour_op
 hayro_interpret::interpret::annot_fallback::default_appearance_of
 hayro_interpret::interpret::annot_fallback::free_text
 hayro_interpret::interpret::annot_fallback::in_form
@@ -612,7 +642,15 @@ read_fonts::mem::with_scratch_dyn::on_stack::<512usize>
 read_fonts::model::glyph::outline::glyf::draw_plan
 read_fonts::tables::glyf::outline::scale::read_points_and_phantom::<i32>
 recto::assets::resolve
+recto::bitmap_of
 recto::device::path_box
+recto::links::destination
+recto::links::destination::{closure#5}
+recto::links::file_spec
+recto::links::target::{closure#1}
+recto::links::whole_number
+recto::outline::name_tree
+recto::unlimited_scale
 renderedpage_takeRgba
 renderedpage_takeRgba multivalue shim
 rendertask_finish

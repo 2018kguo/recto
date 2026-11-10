@@ -19,7 +19,7 @@ npm install @2018kguo/recto
 ```
 
 recto opens a PDF and gives you each page's text, the box and font of every character, its images,
-paths, annotations and bookmarks, and a rendered bitmap. It has no runtime dependencies and no install
+paths, annotations, links and bookmarks, and a rendered bitmap of the page or of any part of it. It has no runtime dependencies and no install
 scripts, and the built WebAssembly ships in the package, so you don't need Rust.
 
 ```js
@@ -145,7 +145,10 @@ doc.pageCount;
 doc.stats().bytesFetched;
 ```
 
-A read that misses blocks its thread for the round trip, so run it on a worker thread. A server
+The start and the end of the file are asked for together, so the open is one round trip from the same
+origin. Cross-origin it's two unless the browser has cached the CORS preflight that a suffix range
+(`bytes=-n`) needs. Each read that misses after that blocks its thread for a round trip, so run it on a
+worker thread. A server
 that ignores `Range` is read whole, within `maxBytes`; a wrong answer fails clearly. See
 [ranged reads](docs/reference.md#ranged-reads).
 
@@ -155,6 +158,11 @@ that ignores `Range` is read whole, within `maxBytes`; a wrong answer fails clea
 
 A page of the generated report, with what the API returned drawn over it: `text(i)`, `objects(i)` and
 `render(i)`. The boxes are loose font boxes, not glyph ink.
+
+All of them are in one frame, the page as it's shown: points from the top left, after `/Rotate` and the
+crop box. So is `render(i, { width, region })`, which draws only part of a page, with the same pixels as
+that part of the whole render, for tiles and deep zoom; and `links(i)`, where each link goes: a URI, or a
+page and the point on it, in that page's frame. See [the reference](docs/reference.md#part-of-a-page).
 
 ## How fast
 
@@ -219,10 +227,10 @@ on anything a user might upload, use one of those two.
 
 | File | Size | When it loads |
 |---|---:|---|
-| `wasm/recto.wasm` | 1.3 MB (0.38 MB brotli) | Creating an engine |
-| `wasm/recto-render.wasm` | 0.85 MB (0.26 MB brotli) | The first `render` or `objects` |
-| `wasm/recto-more.wasm`, `recto-rare.wasm` | 0.99, 0.88 MB (0.26, 0.19 MB brotli) | A file that runs a function the first two left out; on a main thread, up front |
-| `wasm/recto.gen.mjs`, `dist/` | 38 KB, 105 KB of JavaScript | Importing the package |
+| `wasm/recto.wasm` | 1.4 MB (0.39 MB brotli) | Creating an engine |
+| `wasm/recto-render.wasm` | 0.88 MB (0.27 MB brotli) | The first `render`, `objects` or `links` |
+| `wasm/recto-more.wasm`, `recto-rare.wasm` | 0.98, 0.89 MB (0.25, 0.19 MB brotli) | A file that runs a function the first two left out; on a main thread, up front |
+| `wasm/recto.gen.mjs`, `dist/` | 41 KB, 124 KB of JavaScript | Importing the package |
 | `wasm/Foxit*.pfb` | 14 files, 15–30 KB each | Drawing a standard font the document doesn't embed |
 | `wasm/cmaps.deflate` | 0.36 MB | A document uses a predefined CJK CMap |
 | `wasm/cjk-fallback.ttf` | 5.1 MB | Rendering CJK from a font the document doesn't embed |

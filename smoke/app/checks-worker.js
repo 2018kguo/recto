@@ -101,6 +101,15 @@ self.onmessage = async ({ data: pdfs }) => {
     const rangedDoc = await engine.openRanged(`${pdfs}/range/report.pdf`, { chunkBytes: 256 });
     const ranged = { pageCount: rangedDoc.pageCount, text: rangedDoc.text(1).text, ...rangedDoc.stats() };
     rangedDoc.close();
+    // Chunks small enough that the head and tail leave the middle to fetch: the first round's two
+    // requests go out together, by fetch, and the rest as the parse asks.
+    const smallDoc = await engine.openRanged(`${pdfs}/range/report.pdf`, { chunkBytes: 64 });
+    const smallChunks = { text: smallDoc.text(1).text, ...smallDoc.stats() };
+    smallDoc.close();
+
+    const refusedDoc = await engine.openRanged(`${pdfs}/suffix416/report.pdf`);
+    const refused = { pageCount: refusedDoc.pageCount, ...refusedDoc.stats() };
+    refusedDoc.close();
 
     const ignoredDoc = await engine.openRanged(`${pdfs}/ignore/report.pdf`, { chunkBytes: 256 });
     const ignored = { pageCount: ignoredDoc.pageCount, ...ignoredDoc.stats() };
@@ -118,7 +127,7 @@ self.onmessage = async ({ data: pdfs }) => {
 
     const parts = await checkParts(pdfs, report);
 
-    self.postMessage({ startMs, latin, closed, cjk, ranged, ignored, short, noExpose, missingAsset, parts });
+    self.postMessage({ startMs, latin, closed, cjk, ranged, smallChunks, refused, ignored, short, noExpose, missingAsset, parts });
   } catch (error) {
     self.postMessage({ failure: `${error}\n${error?.stack}` });
   }

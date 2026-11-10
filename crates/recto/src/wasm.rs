@@ -337,6 +337,33 @@ pub struct RenderedPage {
     pub height: u32,
     pub truncated: bool,
     rgba: Vec<u8>,
+    /// Where it is in the page's bitmap, and that bitmap's size: see `Bitmap`.
+    pub x: u32,
+    pub y: u32,
+    #[wasm_bindgen(js_name = pageWidth)]
+    pub page_width: u32,
+    #[wasm_bindgen(js_name = pageHeight)]
+    pub page_height: u32,
+}
+
+impl From<crate::Bitmap> for RenderedPage {
+    fn from(b: crate::Bitmap) -> Self {
+        Self {
+            width: b.width,
+            height: b.height,
+            truncated: b.truncated,
+            rgba: b.rgba,
+            x: b.x,
+            y: b.y,
+            page_width: b.page_width,
+            page_height: b.page_height,
+        }
+    }
+}
+
+/// A region from four numbers, NaN for none.
+fn region(x: f64, y: f64, width: f64, height: f64) -> Option<crate::Region> {
+    (!x.is_nan()).then_some(crate::Region { x, y, width, height })
 }
 
 #[wasm_bindgen]
@@ -381,7 +408,7 @@ impl Document {
         length: usize,
         chunk: usize,
         #[wasm_bindgen(
-            unchecked_param_type = "(offset: number, length: number) => Uint8Array | undefined"
+            unchecked_param_type = "(offset: number, length: number, ahead: number) => Uint8Array | undefined"
         )]
         read: js_sys::Function,
         password: Option<String>,
@@ -391,10 +418,10 @@ impl Document {
         unsafe impl Send for Host {}
         unsafe impl Sync for Host {}
         let host = Host(read);
-        let fill = move |offset: usize, out: &mut [u8]| {
+        let fill = move |offset: usize, out: &mut [u8], ahead: usize| {
             let Ok(value) = host
                 .0
-                .call2(&JsValue::NULL, &offset.into(), &out.len().into())
+                .call3(&JsValue::NULL, &offset.into(), &out.len().into(), &ahead.into())
             else {
                 return false;
             };
@@ -492,37 +519,91 @@ impl Document {
             .collect()
     }
 
+    /// Flat, per link: `[annotation, x, y, width, height, kind, text, page, view, destX, destY,
+    /// zoom, rectX, rectY, rectWidth, rectHeight, name]`, NaN for a number that isn't there.
+    /// `kind` is "none", "uri", "page", "remote", "launch" or "action"; `text` is the URI, the
+    /// file, or the action's `/S`; `name` a remote destination's name or a `Named` action's `/N`.
+    pub fn links(&self, index: usize) -> Result<js_sys::Array, JsValue> {
+        use crate::links::Target;
+        let links = self.0.links(index).map_err(js_error)?;
+        let number = |v: Option<f32>| JsValue::from(v.map_or(f64::NAN, f64::from));
+        Ok(links
+            .into_iter()
+            .map(|link| {
+                let entry = js_sys::Array::new();
+                entry.push(&JsValue::from(link.annotation));
+                for v in link.bbox {
+                    entry.push(&JsValue::from(v));
+                }
+                let none = crate::Destination { page: -1, view: None, x: None, y: None, zoom: None, rect: None };
+                let (kind, text, dest, name) = match link.target {
+                    Target::None => ("none", String::new(), none, None),
+                    Target::Uri(uri) => ("uri", uri, none, None),
+                    Target::Page(dest) => ("page", String::new(), dest, None),
+                    Target::Remote { file, page, name } => {
+                        ("remote", file, crate::Destination { page: page.unwrap_or(-1), ..none }, name)
+                    }
+                    Target::Launch { file } => ("launch", file, none, None),
+                    Target::Action { action, name } => ("action", action, none, name),
+                };
+                entry.push(&JsValue::from_str(kind));
+                entry.push(&JsValue::from_str(&text));
+                entry.push(&JsValue::from(dest.page));
+                entry.push(&dest.view.as_deref().map_or(JsValue::NULL, JsValue::from_str));
+                entry.push(&number(dest.x));
+                entry.push(&number(dest.y));
+                entry.push(&number(dest.zoom));
+                let rect = dest.rect.map_or([None; 4], |r| r.map(Some));
+                for v in rect {
+                    entry.push(&number(v));
+                }
+                entry.push(&name.as_deref().map_or(JsValue::NULL, JsValue::from_str));
+                JsValue::from(entry)
+            })
+            .collect())
+    }
+
     pub fn annotations(&self, index: usize) -> Result<Annotations, JsValue> {
         let a = self.0.annotations(index).map_err(js_error)?;
         Ok(a.into())
     }
 
     /// A render that returns to its caller between slices, for as long as it's asked to run.
+    /// The region is x, y, width, height in the viewer frame, or NaNs for the whole page.
     #[wasm_bindgen(js_name = renderTask)]
+    #[allow(clippy::too_many_arguments)]
     pub fn render_task(
         &self,
         index: usize,
         width: f32,
         max_height: f32,
+        x: f64,
+        y: f64,
+        region_width: f64,
+        region_height: f64,
     ) -> Result<RenderTask, JsValue> {
-        crate::RenderTask::new(self.0.clone(), index, width, max_height)
+        crate::RenderTask::new(self.0.clone(), index, width, max_height, region(x, y, region_width, region_height))
             .map(RenderTask)
             .map_err(js_error)
     }
 
+    /// The region as `renderTask`'s.
+    #[allow(clippy::too_many_arguments)]
     pub fn render(
         &self,
         index: usize,
         width: f32,
         max_height: f32,
+        x: f64,
+        y: f64,
+        region_width: f64,
+        region_height: f64,
     ) -> Result<RenderedPage, JsValue> {
-        let b = self.0.render(index, width, max_height).map_err(js_error)?;
-        Ok(RenderedPage {
-            width: b.width,
-            height: b.height,
-            truncated: b.truncated,
-            rgba: b.rgba,
-        })
+        let b = self
+            .0
+            .render_region(index, width, max_height, region(x, y, region_width, region_height))
+            .map_err(js_error)?;
+        Ok(b.into())
     }
 }
 
@@ -539,12 +620,6 @@ impl RenderTask {
 
     /// Rasterizes what `step` drew: the rest of the page, in one call.
     pub fn finish(&mut self) -> RenderedPage {
-        let b = self.0.finish();
-        RenderedPage {
-            width: b.width,
-            height: b.height,
-            truncated: b.truncated,
-            rgba: b.rgba,
-        }
+        self.0.finish().into()
     }
 }
