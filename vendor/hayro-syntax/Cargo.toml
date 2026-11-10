@@ -31,10 +31,6 @@ resolver = "2"
 name = "hayro_syntax"
 path = "src/lib.rs"
 
-[[example]]
-name = "iterate"
-path = "examples/iterate.rs"
-
 [dependencies.flate2]
 version = "1"
 features = ["zlib-rs"]

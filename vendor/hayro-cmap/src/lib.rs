@@ -656,18 +656,6 @@ impl CidFamily {
         }
     }
 
-    /// Return the predefined UTF-16 `CMap` that maps Unicode code points to CIDs
-    /// for this family, if one exists.
-    pub fn unicode_cmap(&self) -> Option<CMapName<'static>> {
-        match self {
-            Self::AdobeJapan1 => Some(CMapName::UniJisUtf16H),
-            Self::AdobeGB1 => Some(CMapName::UniGbUtf16H),
-            Self::AdobeCNS1 => Some(CMapName::UniCnsUtf16H),
-            Self::AdobeKorea1 => Some(CMapName::UniKsUtf16H),
-            Self::AdobeIdentity | Self::Custom { .. } => None,
-        }
-    }
-
     /// Return the `UCS2` cmap corresponding to the given character collection.
     pub fn ucs2_cmap(&self) -> Option<CMapName<'static>> {
         match self {

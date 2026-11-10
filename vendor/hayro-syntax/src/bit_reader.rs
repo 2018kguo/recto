@@ -110,12 +110,6 @@ impl<'a> BitReader<'a> {
     pub fn tail(&self) -> &'a [u8] {
         &self.data[self.byte_pos()..]
     }
-
-    /// Get the full byte (aligned to the byte boundary) of the current position.
-    #[inline]
-    pub fn cur_byte(&self) -> Option<u8> {
-        self.data.get(self.byte_pos()).copied()
-    }
 }
 
 /// Get the mask for the given bit size.
@@ -230,17 +224,6 @@ impl<'a> BitWriter<'a> {
         let end = start + count;
         self.data.get_mut(start..end)?.fill(byte);
         self.cur_pos += count * 8;
-        Some(())
-    }
-
-    /// Write multiple numbers at once.
-    #[inline]
-    pub fn write_bits(&mut self, bits: impl IntoIterator<Item = u32>) -> Option<()> {
-        for bit in bits {
-            let value: u32 = bit;
-            self.write(value)?;
-        }
-
         Some(())
     }
 }

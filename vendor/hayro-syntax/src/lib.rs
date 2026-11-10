@@ -94,7 +94,6 @@ mod crypto;
 pub fn sha256(data: &[u8]) -> [u8; 32] {
     crypto::sha256::calculate(data)
 }
-pub mod metadata;
 pub mod object;
 pub mod page;
 pub mod transform;

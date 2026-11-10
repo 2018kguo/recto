@@ -63,21 +63,6 @@ pub struct EncodedSampledShading {
 #[derive(Clone, Debug)]
 pub struct EncodedDummyShading;
 
-/// A shading that was rasterized into a texture.
-pub struct ShadingTexture {
-    /// The straight (non-premultiplied) RGBA8 pixel data, row-major.
-    pub data: Vec<u8>,
-    /// The width of the texture in pixels.
-    pub width: u32,
-    /// The height of the texture in pixels.
-    pub height: u32,
-    /// The transform from texture space to the space of the rasterized
-    /// bounding box.
-    pub transform: Affine,
-    /// Whether any pixel of the texture is not fully opaque.
-    pub has_transparency: bool,
-}
-
 /// Return the texture dimensions [`EncodedShadingPattern::sample_texture`]
 /// uses for the given bounding box and scale factor.
 ///
@@ -151,36 +136,6 @@ impl EncodedShadingPattern {
             height,
             Affine::translate((bbox.x0, bbox.y0)) * Affine::scale(inv_scale),
         )
-    }
-
-    /// Rasterize the shading into a straight (non-premultiplied) RGBA8
-    /// texture covering `bbox`, with `scale` pixels per unit of `bbox`.
-    ///
-    /// See [`sample_texture`](Self::sample_texture) for the grid semantics.
-    pub fn render_texture(&self, bbox: Rect, scale: f32) -> ShadingTexture {
-        let (width, height) = texture_dimensions(bbox, scale);
-        let mut data = Vec::with_capacity(width as usize * height as usize * 4);
-        let mut has_transparency = false;
-
-        let (_, _, transform) = self.sample_texture(bbox, scale, |sample| {
-            let converted = [
-                (sample[0] * 255.0 + 0.5) as u8,
-                (sample[1] * 255.0 + 0.5) as u8,
-                (sample[2] * 255.0 + 0.5) as u8,
-                (sample[3] * 255.0 + 0.5) as u8,
-            ];
-
-            has_transparency |= converted[3] != 255;
-            data.extend_from_slice(&converted);
-        });
-
-        ShadingTexture {
-            data,
-            width,
-            height,
-            transform,
-            has_transparency,
-        }
     }
 }
 

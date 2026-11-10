@@ -40,7 +40,6 @@ use hayro_interpret::FillRule;
 use hayro_interpret::InterpreterCache;
 use hayro_interpret::InterpreterSettings;
 use hayro_interpret::font::{GlyphRun, HintingCache};
-use hayro_interpret::hayro_syntax::Pdf;
 use hayro_interpret::hayro_syntax::page::Page;
 use hayro_interpret::util::{RectExt, TransformExt};
 use hayro_interpret::{BlendMode, Context, DrawMode, DrawProps, ImageDrawProps, SoftMask};
@@ -49,7 +48,6 @@ use kurbo::{Affine, BezPath, Rect};
 use pic_scale::Scaler;
 use rustc_hash::FxHashMap;
 use std::cell::RefCell;
-use std::ops::RangeInclusive;
 use std::rc::Rc;
 
 pub use hayro_interpret;
@@ -57,7 +55,7 @@ pub use hayro_interpret::hayro_syntax;
 pub use kurbo;
 pub use vello_cpu;
 
-use vello_cpu::color::palette::css::{TRANSPARENT, WHITE};
+use vello_cpu::color::palette::css::TRANSPARENT;
 use vello_cpu::color::{AlphaColor, Srgb};
 use vello_cpu::peniko::{Compose, Fill, Mix};
 use vello_cpu::{Mask, Pixmap, RenderContext, peniko};
@@ -411,8 +409,6 @@ impl Default for PixmapSettings {
 /// This is a "simplified" method in case all you want to achieve is rendering a
 /// page with a certain scale factor.
 ///
-/// If you want to have more control over how exactly the page is rendered (e.g. with
-/// an arbitrary transform or into a custom pixel buffer), use [`render_into`]
 pub fn render<'a>(
     page: &'a Page<'a>,
     cache: &RenderCache<'a>,
@@ -589,23 +585,8 @@ impl<'a, 'c> PageJob<'a, 'c> {
     }
 }
 
-/// Render a page into the given [`RenderContext`] with the
-/// given transform.
-///
-/// See the [following example](https://github.com/LaurenzV/hayro/blob/main/hayro/examples/render.rs)
-/// if you are unsure how to call this method.
-pub fn render_into<'a>(
-    page: &'a Page<'a>,
-    cache: &RenderCache<'a>,
-    interpreter_settings: &InterpreterSettings,
-    render_settings: &RenderSettings,
-    ctx: &mut RenderContext,
-    transform: Affine,
-) {
-    render_into_page(page, cache, interpreter_settings, render_settings, ctx, transform, None);
-}
-
-/// recto: [`render_into`], with the whole page's pixmap in `ctx`'s pixels when `ctx` is a window.
+/// Render a page into the given [`RenderContext`] with the given transform. recto: with the whole
+/// page's pixmap in `ctx`'s pixels when `ctx` is a window.
 fn render_into_page<'a>(
     page: &'a Page<'a>,
     cache: &RenderCache<'a>,
@@ -681,45 +662,6 @@ fn draw_page<'a, 'r>(
     if clip_crop_box {
         device.pop_clip();
     }
-}
-
-// Just a convenience method for testing.
-#[doc(hidden)]
-pub fn render_pdf(
-    pdf: &Pdf,
-    scale: f32,
-    settings: InterpreterSettings,
-    render_settings: &RenderSettings,
-    range: Option<RangeInclusive<usize>>,
-) -> Option<Vec<Pixmap>> {
-    let cache = RenderCache::new();
-    let rendered = pdf
-        .pages()
-        .iter()
-        .enumerate()
-        .flat_map(|(idx, page)| {
-            if range.clone().is_some_and(|range| !range.contains(&idx)) {
-                return None;
-            }
-
-            let pixmap = render(
-                page,
-                &cache,
-                &settings,
-                render_settings,
-                &PixmapSettings {
-                    x_scale: scale,
-                    y_scale: scale,
-                    bg_color: WHITE,
-                    window: None,
-                },
-            );
-
-            Some(pixmap)
-        })
-        .collect();
-
-    Some(rendered)
 }
 
 pub(crate) fn derive_settings(settings: &vello_cpu::RenderSettings) -> vello_cpu::RenderSettings {

@@ -35,14 +35,6 @@ embed-fonts = ["hayro-font/embed-fonts"]
 name = "hayro_interpret"
 path = "src/lib.rs"
 
-[[example]]
-name = "extract_html"
-path = "examples/extract_html.rs"
-
-[[example]]
-name = "extract_images"
-path = "examples/extract_images.rs"
-
 [dependencies.bitflags]
 version = "2.10"
 

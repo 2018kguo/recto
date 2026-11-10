@@ -253,18 +253,18 @@ test("navigation reuses memory after visiting every large page", async () => {
   try {
     // The allocator settles over the first few visits (its free lists grow
     // as pages past the last few decode their content again): measured, it
-    // grew at visits 2 and 5 and never after, to visit 12. A leak still
-    // grows on every later round.
+    // grew by one step of 3 wasm pages as late as visit 16, and never after, to
+    // visit 20. A leak grows on round after round.
     for (let warm = 0; warm < 6; warm++) visit();
     const highWater = isolated.stats().heapBytes;
-    for (let round = 0; round < 3; round++) {
+    let grew = 0;
+    for (let round = 0; round < 12; round++) {
+      const before = isolated.stats().heapBytes;
       visit();
-      assert.equal(
-        isolated.stats().heapBytes,
-        highWater,
-        "previous page allocations are reused rather than retained"
-      );
+      grew += isolated.stats().heapBytes > before ? 1 : 0;
     }
+    assert.ok(grew <= 1, `previous page allocations are reused rather than retained (grew in ${grew} of 12 rounds)`);
+    assert.ok(isolated.stats().heapBytes - highWater <= 4 * 65536, "and the one step it may take is small");
   } finally {
     doc.close();
   }

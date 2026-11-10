@@ -2,18 +2,16 @@
 
 use crate::crypto::{DecryptionError, DecryptionTarget, Decryptor, get};
 use crate::data::Data;
-use crate::metadata::Metadata;
 use crate::object::Name;
 use crate::object::ObjectIdentifier;
 use crate::object::Stream;
 use crate::object::dict::keys::{
-    AUTHOR, CREATION_DATE, CREATOR, ENCRYPT, FILTER, FIRST, ID, INDEX, INFO, KEYWORDS, MOD_DATE, N, O, P, R, U,
-    OCPROPERTIES, PAGES, PREV, PRODUCER, ROOT, SIZE, SUBJECT, TITLE, TYPE, VERSION, W, XREF_STM,
+    ENCRYPT, FILTER, FIRST, ID, INDEX, N, O, P, PAGES, PREV, R, ROOT, SIZE, TYPE, U, VERSION, W, XREF_STM,
 };
 use crate::object::dict::probe_dict;
 use crate::object::indirect::IndirectObject;
 use crate::object::{Array, MaybeRef};
-use crate::object::{DateTime, Dict};
+use crate::object::Dict;
 use crate::object::{Object, ObjectLike};
 use crate::pdf::PdfVersion;
 use crate::reader::Reader;
@@ -22,7 +20,6 @@ use crate::sync::{Arc, FxHashMap, RwLock, RwLockExt};
 use crate::trivia::is_white_space_character;
 use crate::util::findr_needle;
 use crate::{PdfData, object};
-use alloc::boxed::Box;
 use alloc::collections::BTreeSet;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -416,8 +413,6 @@ impl XRef {
             data: Arc::new(Data::new(data)),
             map: Arc::new(RwLock::new(MapRepr { xref_map, repaired })),
             decryptor: Arc::new(Decryptor::None),
-            has_ocgs: false,
-            metadata: Arc::new(Metadata::default()),
             trailer_data,
             password: password.to_vec(),
             starts: Arc::new(starts),
@@ -459,7 +454,7 @@ impl XRef {
             }
         }
 
-        let (trailer_data, has_ocgs, metadata) = match input {
+        let trailer_data = match input {
             XRefInput::TrailerDictData(trailer_dict_data) => {
                 let mut r = Reader::new(trailer_dict_data);
 
@@ -471,12 +466,7 @@ impl XRef {
                 let root = trailer_dict
                     .get::<Dict<'_>>(ROOT)
                     .ok_or(XRefError::Unknown)?;
-                let metadata = trailer_dict
-                    .get::<Dict<'_>>(INFO)
-                    .map(|d| parse_metadata(&d))
-                    .unwrap_or_default();
                 let pages_ref = root.get_ref(PAGES).ok_or(XRefError::Unknown)?;
-                let has_ocgs = root.get::<Dict<'_>>(OCPROPERTIES).is_some();
                 let version = root
                     .get::<Name<'_>>(VERSION)
                     .and_then(|v| PdfVersion::from_bytes(v.deref()));
@@ -487,7 +477,7 @@ impl XRef {
                     version,
                 };
 
-                (td, has_ocgs, metadata)
+                td
             }
             XRefInput::RootRef(root_ref, _) => {
                 let root = xref.get::<Dict<'_>>(root_ref).ok_or(XRefError::Unknown)?;
@@ -499,7 +489,7 @@ impl XRef {
                     version: None,
                 };
 
-                (td, false, Metadata::default())
+                td
             }
         };
 
@@ -509,8 +499,6 @@ impl XRef {
                 let mutable = Arc::make_mut(r);
                 mutable.trailer_data = trailer_data;
                 mutable.decryptor = Arc::new(decryptor);
-                mutable.has_ocgs = has_ocgs;
-                mutable.metadata = Arc::new(metadata);
             }
         }
 
@@ -543,24 +531,9 @@ impl XRef {
         }
     }
 
-    pub(crate) fn metadata(&self) -> &Metadata {
-        match &self.0 {
-            Inner::Dummy => unreachable!(),
-            Inner::Some(r) => &r.metadata,
-        }
-    }
-
     /// Return the object ID of the root dictionary.
     pub fn root_id(&self) -> ObjectIdentifier {
         self.trailer_data().root_ref
-    }
-
-    /// Whether the PDF has optional content groups.
-    pub fn has_optional_content_groups(&self) -> bool {
-        match &self.0 {
-            Inner::Dummy => false,
-            Inner::Some(r) => r.has_ocgs,
-        }
     }
 
     pub(crate) fn objects(&self) -> impl IntoIterator<Item = Object<'_>> + '_ {
@@ -939,9 +912,7 @@ impl TrailerData {
 struct SomeRepr {
     data: Arc<Data>,
     map: Arc<RwLock<MapRepr>>,
-    metadata: Arc<Metadata>,
     decryptor: Arc<Decryptor>,
-    has_ocgs: bool,
     password: Vec<u8>,
     trailer_data: TrailerData,
     /// recto: a ranged file's object offsets, sorted. An object that does not
@@ -1412,35 +1383,6 @@ impl ObjectStream {
         ctx.set_in_object_stream(true);
 
         r.read_with_context::<T>(&ctx)
-    }
-}
-
-fn parse_metadata(info_dict: &Dict<'_>) -> Metadata {
-    Metadata {
-        creation_date: info_dict
-            .get::<object::String<'_>>(CREATION_DATE)
-            .and_then(|c| DateTime::from_bytes(&c)),
-        modification_date: info_dict
-            .get::<object::String<'_>>(MOD_DATE)
-            .and_then(|c| DateTime::from_bytes(&c)),
-        title: info_dict
-            .get::<object::String<'_>>(TITLE)
-            .map(|t| Box::from(t.as_bytes())),
-        author: info_dict
-            .get::<object::String<'_>>(AUTHOR)
-            .map(|t| Box::from(t.as_bytes())),
-        subject: info_dict
-            .get::<object::String<'_>>(SUBJECT)
-            .map(|t| Box::from(t.as_bytes())),
-        keywords: info_dict
-            .get::<object::String<'_>>(KEYWORDS)
-            .map(|t| Box::from(t.as_bytes())),
-        creator: info_dict
-            .get::<object::String<'_>>(CREATOR)
-            .map(|t| Box::from(t.as_bytes())),
-        producer: info_dict
-            .get::<object::String<'_>>(PRODUCER)
-            .map(|t| Box::from(t.as_bytes())),
     }
 }
 
