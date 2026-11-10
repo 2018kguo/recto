@@ -293,10 +293,6 @@ export const ANNOT_SUBTYPE = {
   widget: 20,
 } as const;
 
-/**
- * An open PDF. Every call is synchronous CPU work on this thread. Closing is idempotent, and
- * every other method throws a PdfError with code "closed" afterwards.
- */
 /** A bookmark. `page` is -1 if it goes nowhere in this file; `url` is set if it links out. */
 export type PdfOutlineItem = {
   title: string;
@@ -305,6 +301,10 @@ export type PdfOutlineItem = {
   children: PdfOutlineItem[];
 };
 
+/**
+ * An open PDF. Every call is synchronous CPU work on this thread. Closing is idempotent, and
+ * every other method throws a PdfError with code "closed" afterwards.
+ */
 export interface PdfDocument {
   readonly pageCount: number;
   /** The document's bookmarks; empty if it has none. */
@@ -612,19 +612,16 @@ export class RectoDocument implements PdfDocument {
     instance.documents.open += 1;
   }
 
-  #check(index: number): void {
+  /** Before every call: open, the page there (null for a call about the whole document), and the instance able to run it. */
+  #check(index: number | null): void {
     if (this.#closed) {
       throw new PdfError("closed", "this document is closed");
     }
-    if (!(Number.isInteger(index) && index >= 0 && index < this.pageCount)) {
+    if (index !== null && !(Number.isInteger(index) && index >= 0 && index < this.pageCount)) {
       throw new RangeError(
         `page ${index} is out of range (0..${this.pageCount - 1})`
       );
     }
-    this.#checkInstance();
-  }
-
-  #checkInstance(): void {
     if (this.#instance.abandoned) {
       this.#moveOffAbandoned();
     }
@@ -697,27 +694,18 @@ export class RectoDocument implements PdfDocument {
   }
 
   pageLabels(): string[] | null {
-    if (this.#closed) {
-      throw new PdfError("closed", "this document is closed");
-    }
-    this.#checkInstance();
+    this.#check(null);
     return this.#call(() => this.#doc.pageLabels() as string[] | null);
   }
 
   structureTruncated(): { pages: boolean; pageLabels: boolean; outline: boolean } {
-    if (this.#closed) {
-      throw new PdfError("closed", "this document is closed");
-    }
-    this.#checkInstance();
+    this.#check(null);
     const [pages, pageLabels, outline] = this.#call(() => this.#doc.structureTruncated() as Uint8Array);
     return { pages: pages === 1, pageLabels: pageLabels === 1, outline: outline === 1 };
   }
 
   outline(): PdfOutlineItem[] {
-    if (this.#closed) {
-      throw new PdfError("closed", "this document is closed");
-    }
-    this.#checkInstance();
+    this.#check(null);
     return this.#call(() => {
       const top: PdfOutlineItem[] = [];
       // The open item at each level; an item's parent is the last one a level up.

@@ -109,8 +109,9 @@ type Piece = { start: number; bytes: Uint8Array };
  * fails throws. A suffix that isn't answered as one (a server that ignores or refuses it)
  * gives null, and isn't counted: the caller asks for the tail by its offset instead.
  */
-type Fetch = (requests: Request[], timeoutMs: number, limit: number) => (Answer | null)[];
-type FetchAsync = (requests: Request[], timeoutMs: number, limit: number) => Promise<(Answer | null)[]>;
+type Answers = (Answer | null)[];
+type Fetch = (requests: Request[], timeoutMs: number, limit: number) => Answers;
+type FetchAsync = (requests: Request[], timeoutMs: number, limit: number) => Promise<Answers>;
 
 /** Fetched chunks of one file and the policy for fetching more. */
 class RangeLoader {
@@ -168,30 +169,23 @@ class RangeLoader {
     };
   }
 
-  /** Fetches chunks `firstChunk..endChunk`, keeping only those not held yet. */
-  fetchChunks(firstChunk: number, endChunk: number): void {
+  /** Fetches chunks `firstChunk..endChunk`, keeping only those not held yet: a read's miss, so it blocks. */
+  #fetchChunks(firstChunk: number, endChunk: number): void {
     const runs = this.#missing(firstChunk, endChunk);
     if (runs.length > 0) {
-      this.#absorb(this.#round(runs, (limit, timeoutMs, passesTotal) => this.#timed(passesTotal, () => this.#fetch(runs, timeoutMs, limit))));
+      this.#absorb(this.#round(runs, (limit, timeoutMs) => this.#fetch(runs, timeoutMs, limit)));
     }
   }
 
-  /** The same, through `fetchAsync` when there is one: before the parse, a browser need not block. */
-  async #fetchChunksAsync(firstChunk: number, endChunk: number, fetchAsync: FetchAsync | null): Promise<void> {
-    await this.#fetchRunsAsync(this.#missing(firstChunk, endChunk), fetchAsync);
-  }
-
-  async #fetchRunsAsync(runs: Range[], fetchAsync: FetchAsync | null): Promise<void> {
-    if (runs.length === 0) {
-      return;
+  /** A round before the parse: through `fetchAsync` when there is one, so a browser need not block. */
+  async #fetchAhead(requests: Request[], fetchAsync: FetchAsync | null): Promise<void> {
+    if (requests.length > 0) {
+      this.#absorb(
+        await this.#round(requests, (limit, timeoutMs) =>
+          fetchAsync ? fetchAsync(requests, timeoutMs, limit) : this.#fetch(requests, timeoutMs, limit)
+        )
+      );
     }
-    this.#absorb(
-      await this.#round(runs, (limit, timeoutMs, passesTotal) =>
-        fetchAsync
-          ? this.#timedAsync(passesTotal, fetchAsync(runs, timeoutMs, limit))
-          : this.#timed(passesTotal, () => this.#fetch(runs, timeoutMs, limit))
-      )
-    );
   }
 
   /**
@@ -203,13 +197,7 @@ class RangeLoader {
     const tail = TAIL_CHUNKS * this.chunkBytes;
     // The head stops where the suffix starts, in a file shorter than the two.
     const head: Range = { start: 0, end: HEAD_CHUNKS * this.chunkBytes, yieldTail: tail };
-    const requests: Request[] = [head, { suffix: tail }];
-    const answers = await this.#round(requests, (limit, timeoutMs, passesTotal) =>
-      fetchAsync
-        ? this.#timedAsync(passesTotal, fetchAsync(requests, timeoutMs, limit))
-        : this.#timed(passesTotal, () => this.#fetch(requests, timeoutMs, limit))
-    );
-    this.#absorb(answers);
+    await this.#fetchAhead([head, { suffix: tail }], fetchAsync);
     if (this.length <= 0) {
       throw new PdfError("invalid-file", "the file is empty");
     }
@@ -218,7 +206,7 @@ class RangeLoader {
     }
     // Without the suffix's answer, the head and the last chunk by their offsets, as one round.
     const totalChunks = Math.ceil(this.length / this.chunkBytes);
-    await this.#fetchRunsAsync(
+    await this.#fetchAhead(
       [...this.#missing(0, Math.min(HEAD_CHUNKS, totalChunks)), ...this.#missing(Math.max(HEAD_CHUNKS, totalChunks - 1), totalChunks)],
       fetchAsync
     );
@@ -227,7 +215,7 @@ class RangeLoader {
       // round, rather than letting the parser discover it a chunk at a time.
       const xrefAt = this.startxref();
       if (xrefAt !== null && this.length - xrefAt <= MAX_READ_AHEAD_BYTES) {
-        await this.#fetchChunksAsync(Math.floor(xrefAt / this.chunkBytes), totalChunks, fetchAsync);
+        await this.#fetchAhead(this.#missing(Math.floor(xrefAt / this.chunkBytes), totalChunks), fetchAsync);
       }
     }
   }
@@ -267,9 +255,9 @@ class RangeLoader {
 
   /**
    * One round trip for `requests`: the signal, the budget and the deadline checked first, then
-   * `fetch` with what's left of each.
+   * `fetch` with what's left of each. A timeout that's the deadline's says so.
    */
-  #round<T>(requests: Request[], fetch: (limit: number, timeoutMs: number, passesTotal: boolean) => T): T {
+  #round<T extends Answers | Promise<Answers>>(requests: Request[], fetch: (limit: number, timeoutMs: number) => T): T {
     if (this.#signal?.aborted) {
       throw new PdfError("aborted", "the signal was aborted", this.#signal.reason);
     }
@@ -285,33 +273,22 @@ class RangeLoader {
     }
     this.#rounds += 1;
     const passesTotal = left < this.#timeoutMs;
-    return fetch(this.#maxBytes - this.#bytesFetched, passesTotal ? Math.ceil(left) : this.#timeoutMs, passesTotal);
+    const said = (error: unknown) =>
+      passesTotal && (error as PdfError).code === "timeout" ? new PdfError("timeout", this.#passedTotal(), error) : error;
+    try {
+      const answers = fetch(this.#maxBytes - this.#bytesFetched, passesTotal ? Math.ceil(left) : this.#timeoutMs);
+      return (answers instanceof Promise ? answers.catch((error: unknown) => Promise.reject(said(error))) : answers) as T;
+    } catch (error) {
+      throw said(error);
+    }
   }
 
   #passedTotal(): string {
     return `the ranged read passed its ${this.#totalTimeoutMs} ms (totalTimeoutMs)`;
   }
 
-  /** A round's timeout, when it's the deadline's, says so. */
-  #timed<T>(passesTotal: boolean, fetch: () => T): T {
-    try {
-      return fetch();
-    } catch (error) {
-      if (passesTotal && (error as PdfError).code === "timeout") {
-        throw new PdfError("timeout", this.#passedTotal(), error);
-      }
-      throw error;
-    }
-  }
-
-  async #timedAsync<T>(passesTotal: boolean, fetch: Promise<T>): Promise<T> {
-    return await fetch.catch((error: unknown) => {
-      throw passesTotal && (error as PdfError).code === "timeout" ? new PdfError("timeout", this.#passedTotal(), error) : error;
-    });
-  }
-
   /** Checks and keeps a round's answers; a suffix nobody answered is skipped. */
-  #absorb(answers: (Answer | null)[]): void {
+  #absorb(answers: Answers): void {
     for (const answer of answers) {
       if (!answer) {
         continue;
@@ -461,7 +438,7 @@ class RangeLoader {
     for (let chunk = first; chunk <= last; chunk++) {
       if (!this.#chunks[chunk]) {
         try {
-          this.fetchChunks(...this.#window(chunk, last, lastAhead));
+          this.#fetchChunks(...this.#window(chunk, last, lastAhead));
         } catch (error) {
           this.failure =
             error instanceof PdfError
@@ -710,7 +687,8 @@ function suffixAnswerOf(
 
 const NO_ANSWER = "the ranged read failed: the network, or a cross-origin server that does not allow it";
 
-function fetchOverXhr(url: string, ranges: Request[], timeoutMs: number, limit: number): (Answer | null)[] {
+/** A read's miss in a browser worker. The rounds with a suffix go through `fetch`, before the parse. */
+function fetchOverXhr(url: string, ranges: Request[], timeoutMs: number, limit: number): Answers {
   const deadline = performance.now() + timeoutMs;
   return ranges.map((range) => {
     const xhr = new XMLHttpRequest();
@@ -733,9 +711,6 @@ function fetchOverXhr(url: string, ranges: Request[], timeoutMs: number, limit: 
     // Firefox reports a refused cross-origin read as status 0, not a throw.
     if (xhr.status === 0) {
       throw new PdfError("fetch-failed", NO_ANSWER);
-    }
-    if ("suffix" in range) {
-      return suffixAnswerOf(range, xhr.status, xhr.getResponseHeader("Content-Range"), xhr.getResponseHeader("ETag"), new Uint8Array(xhr.response as ArrayBuffer));
     }
     return answerOf(
       range,
