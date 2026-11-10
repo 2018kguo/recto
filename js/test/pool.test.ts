@@ -98,6 +98,7 @@ test("an idle pool lets Node exit, and a call under way keeps it alive until it 
   `;
   const out = execFileSync(process.execPath, ["--input-type=module", "-e", script, Buffer.from(pdf()).toString("base64")], {
     encoding: "utf8",
+    env: { ...process.env, FORCE_COLOR: "0" },
     timeout: 20_000,
   });
   assert.match(out, /count true/u);

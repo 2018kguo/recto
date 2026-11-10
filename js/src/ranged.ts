@@ -109,8 +109,9 @@ type Piece = { start: number; bytes: Uint8Array };
  * fails throws. A suffix that isn't answered as one (a server that ignores or refuses it)
  * gives null, and isn't counted: the caller asks for the tail by its offset instead.
  */
-type Fetch = (requests: Request[], timeoutMs: number, limit: number) => (Answer | null)[];
-type FetchAsync = (requests: Request[], timeoutMs: number, limit: number) => Promise<(Answer | null)[]>;
+type Answers = (Answer | null)[];
+type Fetch = (requests: Request[], timeoutMs: number, limit: number) => Answers;
+type FetchAsync = (requests: Request[], timeoutMs: number, limit: number) => Promise<Answers>;
 
 /** Fetched chunks of one file and the policy for fetching more. */
 class RangeLoader {
@@ -168,30 +169,23 @@ class RangeLoader {
     };
   }
 
-  /** Fetches chunks `firstChunk..endChunk`, keeping only those not held yet. */
-  fetchChunks(firstChunk: number, endChunk: number): void {
+  /** Fetches chunks `firstChunk..endChunk`, keeping only those not held yet: a read's miss, so it blocks. */
+  #fetchChunks(firstChunk: number, endChunk: number): void {
     const runs = this.#missing(firstChunk, endChunk);
     if (runs.length > 0) {
-      this.#absorb(this.#round(runs, (limit, timeoutMs, passesTotal) => this.#timed(passesTotal, () => this.#fetch(runs, timeoutMs, limit))));
+      this.#absorb(this.#round(runs, (limit, timeoutMs) => this.#fetch(runs, timeoutMs, limit)));
     }
   }
 
-  /** The same, through `fetchAsync` when there is one: before the parse, a browser need not block. */
-  async #fetchChunksAsync(firstChunk: number, endChunk: number, fetchAsync: FetchAsync | null): Promise<void> {
-    await this.#fetchRunsAsync(this.#missing(firstChunk, endChunk), fetchAsync);
-  }
-
-  async #fetchRunsAsync(runs: Range[], fetchAsync: FetchAsync | null): Promise<void> {
-    if (runs.length === 0) {
-      return;
+  /** A round before the parse: through `fetchAsync` when there is one, so a browser need not block. */
+  async #fetchAhead(requests: Request[], fetchAsync: FetchAsync | null): Promise<void> {
+    if (requests.length > 0) {
+      this.#absorb(
+        await this.#round(requests, (limit, timeoutMs) =>
+          fetchAsync ? fetchAsync(requests, timeoutMs, limit) : this.#fetch(requests, timeoutMs, limit)
+        )
+      );
     }
-    this.#absorb(
-      await this.#round(runs, (limit, timeoutMs, passesTotal) =>
-        fetchAsync
-          ? this.#timedAsync(passesTotal, fetchAsync(runs, timeoutMs, limit))
-          : this.#timed(passesTotal, () => this.#fetch(runs, timeoutMs, limit))
-      )
-    );
   }
 
   /**
@@ -203,13 +197,7 @@ class RangeLoader {
     const tail = TAIL_CHUNKS * this.chunkBytes;
     // The head stops where the suffix starts, in a file shorter than the two.
     const head: Range = { start: 0, end: HEAD_CHUNKS * this.chunkBytes, yieldTail: tail };
-    const requests: Request[] = [head, { suffix: tail }];
-    const answers = await this.#round(requests, (limit, timeoutMs, passesTotal) =>
-      fetchAsync
-        ? this.#timedAsync(passesTotal, fetchAsync(requests, timeoutMs, limit))
-        : this.#timed(passesTotal, () => this.#fetch(requests, timeoutMs, limit))
-    );
-    this.#absorb(answers);
+    await this.#fetchAhead([head, { suffix: tail }], fetchAsync);
     if (this.length <= 0) {
       throw new PdfError("invalid-file", "the file is empty");
     }
@@ -218,7 +206,7 @@ class RangeLoader {
     }
     // Without the suffix's answer, the head and the last chunk by their offsets, as one round.
     const totalChunks = Math.ceil(this.length / this.chunkBytes);
-    await this.#fetchRunsAsync(
+    await this.#fetchAhead(
       [...this.#missing(0, Math.min(HEAD_CHUNKS, totalChunks)), ...this.#missing(Math.max(HEAD_CHUNKS, totalChunks - 1), totalChunks)],
       fetchAsync
     );
@@ -227,7 +215,7 @@ class RangeLoader {
       // round, rather than letting the parser discover it a chunk at a time.
       const xrefAt = this.startxref();
       if (xrefAt !== null && this.length - xrefAt <= MAX_READ_AHEAD_BYTES) {
-        await this.#fetchChunksAsync(Math.floor(xrefAt / this.chunkBytes), totalChunks, fetchAsync);
+        await this.#fetchAhead(this.#missing(Math.floor(xrefAt / this.chunkBytes), totalChunks), fetchAsync);
       }
     }
   }
@@ -267,9 +255,9 @@ class RangeLoader {
 
   /**
    * One round trip for `requests`: the signal, the budget and the deadline checked first, then
-   * `fetch` with what's left of each.
+   * `fetch` with what's left of each. A timeout that's the deadline's says so.
    */
-  #round<T>(requests: Request[], fetch: (limit: number, timeoutMs: number, passesTotal: boolean) => T): T {
+  #round<T extends Answers | Promise<Answers>>(requests: Request[], fetch: (limit: number, timeoutMs: number) => T): T {
     if (this.#signal?.aborted) {
       throw new PdfError("aborted", "the signal was aborted", this.#signal.reason);
     }
@@ -285,33 +273,22 @@ class RangeLoader {
     }
     this.#rounds += 1;
     const passesTotal = left < this.#timeoutMs;
-    return fetch(this.#maxBytes - this.#bytesFetched, passesTotal ? Math.ceil(left) : this.#timeoutMs, passesTotal);
+    const said = (error: unknown) =>
+      passesTotal && (error as PdfError).code === "timeout" ? new PdfError("timeout", this.#passedTotal(), error) : error;
+    try {
+      const answers = fetch(this.#maxBytes - this.#bytesFetched, passesTotal ? Math.ceil(left) : this.#timeoutMs);
+      return (answers instanceof Promise ? answers.catch((error: unknown) => Promise.reject(said(error))) : answers) as T;
+    } catch (error) {
+      throw said(error);
+    }
   }
 
   #passedTotal(): string {
     return `the ranged read passed its ${this.#totalTimeoutMs} ms (totalTimeoutMs)`;
   }
 
-  /** A round's timeout, when it's the deadline's, says so. */
-  #timed<T>(passesTotal: boolean, fetch: () => T): T {
-    try {
-      return fetch();
-    } catch (error) {
-      if (passesTotal && (error as PdfError).code === "timeout") {
-        throw new PdfError("timeout", this.#passedTotal(), error);
-      }
-      throw error;
-    }
-  }
-
-  async #timedAsync<T>(passesTotal: boolean, fetch: Promise<T>): Promise<T> {
-    return await fetch.catch((error: unknown) => {
-      throw passesTotal && (error as PdfError).code === "timeout" ? new PdfError("timeout", this.#passedTotal(), error) : error;
-    });
-  }
-
   /** Checks and keeps a round's answers; a suffix nobody answered is skipped. */
-  #absorb(answers: (Answer | null)[]): void {
+  #absorb(answers: Answers): void {
     for (const answer of answers) {
       if (!answer) {
         continue;
@@ -388,20 +365,38 @@ class RangeLoader {
   }
 
   /**
+   * `failure`, or when what's held shows the file isn't a PDF (see `notPdfBytes`), that it isn't: an
+   * error or sign-in page fails to parse, or runs into `maxBytes`, and neither says why. Only when
+   * enough of the first KiB is held to tell.
+   */
+  explain(failure: unknown): unknown {
+    if (!(failure instanceof PdfError && (failure.code === "invalid-file" || overBudget.has(failure)))) {
+      return failure;
+    }
+    // The chunks held from the start on, at least the first KiB's worth when chunks are smaller.
+    const parts: Uint8Array[] = [];
+    let held = 0;
+    for (let chunk = 0; held < Math.max(HEADER_BYTES, this.chunkBytes) && this.#chunks[chunk]; chunk++) {
+      parts.push(this.#chunks[chunk]!);
+      held += this.#chunks[chunk]!.byteLength;
+    }
+    const head = parts.length > 0 ? concat(...parts) : this.#pieces.get(0)?.find((piece) => piece.start === 0)?.bytes;
+    return head && head.byteLength >= Math.min(HEADER_BYTES, this.length) && notPdfBytes(head, this.#chunks.at(-1))
+      ? notPdf(failure)
+      : failure;
+  }
+
+  /**
    * The `startxref` offset in the fetched last chunk, if it names one. Null for a linearized
    * file, whose trailer points at the first-page section near the head.
    */
   startxref(): number | null {
     const first = this.#chunks[0];
     const last = this.#chunks.at(-1);
-    if (
-      !first ||
-      !last ||
-      new TextDecoder("latin1").decode(first.subarray(0, 1024)).includes("/Linearized")
-    ) {
+    if (!first || !last || latin1(first.subarray(0, HEADER_BYTES)).includes("/Linearized")) {
       return null;
     }
-    const tail = new TextDecoder("latin1").decode(last.subarray(-1024));
+    const tail = latin1(last.subarray(-1024));
     const match = /startxref\s+(\d+)\s+%%EOF\s*$/u.exec(tail);
     const offset = match ? Number(match[1]) : Number.NaN;
     return offset >= 0 && offset < this.length ? offset : null;
@@ -452,7 +447,7 @@ class RangeLoader {
     for (let chunk = first; chunk <= last; chunk++) {
       if (!this.#chunks[chunk]) {
         try {
-          this.fetchChunks(...this.#window(chunk, last, lastAhead));
+          this.#fetchChunks(...this.#window(chunk, last, lastAhead));
         } catch (error) {
           this.failure =
             error instanceof PdfError
@@ -509,7 +504,11 @@ export async function startRangeLoader(
     totalTimeoutMs: options.totalTimeoutMs ?? Number.POSITIVE_INFINITY,
     signal: options.signal,
   });
-  await loader.begin(asyncFetcherFor(source));
+  try {
+    await loader.begin(asyncFetcherFor(source));
+  } catch (error) {
+    throw loader.explain(error);
+  }
   return loader;
 }
 
@@ -590,11 +589,38 @@ function rangeHeader(request: Request): string {
   return "suffix" in request ? `bytes=-${request.suffix}` : `bytes=${request.start}-${request.end - 1}`;
 }
 
+/** The budget's failures, which bytes that aren't a PDF explain better; not the address space's. */
+const overBudget = new WeakSet<PdfError>();
+
 function tooLarge(maxBytes: number): PdfError {
-  return new PdfError(
-    "too-large",
-    `the ranged read would pass ${maxBytes} bytes (maxBytes); raise it or fetch the file whole`
-  );
+  const error = new PdfError("too-large", `the ranged read would pass ${maxBytes} bytes (maxBytes); raise it or fetch the file whole`);
+  overBudget.add(error);
+  return error;
+}
+
+/** How far into a file a reader looks for its `%PDF` header. */
+const HEADER_BYTES = 1024;
+
+function latin1(bytes: Uint8Array): string {
+  return new TextDecoder("latin1").decode(bytes);
+}
+
+/**
+ * Whether a file's first and last bytes show it isn't a PDF: no `%PDF` where a reader looks for it,
+ * and no `endobj` or `startxref` either, which a damaged PDF that lost its header still has.
+ */
+function notPdfBytes(head: Uint8Array, tail: Uint8Array | undefined): boolean {
+  const syntax = (bytes: Uint8Array) => /endobj|startxref/u.test(latin1(bytes));
+  return !latin1(head.subarray(0, HEADER_BYTES)).includes("%PDF") && !syntax(head) && !(tail && syntax(tail));
+}
+
+function notPdf(cause?: unknown): PdfError {
+  return new PdfError("invalid-file", `not a PDF: no %PDF header in its first ${HEADER_BYTES} bytes (an error or sign-in page?)`, cause);
+}
+
+/** A non-2xx answer: its status says more than anything read from its body would. */
+function httpFailure(status: number): PdfError {
+  return new PdfError("fetch-failed", `the server answered HTTP ${status}, not the file`, undefined, status);
 }
 
 /**
@@ -613,6 +639,9 @@ function answerOf(
   if (status === 200 && !("suffix" in range)) {
     // The server ignored Range and sent the whole file: use it, while the budget allows.
     if (bytes.byteLength > limit) {
+      if (notPdfBytes(bytes.subarray(0, 1 << 16), bytes.subarray(-(1 << 16)))) {
+        throw notPdf();
+      }
       throw new PdfError(
         "too-large",
         `the server does not answer Range requests, and the whole file is past the ${limit} bytes left of maxBytes`
@@ -621,7 +650,7 @@ function answerOf(
     return { start: 0, bytes, length: bytes.byteLength, etag, status, received };
   }
   if (status !== 206) {
-    throw new PdfError("fetch-failed", `the ranged read failed (HTTP ${status})`, undefined, status);
+    throw httpFailure(status);
   }
   const match = /^bytes (\d+)-\d+\/(\d+)$/u.exec(contentRange?.trim() ?? "");
   if (!match) {
@@ -671,7 +700,8 @@ function suffixAnswerOf(
 
 const NO_ANSWER = "the ranged read failed: the network, or a cross-origin server that does not allow it";
 
-function fetchOverXhr(url: string, ranges: Request[], timeoutMs: number, limit: number): (Answer | null)[] {
+/** A read's miss in a browser worker. The rounds with a suffix go through `fetch`, before the parse. */
+function fetchOverXhr(url: string, ranges: Request[], timeoutMs: number, limit: number): Answers {
   const deadline = performance.now() + timeoutMs;
   return ranges.map((range) => {
     const xhr = new XMLHttpRequest();
@@ -694,9 +724,6 @@ function fetchOverXhr(url: string, ranges: Request[], timeoutMs: number, limit: 
     // Firefox reports a refused cross-origin read as status 0, not a throw.
     if (xhr.status === 0) {
       throw new PdfError("fetch-failed", NO_ANSWER);
-    }
-    if ("suffix" in range) {
-      return suffixAnswerOf(range, xhr.status, xhr.getResponseHeader("Content-Range"), xhr.getResponseHeader("ETag"), new Uint8Array(xhr.response as ArrayBuffer));
     }
     return answerOf(
       range,
@@ -743,6 +770,11 @@ async function fetchOverFetch(url: string, requests: Request[], timeoutMs: numbe
         await response.body?.cancel();
         suffixDone(null);
         return null;
+      }
+      if (!response.ok) {
+        // An error page: its status is the answer, and its body isn't worth downloading.
+        await response.body?.cancel();
+        throw httpFailure(response.status);
       }
       const reader = byteReader(response.body);
       try {
@@ -833,10 +865,13 @@ function delay<T>(ms: number, value: T): Promise<T> {
   return new Promise((resolve) => setTimeout(() => resolve(value), ms));
 }
 
-function concat(a: Uint8Array, b: Uint8Array): Uint8Array {
-  const out = new Uint8Array(a.byteLength + b.byteLength);
-  out.set(a);
-  out.set(b, a.byteLength);
+function concat(...parts: Uint8Array[]): Uint8Array {
+  const out = new Uint8Array(parts.reduce((sum, part) => sum + part.byteLength, 0));
+  let at = 0;
+  for (const part of parts) {
+    out.set(part, at);
+    at += part.byteLength;
+  }
   return out;
 }
 
@@ -887,16 +922,7 @@ function byteReader(body: ReadableStream<Uint8Array> | null) {
           spare = value.subarray(take);
         }
       }
-      if (parts.length === 1) {
-        return parts[0]!;
-      }
-      const out = new Uint8Array(got);
-      let at = 0;
-      for (const part of parts) {
-        out.set(part, at);
-        at += part.byteLength;
-      }
-      return out;
+      return parts.length === 1 ? parts[0]! : concat(...parts);
     },
     async cancel(): Promise<void> {
       await (byob ?? plain)?.cancel().catch(() => undefined);
@@ -955,10 +981,9 @@ async function get(m, signal) {
   };
   try {
     // A 206 is read as far as the range runs (see readsOf), and a byte past to catch a longer one;
-    // a whole file, to a byte past the limit.
+    // a whole file, to a byte past the limit (answerOf says which).
     if (response.status !== 206) {
       const bytes = await read(m.limit + 1);
-      if (received > m.limit) return { ...reply, overLimit: true, bytes: new ArrayBuffer(0), received };
       return { ...reply, bytes: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), received };
     }
     const total = Number((reply.contentRange || "").trim().split("/").pop());
@@ -1018,7 +1043,6 @@ type FetcherReply = {
   etag: string | null;
   bytes: ArrayBuffer;
   received: number;
-  overLimit?: true;
   failed?: string;
 };
 
@@ -1101,7 +1125,7 @@ function fetchOverThread(
       pending.delete(reply.id);
       if ("suffix" in range) {
         answers[order.get(range)!] =
-          reply.failed === undefined && !reply.overLimit
+          reply.failed === undefined
             ? suffixAnswerOf(range, reply.status, reply.contentRange, reply.etag, new Uint8Array(reply.bytes), reply.received)
             : null;
         continue;
@@ -1109,9 +1133,6 @@ function fetchOverThread(
       try {
         if (reply.failed !== undefined) {
           throw new PdfError("fetch-failed", `the ranged read failed: ${reply.failed}`);
-        }
-        if (reply.overLimit) {
-          throw tooLarge(limit);
         }
         answers[order.get(range)!] = answerOf(range, reply.status, reply.contentRange, reply.etag, new Uint8Array(reply.bytes), limit, reply.received);
       } catch (error) {

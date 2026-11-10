@@ -28,11 +28,8 @@ repository = "https://github.com/LaurenzV/hayro"
 resolver = "2"
 
 [features]
-default = ["embed-cmaps"]
-embed-cmaps = ["std", "dep:brotli"]
 # recto: the host supplies the embedded bundle at run time (set_bundle_source).
-host-cmaps = ["embed-cmaps", "dep:flate2"]
-std = []
+host-cmaps = ["dep:flate2"]
 
 [lib]
 name = "hayro_cmap"
@@ -40,8 +37,7 @@ path = "src/lib.rs"
 
 [dependencies.brotli]
 version = "8"
-features = ["std", "std"]
-optional = true
+features = ["std"]
 default-features = false
 
 [dependencies.flate2]

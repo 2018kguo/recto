@@ -51,6 +51,20 @@ the same on 2,172 files, read whole and by range, and the scorecard is unchanged
   a tail of 2 chunks where 0.4.0 fetched 1.
 - **Download**: 3.8 KB more with brotli for text and 11.3 KB more for text and drawing. A ranged open no longer
   fetches `recto-more.wasm` (251 KB), which in 0.4.0 it did.
+- **Less code**: an open no longer reads the document-information dictionary (`/Info`, and its dates) or
+  `/OCProperties`, which nothing used; the vendored hayro crates lose features every build turned on, with the code
+  for builds without them, and functions nothing called (1,064 lines). recto.wasm is 5.8 KB smaller (1.2 KB brotli);
+  reading text downloads 1.1 KB less. Output, rounds and the scorecard are unchanged.
+
+### Fixed
+
+- **A ranged open of a URL that answers with a page, not the file**, says so. An HTML page served with a 200 or
+  206 (a soft 404, a sign-in page) failed with `invalid-file` "not a readable PDF: Invalid", or, when it was large or
+  the budget small, with `too-large` "would pass 67108864 bytes (maxBytes)". Now an open that fails, or runs into
+  `maxBytes`, on bytes with no `%PDF` in their first 1 KiB (nor `endobj` or `startxref` in what's held of either end, which a
+  damaged PDF without its header still has) fails with `invalid-file` "not a PDF: no %PDF header…".
+  A 4xx or 5xx, after any redirects, is `fetch-failed` with the status in `error.status` and the message "the server
+  answered HTTP 404, not the file", and in a browser its body is no longer downloaded up to the budget first.
 
 ## 0.4.0
 

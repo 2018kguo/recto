@@ -10,7 +10,6 @@ pub(crate) mod flate {
     use crate::filter::lzw_flate::{PredictorParams, apply_predictor};
     use crate::object::Dict;
 
-    #[cfg(feature = "unsafe")]
     pub(crate) fn decode(data: &[u8], params: &Dict<'_>) -> Option<Vec<u8>> {
         // recto: a stream cut for its size isn't tried again another way.
         let cut = crate::filter::decodes_cut();
@@ -26,7 +25,6 @@ pub(crate) mod flate {
     /// stream's end, or up to where the input runs out; `None` on an error), in as few calls as the
     /// output takes. Reading grew the output from 32 bytes, decoding a little at a time, and each call
     /// copied what it wrote into the decoder's window too; a call that finishes the stream skips that.
-    #[cfg(feature = "unsafe")]
     pub(crate) fn inflate(data: &[u8], zlib: bool) -> Option<Vec<u8>> {
         use flate2::{Decompress, FlushDecompress, Status};
 
@@ -59,13 +57,6 @@ pub(crate) mod flate {
             out.shrink_to_fit();
         }
         Some(out)
-    }
-
-    #[cfg(not(feature = "unsafe"))]
-    pub(crate) fn decode(data: &[u8], params: &Dict<'_>) -> Option<Vec<u8>> {
-        let decoded = fallback::decode(data)?;
-        let params = PredictorParams::from_params(params);
-        apply_predictor(decoded, &params)
     }
 
     /// Ported from <https://github.com/mozilla/pdf.js/blob/master/src/core/flate_stream.js>

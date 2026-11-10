@@ -290,6 +290,21 @@ impl Document {
             .ok_or_else(|| EngineError::new(ErrorKind::Failed, format!("no page {index}")))
     }
 
+    /// `f` on page `index`, its document and the document's caches.
+    fn with_page<R>(
+        &self,
+        index: usize,
+        f: impl for<'q> FnOnce(&'q Pdf, &'q hayro::hayro_syntax::page::Page<'q>, &Caches<'q>) -> R,
+    ) -> Result<R, EngineError> {
+        self.page(index)?;
+        Ok(self.0.with_dependent(|pdf, caches| {
+            let Some(page) = pdf.pages().get(index) else {
+                unreachable!("self.page(index) found it")
+            };
+            f(pdf, page, caches)
+        }))
+    }
+
     pub fn page_info(&self, index: usize) -> Result<PageInfo, EngineError> {
         let page = self.page(index)?;
         let (width, height) = page.render_dimensions();
@@ -319,12 +334,8 @@ impl Document {
         objects: bool,
         annotations: bool,
     ) -> Result<Scan, EngineError> {
-        self.page(index)?;
         let cuts = hayro::hayro_syntax::decodes_cut();
-        Ok(self.0.with_dependent(|pdf, caches| {
-            let Some(page) = pdf.pages().get(index) else {
-                unreachable!("self.page(index) found it")
-            };
+        self.with_page(index, |_, page, caches| {
             let (w, h) = page.render_dimensions();
             let viewer = page.initial_transform(true).to_kurbo();
             let mut ctx = Context::new(
@@ -369,7 +380,7 @@ impl Document {
                     Vec::new()
                 },
             }
-        }))
+        })
     }
 
     /// The file as it was opened, in place.
@@ -405,15 +416,12 @@ impl Document {
     #[doc(hidden)]
     pub fn render_budget(&self, index: usize, width: f32) -> Result<((u32, usize, u32), bool), EngineError> {
         let (settings, _) = self.pixmap_settings(index, width, 4096.0, None)?;
-        Ok(self.0.with_dependent(|pdf, caches| {
-            let Some(page) = pdf.pages().get(index) else {
-                unreachable!("pixmap_settings found it")
-            };
+        self.with_page(index, |_, page, caches| {
             let interpreter = crate::assets::settings();
             let budget = interpreter.budget.clone();
             let _ = render(page, &caches.render, &interpreter, &RenderSettings::default(), &settings);
             (budget.used(), caches.render.take_degraded())
-        }))
+        })
     }
 
     /// For `examples/budgets.rs`: what the walks of the file's trees used: page tree kids and their
@@ -427,13 +435,7 @@ impl Document {
 
     /// The page's links, in the order `annotations` lists them, with where each goes.
     pub fn links(&self, index: usize) -> Result<Vec<Link>, EngineError> {
-        self.page(index)?;
-        Ok(self.0.with_dependent(|pdf, _| {
-            let Some(page) = pdf.pages().get(index) else {
-                unreachable!("self.page(index) found it")
-            };
-            links::read(pdf, page, page.initial_transform(true).to_kurbo())
-        }))
+        self.with_page(index, |pdf, page, _| links::read(pdf, page, page.initial_transform(true).to_kurbo()))
     }
 
     /// The document's outline, in order; each item's children follow it, one level deeper.
@@ -443,13 +445,7 @@ impl Document {
 
     /// The page's annotations alone, without interpreting its content.
     pub fn annotations(&self, index: usize) -> Result<Vec<Annotation>, EngineError> {
-        self.page(index)?;
-        Ok(self.0.with_dependent(|pdf, caches| {
-            let Some(page) = pdf.pages().get(index) else {
-                unreachable!("self.page(index) found it")
-            };
-            annots::read(page, &caches.text, page.initial_transform(true).to_kurbo())
-        }))
+        self.with_page(index, |_, page, caches| annots::read(page, &caches.text, page.initial_transform(true).to_kurbo()))
     }
 
     /// The pixmap's scales, and with a region, its window on the page's bitmap and that bitmap's size.
@@ -517,10 +513,7 @@ impl Document {
         settings: &PixmapSettings,
     ) -> Result<(hayro::vello_cpu::Pixmap, bool), EngineError> {
         let cuts = hayro::hayro_syntax::decodes_cut();
-        Ok(self.0.with_dependent(|pdf, caches| {
-            let Some(page) = pdf.pages().get(index) else {
-                unreachable!("self.page(index) found it")
-            };
+        self.with_page(index, |_, page, caches| {
             let pixmap = render(
                 page,
                 &caches.render,
@@ -529,7 +522,7 @@ impl Document {
                 settings,
             );
             (pixmap, caches.render.take_degraded() || hayro::hayro_syntax::decodes_cut() != cuts)
-        }))
+        })
     }
 
     /// Scale is `min(width / pageWidth, maxHeight / pageHeight)`.
@@ -568,10 +561,7 @@ impl RenderTask {
     ) -> Result<Self, EngineError> {
         let (settings, page) = document.pixmap_settings(index, width, max_height, region)?;
         let cuts = hayro::hayro_syntax::decodes_cut();
-        let job = document.0.with_dependent(|pdf, caches| {
-            let Some(page) = pdf.pages().get(index) else {
-                unreachable!("pixmap_settings found it")
-            };
+        let job = document.with_page(index, |_, page, caches| {
             let job = hayro::PageJob::new(
                 page,
                 &caches.render,
@@ -586,7 +576,7 @@ impl RenderTask {
             unsafe {
                 std::mem::transmute::<hayro::PageJob<'_, '_>, hayro::PageJob<'static, 'static>>(job)
             }
-        });
+        })?;
         Ok(Self {
             job,
             _document: document,

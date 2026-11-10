@@ -17,6 +17,8 @@ export type RangeServerMode =
   | "no-suffix" // Answers a suffix range (`bytes=-n`) with the whole file, as a 200; other ranges as asked.
   | "suffix-stall" // Never answers a suffix range; other ranges as asked.
   | "suffix-416" // Answers a suffix range longer than the file with a 416, as range-parser (Express) does.
+  | "redirect-404" // A 302 to a 419-byte HTML page served with a 404.
+  | "redirect-page" // A 302 to the same page served with a 200, Range ignored: a soft 404 or a sign-in page.
   | "stalled"; // Takes the request and never answers.
 
 export type RangeServer = {
@@ -33,8 +35,9 @@ const http = require("node:http");
 const { parentPort, workerData } = require("node:worker_threads");
 const { bytes, counters, mode, latencyMs } = workerData;
 const body = new Uint8Array(bytes);
-const MODES = ["range", "ignore", "forbidden", "short", "unknown-total", "changed", "replaced", "absurd-total", "huge", "stalled", "no-content", "no-suffix", "suffix-stall", "suffix-416"];
+const MODES = ["range", "ignore", "forbidden", "short", "unknown-total", "changed", "replaced", "absurd-total", "huge", "stalled", "no-content", "no-suffix", "suffix-stall", "suffix-416", "redirect-404", "redirect-page"];
 const HUGE = 1900 * 1024 * 1024;
+const PAGE = new TextEncoder().encode("<!DOCTYPE html><html><head><title>Not Found</title></head><body><h1>Not Found</h1>" + "<p>The requested URL was not found on this server.</p>".repeat(6) + "</body></html>");
 // Streams in pieces and counts only what was written, so a client that
 // drops a whole-file response after its headers (pdf.js probing for Range
 // support) is not charged for the rest.
@@ -58,6 +61,11 @@ const server = http.createServer((req, res) => {
     if (current === "stalled") return;
     if (current === "forbidden") { res.writeHead(403).end("no"); return; }
     if (current === "no-content") { res.writeHead(204).end(); return; }
+    if (current === "redirect-404" || current === "redirect-page") {
+      if (!req.url.startsWith("/gone")) { res.writeHead(302, { Location: "/gone" }).end(); return; }
+      send(res, current === "redirect-404" ? 404 : 200, { "Content-Type": "text/html" }, PAGE);
+      return;
+    }
     const match = /bytes=(\\d*)-(\\d*)/u.exec(req.headers.range || "");
     if (current === "suffix-stall" && match && match[1] === "") return;
     if (current === "suffix-416" && match && match[1] === "" && Number(match[2]) > body.byteLength) {
@@ -100,7 +108,7 @@ server.listen(0, "127.0.0.1", () => parentPort.postMessage(server.address().port
 parentPort.on("message", () => { server.closeAllConnections(); server.close(() => process.exit(0)); });
 `;
 
-const MODES: RangeServerMode[] = ["range", "ignore", "forbidden", "short", "unknown-total", "changed", "replaced", "absurd-total", "huge", "stalled", "no-content", "no-suffix", "suffix-stall", "suffix-416"];
+const MODES: RangeServerMode[] = ["range", "ignore", "forbidden", "short", "unknown-total", "changed", "replaced", "absurd-total", "huge", "stalled", "no-content", "no-suffix", "suffix-stall", "suffix-416", "redirect-404", "redirect-page"];
 
 export async function startRangeServer(
   bytes: Uint8Array,

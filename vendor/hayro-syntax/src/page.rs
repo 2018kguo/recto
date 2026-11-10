@@ -594,14 +594,12 @@ mod recent {
     /// otherwise all be held.
     pub(crate) const MOST_BYTES: usize = 256 << 20;
 
-    #[cfg(feature = "std")]
     std::thread_local! {
         pub(crate) static DECODES: core::cell::Cell<usize> = const { core::cell::Cell::new(0) };
         static KEPT: core::cell::RefCell<(VecDeque<Arc<Vec<u8>>>, usize)> =
             const { core::cell::RefCell::new((VecDeque::new(), 0)) };
     }
 
-    #[cfg(feature = "std")]
     pub(crate) fn keep(stream: &Arc<Vec<u8>>) {
         KEPT.with_borrow_mut(|(kept, bytes)| {
             kept.push_back(stream.clone());
@@ -614,7 +612,6 @@ mod recent {
         });
     }
 
-    #[cfg(feature = "std")]
     pub(crate) fn forget(stream: &Arc<Vec<u8>>) {
         // `try_with`: a page can be dropped as the thread's locals are.
         let _ = KEPT.try_with(|kept| {
@@ -628,12 +625,6 @@ mod recent {
         });
     }
 
-    /// Without `std` there are no thread locals: a page's content is decoded for each use.
-    #[cfg(not(feature = "std"))]
-    pub(crate) fn keep(_: &Arc<Vec<u8>>) {}
-
-    #[cfg(not(feature = "std"))]
-    pub(crate) fn forget(_: &Arc<Vec<u8>>) {}
 }
 
 impl Drop for Page<'_> {
@@ -766,7 +757,6 @@ impl<'a> Page<'a> {
         });
         self.content_cut.store(cut, core::sync::atomic::Ordering::Relaxed);
         let stream = Arc::new(stream?);
-        #[cfg(feature = "std")]
         recent::DECODES.with(|n| n.set(n.get() + 1));
         *self.page_streams.get() = Arc::downgrade(&stream);
         recent::keep(&stream);
@@ -780,7 +770,6 @@ impl<'a> Page<'a> {
     }
 
     /// recto: how many pages' content this thread has decoded. For tests.
-    #[cfg(feature = "std")]
     #[doc(hidden)]
     pub fn content_decodes() -> usize {
         recent::DECODES.with(|n| n.get())
@@ -869,7 +858,6 @@ impl<'a> Page<'a> {
     pub fn xref(&self) -> &'a XRef {
         self.ctx.xref()
     }
-
 
     /// Return the initial transform that should be applied when rendering.
     ///
@@ -1013,11 +1001,7 @@ pub(crate) mod cached {
 
     // Keep in sync with the implementation in `sync`. We duplicate it here
     // to make it more visible since we have unsafe code here.
-    #[cfg(feature = "std")]
     pub(crate) use std::sync::Arc;
-
-    #[cfg(not(feature = "std"))]
-    pub(crate) use alloc::rc::Rc as Arc;
 
     pub(crate) struct CachedPages {
         pages: Pages<'static>,

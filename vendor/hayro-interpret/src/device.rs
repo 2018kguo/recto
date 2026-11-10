@@ -85,15 +85,3 @@ pub trait Device<'a> {
     fn end_marked_content(&mut self) {}
 }
 
-/// A device that discards all drawing operations.
-pub struct DummyDevice;
-
-impl Device<'_> for DummyDevice {
-    fn draw_path(&mut self, _: &BezPath, _: DrawProps<'_>, _: &DrawMode) {}
-    fn push_clip_path(&mut self, _: &ClipPath) {}
-    fn push_transparency_group(&mut self, _: f32, _: Option<SoftMask<'_>>, _: BlendMode) {}
-    fn draw_glyph_run(&mut self, _: &GlyphRun<'_, '_>, _: DrawProps<'_>, _: &DrawMode) {}
-    fn draw_image(&mut self, _: Image<'_, '_>, _: ImageDrawProps<'_>) {}
-    fn pop_clip(&mut self) {}
-    fn pop_transparency_group(&mut self) {}
-}

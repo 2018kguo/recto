@@ -3,7 +3,6 @@ use alloc::vec::Vec;
 
 use hayro_postscript::{Number, Scanner, Token};
 
-#[cfg(feature = "embed-cmaps")]
 use crate::bcmap;
 use crate::{
     BfRange, CMap, CMapName, CharacterCollection, CidFamily, CidRange, CodespaceRange,
@@ -26,7 +25,6 @@ pub(crate) fn parse_inner<'a>(
     }
 
     // Check if it's in our custom embedded cmap format.
-    #[cfg(feature = "embed-cmaps")]
     if data.starts_with(b"bcmap") {
         return bcmap::parse(data, get_cmap, depth);
     }

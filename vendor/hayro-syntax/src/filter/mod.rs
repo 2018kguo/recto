@@ -2,13 +2,9 @@
 
 mod ascii_85;
 pub(crate) mod ascii_hex;
-#[cfg(feature = "images")]
 mod ccitt;
-#[cfg(feature = "images")]
 mod dct;
-#[cfg(feature = "images")]
 mod jbig2;
-#[cfg(feature = "images")]
 mod jpx;
 mod lzw_flate;
 mod png;
@@ -28,7 +24,6 @@ use core::ops::Deref;
 /// and public files that open asked for was 151 MB (`examples/budgets.rs`).
 pub const DEFAULT_MAX_DECODED_BYTES: usize = 768 << 20;
 
-#[cfg(feature = "std")]
 std::thread_local! {
     static MAX_DECODED_BYTES: core::cell::Cell<usize> = const { core::cell::Cell::new(DEFAULT_MAX_DECODED_BYTES) };
     static DECODES_CUT: core::cell::Cell<usize> = const { core::cell::Cell::new(0) };
@@ -43,7 +38,6 @@ pub struct HeldDecoded(usize);
 
 /// recto: holds `bytes` of decoded content until the result is dropped; see [`HeldDecoded`].
 pub fn hold_decoded(bytes: usize) -> HeldDecoded {
-    #[cfg(feature = "std")]
     HELD.with(|held| held.set(held.get().saturating_add(bytes)));
     HeldDecoded(bytes)
 }
@@ -56,14 +50,12 @@ impl Clone for HeldDecoded {
 
 impl Drop for HeldDecoded {
     fn drop(&mut self) {
-        #[cfg(feature = "std")]
         let _ = HELD.try_with(|held| held.set(held.get().saturating_sub(self.0)));
     }
 }
 
 /// recto: the most bytes a stream or image asked to decode to since the last call, for
 /// `examples/budgets.rs`.
-#[cfg(feature = "std")]
 #[doc(hidden)]
 pub fn take_largest_decode() -> usize {
     LARGEST_DECODE.with(|n| n.replace(0))
@@ -71,13 +63,11 @@ pub fn take_largest_decode() -> usize {
 
 /// recto: sets, for this thread, how many bytes one stream may decode to and one image hold; see
 /// [`DEFAULT_MAX_DECODED_BYTES`].
-#[cfg(feature = "std")]
 pub fn set_max_decoded_bytes(bytes: usize) {
     MAX_DECODED_BYTES.with(|max| max.set(bytes));
 }
 
 /// recto: how many streams or images this thread has left out for decoding to more than the limit.
-#[cfg(feature = "std")]
 pub fn decodes_cut() -> usize {
     DECODES_CUT.with(|n| n.get())
 }
@@ -86,60 +76,40 @@ pub fn decodes_cut() -> usize {
 /// cache keeps that with what it built, and calls [`repeat_cut`] each time it hands it out, so every
 /// call that uses it says so, not only the one that built it.
 pub fn noting_cuts<T>(f: impl FnOnce() -> T) -> (T, bool) {
-    #[cfg(feature = "std")]
-    {
-        let before = decodes_cut();
-        let value = f();
-        (value, decodes_cut() != before)
-    }
-    #[cfg(not(feature = "std"))]
-    (f(), false)
+    let before = decodes_cut();
+    let value = f();
+    (value, decodes_cut() != before)
 }
 
 /// recto: counts a cut again, for what was built from a cut decode and is used once more.
 pub fn repeat_cut() {
-    #[cfg(feature = "std")]
     DECODES_CUT.with(|n| n.set(n.get() + 1));
 }
 
 /// recto: `f` with the limit lowered to `max` (never raised), for decodes that add up to one
 /// buffer, as a page's content streams do.
 pub fn with_max_decoded<T>(max: usize, f: impl FnOnce() -> T) -> T {
-    #[cfg(feature = "std")]
-    {
-        let old = MAX_DECODED_BYTES.with(|max| max.get());
-        let held = HELD.with(|held| held.get());
-        set_max_decoded_bytes(max.saturating_add(held).min(old));
-        let value = f();
-        set_max_decoded_bytes(old);
-        value
-    }
-    #[cfg(not(feature = "std"))]
-    {
-        let _ = max;
-        f()
-    }
+    let old = MAX_DECODED_BYTES.with(|max| max.get());
+    let held = HELD.with(|held| held.get());
+    set_max_decoded_bytes(max.saturating_add(held).min(old));
+    let value = f();
+    set_max_decoded_bytes(old);
+    value
 }
 
 /// recto: what one stream may decode to now, on this thread: the limit, less what's held.
 #[doc(hidden)]
 pub fn max_decoded_bytes() -> usize {
-    #[cfg(feature = "std")]
-    return MAX_DECODED_BYTES.with(|max| max.get()).saturating_sub(HELD.with(|held| held.get()));
-    #[cfg(not(feature = "std"))]
-    DEFAULT_MAX_DECODED_BYTES
+    MAX_DECODED_BYTES.with(|max| max.get()).saturating_sub(HELD.with(|held| held.get()))
 }
 
 /// recto: whether `bytes` is within the limit; if not, the decode is counted as cut.
 #[doc(hidden)]
 pub fn fits_decoded(bytes: usize) -> bool {
     let fits = bytes <= max_decoded_bytes();
-    #[cfg(feature = "std")]
-    {
-        LARGEST_DECODE.with(|n| n.set(n.get().max(bytes)));
-        if !fits {
-            DECODES_CUT.with(|n| n.set(n.get() + 1));
-        }
+    LARGEST_DECODE.with(|n| n.set(n.get().max(bytes)));
+    if !fits {
+        DECODES_CUT.with(|n| n.set(n.get() + 1));
     }
     fits
 }
@@ -196,7 +166,7 @@ impl Filter {
         &self,
         data: &[u8],
         params: &Dict<'_>,
-        #[cfg_attr(not(feature = "images"), allow(unused))] image_params: &ImageDecodeParams,
+        image_params: &ImageDecodeParams,
     ) -> Result<FilterResult<'static>, DecodeFailure> {
         match self {
             Self::AsciiHexDecode => ascii_hex::decode(data)
@@ -214,24 +184,16 @@ impl Filter {
             Self::FlateDecode => lzw_flate::flate::decode(data, params)
                 .map(FilterResult::from_data)
                 .ok_or(DecodeFailure::StreamDecode),
-            #[cfg(feature = "images")]
             Self::DctDecode => {
                 dct::decode(data, params, image_params).ok_or(DecodeFailure::ImageDecode)
             }
-            #[cfg(feature = "images")]
             Self::CcittFaxDecode => {
                 ccitt::decode(data, params, image_params).ok_or(DecodeFailure::ImageDecode)
             }
-            #[cfg(feature = "images")]
             Self::Jbig2Decode => {
                 jbig2::decode(data, params, image_params).ok_or(DecodeFailure::ImageDecode)
             }
-            #[cfg(feature = "images")]
             Self::JpxDecode => jpx::decode(data, image_params).ok_or(DecodeFailure::ImageDecode),
-            #[cfg(not(feature = "images"))]
-            Self::DctDecode | Self::CcittFaxDecode | Self::Jbig2Decode | Self::JpxDecode => {
-                Err(DecodeFailure::ImageDecode)
-            }
             _ => Err(DecodeFailure::StreamDecode),
         }
     }

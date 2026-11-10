@@ -1,7 +1,6 @@
 //! Parsing and reading from PDF objects.
 
 pub use crate::object::array::Array;
-pub use crate::object::date::DateTime;
 pub use crate::object::dict::Dict;
 pub use crate::object::name::Name;
 use crate::object::name::skip_name_like;
@@ -18,7 +17,6 @@ use core::fmt::{Debug, Display, Formatter};
 const MAX_OBJECT_NESTING_DEPTH: usize = 512;
 
 mod bool;
-mod date;
 mod null;
 mod number;
 mod rect;
@@ -108,24 +106,6 @@ impl<'a> Object<'a> {
         self.cast()
     }
 
-    /// Try casting the object to the null object.
-    #[inline(always)]
-    pub fn into_null(self) -> Option<Null> {
-        self.cast()
-    }
-
-    /// Try casting the object to a bool.
-    #[inline(always)]
-    pub fn into_bool(self) -> Option<bool> {
-        self.cast()
-    }
-
-    /// Try casting the object to a string.
-    #[inline(always)]
-    pub fn into_string(self) -> Option<String<'a>> {
-        self.cast()
-    }
-
     /// Try casting the object to a stream.
     #[inline(always)]
     pub fn into_stream(self) -> Option<Stream<'a>> {
@@ -135,30 +115,6 @@ impl<'a> Object<'a> {
     /// Try casting the object to an array.
     #[inline(always)]
     pub fn into_array(self) -> Option<Array<'a>> {
-        self.cast()
-    }
-
-    /// Try casting the object to a u8.
-    #[inline(always)]
-    pub fn into_u8(self) -> Option<u8> {
-        self.cast()
-    }
-
-    /// Try casting the object to a u16.
-    #[inline(always)]
-    pub fn into_u16(self) -> Option<u16> {
-        self.cast()
-    }
-
-    /// Try casting the object to a f32.
-    #[inline(always)]
-    pub fn into_f32(self) -> Option<f32> {
-        self.cast()
-    }
-
-    /// Try casting the object to a i32.
-    #[inline(always)]
-    pub fn into_i32(self) -> Option<i32> {
         self.cast()
     }
 

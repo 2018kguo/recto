@@ -101,12 +101,6 @@ impl AlphaColor {
         Self { components }
     }
 
-    /// Create a new color from RGB8 values.
-    pub const fn from_rgb8(r: u8, g: u8, b: u8) -> Self {
-        let components = [u8_to_f32(r), u8_to_f32(g), u8_to_f32(b), 1.];
-        Self::new(components)
-    }
-
     /// Return the color as premulitplied RGBF32.
     pub fn premultiplied(&self) -> [f32; 4] {
         [

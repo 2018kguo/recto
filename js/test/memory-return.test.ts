@@ -126,7 +126,8 @@ function inProcess(body: string): string {
   return execFileSync(
     process.execPath,
     ["--input-type=module", "-e", `const { createPdfEngine } = await import(${JSON.stringify(index)});\n${body}`],
-    { timeout: 120_000, encoding: "utf8" }
+    // node --test colours a child's output under a terminal, which these numbers can't parse through.
+    { timeout: 120_000, encoding: "utf8", env: { ...process.env, FORCE_COLOR: "0" } }
   );
 }
 

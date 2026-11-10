@@ -75,7 +75,6 @@ The supported features include:
   If you need to do that, there are other crates in the Rust ecosystem that are suitable for this.
 */
 
-#![cfg_attr(not(feature = "std"), no_std)]
 #![deny(missing_docs)]
 
 extern crate alloc;
@@ -95,7 +94,6 @@ mod crypto;
 pub fn sha256(data: &[u8]) -> [u8; 32] {
     crypto::sha256::calculate(data)
 }
-pub mod metadata;
 pub mod object;
 pub mod page;
 pub mod transform;

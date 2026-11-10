@@ -11,10 +11,7 @@ use core::fmt::{Debug, Formatter};
 /// A container for the bytes of a PDF file.
 #[derive(Clone)]
 pub struct PdfData {
-    #[cfg(feature = "std")]
     inner: Arc<dyn AsRef<[u8]> + Send + Sync>,
-    #[cfg(not(feature = "std"))]
-    inner: Arc<dyn AsRef<[u8]>>,
     // recto: a ranged file's bytes arrive on first use; see `PdfData::ranged`.
     ensure: Option<Ensure>,
 }
@@ -22,13 +19,10 @@ pub struct PdfData {
 /// Makes `[start, end)` of a ranged file's bytes present (clamped to its length), and if that
 /// fetches, everything up to the third offset as well, in the same fetch. False if a read
 /// failed: the rest of the range is still zeros, and nothing should scan them.
-#[cfg(feature = "std")]
 pub type Ensure = Arc<dyn Fn(usize, usize, usize) -> bool + Send + Sync>;
 /// Makes `[start, end)` of a ranged file's bytes present (clamped to its length), and if that
 /// fetches, everything up to the third offset as well, in the same fetch. False if a read
 /// failed: the rest of the range is still zeros, and nothing should scan them.
-#[cfg(not(feature = "std"))]
-pub type Ensure = Arc<dyn Fn(usize, usize, usize) -> bool>;
 
 impl PdfData {
     /// recto: a file whose bytes are fetched on first use. `data` is the whole
@@ -36,7 +30,6 @@ impl PdfData {
     /// place before the parser reads it (each object, grown until it parses
     /// inside what was fetched; each xref section; the whole file before a
     /// repair).
-    #[cfg(feature = "std")]
     pub fn ranged(data: Arc<dyn AsRef<[u8]> + Send + Sync>, ensure: Ensure) -> Self {
         Self {
             inner: data,
@@ -47,7 +40,6 @@ impl PdfData {
     pub(crate) fn is_ranged(&self) -> bool {
         self.ensure.is_some()
     }
-
 
     #[inline]
     pub(crate) fn ensure(&self, start: usize, end: usize) -> bool {
@@ -79,18 +71,7 @@ impl AsRef<[u8]> for PdfData {
     }
 }
 
-#[cfg(feature = "std")]
 impl<T: AsRef<[u8]> + Send + Sync + 'static> From<Arc<T>> for PdfData {
-    fn from(data: Arc<T>) -> Self {
-        Self {
-            inner: data,
-            ensure: None,
-        }
-    }
-}
-
-#[cfg(not(feature = "std"))]
-impl<T: AsRef<[u8]> + 'static> From<Arc<T>> for PdfData {
     fn from(data: Arc<T>) -> Self {
         Self {
             inner: data,

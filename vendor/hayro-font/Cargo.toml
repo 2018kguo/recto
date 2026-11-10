@@ -28,10 +28,8 @@ repository = "https://github.com/LaurenzV/hayro"
 resolver = "2"
 
 [features]
-default = ["embed-fonts", "outlines"]
+default = ["embed-fonts"]
 embed-fonts = []
-# recto: off in the text-only wasm, whose glyphs have widths and no shapes.
-outlines = []
 
 [lib]
 name = "hayro_font"
@@ -46,8 +44,6 @@ default-features = false
 
 [dependencies.hayro-syntax]
 version = "0.9.0"
-features = ["std"]
-default-features = false
 
 [dependencies.kurbo]
 version = "0.13.0"
