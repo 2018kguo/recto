@@ -215,10 +215,7 @@ fn read_inner<'a>(
     // 1) Make dictionaries easily cloneable without wrapping in Arc.
     // 2) Maybe have an efficient per-document allocator pool for hashmaps
     // that can be reused.
-    #[cfg(feature = "std")]
     let mut offsets = FxHashMap::with_capacity_and_hasher(8, rustc_hash::FxBuildHasher);
-    #[cfg(not(feature = "std"))]
-    let mut offsets = FxHashMap::new();
 
     let data = parse_dict_with(
         r,
@@ -239,14 +236,12 @@ fn read_inner<'a>(
     }))))
 }
 
-#[cfg(feature = "std")]
 std::thread_local! {
     static DICT_HEAD_BUILDS: core::cell::Cell<usize> = const { core::cell::Cell::new(0) };
 }
 
 /// recto: how many page-tree dictionaries this thread has built, for the tests that an object the
 /// tree lists many times is built once.
-#[cfg(feature = "std")]
 #[doc(hidden)]
 pub fn dict_head_builds() -> usize {
     DICT_HEAD_BUILDS.with(|n| n.get())
@@ -288,7 +283,6 @@ impl<'a> DictHead<'a> {
         match self {
             Self::Dict(dict) => Some(dict.clone()),
             Self::Parsed { data, ctx, .. } => {
-                #[cfg(feature = "std")]
                 DICT_HEAD_BUILDS.with(|n| n.set(n.get() + 1));
                 Reader::new(data).read_with_context::<Dict<'a>>(ctx)
             }

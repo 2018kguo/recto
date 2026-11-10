@@ -9,17 +9,14 @@ This crate provides a parser for cmap files and allows you to
 This crate forbids unsafe code via a crate-level attribute.
 */
 
-#![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
 extern crate alloc;
 
-#[cfg(feature = "embed-cmaps")]
 mod bcmap;
 mod parse;
 
-#[cfg(feature = "embed-cmaps")]
 pub use bcmap::load_embedded;
 #[cfg(feature = "host-cmaps")]
 pub use bcmap::set_bundle_source;
@@ -27,10 +24,6 @@ pub use bcmap::set_bundle_source;
 /// Look up an embedded binary cmap by name.
 ///
 /// Returns `None` when the `embed-cmaps` feature is not enabled.
-#[cfg(not(feature = "embed-cmaps"))]
-pub fn load_embedded(_name: CMapName<'_>) -> Option<&'static [u8]> {
-    None
-}
 
 use alloc::boxed::Box;
 use alloc::string::String;
@@ -1310,7 +1303,7 @@ endbfrange
     }
 }
 
-#[cfg(all(test, feature = "embed-cmaps"))]
+#[cfg(test)]
 mod bcmap_tests {
     use super::*;
 

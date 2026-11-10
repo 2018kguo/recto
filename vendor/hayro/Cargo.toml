@@ -28,13 +28,7 @@ repository = "https://github.com/LaurenzV/hayro"
 resolver = "2"
 
 [features]
-default = [
-    "embed-fonts",
-    "embed-cmaps",
-    "raster",
-]
-embed-cmaps = ["hayro-interpret/embed-cmaps"]
-raster = ["hayro-interpret/raster"]
+default = ["embed-fonts"]
 embed-fonts = ["hayro-interpret/embed-fonts"]
 
 [lib]

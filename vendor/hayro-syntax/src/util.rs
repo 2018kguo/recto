@@ -53,67 +53,12 @@ where
     }
 }
 
-#[cfg(feature = "unsafe")]
 pub(crate) fn find_needle(haystack: &[u8], needle: &[u8]) -> Option<usize> {
     memchr::memmem::find(haystack, needle)
 }
 
-#[cfg(feature = "unsafe")]
 pub(crate) fn findr_needle(haystack: &[u8], needle: &[u8]) -> Option<usize> {
     memchr::memmem::rfind(haystack, needle)
-}
-
-#[cfg(not(feature = "unsafe"))]
-pub(crate) fn find_needle(haystack: &[u8], needle: &[u8]) -> Option<usize> {
-    if needle.is_empty() {
-        return Some(0);
-    }
-
-    let first = needle[0];
-    let mut i = 0;
-
-    while i + needle.len() <= haystack.len() {
-        while haystack.get(i).copied()? != first {
-            i += 1;
-            if i + needle.len() > haystack.len() {
-                return None;
-            }
-        }
-
-        if haystack.get(i..)?.starts_with(needle) {
-            return Some(i);
-        }
-
-        i += 1;
-    }
-
-    None
-}
-
-#[cfg(not(feature = "unsafe"))]
-pub(crate) fn findr_needle(haystack: &[u8], needle: &[u8]) -> Option<usize> {
-    if needle.is_empty() {
-        return Some(haystack.len());
-    }
-
-    if needle.len() > haystack.len() {
-        return None;
-    }
-
-    let first = needle[0];
-    let mut i = haystack.len() - needle.len();
-
-    loop {
-        while haystack.get(i).copied()? != first {
-            i = i.checked_sub(1)?;
-        }
-
-        if haystack.get(i..)?.starts_with(needle) {
-            return Some(i);
-        }
-
-        i = i.checked_sub(1)?;
-    }
 }
 
 /// Allows to store elements at an index with an `&self` reference.

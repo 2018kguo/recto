@@ -238,13 +238,11 @@ fn read_operand<'a>(r: &mut Reader<'a>, stack: &mut Stack<'a>) -> Option<()> {
 // string are in the same state and move as one group; those inside strings are grouped by depth,
 // which every byte changes alike for all of them, and a string's backslash too.
 
-#[cfg(feature = "std")]
 std::thread_local! {
     static INLINE_IMAGE_WORK: core::cell::Cell<usize> = const { core::cell::Cell::new(0) };
 }
 
 /// recto: the steps this thread has taken to end inline images, for the test that it's linear.
-#[cfg(feature = "std")]
 #[doc(hidden)]
 pub fn inline_image_work() -> usize {
     INLINE_IMAGE_WORK.with(|n| n.get())
@@ -252,7 +250,6 @@ pub fn inline_image_work() -> usize {
 
 #[inline]
 fn work(_n: usize) {
-    #[cfg(feature = "std")]
     INLINE_IMAGE_WORK.with(|n| n.set(n.get() + _n));
 }
 

@@ -24,7 +24,9 @@ They are patched for what upstream does not have:
 - **hayro-syntax**: pages built on first use, from a walk that counts repeated kids and skips cycles
   (for a ranged file, from a descent by `/Count` until something doesn't add up), and reading through
   a ranged buffer; **hayro-interpret** and **hayro**: a page drawn a slice at a time (`PageRun`,
-  `PageJob`) and a `raster` feature the text build leaves out.
+  `PageJob`). Features every build turns on (`std`, `unsafe`, `images`, `outlines`, `raster`,
+  `embed-cmaps`) are gone, with the code for builds without them: the split wasm, not a feature,
+  keeps drawing's code out of what reading text downloads.
 - **hayro-syntax**: a page's decoded content kept only while it's among the last read, not for as
   long as its document is open (`recent` in `src/page.rs`), and `FlateDecode` inflated in one call
   into a sized buffer rather than through a reader; a limit on what one stream or image decodes to

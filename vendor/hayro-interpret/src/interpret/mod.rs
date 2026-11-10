@@ -113,10 +113,7 @@ impl Default for InterpreterSettings {
                 crate::font::FontQuery::Standard(s) => Some(s.get_font_data()),
                 crate::font::FontQuery::Fallback(f) => Some(f.pick_standard_font().get_font_data()),
             }),
-            #[cfg(feature = "embed-cmaps")]
             cmap_resolver: Arc::new(hayro_cmap::load_embedded),
-            #[cfg(not(feature = "embed-cmaps"))]
-            cmap_resolver: Arc::new(|_| None),
             warning_sink: Arc::new(|_| {}),
             // recto: not `all()`, which would take in TEXT_ONLY.
             render_content: RenderContent::PAGE | RenderContent::ANNOTATIONS,

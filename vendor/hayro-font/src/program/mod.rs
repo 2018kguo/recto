@@ -27,7 +27,6 @@ pub(crate) struct FontProgram(Arc<Inner>);
 impl FontProgram {
     pub(crate) fn new(data: FontData, index: u32) -> Option<Self> {
         // recto: see `repair_loca`.
-        #[cfg(feature = "outlines")]
         let data = repair_loca(data.as_ref().as_ref())
             .map(|repaired| -> FontData { Arc::new(repaired) })
             .unwrap_or(data);
@@ -56,14 +55,12 @@ impl FontProgram {
             return None;
         }
 
-        #[cfg(feature = "outlines")]
         let scaler = ScalerFont::unhinted(font.clone(), Some(UNITS_PER_EM));
 
         Some(Self(Arc::new(Inner {
             hash: content_hash(data.as_ref().as_ref(), index),
             data,
             font,
-            #[cfg(feature = "outlines")]
             scaler,
         })))
     }
@@ -209,7 +206,6 @@ impl FontProgram {
         Some(Affine::scale(f64::from(UNITS_PER_EM / ppem)) * path.take())
     }
 
-    #[cfg(feature = "outlines")]
     pub(crate) fn outline(&self, glyph: GlyphId) -> BezPath {
         let mut path = OutlinePath::new();
         if let Some(outline) = self.0.scaler.outline(glyph.to_skrifa()) {
@@ -220,10 +216,6 @@ impl FontProgram {
     }
 
     // recto: the text-only wasm draws nothing, and this keeps skrifa's scalers out of it.
-    #[cfg(not(feature = "outlines"))]
-    pub(crate) fn outline(&self, _glyph: GlyphId) -> BezPath {
-        BezPath::new()
-    }
 
     fn font(&self) -> &Font {
         &self.0.font
@@ -303,7 +295,6 @@ struct Inner {
     hash: u128,
     data: FontData,
     font: Font,
-    #[cfg(feature = "outlines")]
     scaler: ScalerFont,
 }
 
@@ -311,7 +302,6 @@ struct Inner {
 /// `loca[i]` to `loca[i + 1]` and finds nothing when the second is the lower, so those glyphs would
 /// go missing, where FreeType and the others read on to the end of the table. None for a font that's
 /// in order, which is nearly all, so what this costs is one pass over `loca`.
-#[cfg(feature = "outlines")]
 fn repair_loca(font: &[u8]) -> Option<Vec<u8>> {
     let be16 = |at: usize| Some(u16::from_be_bytes(font.get(at..at + 2)?.try_into().ok()?));
     let be32 = |at: usize| Some(u32::from_be_bytes(font.get(at..at + 4)?.try_into().ok()?));

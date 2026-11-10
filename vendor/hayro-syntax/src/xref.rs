@@ -1444,14 +1444,12 @@ fn parse_metadata(info_dict: &Dict<'_>) -> Metadata {
     }
 }
 
-#[cfg(feature = "std")]
 std::thread_local! {
     static OBJECT_READS: core::cell::Cell<usize> = const { core::cell::Cell::new(0) };
 }
 
 /// recto: the objects this thread has asked the cross-reference table for, for tests that count a
 /// call's work.
-#[cfg(feature = "std")]
 #[doc(hidden)]
 pub fn object_reads() -> usize {
     OBJECT_READS.with(|n| n.get())
@@ -1459,7 +1457,6 @@ pub fn object_reads() -> usize {
 
 #[inline]
 fn object_read() {
-    #[cfg(feature = "std")]
     OBJECT_READS.with(|n| n.set(n.get() + 1));
 }
 
