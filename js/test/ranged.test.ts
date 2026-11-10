@@ -420,3 +420,15 @@ test("a URL that redirects to an error page fails with its status, or as not a P
     await big.close();
   }
 });
+
+test("a damaged PDF without its header that runs into maxBytes is still too-large, and small chunks still tell a page", async () => {
+  const pdf = syntheticPdf({ pages: 20, padBytes: 16 * 1024 });
+  const headerless = pdf.slice();
+  headerless.fill(0x20, 0, pdf.indexOf(0x0a));
+  assert.equal((await engine.openRanged(headerless)).pageCount, 20);
+  await assert.rejects(engine.openRanged(headerless, { maxBytes: 100_000 }), { code: "too-large" });
+  const page = new TextEncoder().encode("<!DOCTYPE html><html><body>" + "<p>sign in</p>".repeat(30_000) + "</body></html>");
+  for (const options of [{ chunkBytes: 512 }, { chunkBytes: 512, maxBytes: 64 * 1024 }]) {
+    await assert.rejects(engine.openRanged(page, options), { code: "invalid-file", message: /^not a PDF/u });
+  }
+});

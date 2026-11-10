@@ -447,7 +447,7 @@ class RectoEngine implements PdfEngine {
     }
     if (loader.failure) {
       doc.close();
-      throw loader.failure;
+      throw loader.explain(loader.failure);
     }
     return Object.assign(doc, { stats: () => loader.stats() });
   }

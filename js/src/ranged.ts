@@ -365,16 +365,25 @@ class RangeLoader {
   }
 
   /**
-   * `failure`, or when the file's first KiB has no `%PDF`, where readers look for one, that it isn't
-   * a PDF: an error or sign-in page fails to parse, or runs into `maxBytes`, and neither says why.
-   * Only when enough of that KiB is held to tell.
+   * `failure`, or when what's held shows the file isn't a PDF (see `notPdfBytes`), that it isn't: an
+   * error or sign-in page fails to parse, or runs into `maxBytes`, and neither says why. Only when
+   * enough of the first KiB is held to tell.
    */
   explain(failure: unknown): unknown {
     if (!(failure instanceof PdfError && (failure.code === "invalid-file" || overBudget.has(failure)))) {
       return failure;
     }
-    const first = this.#chunks[0] ?? this.#pieces.get(0)?.find((piece) => piece.start === 0)?.bytes;
-    return first && first.byteLength >= Math.min(HEADER_BYTES, this.length) && lacksHeader(first) ? notPdf(failure) : failure;
+    // The chunks held from the start on, at least the first KiB's worth when chunks are smaller.
+    const parts: Uint8Array[] = [];
+    let held = 0;
+    for (let chunk = 0; held < Math.max(HEADER_BYTES, this.chunkBytes) && this.#chunks[chunk]; chunk++) {
+      parts.push(this.#chunks[chunk]!);
+      held += this.#chunks[chunk]!.byteLength;
+    }
+    const head = parts.length > 0 ? concat(...parts) : this.#pieces.get(0)?.find((piece) => piece.start === 0)?.bytes;
+    return head && head.byteLength >= Math.min(HEADER_BYTES, this.length) && notPdfBytes(head, this.#chunks.at(-1))
+      ? notPdf(failure)
+      : failure;
   }
 
   /**
@@ -596,9 +605,13 @@ function latin1(bytes: Uint8Array): string {
   return new TextDecoder("latin1").decode(bytes);
 }
 
-/** Whether a file's first bytes have no `%PDF` where a reader looks for it. */
-function lacksHeader(head: Uint8Array): boolean {
-  return !latin1(head.subarray(0, HEADER_BYTES)).includes("%PDF");
+/**
+ * Whether a file's first and last bytes show it isn't a PDF: no `%PDF` where a reader looks for it,
+ * and no `endobj` or `startxref` either, which a damaged PDF that lost its header still has.
+ */
+function notPdfBytes(head: Uint8Array, tail: Uint8Array | undefined): boolean {
+  const syntax = (bytes: Uint8Array) => /endobj|startxref/u.test(latin1(bytes));
+  return !latin1(head.subarray(0, HEADER_BYTES)).includes("%PDF") && !syntax(head) && !(tail && syntax(tail));
 }
 
 function notPdf(cause?: unknown): PdfError {
@@ -626,7 +639,7 @@ function answerOf(
   if (status === 200 && !("suffix" in range)) {
     // The server ignored Range and sent the whole file: use it, while the budget allows.
     if (bytes.byteLength > limit) {
-      if (lacksHeader(bytes)) {
+      if (notPdfBytes(bytes.subarray(0, 1 << 16), bytes.subarray(-(1 << 16)))) {
         throw notPdf();
       }
       throw new PdfError(
@@ -852,10 +865,13 @@ function delay<T>(ms: number, value: T): Promise<T> {
   return new Promise((resolve) => setTimeout(() => resolve(value), ms));
 }
 
-function concat(a: Uint8Array, b: Uint8Array): Uint8Array {
-  const out = new Uint8Array(a.byteLength + b.byteLength);
-  out.set(a);
-  out.set(b, a.byteLength);
+function concat(...parts: Uint8Array[]): Uint8Array {
+  const out = new Uint8Array(parts.reduce((sum, part) => sum + part.byteLength, 0));
+  let at = 0;
+  for (const part of parts) {
+    out.set(part, at);
+    at += part.byteLength;
+  }
   return out;
 }
 
@@ -906,16 +922,7 @@ function byteReader(body: ReadableStream<Uint8Array> | null) {
           spare = value.subarray(take);
         }
       }
-      if (parts.length === 1) {
-        return parts[0]!;
-      }
-      const out = new Uint8Array(got);
-      let at = 0;
-      for (const part of parts) {
-        out.set(part, at);
-        at += part.byteLength;
-      }
-      return out;
+      return parts.length === 1 ? parts[0]! : concat(...parts);
     },
     async cancel(): Promise<void> {
       await (byob ?? plain)?.cancel().catch(() => undefined);
