@@ -443,10 +443,7 @@ class RectoEngine implements PdfEngine {
         () => loader.failure
       );
     } catch (error) {
-      if (loader.failure && !(error instanceof WebAssembly.RuntimeError)) {
-        throw loader.failure;
-      }
-      throw engineFailure(instance, error);
+      throw loader.explain(loader.failure && !(error instanceof WebAssembly.RuntimeError) ? loader.failure : engineFailure(instance, error));
     }
     if (loader.failure) {
       doc.close();

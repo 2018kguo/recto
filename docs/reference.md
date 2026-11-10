@@ -340,6 +340,11 @@ guarantee, open the whole file: there `/Count` plays no part.
 
 What a server gets wrong:
 
+- **It answers with an error** (a 4xx or 5xx, after any redirects): `fetch-failed`, with that
+  status in `error.status`. Nothing of the error page's body is read.
+- **It answers with a page that isn't the file** (a soft 404 or a sign-in page, as a 200 or a
+  206): an open that fails, or runs into `maxBytes`, on bytes with no `%PDF` in their first 1 KiB fails
+  with `invalid-file`, saying it isn't a PDF. A damaged file without the header that still opens is read.
 - **It ignores Range** (a 200 with the whole file): the file is used, as long as it fits
   `maxBytes`; otherwise `too-large`.
 - **A wrong length, a shifted range, no `Content-Range` total, a size or ETag that changes**:

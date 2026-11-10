@@ -385,3 +385,38 @@ test("an HTTP source reads by Range; errors never carry the URL", async () => {
     await server.close();
   }
 });
+
+test("a URL that redirects to an error page fails with its status, or as not a PDF, never as maxBytes", async () => {
+  const server = await startRangeServer(syntheticPdf({ pages: 2 }));
+  // Bytes in memory, a PDF's size, with no %PDF where a reader looks: past the first 1 KiB.
+  const late = new Uint8Array(4096);
+  late.set(new TextEncoder().encode("%PDF-1.7\n"), 2048);
+  const page = new TextEncoder().encode("<!DOCTYPE html><html><body>" + "<p>sign in</p>".repeat(30_000) + "</body></html>");
+  const big = await startRangeServer(page);
+  try {
+    server.setMode("redirect-404");
+    for (const options of [{}, { maxBytes: 256 }]) {
+      await assert.rejects(engine.openRanged(server.url, options), (error: PdfError) => {
+        assert.equal(error.code, "fetch-failed");
+        assert.equal(error.status, 404);
+        assert.match(error.message, /HTTP 404/u);
+        return true;
+      });
+    }
+    // A 419-byte page served with a 200: within the budget it fails to parse, past it it ran into
+    // maxBytes ("would pass 256 bytes"). Either way it says what it is.
+    server.setMode("redirect-page");
+    for (const options of [{}, { maxBytes: 256 }]) {
+      await assert.rejects(engine.openRanged(server.url, options), { code: "invalid-file", message: /^not a PDF: no %PDF header/u });
+    }
+    // A large page answered by range, which the repair reads into maxBytes.
+    await assert.rejects(engine.openRanged(big.url, { maxBytes: 128 * 1024 }), { code: "invalid-file", message: /^not a PDF/u });
+    await assert.rejects(engine.openRanged(late), { code: "invalid-file", message: /^not a PDF/u });
+    // A file too large for the budget that is a PDF still says so.
+    server.setMode("ignore");
+    await assert.rejects(engine.openRanged(server.url, { maxBytes: 256 }), { code: "too-large" });
+  } finally {
+    await server.close();
+    await big.close();
+  }
+});

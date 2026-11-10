@@ -388,20 +388,29 @@ class RangeLoader {
   }
 
   /**
+   * `failure`, or when the file's first KiB has no `%PDF`, where readers look for one, that it isn't
+   * a PDF: an error or sign-in page fails to parse, or runs into `maxBytes`, and neither says why.
+   * Only when enough of that KiB is held to tell.
+   */
+  explain(failure: unknown): unknown {
+    if (!(failure instanceof PdfError && (failure.code === "invalid-file" || overBudget.has(failure)))) {
+      return failure;
+    }
+    const first = this.#chunks[0] ?? this.#pieces.get(0)?.find((piece) => piece.start === 0)?.bytes;
+    return first && first.byteLength >= Math.min(HEADER_BYTES, this.length) && lacksHeader(first) ? notPdf(failure) : failure;
+  }
+
+  /**
    * The `startxref` offset in the fetched last chunk, if it names one. Null for a linearized
    * file, whose trailer points at the first-page section near the head.
    */
   startxref(): number | null {
     const first = this.#chunks[0];
     const last = this.#chunks.at(-1);
-    if (
-      !first ||
-      !last ||
-      new TextDecoder("latin1").decode(first.subarray(0, 1024)).includes("/Linearized")
-    ) {
+    if (!first || !last || latin1(first.subarray(0, HEADER_BYTES)).includes("/Linearized")) {
       return null;
     }
-    const tail = new TextDecoder("latin1").decode(last.subarray(-1024));
+    const tail = latin1(last.subarray(-1024));
     const match = /startxref\s+(\d+)\s+%%EOF\s*$/u.exec(tail);
     const offset = match ? Number(match[1]) : Number.NaN;
     return offset >= 0 && offset < this.length ? offset : null;
@@ -509,7 +518,11 @@ export async function startRangeLoader(
     totalTimeoutMs: options.totalTimeoutMs ?? Number.POSITIVE_INFINITY,
     signal: options.signal,
   });
-  await loader.begin(asyncFetcherFor(source));
+  try {
+    await loader.begin(asyncFetcherFor(source));
+  } catch (error) {
+    throw loader.explain(error);
+  }
   return loader;
 }
 
@@ -590,11 +603,34 @@ function rangeHeader(request: Request): string {
   return "suffix" in request ? `bytes=-${request.suffix}` : `bytes=${request.start}-${request.end - 1}`;
 }
 
+/** The budget's failures, which bytes that aren't a PDF explain better; not the address space's. */
+const overBudget = new WeakSet<PdfError>();
+
 function tooLarge(maxBytes: number): PdfError {
-  return new PdfError(
-    "too-large",
-    `the ranged read would pass ${maxBytes} bytes (maxBytes); raise it or fetch the file whole`
-  );
+  const error = new PdfError("too-large", `the ranged read would pass ${maxBytes} bytes (maxBytes); raise it or fetch the file whole`);
+  overBudget.add(error);
+  return error;
+}
+
+/** How far into a file a reader looks for its `%PDF` header. */
+const HEADER_BYTES = 1024;
+
+function latin1(bytes: Uint8Array): string {
+  return new TextDecoder("latin1").decode(bytes);
+}
+
+/** Whether a file's first bytes have no `%PDF` where a reader looks for it. */
+function lacksHeader(head: Uint8Array): boolean {
+  return !latin1(head.subarray(0, HEADER_BYTES)).includes("%PDF");
+}
+
+function notPdf(cause?: unknown): PdfError {
+  return new PdfError("invalid-file", `not a PDF: no %PDF header in its first ${HEADER_BYTES} bytes (an error or sign-in page?)`, cause);
+}
+
+/** A non-2xx answer: its status says more than anything read from its body would. */
+function httpFailure(status: number): PdfError {
+  return new PdfError("fetch-failed", `the server answered HTTP ${status}, not the file`, undefined, status);
 }
 
 /**
@@ -613,6 +649,9 @@ function answerOf(
   if (status === 200 && !("suffix" in range)) {
     // The server ignored Range and sent the whole file: use it, while the budget allows.
     if (bytes.byteLength > limit) {
+      if (lacksHeader(bytes)) {
+        throw notPdf();
+      }
       throw new PdfError(
         "too-large",
         `the server does not answer Range requests, and the whole file is past the ${limit} bytes left of maxBytes`
@@ -621,7 +660,7 @@ function answerOf(
     return { start: 0, bytes, length: bytes.byteLength, etag, status, received };
   }
   if (status !== 206) {
-    throw new PdfError("fetch-failed", `the ranged read failed (HTTP ${status})`, undefined, status);
+    throw httpFailure(status);
   }
   const match = /^bytes (\d+)-\d+\/(\d+)$/u.exec(contentRange?.trim() ?? "");
   if (!match) {
@@ -743,6 +782,11 @@ async function fetchOverFetch(url: string, requests: Request[], timeoutMs: numbe
         await response.body?.cancel();
         suffixDone(null);
         return null;
+      }
+      if (!response.ok) {
+        // An error page: its status is the answer, and its body isn't worth downloading.
+        await response.body?.cancel();
+        throw httpFailure(response.status);
       }
       const reader = byteReader(response.body);
       try {
@@ -955,10 +999,9 @@ async function get(m, signal) {
   };
   try {
     // A 206 is read as far as the range runs (see readsOf), and a byte past to catch a longer one;
-    // a whole file, to a byte past the limit.
+    // a whole file, to a byte past the limit (answerOf says which).
     if (response.status !== 206) {
       const bytes = await read(m.limit + 1);
-      if (received > m.limit) return { ...reply, overLimit: true, bytes: new ArrayBuffer(0), received };
       return { ...reply, bytes: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), received };
     }
     const total = Number((reply.contentRange || "").trim().split("/").pop());
@@ -1018,7 +1061,6 @@ type FetcherReply = {
   etag: string | null;
   bytes: ArrayBuffer;
   received: number;
-  overLimit?: true;
   failed?: string;
 };
 
@@ -1101,7 +1143,7 @@ function fetchOverThread(
       pending.delete(reply.id);
       if ("suffix" in range) {
         answers[order.get(range)!] =
-          reply.failed === undefined && !reply.overLimit
+          reply.failed === undefined
             ? suffixAnswerOf(range, reply.status, reply.contentRange, reply.etag, new Uint8Array(reply.bytes), reply.received)
             : null;
         continue;
@@ -1109,9 +1151,6 @@ function fetchOverThread(
       try {
         if (reply.failed !== undefined) {
           throw new PdfError("fetch-failed", `the ranged read failed: ${reply.failed}`);
-        }
-        if (reply.overLimit) {
-          throw tooLarge(limit);
         }
         answers[order.get(range)!] = answerOf(range, reply.status, reply.contentRange, reply.etag, new Uint8Array(reply.bytes), limit, reply.received);
       } catch (error) {
