@@ -920,9 +920,9 @@ mod tests {
         assert!(probes <= 2 * RUNS, "{probes} comparisons for {RUNS} runs");
     }
 
-    /// Every glyph drawn at a size of its own is an image of its own. One page's are bounded, and
+    /// Every glyph drawn at a size of its own is a mask of its own. One page's are bounded, and
     /// the cache doesn't keep them past the next page: 12,000 glyphs a hair apart in size took 320 MB
-    /// and kept it for as long as the document was open.
+    /// as images and kept it for as long as the document was open.
     #[test]
     fn glyph_images_are_bounded_per_page_and_not_kept() {
         const GLYPHS: usize = 12_000;
@@ -952,10 +952,49 @@ mod tests {
         let bitmap = doc.render(0, 1000.0, f32::INFINITY).unwrap();
         assert!(!bitmap.truncated);
         let held = doc.glyph_cache_bytes();
-        assert!(held <= (256 << 20) + (64 << 10), "{held} bytes of glyph images for one page");
+        assert!(held <= (64 << 20) + (64 << 10), "{held} bytes of glyph masks for one page");
         doc.render(1, 1000.0, f32::INFINITY).unwrap();
         let kept = doc.glyph_cache_bytes();
         assert!(kept < 1 << 20, "{kept} bytes kept after a page of one glyph");
+    }
+
+    /// A page that draws more than a limit is rasterized in parts, so what it holds is bounded; a
+    /// part rasterized over the others is what rasterizing them together gives. Here after every
+    /// draw: glyphs black, coloured, translucent, clipped by a rectangle and by a path, rotated, and
+    /// paths, strokes, an image and a group among them.
+    #[test]
+    fn a_page_rasterized_in_parts_is_the_page() {
+        let mut content = String::from("q 0.2 0.5 0.9 rg 20 20 200 120 re f Q BT /F1 9 Tf ");
+        for (i, colour) in ["0 g", "0.8 0.1 0.1 rg", "0.1 0.4 0.2 rg /Half gs", "0.5 g"].iter().enumerate() {
+            content += &format!("{colour} 1 0 0 1 {} {} Tm (Rasterized in parts, one draw at a time) Tj ", 10 + i * 3, 180 - i * 11);
+        }
+        content += "ET q 30 60 150.5 40.25 re W n BT 0 g /F1 14 Tf 20 70 Td (Clipped by a rectangle) Tj ET Q ";
+        content += "q 100 100 m 220 130 l 120 40 l h W n BT 0 g /F1 16 Tf 60 80 Td (Clipped by a path) Tj ET Q ";
+        content += "BT 0 g /F1 10 Tf 0.9 0.4 -0.4 0.9 40 20 Tm (Turned) Tj ET 2 w 0 0 1 RG 10 10 m 230 190 l S ";
+        content += "q 40 0 0 30 160 150 cm BI /W 2 /H 2 /CS /G /BPC 8 /F /AHx ID 0080C0FF> EI Q /G0 Do";
+        let group = stream(
+            "/Type /XObject /Subtype /Form /BBox [0 0 240 200] /Group << /S /Transparency /I true >> /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >>",
+            b"BT 0.3 g /F1 12 Tf 120 20 Td (In a group) Tj ET",
+        );
+        let page = "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 200] /Contents 4 0 R /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> /ExtGState << /Half << /ca 0.5 >> >> /XObject << /G0 5 0 R >> >> >>";
+        let doc = Document::open(
+            pdf(&[
+                b"<< /Type /Catalog /Pages 2 0 R >>",
+                b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                page.as_bytes(),
+                &stream("", content.as_bytes()),
+                &group,
+            ]),
+            "",
+        )
+        .unwrap();
+        let whole = doc.render(0, 960.0, f32::INFINITY).unwrap();
+        hayro::set_max_recorded_bytes(1);
+        let parts = doc.render(0, 960.0, f32::INFINITY);
+        hayro::set_max_recorded_bytes(32 << 20);
+        let parts = parts.unwrap();
+        assert!(whole.rgba.chunks(4).filter(|p| p[0] < 64).count() > 1000);
+        assert!(whole.rgba == parts.rgba, "the page in parts differs");
     }
 
     /// A stitching function that lists the same function twice at every level asks for 2^levels of

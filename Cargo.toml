@@ -18,3 +18,4 @@ hayro-font = { path = "vendor/hayro-font" }
 hayro-cmap = { path = "vendor/hayro-cmap" }
 hayro-syntax = { path = "vendor/hayro-syntax" }
 zune-jpeg = { path = "vendor/zune-jpeg" }
+vello_cpu = { path = "vendor/vello_cpu" }

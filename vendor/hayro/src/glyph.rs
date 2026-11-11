@@ -230,6 +230,8 @@ impl Renderer<'_> {
                         self.ctx.set_transform(transform);
                         self.ctx.fill_path(path.as_ref());
                     }
+                    // recto: a run can be a page of glyphs.
+                    self.flush_if_large();
                 }
                 self.finish_run(clip_path);
             }
