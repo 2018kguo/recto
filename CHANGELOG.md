@@ -17,6 +17,13 @@
   rounds once where the image's tint and composite rounded twice, as a path filled in that colour already did:
   132 of 1,306 pages change, by at most 3 levels a channel and almost all by 1, on pixels a glyph partly covers.
   The scorecard is unchanged (519 of 530 agree). The drawing part of the wasm is 1.3 kB larger.
+- **A form drawn again reads its dictionary once a page.** Each `Do` read the form's resources, matrix, box
+  and group again, which cost more than drawing a small form. A page now reads them once for each of the
+  first 256 forms it draws, however often it draws them; the content is still decoded at each `Do`, so the
+  limit on what decoding holds is as it was. A page drawing a one-glyph form 5,000 times reads its text in
+  3.4 ms where it took 4.7 natively, and draws in 6.2 ms where it took 7.5. Every char, box, font and flag
+  of the 10,354 pages, and every pixel of the first three of each file, are the same. The text part of the
+  wasm is 0.8 kB larger.
 
 ### Fixed
 

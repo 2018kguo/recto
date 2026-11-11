@@ -584,6 +584,15 @@ impl XRef {
         }
     }
 
+    /// recto: whether the table has been rebuilt by scanning the file, which can change what a
+    /// reference reads. What was read from an object before stands until then.
+    pub fn is_repaired(&self) -> bool {
+        match &self.0 {
+            Inner::Some(r) => r.map.get().repaired,
+            Inner::Dummy => false,
+        }
+    }
+
     /// recto: repairs, and says whether that's new.
     pub(crate) fn repair_if_not_repaired(&self) -> bool {
         let Inner::Some(r) = &self.0 else {

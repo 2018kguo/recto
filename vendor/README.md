@@ -50,6 +50,9 @@ They are patched for what upstream does not have:
   `InterpreterCache::sharing_font_programs_loaded_on_use`): a glyph's outline, `OutlineGlyph::font_data`,
   or a simple font's built-in encoding or missing `Widths`, which load it as before. Its codes leave the
   glyph unmapped (`CodeMetrics::glyph` is `None`) until an outline needs it.
+- **hayro-interpret**: what a form's dictionary says read once per page rather than at every `Do`
+  (`XObjectInfo` in `src/x_object/form.rs`); **hayro-syntax**: `XRef::is_repaired`, after which it's
+  read again.
 - **hayro-cmap**: `host-cmaps`, so a WebAssembly build gets its CMaps from the host on first
   use instead of embedding them, deflated rather than brotli so the wasm needs no brotli decoder.
 

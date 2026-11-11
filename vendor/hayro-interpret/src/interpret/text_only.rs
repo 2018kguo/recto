@@ -15,7 +15,7 @@ use crate::device::Device;
 use crate::pattern::Pattern;
 use crate::x_object::FormXObject;
 use hayro_syntax::content::TypedIter;
-use hayro_syntax::object::dict::keys::{OC, SUBTYPE};
+use hayro_syntax::object::dict::keys::OC;
 use hayro_syntax::object::{self, Array, Dict, Name, Object, dict_or_stream};
 use hayro_syntax::page::Resources;
 use hayro_syntax::reader::{Reader, ReaderExt};
@@ -477,8 +477,8 @@ pub(crate) fn interpret<'a>(
                     continue;
                 };
                 // Images draw no text; only forms are read.
-                if stream.dict().get::<Name<'_>>(SUBTYPE).as_deref() == Some(b"Form".as_slice())
-                    && let Some(form) = FormXObject::new(&stream)
+                if let Some(Some(form)) =
+                    FormXObject::drawn(&stream, &mut context.x_objects, context.xref)
                 {
                     form.draw(resources, context, device);
                 }

@@ -836,6 +836,10 @@ pub(crate) fn run_ops<'a>(
                 let warning_sink = context.settings.warning_sink.clone();
                 let transfer_function = context.compositing().transfer_function.clone();
                 if let Some(x_object) = named.x_object(resources, x.0).and_then(|s| {
+                    // recto: a form's dictionary is read once in this context.
+                    if let Some(form) = FormXObject::drawn(&s, &mut context.x_objects, context.xref) {
+                        return form.map(XObject::FormXObject);
+                    }
                     XObject::new(
                         &s,
                         |name| named.color_space(context, resources, name),

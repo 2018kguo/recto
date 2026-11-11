@@ -22,6 +22,21 @@ use kurbo::{Affine, BezPath, PathEl, Point, Rect, Shape};
 use core::sync::atomic::{AtomicBool, AtomicU32, AtomicUsize, Ordering};
 use smallvec::smallvec;
 
+std::thread_local! {
+    static DICTIONARY_READS: core::cell::Cell<usize> = const { core::cell::Cell::new(0) };
+}
+
+/// recto: how many form dictionaries this thread has read to draw them, for the
+/// tests that a page reads each once however often it draws it.
+#[doc(hidden)]
+pub fn dictionary_reads() -> usize {
+    DICTIONARY_READS.with(|n| n.get())
+}
+
+pub(crate) fn count_dictionary_read() {
+    DICTIONARY_READS.with(|n| n.set(n.get() + 1));
+}
+
 /// recto: what a page may spend on drawing that costs far more than its size. Shared by the contexts
 /// nested in a page's, through their settings, so each page's interpretation needs its own, as
 /// `InterpreterSettings::default` gives it. Past any of these the page is incomplete, and `tripped` says so.
@@ -161,6 +176,8 @@ pub struct Context<'a> {
     pub(crate) glyph_scratch: Vec<PositionedGlyph<'a>>,
     /// recto: the fields the form lists, read when a widget with no appearance needs them.
     pub(crate) form_fields: Option<std::collections::HashSet<ObjectIdentifier>>,
+    /// recto: what each form drawn here says of itself, read once.
+    pub(crate) x_objects: crate::x_object::XObjectInfos<'a>,
 }
 
 impl<'a> Context<'a> {
@@ -209,6 +226,7 @@ impl<'a> Context<'a> {
             nesting_depth,
             glyph_scratch: Vec::new(),
             form_fields: None,
+            x_objects: Default::default(),
         }
     }
 
