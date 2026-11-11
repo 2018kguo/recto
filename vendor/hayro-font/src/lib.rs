@@ -440,10 +440,22 @@ impl<'a> FontCache<'a> {
         Font::new_standard(font, &self.program_loader(font_resolver))
     }
 
+    /// recto: a new cache whose fonts are its own but whose embedded font programs are `self`'s,
+    /// so two caches of one document, read with different font resolvers (text and drawing),
+    /// decode and parse each embedded program once. Programs a resolver gives stay apart.
+    pub fn sharing_programs(&self) -> Self {
+        Self(Rc::new(FontCacheInner {
+            fonts: RefCell::default(),
+            programs: RefCell::default(),
+            embedded: self.0.embedded.clone(),
+        }))
+    }
+
     fn program_loader<'l>(&'l self, font_resolver: &'l FontResolverFn) -> ProgramLoader<'l> {
         ProgramLoader {
             font_resolver,
             cache: &self.0.programs,
+            embedded: &self.0.embedded,
         }
     }
 }
@@ -784,7 +796,11 @@ impl FontStretch {
 struct FontCacheInner<'a> {
     /// recto: with whether a limit left out a stream it was built from, as for `programs`.
     fonts: RefCell<FxHashMap<u128, (Option<Font<'a>>, bool)>>,
+    /// Programs from the font resolver.
     programs: ProgramMap,
+    /// recto: programs embedded in the document, which don't depend on the resolver, so caches
+    /// made by `sharing_programs` share them.
+    embedded: Rc<ProgramMap>,
 }
 
 type ProgramMap = RefCell<FxHashMap<u128, (Option<FontProgram>, bool)>>;
@@ -798,13 +814,14 @@ pub(crate) struct FontLoader<'l> {
 pub(crate) struct ProgramLoader<'l> {
     font_resolver: &'l FontResolverFn,
     cache: &'l ProgramMap,
+    embedded: &'l ProgramMap,
 }
 
 impl ProgramLoader<'_> {
     pub(crate) fn load(&self, stream: &Stream<'_>) -> Option<FontProgram> {
         let key = hash128(&("font program", stream.cache_key()));
 
-        self.get_or_insert_with(key, || {
+        Self::get_or_insert_with(self.embedded, key, || {
             FontProgram::new(Arc::new(stream.decoded_data().ok()?.into_owned()), 0)
         })
     }
@@ -812,18 +829,18 @@ impl ProgramLoader<'_> {
     pub(crate) fn resolve(&self, query: &FontQuery) -> Option<FontProgram> {
         let key = hash128(&("resolved font program", query));
 
-        self.get_or_insert_with(key, || {
+        Self::get_or_insert_with(self.cache, key, || {
             let (data, index) = (self.font_resolver)(query)?;
             FontProgram::new(data, index)
         })
     }
 
     fn get_or_insert_with(
-        &self,
+        cache: &ProgramMap,
         key: u128,
         f: impl FnOnce() -> Option<FontProgram>,
     ) -> Option<FontProgram> {
-        if let Some((program, cut)) = self.cache.borrow().get(&key) {
+        if let Some((program, cut)) = cache.borrow().get(&key) {
             if *cut {
                 hayro_syntax::repeat_cut();
             }
@@ -831,7 +848,7 @@ impl ProgramLoader<'_> {
         }
 
         let (program, cut) = hayro_syntax::noting_cuts(f);
-        self.cache.borrow_mut().insert(key, (program.clone(), cut));
+        cache.borrow_mut().insert(key, (program.clone(), cut));
 
         program
     }
