@@ -216,25 +216,10 @@ async function fetchBytes(name: AssetName, url: URL): Promise<Uint8Array<ArrayBu
   return bytes;
 }
 
-/** The wasm, verified and then compiled; in Node, compiled on V8's threads while it's hashed, and used only if it's this build's. */
+/** The wasm, verified and then compiled. */
 export async function compileWasm(name: WasmName, base: URL | null): Promise<WebAssembly.Module> {
-  if (!nodeFs()) {
-    const bytes = await located(name, base, (url) => fetchBytes(name, url));
-    return await compiling(name, WebAssembly.compile(bytes));
-  }
-  // In an object, so a compile error isn't reported as a failed read.
-  const { module } = located(name, base, (url) => {
-    const bytes = readFromDisk(url) as Uint8Array<ArrayBuffer>;
-    const module = WebAssembly.compile(bytes);
-    try {
-      checked(name, url, bytes);
-    } catch (error) {
-      module.catch(() => {});
-      throw error;
-    }
-    return { module };
-  });
-  return await compiling(name, module);
+  const bytes = await located(name, base, async (url) => (nodeFs() ? checked(name, url, readFromDisk(url)) : await fetchBytes(name, url)));
+  return await compiling(name, WebAssembly.compile(bytes as Uint8Array<ArrayBuffer>));
 }
 
 function compiling(name: WasmName, module: Promise<WebAssembly.Module>): Promise<WebAssembly.Module> {
