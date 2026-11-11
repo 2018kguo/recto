@@ -1,7 +1,7 @@
 // One thread of a pool: opens what it's sent on demand, and answers each call with its result.
 
 import type { PdfDocument } from "./document.ts";
-import { createPdfEngine, type PdfEngine } from "./engine.ts";
+import { adoptEngineModule, createPdfEngine, type PdfEngine } from "./engine.ts";
 
 export type PoolRequest = {
   id: number;
@@ -12,7 +12,8 @@ export type PoolRequest = {
   args: unknown[];
 };
 
-export type PoolStart = { assetBase: string | undefined; maxDecodedBytes: number | undefined };
+/** `module`: recto.wasm as the pool's thread compiled it, when it could. */
+export type PoolStart = { assetBase: string | undefined; maxDecodedBytes: number | undefined; module?: WebAssembly.Module };
 
 type Port = {
   postMessage(message: unknown, transfer: ArrayBuffer[]): void;
@@ -53,8 +54,11 @@ function failureOf(error: unknown) {
 
 async function handle(message: PoolRequest | PoolStart): Promise<void> {
   if (!("id" in message)) {
-    const { assetBase, maxDecodedBytes } = message;
+    const { assetBase, maxDecodedBytes, module } = message;
     try {
+      if (module) {
+        adoptEngineModule(assetBase, module);
+      }
       engine = await createPdfEngine({ ...(assetBase ? { assetBase } : {}), ...(maxDecodedBytes === undefined ? {} : { maxDecodedBytes }) });
       port.postMessage({ ready: true }, []);
     } catch (error) {

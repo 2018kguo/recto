@@ -21,7 +21,6 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use std::sync::Arc;
 use vello_cpu::color::palette::css::TRANSPARENT;
-use vello_cpu::color::{AlphaColor, Srgb};
 use vello_cpu::kurbo::Affine as VelloAffine;
 use vello_cpu::peniko::{Compose, Extend, ImageQuality, ImageSampler, Mix};
 use vello_cpu::{Image, ImageSource, Mask, Pixmap, RenderContext, peniko};
@@ -65,7 +64,6 @@ pub(crate) struct PageReplay<'a, 'c> {
     width: u16,
     height: u16,
     render_settings: vello_cpu::RenderSettings,
-    background: AlphaColor<Srgb>,
     memo: RefCell<FxHashMap<(u32, u32), Arc<Pixmap>>>,
 }
 
@@ -77,7 +75,6 @@ impl<'a, 'c> PageReplay<'a, 'c> {
         global: Rc<GlobalState>,
         transform: Affine,
         ctx: &RenderContext,
-        background: AlphaColor<Srgb>,
     ) -> Self {
         Self {
             page,
@@ -88,7 +85,6 @@ impl<'a, 'c> PageReplay<'a, 'c> {
             width: ctx.width(),
             height: ctx.height(),
             render_settings: derive_settings(ctx.render_settings()),
-            background,
             memo: RefCell::default(),
         }
     }
@@ -116,12 +112,11 @@ impl Backdrop for PageReplay<'_, '_> {
         ctx.render_with(
             &mut pixmap,
             &mut vello_cpu::Resources::default(),
+            // The paper isn't part of a backdrop: the page group is isolated (ISO 32000-2, 11.4.7),
+            // so a group's blend modes see only what the page drew, and where it drew nothing a
+            // blend gives the group's own colour; the group is then composited onto the paper.
             vello_cpu::RasterizerSettings {
-                target_init: vello_cpu::TargetInit::Clear(if from == 0 {
-                    self.background
-                } else {
-                    TRANSPARENT
-                }),
+                target_init: vello_cpu::TargetInit::Clear(TRANSPARENT),
                 ..Default::default()
             },
         );

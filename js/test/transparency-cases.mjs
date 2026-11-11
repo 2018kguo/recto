@@ -170,6 +170,21 @@ export function transparencyCases() {
       ],
     },
     {
+      name: "non-isolated group at half opacity, screen inside, over bare paper",
+      pdf: pdfOf({
+        content: `1 1 0 rg 0 0 50 100 re f\n/Half gs /G Do`,
+        resources: HALF(5),
+        objects: [group("", "/Scr gs 1 0 0 rg 20 20 60 60 re f", "/ExtGState <</Scr <</BM /Screen>>>>")],
+      }),
+      // The page group is isolated (ISO 32000-2, 11.4.7): the paper is under it, not in a group's
+      // backdrop. Where the page drew nothing, red screened on nothing is red, then half over white.
+      probes: [
+        { at: [65, 50], want: [255, 128, 128], note: "red, half over the paper (not paper screened)" },
+        { at: [35, 50], want: [255, 255, 0], note: "red screened on yellow is yellow" },
+        { at: [90, 50], want: [255, 255, 255], note: "paper" },
+      ],
+    },
+    {
       name: "colour-key mask, RGB",
       pdf: pdfOf({
         content: `${YELLOW_BACK}q 100 0 0 100 0 0 cm /Im Do Q`,

@@ -59,9 +59,10 @@ impl Renderer<'_> {
                             && let Some(native) =
                                 gradient.as_svg_gradient(&encoded, bbox, NATIVE_GRADIENT_TOLERANCE)
                         {
-                            paint_transform = path_transform.inverse()
-                                * Affine::translate((-0.5, -0.5))
-                                * native.transform;
+                            // recto: no half-pixel translation: vello_cpu already samples a gradient
+                            // at pixel centres, so upstream's (-0.5, -0.5) drew it half a pixel up
+                            // and left of where the shading's own texture fallback puts it.
+                            paint_transform = path_transform.inverse() * native.transform;
 
                             let stops = native
                                 .stops

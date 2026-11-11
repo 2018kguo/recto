@@ -83,6 +83,9 @@ test("closing the pool stops its threads and fails what's unfinished", async () 
 test("a thread that can't start fails the call instead of leaving it waiting", async () => {
   using pool = await createPdfPool({ threads: 2, assetBase: "/nowhere" });
   await assert.rejects(pool.open(pdf()), { code: "missing-asset" });
+  // An assetBase a thread refuses fails as it would on one thread, not as a crash.
+  using http = await createPdfPool({ threads: 1, assetBase: "http://example.test/wasm/" });
+  await assert.rejects(http.open(pdf()), TypeError);
 });
 
 test("a bad thread count is a RangeError", async () => {
