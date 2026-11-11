@@ -152,7 +152,18 @@ struct ReaderContextData<'a> {
     in_object_stream: bool,
     obj_number: Option<ObjectIdentifier>,
     parent_chain: Option<Arc<SmallVec<[ObjectIdentifier; 8]>>>,
+    /// recto: every object the chain has held, of which it keeps the last `CHAIN_WINDOW`.
+    chain_len: u32,
 }
+
+// recto: the chain of objects being read is the reads from the top down, and it carries on into what
+// an object's dictionary resolves later, so walking a list of n objects by `/Next` (an outline's items)
+// copied and searched a chain of k objects at the k-th: 64,000 bookmarks took 0.8 s. The chain keeps its
+// last `CHAIN_WINDOW` objects (outside such lists, no chain in the 531 files of the test corpus passes
+// 12), so a cycle through up to that many is refused where it was. A longer one, which went round once
+// before, is refused once the chain has held `MAX_CHAIN` objects: a walk of one is still bounded.
+const CHAIN_WINDOW: usize = 64;
+const MAX_CHAIN: u32 = 1 << 17;
 
 #[derive(Clone, Debug)]
 enum ReaderContextInner<'a> {
@@ -172,6 +183,7 @@ impl<'a> ReaderContext<'a> {
             obj_number: None,
             in_object_stream: false,
             parent_chain: None,
+            chain_len: 0,
         }))
     }
 
@@ -246,7 +258,9 @@ impl<'a> ReaderContext<'a> {
     #[inline]
     pub(crate) fn parent_chain_contains(&self, id: &ObjectIdentifier) -> bool {
         match &self.0 {
-            ReaderContextInner::Shared(inner) => inner.parent_chain.as_ref().is_some_and(|chain| chain.contains(id)),
+            ReaderContextInner::Shared(inner) => {
+                inner.chain_len >= MAX_CHAIN || inner.parent_chain.as_ref().is_some_and(|chain| chain.contains(id))
+            }
             ReaderContextInner::Dummy { .. } => false,
         }
     }
@@ -255,7 +269,12 @@ impl<'a> ReaderContext<'a> {
     pub(crate) fn parent_chain_push(&mut self, id: ObjectIdentifier) {
         match &mut self.0 {
             ReaderContextInner::Shared(inner) => {
-                Arc::make_mut(inner.parent_chain.get_or_insert_with(Default::default)).push(id)
+                inner.chain_len = inner.chain_len.saturating_add(1);
+                let chain = Arc::make_mut(inner.parent_chain.get_or_insert_with(Default::default));
+                if chain.len() >= CHAIN_WINDOW {
+                    chain.remove(0);
+                }
+                chain.push(id)
             }
             ReaderContextInner::Dummy { .. } => {}
         }

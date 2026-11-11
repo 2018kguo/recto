@@ -1037,6 +1037,75 @@ mod tests {
         assert!(large <= 8 * 8000 * 3, "{large} steps for 8,000 EIs");
     }
 
+    /// An outline of n bookmarks, each the `/Next` of the one before.
+    fn outline_of(n: usize) -> Vec<u8> {
+        let mut objects = vec![
+            b"<< /Type /Catalog /Pages 2 0 R /Outlines 4 0 R >>".to_vec(),
+            b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>".to_vec(),
+            b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>".to_vec(),
+            format!("<< /Type /Outlines /First 5 0 R /Last {} 0 R /Count {n} >>", 4 + n).into_bytes(),
+        ];
+        for i in 0..n {
+            let id = 5 + i;
+            let prev = if i > 0 { format!("/Prev {} 0 R", id - 1) } else { String::new() };
+            let next = if i + 1 < n { format!("/Next {} 0 R", id + 1) } else { String::new() };
+            objects.push(format!("<< /Title (Item {i}) /Parent 4 0 R {prev} {next} /Dest [3 0 R /Fit] >>").into_bytes());
+        }
+        pdf(&objects.iter().map(Vec::as_slice).collect::<Vec<_>>())
+    }
+
+    /// The fastest of three runs of `f`, in seconds.
+    fn fastest(mut f: impl FnMut()) -> f64 {
+        (0..3)
+            .map(|_| {
+                let start = std::time::Instant::now();
+                f();
+                start.elapsed().as_secs_f64()
+            })
+            .fold(f64::INFINITY, f64::min)
+    }
+
+    /// Each object read carried the chain of objects read to reach it, copied and searched at every
+    /// step, so a list linked by `/Next` cost the square of its length: 64,000 bookmarks took 0.8 s.
+    /// Eight times the bookmarks take about eight times as long now, where they took 64.
+    #[test]
+    fn an_outline_reads_in_time_linear_in_its_items() {
+        let time = |n: usize| {
+            let doc = Document::open(outline_of(n), "").unwrap();
+            let items = doc.outline();
+            assert_eq!(items.len(), n);
+            assert!(items.iter().all(|item| item.page == 0), "{:?}", items.last());
+            assert_eq!(items[n - 1].title, format!("Item {}", n - 1));
+            fastest(|| assert_eq!(doc.outline().len(), n))
+        };
+        let (small, large) = (time(2_000), time(16_000));
+        assert!(large < 24.0 * small, "{small:.4} s for 2,000 bookmarks, {large:.4} s for 16,000");
+    }
+
+    /// A walk through objects that refer to each other in a ring stops where it did: the read that
+    /// comes back to an object it's still reading from is refused. Past the objects the chain keeps,
+    /// a ring is still walked a bounded number of times.
+    #[test]
+    fn a_ring_of_references_ends_a_walk() {
+        use hayro::hayro_syntax::object::{Dict, ObjectIdentifier};
+        let hops = |n: usize| {
+            let mut objects = vec![b"<< /Type /Catalog /Pages 2 0 R >>".to_vec(), b"<< /Type /Pages /Kids [] /Count 0 >>".to_vec()];
+            objects.extend((0..n).map(|i| format!("<< /Next {} 0 R >>", 3 + (i + 1) % n).into_bytes()));
+            let pdf = hayro::hayro_syntax::Pdf::new(pdf(&objects.iter().map(Vec::as_slice).collect::<Vec<_>>())).unwrap();
+            let mut node = pdf.xref().get::<Dict<'_>>(ObjectIdentifier::new(3, 0)).unwrap();
+            let mut hops = 0usize;
+            while let Some(next) = node.get::<Dict<'_>>(b"Next") {
+                node = next;
+                hops += 1;
+            }
+            hops
+        };
+        assert_eq!(hops(1), 0);
+        assert_eq!(hops(10), 9);
+        assert_eq!(hops(64), 63);
+        assert_eq!(hops(65), (1 << 17) - 1);
+    }
+
     /// The one-pass search for an inline image's end answers what upstream's rereading does, on
     /// random data made of what decides it: `EI`, `BI`, white space, strings and their escapes,
     /// binary bytes, operators, and dictionaries that start an image.
