@@ -678,6 +678,43 @@ node bench/fuzz.mjs path/to/pdfs [--seed 1] [--count 2000] [--repair] [--results
 node bench/fuzz.mjs --structures [--seed 1] [--count 2000]
 ```
 
+## The scoreboard
+
+One command for what a change must not make worse, against a base ref, on this machine:
+
+```sh
+npm run scoreboard -- --base origin/main     # 8 rounds; --quick for 2, --rounds n for n
+```
+
+It builds the working tree, and the base in `~/.cache/recto-scoreboard/trees/<commit>` (kept for the next
+run), with this tree's harness for both: only the engine is the base's. Then, in fresh processes, one at a
+time, base and new taking turns to go first round by round:
+
+- **Speed**, WASM in Node and native (`crates/recto/examples/scoreboard.rs`): the open, each page's text,
+  then each page drawn at 1024 and 1600 px, over the first 100 pages of each file in `pub`; p50 and p90
+  over pages, for the first 2 pages of each file and for all of them.
+- **Load**: a fresh Node process from `import` through `createPdfEngine` to the first page's text, and to
+  the first page drawn (median of 3 a round); each wasm part's size raw, gzip and brotli; the JS; and
+  `scripts/check-wasm-budget.mjs`'s numbers.
+- **Memory**: the most linear memory the WASM instance had, and the native peak live heap.
+- **Growth**: generated files at 3 sizes, 4× apart, in pages, characters a page, paths a page, clip
+  nesting and file bytes; the native time to open, read and draw every page, and the slope of log time
+  on log size. Past 1.15 is flagged.
+- **Fidelity**: [the scorecard](#the-scorecard) on all four sets, and a hash of every page's text per
+  file, with the count of files whose text differs from the base.
+- **Simplicity**: Rust lines in `crates/` and `vendor/` (not blank, not generated), JS lines, crates in
+  `Cargo.lock`, npm dependencies, the patches `vendor/README.md` lists, the names `js/src/index.ts`
+  exports and the functions `recto.wasm` exports.
+
+A timed metric is the median over rounds of new ÷ base within each round, and its noise half the width of
+that median's 95% interval, bootstrapped from the rounds; a change whose interval holds 1 prints as `=`.
+Exponents compare the same way by difference, and one under 0.1 is `=` too. Without `--base` the noise
+is the interval of the tree's own median. 2 rounds give an interval in name only; trust 8. Results go to `bench/scoreboard/<name>.json` (`--name`, else the commit), files named
+by hash only. The PDFs are read from `~/.cache/recto-corpus/{pub,suites/pdfjs,suites/pdfium,suites/hayro}`
+(`--corpus`); bring your own. [`bench/scoreboard/0.5.3.json`](../bench/scoreboard/0.5.3.json) is 0.5.3
+(65b2e9d) on its own, for the sizes, lines and fidelity a later run can be read against without rebuilding it;
+its times are this machine's on that day, so compare times only within one run.
+
 ## What this doesn't show
 
 - **Your files.** A different set of PDFs moves these ratios. Rerun it on yours.

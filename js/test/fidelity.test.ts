@@ -530,3 +530,22 @@ test("a widget the form doesn't list stays blank, as in pdfium, pdf.js and poppl
   assert.equal(inkIn(await page("/AcroForm <</Fields []>>"), 0, 100, 0, 100), 0, "not in it");
   assert.ok(inkIn(await page("/AcroForm <</Fields [5 0 R]>>"), 0, 100, 0, 100) > 0, "in it");
 });
+
+test("an axial or radial shading is sampled at pixel centres", async () => {
+  // A ramp 20 px long, and two circles apart (a cone): half a pixel is 6 to 13 levels here.
+  const shading = (sh: string) =>
+    render(
+      pdfOf({
+        content: "/S sh",
+        resources: `/Shading <</S <<${sh} /ColorSpace /DeviceGray /Extend [true true] /Function <</FunctionType 2 /Domain [0 1] /C0 [0] /C1 [1] /N 1>>>>>>`,
+      }),
+    );
+  const near = (got: number[], want: number, note: string) => assert.ok(Math.abs(got[0] - want) <= 3, `${note}: wanted ${want}, got ${got}`);
+  const axial = await shading("/ShadingType 2 /Coords [40 0 60 0]");
+  // Pixel 50's centre is at 50.5: t = 10.5 / 20.
+  near(axial.at(50, 50), 134, "ramp");
+  near(axial.at(45, 50), 70, "ramp");
+  const cone = await shading("/ShadingType 3 /Coords [40 50 10 60 50 40]");
+  // At (25.5, 49.5) the largest t with |p - c(t)| = r(t), c(t) = (40 + 20t, 50), r(t) = 10 + 30t, is 0.45.
+  near(cone.at(25, 50), 115, "cone");
+});

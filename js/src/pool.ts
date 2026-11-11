@@ -19,6 +19,7 @@ import type {
   PdfRegionBitmap,
   PdfRenderOptions,
 } from "./document.ts";
+import { engineModule } from "./engine.ts";
 import { PdfError, type PdfErrorCode } from "./errors.ts";
 import type { PoolRequest, PoolStart } from "./pool-worker.ts";
 
@@ -118,6 +119,7 @@ class Pool implements PdfPool {
   #nextFile = 0;
   #nextId = 0;
   #closed = false;
+  #module: Promise<WebAssembly.Module | undefined> | undefined;
 
   constructor(limit: number, assetBase: string | undefined, maxDecodedBytes: number | undefined) {
     this.#limit = limit;
@@ -228,8 +230,24 @@ class Pool implements PdfPool {
         };
         thread.worker = worker;
       }
-      const start: PoolStart = { assetBase: this.#assetBase, maxDecodedBytes: this.#maxDecodedBytes };
-      thread.worker.postMessage(start);
+      // The wasm is read, hashed and compiled here once, while the thread starts, and the thread gets the module:
+      // it would otherwise do all three again, loading node:crypto first in Node. If it can't be had here, the
+      // thread tries on its own and reports what's wrong.
+      this.#module ??= engineModule(this.#assetBase).catch(() => {
+        this.#module = undefined;
+        return undefined;
+      });
+      void this.#module.then((module) => {
+        if (dead || this.#closed) {
+          return;
+        }
+        const start: PoolStart = { assetBase: this.#assetBase, maxDecodedBytes: this.#maxDecodedBytes };
+        try {
+          thread.worker.postMessage(module ? { ...start, module } : start);
+        } catch (error) {
+          onDeath(error);
+        }
+      });
     } catch (error) {
       onDeath(error);
     }
