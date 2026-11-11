@@ -125,8 +125,8 @@ function compile(name: WasmName, base: URL | null): Promise<WebAssembly.Module> 
 }
 
 /** recto.wasm, verified and compiled on this thread, for a pool to hand its threads (`adoptEngineModule`). */
-export function engineModule(assetBase: string | undefined): Promise<WebAssembly.Module> {
-  return compile("recto.wasm", assetBaseUrl(assetBase));
+export async function engineModule(assetBase: string | undefined): Promise<WebAssembly.Module> {
+  return await compile("recto.wasm", assetBaseUrl(assetBase));
 }
 
 /** A module another thread verified and compiled, so this one doesn't read and hash it again. */
