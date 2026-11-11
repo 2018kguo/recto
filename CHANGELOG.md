@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **A page's text after it's drawn, or drawn after its text, no longer loads its fonts' programs again.**
+  Reading text and drawing keep their own fonts (they resolve missing fonts differently), but now share the
+  document's embedded font programs, each decoded and parsed once. Drawing a page and then reading its text, as
+  a viewer does, reads the text in 0.48 ms where it took 0.56 (median page, WebAssembly in Node), and
+  0.22 ms where it took 0.32 natively; drawing after text takes 6% less in total, natively. Text alone and drawing alone
+  are unchanged, and so is every pixel.
+- **Glyph-name and standard-width lookups compare names only**: each table's entries are indexed once per
+  thread, where every step of the search scanned for the entry's separators. Opening a font asks for up to
+  256 names.
+- `examples/costs.rs`: time, allocations and bytes per open, text page and drawn page over a directory.
+
 ## 0.5.2
 
 Scanned pages draw faster at the sizes viewers and thumbnails use, with the scorecard unchanged.

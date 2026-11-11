@@ -13,32 +13,43 @@ pub(crate) mod zapf_dings;
 // lookup, and compress better: `key 0xFE value 0xFF`, repeated, sorted by key's bytes. Neither
 // separator can occur in UTF-8, so a key from a file can't be mistaken for one.
 
-/// The value for `key`, by bisecting the table's entries. Each table's entry starts are found the first
-/// time it's read on a thread, a scan of its bytes, so a step compares one key rather than scanning
-/// for the entry around the middle: a font asks for 256 names as it's opened.
+/// The value for `key`, by bisecting the table's entries. Where each entry starts, splits and ends is
+/// found the first time a table is read on a thread, one scan of its bytes, so a step only compares
+/// one key: a font asks for 256 names as it's opened, and scanning for the separators at each step
+/// cost more than the comparisons.
 pub(crate) fn by_name(table: &'static [u8], key: &str) -> Option<&'static str> {
+    /// An entry's key start, separator and end (its 0xFF).
+    type Entries = std::rc::Rc<[[u32; 3]]>;
     thread_local! {
-        static STARTS: std::cell::RefCell<Vec<(usize, std::rc::Rc<[u32]>)>> = const { std::cell::RefCell::new(Vec::new()) };
+        static ENTRIES: std::cell::RefCell<Vec<(usize, Entries)>> = const { std::cell::RefCell::new(Vec::new()) };
     }
-    let starts = STARTS.with_borrow_mut(|known| {
+    let entries = ENTRIES.with_borrow_mut(|known| {
         let at = table.as_ptr() as usize;
-        if let Some((_, starts)) = known.iter().find(|(t, _)| *t == at) {
-            return starts.clone();
+        if let Some((_, entries)) = known.iter().find(|(t, _)| *t == at) {
+            return entries.clone();
         }
-        let starts: std::rc::Rc<[u32]> = core::iter::once(0)
-            .chain(table.iter().enumerate().filter(|&(_, &b)| b == 0xFF).map(|(i, _)| i as u32 + 1))
-            .filter(|&start| (start as usize) < table.len())
-            .collect();
-        known.push((at, starts.clone()));
-        starts
+        let (mut entries, mut start, mut split) = (Vec::new(), 0, None);
+        for (i, &b) in table.iter().enumerate() {
+            match b {
+                0xFE if split.is_none() => split = Some(i),
+                0xFF => {
+                    if let Some(split) = split {
+                        entries.push([start as u32, split as u32, i as u32]);
+                    }
+                    (start, split) = (i + 1, None);
+                }
+                _ => {}
+            }
+        }
+        let entries: Entries = entries.into();
+        known.push((at, entries.clone()));
+        entries
     });
     let entry = |i: usize| {
-        let start = starts[i] as usize;
-        let end = start + table[start..].iter().position(|&b| b == 0xFF)?;
-        let split = start + table[start..end].iter().position(|&b| b == 0xFE)?;
+        let [start, split, end] = entries[i].map(|n| n as usize);
         Some((&table[start..split], &table[split + 1..end]))
     };
-    let (mut low, mut high) = (0, starts.len());
+    let (mut low, mut high) = (0, entries.len());
     while low < high {
         let middle = (low + high) / 2;
         let (name, value) = entry(middle)?;

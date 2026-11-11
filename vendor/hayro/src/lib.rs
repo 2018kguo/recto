@@ -302,6 +302,12 @@ impl<'a> RenderCache<'a> {
         self.image_cache.borrow().bytes()
     }
 
+    /// recto: an interpreter cache for reading this document's text, with its own fonts (its
+    /// font resolver differs) but the embedded font programs this cache decodes and parses.
+    pub fn text_interpreter_cache(&self) -> InterpreterCache<'a> {
+        self.interpreter_cache.sharing_font_programs()
+    }
+
     /// Create a new render cache.
     pub fn new() -> Self {
         Self {

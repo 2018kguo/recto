@@ -32,6 +32,11 @@ They are patched for what upstream does not have:
   into a sized buffer rather than through a reader; a limit on what one stream or image decodes to
   (`set_max_decoded_bytes`), and an inline image's end found in one pass.
 - **hayro-interpret**: a function listed again at the same depth built once and shared.
+- **hayro-font**, **hayro-interpret** and **hayro**: a document's embedded font programs shared between
+  the cache that reads its text and the one that draws it (`FontCache::sharing_programs`,
+  `RenderCache::text_interpreter_cache`); programs a font resolver gives stay with each cache. The
+  generated name tables index each entry's key and value once per thread rather than scanning for them
+  at every step of a lookup.
 - **hayro-cmap**: `host-cmaps`, so a WebAssembly build gets its CMaps from the host on first
   use instead of embedding them, deflated rather than brotli so the wasm needs no brotli decoder.
 

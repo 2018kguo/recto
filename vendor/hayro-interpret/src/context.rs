@@ -114,6 +114,15 @@ impl<'a> InterpreterCache<'a> {
             object_cache: Cache::new(),
         }
     }
+
+    /// recto: an empty cache that shares `self`'s embedded font programs (see
+    /// `FontCache::sharing_programs`), for reading the same document with other settings.
+    pub fn sharing_font_programs(&self) -> Self {
+        Self {
+            font_cache: self.font_cache.sharing_programs(),
+            object_cache: Cache::new(),
+        }
+    }
 }
 
 /// A per-page interpretation context that borrows shared data from an [`InterpreterCache`].

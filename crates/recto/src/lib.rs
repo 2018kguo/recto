@@ -250,10 +250,14 @@ impl Document {
     fn open_data(data: hayro::hayro_syntax::PdfData, password: &str) -> Result<Self, EngineError> {
         Pdf::new_with_password(data, password)
             .map(|pdf| {
-                Self(Inner::new(pdf, |_| Caches {
-                    text: InterpreterCache::new(),
-                    render: RenderCache::new(),
-                    glyphs: Default::default(),
+                Self(Inner::new(pdf, |_| {
+                    let render = RenderCache::new();
+                    Caches {
+                        // Drawing and reading text load each embedded font program once between them.
+                        text: render.text_interpreter_cache(),
+                        render,
+                        glyphs: Default::default(),
+                    }
                 }))
             })
             .map_err(|error| match error {
@@ -1676,6 +1680,31 @@ mod tests {
                 value: String::new()
             })
         );
+    }
+
+    /// Text and drawing share a document's embedded font programs, so whichever reads a page first,
+    /// the other gives what it gives on a document of its own.
+    #[test]
+    fn text_and_render_read_the_same_whichever_goes_first() {
+        let text = |t: TextPage| {
+            let chars: Vec<_> = t.chars.iter().map(|c| (c.code, c.bbox, c.em, c.font, c.flags)).collect();
+            let fonts: Vec<_> = t.fonts.iter().map(|f| (f.name.clone(), f.embedded, f.ascent, f.descent)).collect();
+            (t.text(), chars, fonts, t.truncated)
+        };
+        for name in ["chrome-mixed-rtl.pdf", "cjk-embedded.pdf", "linearized.pdf"] {
+            let path = format!("{}/../../js/test/fixtures/{name}", env!("CARGO_MANIFEST_DIR"));
+            let bytes = std::fs::read(path).unwrap();
+            let open = || Document::open(bytes.clone(), "").unwrap();
+            let pixels = |d: &Document| d.render(0, 400.0, f32::INFINITY).unwrap().rgba;
+            let (alone_text, alone_pixels) = (text(open().text(0).unwrap()), pixels(&open()));
+            assert!(!alone_text.0.trim().is_empty(), "{name}");
+            let drawn_first = open();
+            assert!(pixels(&drawn_first) == alone_pixels, "{name}: drawn first");
+            assert!(text(drawn_first.text(0).unwrap()) == alone_text, "{name}: text after drawing");
+            let read_first = open();
+            assert!(text(read_first.text(0).unwrap()) == alone_text, "{name}: read first");
+            assert!(pixels(&read_first) == alone_pixels, "{name}: drawn after text");
+        }
     }
 
     /// The linearized fixture, whose text and geometry were written by hand.
