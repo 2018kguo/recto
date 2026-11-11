@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **A link or bookmark that names its page by index no longer looks through every page.** Some producers
+  write a destination's page as its index rather than a reference to it, and each such destination was checked
+  against the index of every page in turn, so n of them in an n-page file took time in n²: the outline of a
+  16,000-page file with a bookmark to each page took 0.14 s to list, and takes 0.02 s now (natively); a page of
+  8,000 such links, 0.038 s and now 0.012. The pages' indexes are gathered once a call. Every pixel and character
+  of the benchmark corpus's pages is unchanged.
+
 ## 0.5.3
 
 Word-made pages, and reading text, are faster; every pixel and every character is unchanged.
