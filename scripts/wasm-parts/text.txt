@@ -122,6 +122,8 @@
 <alloc::vec::Vec<u8> as core::convert::AsRef<[u8]>>::as_ref
 <bool as hayro_syntax::reader::Readable>::read
 <bool as hayro_syntax::reader::Skippable>::skip
+<core::cell::once::OnceCell<core::option::Option<hayro_font::outline::OutlineFontData>>>::try_init::<<core::cell::once::OnceCell<core::option::Option<hayro_font::outline::OutlineFontData>>>::get_or_init<<recto::device::PageDevice>::font_id::{closure#0}::{closure#0}>::{closure#0}, !>
+<core::cell::once::OnceCell<core::option::Option<hayro_font::program::FontProgram>>>::try_init::<<core::cell::once::OnceCell<core::option::Option<hayro_font::program::FontProgram>>>::get_or_init<<hayro_font::EmbeddedProgram>::get::{closure#0}>::{closure#0}, !>
 <core::ffi::c_str::CStr>::to_str
 <core::fmt::Formatter>::pad
 <core::fmt::Formatter>::write_str
@@ -203,24 +205,24 @@
 <hayro_cmap::bcmap::reader::Reader>::eat_until::<hayro_cmap::bcmap::parse<hayro_font::read_to_unicode::{closure#2}::{closure#0}>::{closure#0}>
 <hayro_font::Encoding>::map_code
 <hayro_font::FallbackFontQuery>::new
-<hayro_font::Font>::code_advance_raw
 <hayro_font::Font>::code_metrics
 <hayro_font::Font>::glyph
 <hayro_font::Font>::glyph_stretch_raw
-<hayro_font::Font>::map_code_raw
 <hayro_font::Font>::origin_displacement_raw
 <hayro_font::Font>::read_code
 <hayro_font::FontCache>::font
+<hayro_font::FontCache>::loading_programs_on_use
 <hayro_font::FontCache>::new
 <hayro_font::FontCache>::sharing_programs
 <hayro_font::FontFacts>::read
 <hayro_font::HintingCache>::new
 <hayro_font::OutlineGlyph>::font_data
 <hayro_font::OutlineGlyph>::unicode_and_width
-<hayro_font::ProgramLoader>::load
+<hayro_font::ProgramLoader>::embedded
 <hayro_font::ProgramLoader>::resolve
 <hayro_font::cid::Type0Font>::char_code_to_unicode
 <hayro_font::cid::Type0Font>::code_advance
+<hayro_font::cid::Type0Font>::map_code
 <hayro_font::cid::Type0Font>::new
 <hayro_font::program::FontProgram>::advance_width
 <hayro_font::program::FontProgram>::cmap_glyph
@@ -235,6 +237,7 @@
 <hayro_font::type1::EmbeddedKind>::code_to_ps_name
 <hayro_font::type1::Type1Font>::char_code_to_unicode
 <hayro_font::type1::Type1Font>::glyph_width
+<hayro_font::type1::Type1Font>::map_code
 <hayro_font::type1::Type1Font>::new
 <hayro_interpret::cache::Cache>::get_or_insert_with::<hayro_interpret::color::ColorSpaceType, <hayro_interpret::color::ColorSpaceType>::new_inner::{closure#0}>
 <hayro_interpret::color::Color>::same_as
@@ -284,6 +287,7 @@
 <hayro_interpret::context::Context>::text_state_mut
 <hayro_interpret::context::InterpreterCache>::new
 <hayro_interpret::context::InterpreterCache>::sharing_font_programs
+<hayro_interpret::context::InterpreterCache>::sharing_font_programs_loaded_on_use
 <hayro_interpret::function::Function>::eval
 <hayro_interpret::function::Function>::new
 <hayro_interpret::function::Function>::new_nested
@@ -751,7 +755,6 @@ core::ptr::drop_in_place::<<alloc::boxed::Box<dyn core::error::Error + core::mar
 core::ptr::drop_in_place::<<recto::wasm::Document>::open_ranged::{closure#0}>
 core::ptr::drop_in_place::<alloc::vec::Vec<recto::annots::Annotation>>
 core::ptr::drop_in_place::<alloc::vec::Vec<u8>>
-core::ptr::drop_in_place::<core::cell::RefCell<std::collections::hash::map::HashMap<u128, (core::option::Option<hayro_font::program::FontProgram>, bool), rustc_hash::FxBuildHasher>>>
 core::ptr::drop_in_place::<core::iter::adapters::zip::Zip<core::iter::adapters::zip::Zip<core::slice::iter::Iter<hayro_interpret::function::Interval>, alloc::vec::into_iter::IntoIter<hayro_interpret::function::Interval>>, alloc::vec::into_iter::IntoIter<u32>>>
 core::ptr::drop_in_place::<core::option::Option<(hayro_syntax::object::dict::Dict, hayro_syntax::object::ref::ObjRef)>>
 core::ptr::drop_in_place::<core::option::Option<alloc::boxed::Box<hayro_cmap::CMap>>>

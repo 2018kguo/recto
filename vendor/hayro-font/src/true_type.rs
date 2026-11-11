@@ -1,3 +1,4 @@
+use crate::EmbeddedProgram;
 use crate::FontLoader;
 use crate::GlyphId;
 use crate::generated::{glyph_names, mac_os_roman, mac_roman, standard};
@@ -15,16 +16,17 @@ use hayro_syntax::object::Object;
 use hayro_syntax::object::Stream;
 use hayro_syntax::object::dict::keys::*;
 use rustc_hash::FxHashMap;
+use std::cell::OnceCell;
 use std::ops::Deref;
 
 #[derive(Debug)]
-pub(crate) struct TrueTypeFont {
-    kind: Kind,
+pub(crate) struct TrueTypeFont<'a> {
+    kind: Kind<'a>,
     to_unicode: Option<CMap>,
 }
 
-impl TrueTypeFont {
-    pub(crate) fn new(dict: &Dict<'_>, loader: &FontLoader<'_>) -> Option<Self> {
+impl<'a> TrueTypeFont<'a> {
+    pub(crate) fn new(dict: &Dict<'a>, loader: &FontLoader<'_>) -> Option<Self> {
         let to_unicode = read_to_unicode(dict, loader.cmap_resolver);
 
         if let Some(embedded) = EmbeddedKind::new(dict, loader) {
@@ -59,11 +61,16 @@ impl TrueTypeFont {
         }
     }
 
-    pub(crate) fn program(&self) -> FontProgram {
+    pub(crate) fn program(&self) -> Option<&FontProgram> {
         match &self.kind {
-            Kind::Embedded(e) => e.base_font.clone(),
-            Kind::Standard(s) => s.program.clone(),
+            Kind::Embedded(e) => e.base_font.get(),
+            Kind::Standard(s) => Some(&s.program),
         }
+    }
+
+    /// recto: see `Font::maps_on_use`.
+    pub(crate) fn maps_on_use(&self) -> bool {
+        matches!(&self.kind, Kind::Embedded(e) if e.base_font.on_use())
     }
 
     pub(crate) fn is_standard(&self) -> bool {
@@ -79,7 +86,7 @@ impl TrueTypeFont {
 
     pub(crate) fn font_data(&self) -> Option<crate::FontData> {
         match &self.kind {
-            Kind::Embedded(e) => Some(e.base_font.data().clone()),
+            Kind::Embedded(e) => e.base_font.get().map(|p| p.data().clone()),
             Kind::Standard(_) => None,
         }
     }
@@ -93,7 +100,7 @@ impl TrueTypeFont {
 
     pub(crate) fn weight(&self) -> Option<u32> {
         match &self.kind {
-            Kind::Embedded(e) => e.base_font.weight(),
+            Kind::Embedded(e) => e.base_font.get().and_then(FontProgram::weight),
             Kind::Standard(s) => Some(if s.is_bold() { 700 } else { 400 }),
         }
     }
@@ -107,7 +114,7 @@ impl TrueTypeFont {
                 {
                     return true;
                 }
-                e.base_font.is_italic()
+                e.base_font.get().is_some_and(FontProgram::is_italic)
             }
             Kind::Standard(s) => s.is_italic(),
         }
@@ -132,7 +139,7 @@ impl TrueTypeFont {
                 {
                     return true;
                 }
-                e.base_font.is_monospace()
+                e.base_font.get().is_some_and(FontProgram::is_monospace)
             }
             Kind::Standard(s) => s.is_monospace(),
         }
@@ -174,27 +181,28 @@ impl TrueTypeFont {
 }
 
 #[derive(Debug)]
-enum Kind {
-    Embedded(EmbeddedKind),
+enum Kind<'a> {
+    Embedded(EmbeddedKind<'a>),
     Standard(StandardKind),
 }
 
 #[derive(Debug)]
-struct EmbeddedKind {
-    base_font: FontProgram,
+struct EmbeddedKind<'a> {
+    base_font: EmbeddedProgram<'a>,
     widths: Vec<Width>,
     missing_width: f32,
     font_flags: Option<FontFlags>,
     encoding: Encoding,
     differences: FxHashMap<u8, String>,
-    code_to_glyph: Box<[GlyphId; 256]>,
+    /// recto: built on the first glyph asked for, which a text pass may never ask for.
+    code_to_glyph: OnceCell<Box<[GlyphId; 256]>>,
     /// PostScript name from the PDF.
     postscript_name: Option<String>,
     is_zapf_dingbats: bool,
 }
 
-impl EmbeddedKind {
-    fn new(dict: &Dict<'_>, loader: &FontLoader<'_>) -> Option<Self> {
+impl<'a> EmbeddedKind<'a> {
+    fn new(dict: &Dict<'a>, loader: &FontLoader<'_>) -> Option<Self> {
         let descriptor = dict.get::<Dict<'_>>(FONT_DESC).unwrap_or_default();
 
         let font_flags = descriptor.get::<u32>(FLAGS).and_then(FontFlags::from_bits);
@@ -202,9 +210,13 @@ impl EmbeddedKind {
         let (widths, missing_width) = read_widths(dict, &descriptor)?;
         let (encoding, differences) = read_encoding(dict);
         let base_font = descriptor
-            .get::<Stream<'_>>(FONT_FILE2)
-            .and_then(|stream| loader.programs.load(&stream))
-            .filter(|program| program.kind() == ProgramKind::Sfnt)?;
+            .get::<Stream<'a>>(FONT_FILE2)
+            // recto: without `Widths`, the advances are the program's, so it loads now.
+            .and_then(|stream| {
+                loader
+                    .programs
+                    .embedded(stream, Some(ProgramKind::Sfnt), widths.is_empty())
+            })?;
 
         let postscript_name = dict
             .get::<Name<'_>>(BASE_FONT)
@@ -214,24 +226,17 @@ impl EmbeddedKind {
             Some((StandardFont::ZapfDingBats, _))
         );
 
-        let mut kind = Self {
+        Some(Self {
             base_font,
             differences,
             widths,
             missing_width,
             font_flags,
             encoding,
-            code_to_glyph: Box::new([GlyphId::NOTDEF; 256]),
+            code_to_glyph: OnceCell::new(),
             postscript_name,
             is_zapf_dingbats,
-        };
-        let base_font = kind.base_font.clone();
-        let subtables = base_font.cmap_subtables();
-        kind.code_to_glyph = Box::new(std::array::from_fn(|code| {
-            kind.lookup_glyph(code as u8, &subtables)
-        }));
-
-        Some(kind)
+        })
     }
 
     fn is_non_symbolic(&self) -> bool {
@@ -252,15 +257,28 @@ impl EmbeddedKind {
     }
 
     fn map_code(&self, code: u8) -> GlyphId {
-        self.code_to_glyph[code as usize]
+        self.code_to_glyph.get_or_init(|| {
+            let Some(program) = self.base_font.get() else {
+                return Box::new([GlyphId::NOTDEF; 256]);
+            };
+            let subtables = program.cmap_subtables();
+            Box::new(std::array::from_fn(|code| {
+                self.lookup_glyph(program, code as u8, &subtables)
+            }))
+        })[code as usize]
     }
 
-    fn lookup_glyph(&self, code: u8, subtables: &[CmapSubtable<'_>]) -> GlyphId {
+    fn lookup_glyph(
+        &self,
+        base_font: &FontProgram,
+        code: u8,
+        subtables: &[CmapSubtable<'_>],
+    ) -> GlyphId {
         // Some PDFs mistakenly embed an OpenType font with CFF outlines.
-        if self.base_font.has_cff_outlines() {
+        if base_font.has_cff_outlines() {
             return self
                 .code_to_name(code)
-                .and_then(|name| self.base_font.glyph_by_name(name))
+                .and_then(|name| base_font.glyph_by_name(name))
                 .unwrap_or(GlyphId::NOTDEF);
         }
 
@@ -296,7 +314,7 @@ impl EmbeddedKind {
             }
 
             if glyph.is_none() {
-                if let Some(gid) = self.base_font.glyph_by_name(lookup) {
+                if let Some(gid) = base_font.glyph_by_name(lookup) {
                     glyph = Some(gid);
                 } else if let Some(gid) = glyph_num_string(lookup) {
                     glyph = Some(GlyphId::new(gid));
@@ -333,7 +351,8 @@ impl EmbeddedKind {
             Some(Width::Missing) => self.missing_width,
             _ => self
                 .base_font
-                .advance_width(self.map_code(code))
+                .get()
+                .and_then(|program| program.advance_width(self.map_code(code)))
                 .unwrap_or(0.0),
         }
     }

@@ -23,7 +23,7 @@ pub(crate) use hayro_font::{Font, FontCache, FontGlyph, UNITS_PER_EM};
 /// A glyph that can be drawn.
 pub enum Glyph<'a> {
     /// A glyph defined by an outline.
-    Outline(OutlineGlyph),
+    Outline(OutlineGlyph<'a>),
     /// A type3 glyph, defined by PDF drawing instructions.
     Type3(Box<Type3Glyph<'a>>),
 }
@@ -207,7 +207,7 @@ impl CacheKey for GlyphIdentifier {
 
 pub(crate) fn get_glyph<'a>(
     font: &Font<'a>,
-    glyph: GlyphId,
+    glyph: Option<GlyphId>,
     char_code: u32,
     ctx: &mut Context<'a>,
     resources: &Resources<'a>,

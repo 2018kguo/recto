@@ -253,8 +253,9 @@ impl Document {
                 Self(Inner::new(pdf, |_| {
                     let render = RenderCache::new();
                     Caches {
-                        // Drawing and reading text load each embedded font program once between them.
-                        text: render.text_interpreter_cache(),
+                        // Drawing and reading text load each embedded font program once between them,
+                        // and reading text loads one only for what the font's dictionary doesn't say.
+                        text: render.text_interpreter_cache().sharing_font_programs_loaded_on_use(),
                         render,
                         glyphs: Default::default(),
                     }
@@ -1705,6 +1706,60 @@ mod tests {
             assert!(text(read_first.text(0).unwrap()) == alone_text, "{name}: read first");
             assert!(pixels(&read_first) == alone_pixels, "{name}: drawn after text");
         }
+    }
+
+    /// Reading text decodes a font's embedded program only for what the font's dictionary leaves
+    /// out; drawing decodes every one. Here the dictionary names the codes (WinAnsi), their widths
+    /// and the weight, so text alone decodes nothing, until the weight is left to the program.
+    #[test]
+    fn text_decodes_a_font_program_only_for_what_its_dictionary_leaves_out() {
+        let open = |weight: &str| {
+            let font = format!(
+                "<< /Type /Font /Subtype /TrueType /BaseFont /ABCDEF+Probe /FirstChar 72 /LastChar 105 \
+                 /Widths [{}] /Encoding /WinAnsiEncoding /FontDescriptor 6 0 R >>",
+                "600 ".repeat(34)
+            );
+            let descriptor = format!(
+                "<< /Type /FontDescriptor /FontName /ABCDEF+Probe /Flags 32 {weight} /Ascent 800 /Descent -200 \
+                 /FontFile2 7 0 R >>"
+            );
+            Document::open(
+                pdf(&[
+                    b"<< /Type /Catalog /Pages 2 0 R >>",
+                    b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                    b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+                    &stream("", b"BT /F1 10 Tf 10 10 Td (Hi) Tj ET"),
+                    font.as_bytes(),
+                    descriptor.as_bytes(),
+                    &stream("", include_bytes!("notdef.ttf")),
+                ]),
+                "",
+            )
+            .unwrap()
+        };
+        let decoded = |d: &Document| d.with_page(0, |_, _, c| c.text.embedded_font_programs_decoded()).unwrap();
+        let text = |d: &Document| {
+            let t = d.text(0).unwrap();
+            let chars: Vec<_> = t.chars.iter().map(|c| (c.code, c.bbox, c.em, c.font, c.flags)).collect();
+            (t.text(), chars, t.fonts, t.truncated)
+        };
+
+        let doc = open("/FontWeight 400");
+        let alone = text(&doc);
+        assert_eq!(alone.0, "Hi");
+        assert_eq!((alone.2[0].weight, alone.2[0].embedded), (400, true));
+        assert_eq!(decoded(&doc), 0, "text alone decodes no program");
+        doc.render(0, 100.0, f32::INFINITY).unwrap();
+        assert_eq!(decoded(&doc), 1, "drawing decodes it");
+        assert!(text(&doc) == alone, "and the text is the same");
+        let drawn_first = open("/FontWeight 400");
+        drawn_first.render(0, 100.0, f32::INFINITY).unwrap();
+        assert!(text(&drawn_first) == alone, "text after drawing");
+
+        // Without `FontWeight` the weight is the program's (its OS/2 table), so text loads it.
+        let doc = open("");
+        assert_eq!(text(&doc).0, "Hi");
+        assert_eq!(decoded(&doc), 1);
     }
 
     /// The linearized fixture, whose text and geometry were written by hand.

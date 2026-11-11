@@ -64,7 +64,7 @@ enum Last {
     FillPath(usize),
 }
 
-pub(crate) struct PageDevice {
+pub(crate) struct PageDevice<'a> {
     pub glyphs: Vec<Glyph>,
     pub fonts: Vec<Font>,
     font_ids: rustc_hash::FxHashMap<u128, u32>,
@@ -80,11 +80,11 @@ pub(crate) struct PageDevice {
     fill: Option<(hayro::hayro_interpret::color::Color, u32)>,
     /// The last font met on the page (a glyph of it) and its id: runs nearly
     /// always repeat it.
-    last_font: Option<(hayro::hayro_interpret::font::OutlineGlyph, u32)>,
+    last_font: Option<(hayro::hayro_interpret::font::OutlineGlyph<'a>, u32)>,
     /// Every font met on the page, by `font_identity`, and its id: a font switch
     /// finds its id here without hashing the program again. A glyph of each is
     /// kept, so an identity is never reused while this lives.
-    seen_fonts: rustc_hash::FxHashMap<usize, (hayro::hayro_interpret::font::OutlineGlyph, u32)>,
+    seen_fonts: rustc_hash::FxHashMap<usize, (hayro::hayro_interpret::font::OutlineGlyph<'a>, u32)>,
     /// Where the next drawn path's `re` rectangles start (`Device::path_rects`).
     rect_starts: Vec<u32>,
     /// Inside the fill that paints `sh` (`Device::shading_fill`).
@@ -99,7 +99,7 @@ thread_local! {
     pub(crate) static FONT_PROBES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
-impl PageDevice {
+impl<'a> PageDevice<'a> {
     /// `viewer` maps the content's space to the viewer frame.
     pub fn new(viewer: Affine, objects: bool) -> Self {
         Self {
@@ -127,7 +127,7 @@ impl PageDevice {
         self
     }
 
-    fn font_of(&mut self, glyph: &HayroGlyph<'_>) -> u32 {
+    fn font_of(&mut self, glyph: &HayroGlyph<'a>) -> u32 {
         // The glyphs kept here hold their fonts alive, so a match is the same
         // font. Runs nearly always repeat the last one; a switch is one lookup,
         // however many fonts the page has (a page switching among thousands
@@ -166,24 +166,29 @@ impl PageDevice {
         let font = match glyph {
             HayroGlyph::Outline(g) => {
                 let facts = g.font_facts();
-                // The dictionary first, then the program for what it leaves out.
-                let program = g.font_data();
+                // The dictionary first, then the program for what it leaves out: only then is
+                // a text pass's program loaded for this.
+                let program = std::cell::OnceCell::new();
+                let program = || program.get_or_init(|| g.font_data()).as_ref();
                 let name = if facts.name.is_empty() {
-                    program.as_ref().and_then(|d| d.postscript_name.clone()).unwrap_or_default()
+                    program().and_then(|d| d.postscript_name.clone()).unwrap_or_default()
                 } else {
                     facts.name.clone()
                 };
                 let bold_name = name.to_ascii_lowercase().contains("bold");
-                let weight = match (facts.weight, program.as_ref().and_then(|d| d.weight)) {
-                    (0, Some(w)) => w,
-                    (0, None) if bold_name => 700,
-                    (0, None) if !name.is_empty() => 400,
-                    (w, _) => w,
+                let weight = match facts.weight {
+                    0 => match program().and_then(|d| d.weight) {
+                        Some(w) => w,
+                        None if bold_name => 700,
+                        None if !name.is_empty() => 400,
+                        None => 0,
+                    },
+                    w => w,
                 };
                 // Descriptor flags, or rebuilt from the program's style bits: fixed pitch 1,
                 // serif 2, nonsymbolic 32, italic 64.
                 let flags = facts.flags.unwrap_or_else(|| {
-                    program.as_ref().map_or(32, |d| {
+                    program().map_or(32, |d| {
                         u32::from(d.is_monospace)
                             | (u32::from(d.is_serif) << 1)
                             | 32
@@ -223,7 +228,7 @@ const MAX_PAGE_GLYPHS: usize = 1 << 19;
 const MAX_PAGE_SEGMENTS: usize = 1 << 21;
 const MAX_PAGE_IMAGES: usize = 1 << 19;
 
-impl PageDevice {
+impl<'a> PageDevice<'a> {
     fn add_path(&mut self, path: &BezPath, t: Affine, flags: u8, stroke: Option<f32>) {
         let last = std::mem::replace(&mut self.last, Last::None);
         let Some(o) = &mut self.objects else { return };
@@ -364,7 +369,7 @@ fn path_box(path: &BezPath, t: Affine, stroke: Option<f32>) -> [f32; 4] {
     b
 }
 
-impl<'a> Device<'a> for PageDevice {
+impl<'a> Device<'a> for PageDevice<'a> {
     fn draw_path(&mut self, path: &BezPath, props: DrawProps<'a>, mode: &DrawMode) {
         let (flags, stroke) = match mode {
             DrawMode::Fill(_) => (PATH_FILL, None),
