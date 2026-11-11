@@ -62,6 +62,17 @@ test("recto.wasm missing: open fails with missing-asset, and works once it's bac
   assert.ok((await bounded(doc.text(0))).count > 0);
 });
 
+test("a thread takes recto.wasm as the pool compiled it, and never reads it itself", async () => {
+  const unreadable = (source: string) =>
+    `const fs = process.getBuiltinModule("node:fs"); const read = fs.readFileSync;
+fs.readFileSync = (file, ...rest) => { if (String(file).endsWith("/recto.wasm")) throw new Error("read on a thread"); return read(file, ...rest); };
+${source}`;
+  using pool = await (await faulty(unreadable))({ threads: 2 });
+  const doc = await bounded(pool.open(pdf()));
+  const pages = await bounded(Promise.all([doc.text(0), doc.text(1), doc.render(2, { width: 50 })]));
+  assert.ok(pages[0].count > 0 && pages[1].count > 0 && pages[2].rgba.length > 0);
+});
+
 test("a thread that dies in a call fails that call with crash, and another thread takes over", async () => {
   using pool = await (await faulty(onCall(`if (method === "text" && args[0] === 5) process.exit(1);`)))({ threads: 2 });
   const doc = await bounded(pool.open(pdf()));

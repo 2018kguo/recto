@@ -124,6 +124,18 @@ function compile(name: WasmName, base: URL | null): Promise<WebAssembly.Module> 
   return module;
 }
 
+/** recto.wasm, verified and compiled on this thread, for a pool to hand its threads (`adoptEngineModule`). */
+export function engineModule(assetBase: string | undefined): Promise<WebAssembly.Module> {
+  return compile("recto.wasm", assetBaseUrl(assetBase));
+}
+
+/** A module another thread verified and compiled, so this one doesn't read and hash it again. */
+export function adoptEngineModule(assetBase: string | undefined, module: WebAssembly.Module): void {
+  const key = moduleKey("recto.wasm", assetBaseUrl(assetBase));
+  compiled.set(key, module);
+  compiling.set(key, Promise.resolve(module));
+}
+
 /** A part, from inside a synchronous call. Hashed before it's compiled; this is the only way in but `compile`. */
 function partModule(name: Part, base: URL | null, hash: SyncHash): WebAssembly.Module {
   const key = moduleKey(name, base);
