@@ -60,7 +60,7 @@ function lines(next, count) {
 const escaped = (text) => text.replace(/[\\()]/gu, "\\$&");
 
 /** Assembles objects into a file. `objects[i]` is object i + 1: a string, or { dict, data }. */
-function assemble(objects, root) {
+export function assemble(objects, root) {
   const chunks = [Buffer.from("%PDF-1.7\n%\xe2\xe3\xcf\xd3\n", "latin1")];
   let at = chunks[0].length;
   const offsets = [];
@@ -86,7 +86,7 @@ function assemble(objects, root) {
   return new Uint8Array(Buffer.concat(chunks));
 }
 
-const flate = (text) => ({ dict: " /Filter /FlateDecode", data: zlib.deflateSync(Buffer.from(text, "latin1")) });
+export const flate = (text) => ({ dict: " /Filter /FlateDecode", data: zlib.deflateSync(Buffer.from(text, "latin1")) });
 
 /** A generated landscape: sky, a low sun, ridges, a little grain, so it compresses like a photo. */
 function photo(seed, width, height) {
