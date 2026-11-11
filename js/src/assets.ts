@@ -216,17 +216,13 @@ async function fetchBytes(name: AssetName, url: URL): Promise<Uint8Array<ArrayBu
   return bytes;
 }
 
-/**
- * The wasm, verified and compiled. Fetched, it's verified and then compiled. Read from disk, V8 starts compiling
- * it on threads of its own while it's hashed here, since the hash waits on loading node:crypto (3–5 ms in a fresh
- * process); the module is only returned, and so instantiated, if the bytes are this build's.
- */
+/** The wasm, verified and then compiled; in Node, compiled on V8's threads while it's hashed, and used only if it's this build's. */
 export async function compileWasm(name: WasmName, base: URL | null): Promise<WebAssembly.Module> {
   if (!nodeFs()) {
     const bytes = await located(name, base, (url) => fetchBytes(name, url));
     return await compiling(name, WebAssembly.compile(bytes));
   }
-  // In an object: a compile error is reported as one, not as a file that couldn't be read.
+  // In an object, so a compile error isn't reported as a failed read.
   const { module } = located(name, base, (url) => {
     const bytes = readFromDisk(url) as Uint8Array<ArrayBuffer>;
     const module = WebAssembly.compile(bytes);

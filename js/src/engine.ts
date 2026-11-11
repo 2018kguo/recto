@@ -124,14 +124,13 @@ function compile(name: WasmName, base: URL | null): Promise<WebAssembly.Module> 
   return module;
 }
 
-/** recto.wasm, verified and compiled on this thread, for a pool to hand its threads (`adoptEngineModule`). */
-export async function engineModule(assetBase: string | undefined): Promise<WebAssembly.Module> {
-  return await compile("recto.wasm", assetBaseUrl(assetBase));
+/** recto.wasm for a pool to post its threads, which adopt it. */
+export async function engineModule(base: string | undefined): Promise<WebAssembly.Module> {
+  return await compile("recto.wasm", assetBaseUrl(base));
 }
 
-/** A module another thread verified and compiled, so this one doesn't read and hash it again. */
-export function adoptEngineModule(assetBase: string | undefined, module: WebAssembly.Module): void {
-  const key = moduleKey("recto.wasm", assetBaseUrl(assetBase));
+export function adoptEngineModule(base: string | undefined, module: WebAssembly.Module): void {
+  const key = moduleKey("recto.wasm", assetBaseUrl(base));
   compiled.set(key, module);
   compiling.set(key, Promise.resolve(module));
 }
