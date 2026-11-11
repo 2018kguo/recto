@@ -4,6 +4,13 @@
 
 ### Fixed
 
+- **A non-isolated group's blend modes no longer blend with the paper.** The page group is isolated
+  (ISO 32000-2, 11.4.7): the paper is under the page, not in a group's backdrop. A group recto draws over a
+  backdrop (one with a blend mode inside and an opacity, soft mask, blend mode or knockout of its own) took
+  the white paper into that backdrop, so `/Color`, `/Screen` and the like blended to white where the page had
+  drawn nothing; an InDesign card in pdf.js's test suite, an orange gradient blended `/Color` in a knockout
+  group, came out blank. It now draws as poppler, pdf.js and mupdf draw it, and as recto already drew the same
+  blend outside a group. Of the scorecard's 616 pages, that one page's pixels change, and it now agrees.
 - **Axial and radial shadings are no longer drawn half a pixel up and to the left.** The renderer samples a
   gradient at pixel centres already, and the shading's transform shifted it by another half pixel, so every
   smooth shading drawn as a gradient was half a pixel off the same shading drawn as a texture, and off the

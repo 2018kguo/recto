@@ -515,7 +515,6 @@ impl<'a, 'c> PageJob<'a, 'c> {
             global.clone(),
             transform,
             &ctx,
-            render_settings.background,
         );
 
         let target = Rect::new(0.0, 0.0, ctx.width() as f64, ctx.height() as f64);
@@ -625,7 +624,6 @@ fn render_into_page<'a>(
         global.clone(),
         transform,
         ctx,
-        render_settings.background,
     );
     draw_page(page, cache, interpreter_settings, render_settings.aliasing_threshold, ctx, transform, &global, &replay, (0, u32::MAX));
     // recto: a limit passed is a page incomplete, wherever it was.
