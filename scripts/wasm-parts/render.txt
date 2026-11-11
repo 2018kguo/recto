@@ -405,6 +405,8 @@
 <vello_common::record::RecordedLayer>::regular
 <vello_common::render_state::RenderState as core::default::Default>::default
 <vello_common::strip::Strip>::emit_culled_background::<vello_common::strip::render_impl<fearless_simd::generated::wasm::WasmSimd128>::{closure#1}>::{closure#0}
+<vello_common::strip::Strip>::new
+<vello_common::strip::Strip>::sentinel
 <vello_common::strip_generator::StripGenerator>::generate_filled_rect_fast
 <vello_common::strip_generator::StripGenerator>::generate_with_clip
 <vello_common::tile::CulledWindings>::new
@@ -426,6 +428,7 @@
 <vello_cpu::coarse::bucketer::CommandBucketer>::push_fill::{closure#1}
 <vello_cpu::coarse::bucketer::CommandBucketer>::push_layer
 <vello_cpu::coarse::depth::DepthBuffer>::next_unset_run
+<vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher as vello_cpu::dispatch::Dispatcher>::fill_coverage
 <vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher as vello_cpu::dispatch::Dispatcher>::fill_path
 <vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher as vello_cpu::dispatch::Dispatcher>::fill_rect_fast
 <vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher as vello_cpu::dispatch::Dispatcher>::flush
@@ -436,6 +439,7 @@
 <vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher as vello_cpu::dispatch::Dispatcher>::push_clip_rect
 <vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher as vello_cpu::dispatch::Dispatcher>::push_layer
 <vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher as vello_cpu::dispatch::Dispatcher>::rasterize
+<vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher as vello_cpu::dispatch::Dispatcher>::recorded_bytes
 <vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher as vello_cpu::dispatch::Dispatcher>::stroke_path
 <vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher>::bucket_and_rasterize::<fearless_simd::generated::wasm::WasmSimd128, vello_cpu::fine::lowp::U8Kernel>
 <vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher>::record_fill
@@ -451,6 +455,7 @@
 <vello_cpu::fine::lowp::image::PlainBilinearImagePainter<fearless_simd::generated::wasm::WasmSimd128> as vello_cpu::fine::Painter>::paint_u8
 <vello_cpu::region::Region>::from_rows
 <vello_cpu::render::RenderContext>::encode_current_paint
+<vello_cpu::render::RenderContext>::fill_coverage
 <vello_cpu::render::RenderContext>::fill_path
 <vello_cpu::render::RenderContext>::fill_rect
 <vello_cpu::render::RenderContext>::fill_rect::{closure#0}
@@ -462,6 +467,7 @@
 <vello_cpu::render::RenderContext>::push_clip_path
 <vello_cpu::render::RenderContext>::push_clip_rect
 <vello_cpu::render::RenderContext>::push_layer
+<vello_cpu::render::RenderContext>::recorded_bytes
 <vello_cpu::render::RenderContext>::render_with::<&mut vello_common::pixmap::Pixmap>
 <vello_cpu::render::RenderContext>::reset_filter_effect
 <vello_cpu::render::RenderContext>::reset_mask
@@ -547,6 +553,7 @@ core::ptr::drop_in_place::<std::collections::hash::map::HashMap<hayro_syntax::ob
 core::ptr::drop_in_place::<std::sync::poison::rwlock::RwLockWriteGuard<alloc::vec::Vec<core::option::Option<skrifa::outline::autohint::metrics::UnscaledStyleMetrics>>>>
 core::ptr::drop_in_place::<vello_common::clip::ClipContext>
 core::ptr::drop_in_place::<vello_common::clip::ClipState>
+core::ptr::drop_in_place::<vello_common::encode::EncodedPaint>
 core::ptr::drop_in_place::<vello_common::record::CommandRecorder<vello_cpu::record::RecordedFill>>
 core::ptr::drop_in_place::<vello_common::strip_generator::StripGenerator>
 core::ptr::drop_in_place::<vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher>
@@ -691,6 +698,7 @@ vello_common::record::snapped_scene_size
 vello_common::rect::render
 vello_common::strip::render
 vello_common::util::strip_bbox
+vello_cpu::coverage::render
 zune_jpeg::color_convert::scalar::ycbcr_to_rgb_inner_16_scalar::<false>
 zune_jpeg::headers::parse_app13::<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>
 zune_jpeg::headers::parse_app14::<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>

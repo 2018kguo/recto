@@ -2,6 +2,7 @@ use crate::Renderer;
 use ab_glyph_rasterizer::{Rasterizer, point};
 use kurbo::{Affine, BezPath, PathEl, Point, Rect, Shape};
 use rustc_hash::FxHashMap;
+use std::cell::OnceCell;
 use std::sync::Arc;
 use vello_cpu::color::palette::css::BLACK;
 use vello_cpu::color::{AlphaColor, Srgb};
@@ -11,22 +12,23 @@ use vello_cpu::{Image, ImageSource, PixelMetadata, Pixmap, Tint, TintMode};
 const SUBPIXEL_STEPS: f64 = 4.0;
 const MAX_CACHED_SIZE: f64 = 128.0;
 
-/// recto: what the glyph images of one page may come to. Every glyph a page draws at a size or
-/// angle of its own is an image of its own, held until the page is rasterized: 16,000 glyphs
-/// each a hair larger than the last took 540 MB, and a page within the glyph limit could ask for
+/// recto: what the glyph masks of one page may come to. Every glyph a page draws at a size or
+/// angle of its own is a mask of its own, held until the page is rasterized: 16,000 glyphs each a
+/// hair larger than the last took 540 MB as images, and a page within the glyph limit could ask for
 /// tens of GB. Past this, a glyph the page hasn't drawn yet is filled as a path, as one too large
-/// to cache is. Which glyphs those are depends only on the page. The most a suite page used was
-/// 22 MB, drawn 4096 px wide.
-pub(crate) const MAX_PAGE_GLYPH_BYTES: usize = 256 << 20;
+/// to cache is. Which glyphs those are depends only on the page. A byte a pixel, and an image's
+/// four where one is drawn as an image (see `CachedGlyph::image`); the most a suite page used was
+/// 5.5 MB, drawn 4096 px wide.
+pub(crate) const MAX_PAGE_GLYPH_BYTES: usize = 64 << 20;
 /// recto: the cache is emptied before a page is drawn once it holds more than this, so a document
-/// drawn at many sizes doesn't keep every one. Emptying never changes a pixel: a glyph's image
+/// drawn at many sizes doesn't keep every one. Emptying never changes a pixel: a glyph's mask
 /// depends only on its key.
-pub(crate) const MAX_CACHED_GLYPH_BYTES: usize = 64 << 20;
+pub(crate) const MAX_CACHED_GLYPH_BYTES: usize = 16 << 20;
 
 #[derive(Default)]
 pub(crate) struct GlyphCache {
     map: FxHashMap<GlyphKey, Option<Arc<CachedGlyph>>>,
-    /// recto: the bytes of the images in `map`.
+    /// recto: the bytes of the masks and images in `map`.
     bytes: usize,
 }
 
@@ -43,15 +45,15 @@ impl GlyphCache {
     }
 }
 
-/// recto: the glyph images one page has drawn, and their bytes.
+/// recto: the glyph masks one page has drawn, and their bytes.
 #[derive(Default)]
 pub(crate) struct PageGlyphs {
     keys: rustc_hash::FxHashSet<GlyphKey>,
     bytes: usize,
 }
 
-fn image_bytes(glyph: &Option<Arc<CachedGlyph>>) -> usize {
-    glyph.as_ref().map_or(0, |g| usize::from(g.pixmap.width()) * usize::from(g.pixmap.height()) * 4)
+fn mask_bytes(glyph: &Option<Arc<CachedGlyph>>) -> usize {
+    glyph.as_ref().map_or(0, |g| g.coverage.len())
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
@@ -62,10 +64,16 @@ pub(crate) struct GlyphKey {
     subpixel: u8,
 }
 
+/// recto: a glyph's coverage, a byte a pixel and column by column, rather than an RGBA image of
+/// which only the alpha was set. Drawn as a solid fill's coverage (`RenderContext::fill_coverage`),
+/// and as an image only where that can't draw it, made the first time it's needed.
 pub(crate) struct CachedGlyph {
-    pixmap: Arc<Pixmap>,
+    coverage: Box<[u8]>,
+    width: u16,
+    height: u16,
     x: i32,
     y: i32,
+    image: OnceCell<Arc<Pixmap>>,
 }
 
 impl Renderer<'_> {
@@ -105,7 +113,7 @@ impl Renderer<'_> {
                 };
                 let rasterized = rasterized.map(Arc::new);
                 let mut cache = self.global.glyph_cache.borrow_mut();
-                cache.bytes += image_bytes(&rasterized);
+                cache.bytes += mask_bytes(&rasterized);
                 cache.map.insert(key, rasterized.clone());
                 rasterized
             }
@@ -113,21 +121,33 @@ impl Renderer<'_> {
         if !seen {
             let mut page = self.global.page_glyphs.borrow_mut();
             page.keys.insert(key);
-            page.bytes += image_bytes(&cached);
+            page.bytes += mask_bytes(&cached);
         }
 
         let Some(cached) = cached else {
             return true;
         };
 
-        let (width, height) = (cached.pixmap.width(), cached.pixmap.height());
+        let (width, height) = (cached.width, cached.height);
         self.ctx.set_transform(Affine::translate((
             f64::from(x + cached.x),
             f64::from(y + cached.y),
         )));
+        // recto: the mask as a solid fill's coverage, which is what the image below draws, to the
+        // byte for black (see `vendor/README.md`).
+        self.ctx.set_paint(color);
+        if self.ctx.fill_coverage(width, height, &cached.coverage) {
+            return true;
+        }
+        let image = cached.image.get_or_init(|| {
+            let bytes = cached.coverage.len() * 4;
+            self.global.glyph_cache.borrow_mut().bytes += bytes;
+            self.global.page_glyphs.borrow_mut().bytes += bytes;
+            Arc::new(cached.to_image())
+        });
         self.ctx.set_paint_transform(Affine::IDENTITY);
         self.ctx.set_paint(Image {
-            image: ImageSource::Pixmap(cached.pixmap.clone()),
+            image: ImageSource::Pixmap(image.clone()),
             sampler: ImageSampler {
                 x_extend: peniko::Extend::Pad,
                 y_extend: peniko::Extend::Pad,
@@ -149,6 +169,27 @@ impl Renderer<'_> {
         }
 
         true
+    }
+}
+
+impl CachedGlyph {
+    /// The mask as the premultiplied black image it was before recto kept masks.
+    fn to_image(&self) -> Pixmap {
+        let mut data = vec![0; self.coverage.len() * 4];
+        let height = usize::from(self.height);
+        for (i, pixel) in data.chunks_exact_mut(4).enumerate() {
+            let (row, column) = (i / usize::from(self.width), i % usize::from(self.width));
+            pixel[3] = self.coverage[column * height + row];
+        }
+        Pixmap::from_parts(
+            data,
+            self.width,
+            self.height,
+            PixelMetadata {
+                may_have_transparency: true,
+                alpha_type: ImageAlphaType::AlphaPremultiplied,
+            },
+        )
     }
 }
 
@@ -208,26 +249,19 @@ fn rasterize(outline: &BezPath, transform: Affine) -> Option<Option<CachedGlyph>
         rasterizer.draw_line(to_point(last), to_point(start));
     }
 
-    // TODO: Store a single coverage channel once vello supports one-channel images.
-    let mut data = vec![0; usize::from(width) * usize::from(height) * 4];
-    rasterizer.for_each_pixel(|idx, coverage| {
-        data[idx * 4 + 3] = round_coverage(coverage.min(1.0) * 255.0);
+    let mut coverage = vec![0; usize::from(width) * usize::from(height)].into_boxed_slice();
+    let (w, h) = (usize::from(width), usize::from(height));
+    rasterizer.for_each_pixel(|idx, c| {
+        coverage[idx % w * h + idx / w] = round_coverage(c.min(1.0) * 255.0);
     });
 
-    let pixmap = Pixmap::from_parts(
-        data,
+    Some(Some(CachedGlyph {
+        coverage,
         width,
         height,
-        PixelMetadata {
-            may_have_transparency: true,
-            alpha_type: ImageAlphaType::AlphaPremultiplied,
-        },
-    );
-
-    Some(Some(CachedGlyph {
-        pixmap: Arc::new(pixmap),
         x: x0 as i32,
         y: y0 as i32,
+        image: OnceCell::new(),
     }))
 }
 

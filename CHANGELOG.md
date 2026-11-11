@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### Changed
+
+- **Text draws faster, and a page holds a bounded amount however many glyphs it draws.** A cached glyph was an
+  RGBA image of which only the alpha was set, and every glyph drawn encoded an image paint of its own that was
+  sampled, tinted and composited pixel by pixel, and held until the page was rasterized: 885 bytes a glyph, so
+  320,000 small glyphs took 283 MB and 1,280,000 took 1.1 GB. A glyph is now a coverage mask, a byte a pixel,
+  filled as a solid colour's coverage like any path (`vello_cpu`, now vendored, gains `fill_coverage`), and a
+  page whose drawing holds more than 32 MB is rasterized in parts at its own level: 330 bytes a glyph, and
+  65 MB for 320,000 glyphs or 1,280,000. Rendering, median page over 8 alternating runs of the scoreboard: 2.03 ms
+  where it took 2.81 at 1024 px in WebAssembly in Node (90th percentile 4.32 from 5.21), 3.06 from 4.24 at
+  1600 px; 1.17 ms from 1.79 natively at 1024 px. Black text is the same to the byte, except that an opaque page
+  now stays opaque where a clip path's edge crosses a glyph (its alpha came to 254 on 12 renders). Coloured text
+  rounds once where the image's tint and composite rounded twice, as a path filled in that colour already did:
+  132 of 1,306 pages change, by at most 3 levels a channel and almost all by 1, on pixels a glyph partly covers.
+  The scorecard is unchanged (519 of 530 agree). The drawing part of the wasm is 1.3 kB larger.
+
 ### Fixed
 
 - **A non-isolated group's blend modes no longer blend with the paper.** The page group is isolated

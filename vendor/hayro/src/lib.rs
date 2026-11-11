@@ -90,6 +90,28 @@ pub(crate) struct GlobalState {
     page: Option<Rect>,
     // recto: see `image_cache`.
     image_cache: Rc<RefCell<image_cache::ImageCache>>,
+    // recto: what the page has drawn so far, where it's been rasterized in parts; see
+    // `MAX_RECORDED_BYTES`. On the background, as the page's pixmap is.
+    flushed: RefCell<Option<Pixmap>>,
+    background: AlphaColor<Srgb>,
+}
+
+/// recto: past this, what a page has drawn is rasterized into its pixmap and forgotten, so a page
+/// holds about this much of what it draws however much that is: each glyph or path drawn is strips
+/// and their alphas until the page is rasterized, and 1,280,000 glyphs took 1.1 GB. Only at the page's
+/// own level, outside any layer or group; see `RenderContext::render_and_clear`, which says what a
+/// part can't give exactly as one rasterization would.
+const MAX_RECORDED_BYTES: usize = 32 << 20;
+
+thread_local! {
+    static MAX_RECORDED: std::cell::Cell<usize> = const { std::cell::Cell::new(MAX_RECORDED_BYTES) };
+}
+
+/// recto: sets `MAX_RECORDED_BYTES` on this thread, for tests: a page rasterized in parts is the
+/// page rasterized at once.
+#[doc(hidden)]
+pub fn set_max_recorded_bytes(bytes: usize) {
+    MAX_RECORDED.with(|max| max.set(bytes));
 }
 
 impl GlobalState {
@@ -110,6 +132,16 @@ impl GlobalState {
             degraded: cache.degraded.clone(),
             page: None,
             image_cache: cache.image_cache.clone(),
+            flushed: RefCell::default(),
+            background: settings.background,
+        }
+    }
+
+    /// recto: the page's pixmap, and how what's left to rasterize goes on it.
+    fn target(&self, width: u16, height: u16) -> (Pixmap, vello_cpu::TargetInit) {
+        match self.flushed.take() {
+            Some(pixmap) => (pixmap, vello_cpu::TargetInit::SrcOver),
+            None => (Pixmap::new(width, height), vello_cpu::TargetInit::Clear(self.background)),
         }
     }
 }
@@ -129,6 +161,9 @@ pub(crate) struct Renderer<'r> {
     /// recto: the whole page's pixmap in this context's pixels, in a window's render, where this
     /// context is the window's (or one in its space); None where this context is all of it.
     pub(crate) page: Option<Rect>,
+    /// recto: whether this context is the page's own, which may be rasterized in parts; see
+    /// `MAX_RECORDED_BYTES`.
+    pub(crate) flushes: bool,
 }
 
 impl<'r> Renderer<'r> {
@@ -145,7 +180,32 @@ impl<'r> Renderer<'r> {
             range: (0, u32::MAX),
             replay: None,
             page: global.page,
+            flushes: false,
         }
+    }
+
+    /// recto: rasterizes what the page has drawn into its pixmap once that holds more than
+    /// `MAX_RECORDED_BYTES`, where it can be.
+    pub(crate) fn flush_if_large(&mut self) {
+        if !self.flushes
+            || !self.groups.is_empty()
+            || !self.captures.is_empty()
+            || self.ctx.recorded_bytes() <= MAX_RECORDED.with(std::cell::Cell::get)
+            || !self.ctx.can_render_and_clear()
+        {
+            return;
+        }
+        self.rasterize_part();
+    }
+
+    /// recto: see `flush_if_large`. Rare, so out of line and out of the drawing part of the wasm.
+    #[cold]
+    #[inline(never)]
+    fn rasterize_part(&mut self) {
+        let (mut pixmap, target_init) = self.global.target(self.ctx.width(), self.ctx.height());
+        let settings = vello_cpu::RasterizerSettings { target_init, ..Default::default() };
+        self.ctx.render_and_clear(&mut pixmap, &mut vello_cpu::Resources::default(), settings);
+        *self.global.flushed.borrow_mut() = Some(pixmap);
     }
 
     fn misses_target(&self, bbox: Rect) -> bool {
@@ -179,6 +239,7 @@ impl<'a, 'r> Device<'a> for Renderer<'r> {
     fn draw_image(&mut self, image: hayro_interpret::Image<'a, '_>, props: ImageDrawProps<'a>) {
         if !self.muted() {
             Self::draw_pdf_image(self, image, props);
+            self.flush_if_large();
         }
     }
 
@@ -210,12 +271,14 @@ impl<'a, 'r> Device<'a> for Renderer<'r> {
     fn draw_path(&mut self, path: &BezPath, props: DrawProps<'a>, draw_mode: &DrawMode) {
         if !self.muted() {
             Self::draw_path(self, path, props, draw_mode);
+            self.flush_if_large();
         }
     }
 
     fn draw_rect(&mut self, rect: &Rect, props: DrawProps<'a>, draw_mode: &DrawMode) {
         if !self.muted() {
             Self::draw_rect(self, rect, props, draw_mode);
+            self.flush_if_large();
         }
     }
 
@@ -437,7 +500,7 @@ pub fn render<'a>(
 ) -> Pixmap {
     let (width, height, transform, whole) = pixmap_settings.target(page);
     let mut ctx = RenderContext::new(width, height);
-    render_into_page(
+    let global = render_into_page(
         page,
         cache,
         interpreter_settings,
@@ -451,12 +514,13 @@ pub fn render<'a>(
     );
     ctx.flush();
 
-    let mut pixmap = Pixmap::new(ctx.width(), ctx.height());
+    // recto: over what was rasterized already, if the page was in parts.
+    let (mut pixmap, target_init) = global.target(ctx.width(), ctx.height());
     ctx.render_with(
         &mut pixmap,
         &mut vello_cpu::Resources::default(),
         vello_cpu::RasterizerSettings {
-            target_init: vello_cpu::TargetInit::Clear(pixmap_settings.bg_color),
+            target_init,
             ..Default::default()
         },
     );
@@ -473,7 +537,6 @@ pub struct PageJob<'a, 'c> {
     global: Rc<GlobalState>,
     kept: Kept,
     clip_crop_box: bool,
-    background: AlphaColor<Srgb>,
     degraded: Rc<std::cell::Cell<bool>>,
 }
 
@@ -551,7 +614,6 @@ impl<'a, 'c> PageJob<'a, 'c> {
             global,
             kept: Kept::default(),
             clip_crop_box,
-            background: pixmap_settings.bg_color,
             degraded,
         }
     }
@@ -570,6 +632,7 @@ impl<'a, 'c> PageJob<'a, 'c> {
         device.captures_seen = kept.captures_seen;
         device.events = kept.events;
         device.replay = Some(&self.replay);
+        device.flushes = true;
         let done = run.step(&mut self.state, &mut device, expired);
         if done && self.clip_crop_box {
             device.pop_clip();
@@ -590,12 +653,13 @@ impl<'a, 'c> PageJob<'a, 'c> {
     /// The finished page, and whether it passed a limit. Only after `step` said it's done.
     pub fn finish(&mut self) -> (Pixmap, bool) {
         self.ctx.flush();
-        let mut pixmap = Pixmap::new(self.ctx.width(), self.ctx.height());
+        // recto: over what was rasterized already, if the page was in parts.
+        let (mut pixmap, target_init) = self.global.target(self.ctx.width(), self.ctx.height());
         self.ctx.render_with(
             &mut pixmap,
             &mut vello_cpu::Resources::default(),
             vello_cpu::RasterizerSettings {
-                target_init: vello_cpu::TargetInit::Clear(self.background),
+                target_init,
                 ..Default::default()
             },
         );
@@ -613,7 +677,7 @@ fn render_into_page<'a>(
     ctx: &mut RenderContext,
     transform: Affine,
     whole: Option<Rect>,
-) {
+) -> Rc<GlobalState> {
     let mut global = GlobalState::new(cache, render_settings);
     global.page = whole;
     let global = Rc::new(global);
@@ -625,11 +689,13 @@ fn render_into_page<'a>(
         transform,
         ctx,
     );
-    draw_page(page, cache, interpreter_settings, render_settings.aliasing_threshold, ctx, transform, &global, &replay, (0, u32::MAX));
+    draw_page(page, cache, interpreter_settings, render_settings.aliasing_threshold, ctx, transform, &global, &replay, (0, u32::MAX), true);
     // recto: a limit passed is a page incomplete, wherever it was.
     if interpreter_settings.budget.tripped() {
         global.degraded.set(true);
     }
+    drop(replay);
+    global
 }
 
 // recto: split from `render_into`, so a group can draw part of the page again for its backdrop.
@@ -644,6 +710,7 @@ fn draw_page<'a, 'r>(
     global: &'r GlobalState,
     replay: &'r (dyn group::Backdrop + 'r),
     range: (u32, u32),
+    flushes: bool,
 ) {
     let target = Rect::new(0.0, 0.0, ctx.width() as f64, ctx.height() as f64);
     let mut state = Context::new(
@@ -661,6 +728,7 @@ fn draw_page<'a, 'r>(
     let mut device = Renderer::new(ctx, global);
     device.replay = Some(replay);
     device.range = range;
+    device.flushes = flushes;
     let crop_box = page.intersected_crop_box().to_kurbo();
     let [a, b, c, d, _, _] = transform.as_coeffs();
     let axis_aligned = (b == 0.0 && c == 0.0) || (a == 0.0 && d == 0.0);

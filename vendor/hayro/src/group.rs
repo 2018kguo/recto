@@ -106,6 +106,7 @@ impl Backdrop for PageReplay<'_, '_> {
             &self.global,
             self,
             (from, to),
+            false,
         );
         ctx.flush();
         let mut pixmap = Pixmap::new(self.width, self.height);
