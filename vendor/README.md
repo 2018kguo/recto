@@ -10,7 +10,8 @@ They are patched for what upstream does not have:
 - **hayro**: isolated and knockout transparency groups (`src/group.rs`), which upstream draws all
   as isolated layers, with a group's backdrop the page drawn so far without the paper, as the page group is
   isolated; an image drawn at under twice its size smoothed, as pdfium does; luminosity
-  masks by PDF's weights; a hairline in a pattern at least a pixel wide.
+  masks by PDF's weights; a hairline in a pattern at least a pixel wide; an axial or radial shading
+  drawn as a gradient sampled at pixel centres, without upstream's extra half-pixel shift (`src/paint.rs`).
 - **hayro-syntax**: reading a file by range. Bytes arrive on first use (`PdfData::ranged`),
   objects and xref sections fetch what they need, and pages are found on demand. Offsets past
   2 GiB. Repairing an encrypted file whose trailer is gone.

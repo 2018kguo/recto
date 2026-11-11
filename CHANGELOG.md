@@ -11,6 +11,13 @@
   drawn nothing; an InDesign card in pdf.js's test suite, an orange gradient blended `/Color` in a knockout
   group, came out blank. It now draws as poppler, pdf.js and mupdf draw it, and as recto already drew the same
   blend outside a group. Of the scorecard's 616 pages, that one page's pixels change, and it now agrees.
+- **Axial and radial shadings are no longer drawn half a pixel up and to the left.** The renderer samples a
+  gradient at pixel centres already, and the shading's transform shifted it by another half pixel, so every
+  smooth shading drawn as a gradient was half a pixel off the same shading drawn as a texture, and off the
+  formula. Most pages can't tell; on a steep one the colour at a pixel was a band ahead, and the
+  edge of a cone (two circles apart, extended) a pixel out. Of the scorecard's 616 pages, the 21 with such
+  shadings change, 15 of them closer to the references and the rest by a level or two of rounding; the radial
+  gradients page in pdf.js's tests now agrees.
 
 ## 0.5.3
 
