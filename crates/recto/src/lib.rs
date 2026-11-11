@@ -1929,4 +1929,48 @@ mod tests {
         assert_eq!(pixel_side(100.4), 101.0);
         assert_eq!(pixel_side(0.2), 1.0);
     }
+
+    /// Word's nested even-odd clips, a rectangle with a hole each: when the rectangle is the first
+    /// subpath and covers the current clip, it's drawn as one far larger (`widen_covering_rect` in
+    /// hayro-interpret), and the page must come out as it does with the same clips listing the hole
+    /// first, which are left as they are. With the rectangle on whole pixels, nothing may differ;
+    /// with a clip around it that it doesn't cover, the rectangle must still cut.
+    #[test]
+    fn a_covering_rectangle_in_an_even_odd_clip_draws_the_same_widened() {
+        let holes: Vec<String> = (0..24)
+            .map(|i| {
+                let (x, y) = (12.3 + 3.1 * i as f64, 14.5 + 2.9 * i as f64);
+                format!("{x} {y} m {} {y} l {} {} l {x} {} l h", x + 6.25, x + 6.25, y + 5.5, y + 5.5)
+            })
+            .collect();
+        let render = |outer: &str, rect_first: bool| {
+            let rect = "10 10 m 90 10 l 90 90 l 10 90 l 10 10 l h";
+            let mut content = format!("q {outer} re W n ");
+            for hole in &holes {
+                let path = if rect_first { format!("{rect} {hole}") } else { format!("{hole} {rect}") };
+                content += &format!("{path} W* n ");
+            }
+            content += "1 0 0 rg 0 0 100 100 re f Q";
+            let doc = Document::open(
+                pdf(&[
+                    b"<< /Type /Catalog /Pages 2 0 R >>",
+                    b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                    b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R >>",
+                    &stream("", content.as_bytes()),
+                ]),
+                "",
+            )
+            .unwrap();
+            doc.render(0, 100.0, f32::INFINITY).unwrap()
+        };
+        let px = |b: &Bitmap, x: usize, y: usize| b.rgba[(y * b.width as usize + x) * 4..][..4].to_vec();
+        for outer in ["10 10 80 80", "5 5 90 90"] {
+            let widened = render(outer, true);
+            let kept = render(outer, false);
+            assert_eq!(widened.rgba, kept.rgba, "clip {outer}");
+            assert_eq!(px(&widened, 30, 20), [255, 0, 0, 255], "red between the holes");
+            assert_eq!(px(&widened, 15, 82), [255, 255, 255, 255], "white in the first hole");
+            assert_eq!(px(&widened, 7, 50), [255, 255, 255, 255], "white outside the rectangle");
+        }
+    }
 }

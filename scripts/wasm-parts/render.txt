@@ -165,6 +165,7 @@
 <kurbo::affine::Affine>::transform_rect_bbox
 <kurbo::bezpath::BezPath as kurbo::shape::Shape>::bounding_box
 <kurbo::bezpath::BezPath>::control_box
+<kurbo::bezpath::BezPath>::with_capacity
 <kurbo::bezpath::PathSeg as kurbo::param_curve::ParamCurve>::eval
 <kurbo::bezpath::PathSeg as kurbo::param_curve::ParamCurve>::subsegment
 <kurbo::bezpath::PathSeg as kurbo::param_curve::ParamCurveArclen>::inv_arclen
@@ -583,6 +584,7 @@ foldhash::seed::gen_per_hasher_seed
 hayro::draw_page
 hayro::image::resize_image_data
 hayro::render
+hayro_interpret::context::widen_covering_rect
 hayro_interpret::gradient::approximate_gradient_interval::<<hayro_interpret::encode::EncodedRadialAxialShading>::as_svg_gradient::{closure#0}>
 hayro_interpret::interpret::annot_fallback::appearance
 hayro_interpret::interpret::annot_fallback::appearance::{closure#6}

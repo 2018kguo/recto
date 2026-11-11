@@ -32,6 +32,9 @@ They are patched for what upstream does not have:
   into a sized buffer rather than through a reader; a limit on what one stream or image decodes to
   (`set_max_decoded_bytes`), and an inline image's end found in one pass.
 - **hayro-interpret**: a function listed again at the same depth built once and shared.
+- **hayro-interpret**: an even-odd clip whose first subpath is a rectangle around the current clip, as Word
+  cuts holes in a page, given to the renderer with that rectangle far past the viewport, so it's culled
+  rather than rasterized again on every push (`widen_covering_rect` in `src/context.rs`).
 - **hayro-font**, **hayro-interpret** and **hayro**: a document's embedded font programs shared between
   the cache that reads its text and the one that draws it (`FontCache::sharing_programs`,
   `RenderCache::text_interpreter_cache`); programs a font resolver gives stay with each cache. The
