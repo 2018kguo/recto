@@ -984,9 +984,10 @@ mod tests {
             let bitmap = doc.render(0, 100.0, f32::INFINITY).unwrap();
             (function_work() - before, bitmap)
         };
-        // Under the limit it draws, as before: 2^11 pieces, black to white.
+        // Under the limit it draws, as before: 2^11 pieces, each black to white, finer than a pixel.
         let (_, bitmap) = work(12);
-        assert!(bitmap.rgba[0] < 16 && bitmap.rgba[4 * 99] > 240, "{:?}", &bitmap.rgba[..8]);
+        let row: Vec<u8> = bitmap.rgba[..4 * 100].iter().step_by(4).copied().collect();
+        assert!(row.iter().any(|&v| v < 16) && row.iter().any(|&v| v > 240), "{row:?}");
         let (work, _) = work(22);
         assert!(work <= 4 << 14, "{work} functions built or visited");
     }
