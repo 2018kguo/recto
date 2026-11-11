@@ -435,38 +435,134 @@ pub fn render<'a>(
     render_settings: &RenderSettings,
     pixmap_settings: &PixmapSettings,
 ) -> Pixmap {
-    let (width, height, transform, whole) = pixmap_settings.target(page);
-    let mut ctx = RenderContext::new(width, height);
-    render_into_page(
-        page,
-        cache,
-        interpreter_settings,
-        &RenderSettings {
-            background: pixmap_settings.bg_color,
-            ..*render_settings
-        },
-        &mut ctx,
-        transform,
-        whole,
-    );
-    ctx.flush();
+    let mut rgba = Vec::new();
+    let (width, height) = render_rgba(page, cache, interpreter_settings, render_settings, pixmap_settings, &mut rgba);
+    let metadata = vello_cpu::PixelMetadata::new(peniko::ImageAlphaType::AlphaPremultiplied, true);
+    Pixmap::from_parts(rgba, width, height, metadata)
+}
 
-    let mut pixmap = Pixmap::new(ctx.width(), ctx.height());
-    ctx.render_with(
-        &mut pixmap,
-        &mut vello_cpu::Resources::default(),
-        vello_cpu::RasterizerSettings {
-            target_init: vello_cpu::TargetInit::Clear(pixmap_settings.bg_color),
-            ..Default::default()
-        },
-    );
-    pixmap
+/// recto: [`render`] into `rgba`, premultiplied, four bytes a pixel, resized to the page; returns
+/// its width and height. Every pixel is written, so a caller can pass the last page's buffer back
+/// and nothing page-sized is allocated or cleared.
+pub fn render_rgba<'a>(
+    page: &'a Page<'a>,
+    cache: &RenderCache<'a>,
+    interpreter_settings: &InterpreterSettings,
+    render_settings: &RenderSettings,
+    pixmap_settings: &PixmapSettings,
+    rgba: &mut Vec<u8>,
+) -> (u16, u16) {
+    let mut recorded = record(page, cache, interpreter_settings, render_settings, pixmap_settings);
+    let size = recorded.rasterize(rgba);
+    recorded.0.keep();
+    size
+}
+
+/// recto: what drawing a page leaves for the next page drawn on this thread: the recorded scene's
+/// buffers, whose capacity `reset` keeps, and the rasterizer's resources. A page drawn from fresh
+/// grows each of them from empty, a thousand reallocations or so.
+struct Kit {
+    ctx: RenderContext,
+    resources: vello_cpu::Resources,
+}
+
+thread_local! {
+    static KIT: RefCell<Option<Kit>> = const { RefCell::new(None) };
+}
+
+impl Kit {
+    /// The kept one, reset to this size, or a new one. One that last drew more than four times
+    /// these pixels is let go, so a huge page doesn't pin its buffers for the small ones after it.
+    fn take(width: u16, height: u16) -> Self {
+        let area = |w: u16, h: u16| u32::from(w) * u32::from(h);
+        // One too large is dropped here, before a new one is made, so the two are never both held.
+        let kept = KIT
+            .with(|k| k.borrow_mut().take())
+            .filter(|kit| area(kit.ctx.width(), kit.ctx.height()) <= area(width, height).max(1 << 16) * 4);
+        match kept {
+            Some(mut kit) => {
+                kit.ctx.reset_and_resize(width, height);
+                kit
+            }
+            None => Self {
+                ctx: RenderContext::new(width, height),
+                resources: vello_cpu::Resources::default(),
+            },
+        }
+    }
+
+    /// Kept for the next page. A render run while another is paused between slices makes a
+    /// second; whichever finishes last is kept.
+    fn keep(self) {
+        KIT.with(|k| *k.borrow_mut() = Some(self));
+    }
+
+    /// Rasterizes the scene into `rgba`, sized to it. The scene covers the whole buffer, so
+    /// `TargetInit::Clear` paints the background as it packs, with no pass to clear it first.
+    fn rasterize(&mut self, background: AlphaColor<Srgb>, rgba: &mut Vec<u8>) -> (u16, u16) {
+        self.ctx.flush();
+        let (width, height) = (self.ctx.width(), self.ctx.height());
+        let len = usize::from(width) * usize::from(height) * 4;
+        // One far larger than this page is let go too.
+        if rgba.capacity() < len || rgba.capacity() > len.max(1 << 20) * 4 {
+            // The old one goes first. Zeroed by the allocator, which for a large one is fresh
+            // pages, not a pass over them.
+            *rgba = Vec::new();
+            *rgba = vec![0; len];
+        } else {
+            rgba.resize(len, 0);
+        }
+        let target = vello_cpu::PixmapMut::new(width, height, rgba).expect("sized to the scene");
+        self.ctx.render_with(
+            target,
+            &mut self.resources,
+            vello_cpu::RasterizerSettings {
+                target_init: vello_cpu::TargetInit::Clear(background),
+                ..Default::default()
+            },
+        );
+        (width, height)
+    }
+}
+
+/// recto: for benchmarks: a page interpreted into a scene and not yet rasterized, so the
+/// rasterizer can be timed alone, as often as asked.
+#[doc(hidden)]
+pub struct Recorded(Kit, AlphaColor<Srgb>);
+
+/// recto: see [`Recorded`]. Takes what [`render`] takes.
+#[doc(hidden)]
+pub fn record<'a>(
+    page: &'a Page<'a>,
+    cache: &RenderCache<'a>,
+    interpreter_settings: &InterpreterSettings,
+    render_settings: &RenderSettings,
+    pixmap_settings: &PixmapSettings,
+) -> Recorded {
+    let (width, height, transform, whole) = pixmap_settings.target(page);
+    let mut kit = Kit::take(width, height);
+    let render_settings = RenderSettings { background: pixmap_settings.bg_color, ..*render_settings };
+    render_into_page(page, cache, interpreter_settings, &render_settings, &mut kit.ctx, transform, whole);
+    Recorded(kit, pixmap_settings.bg_color)
+}
+
+impl Recorded {
+    /// The scene's pixels, as [`render_rgba`] leaves them.
+    pub fn rasterize(&mut self, rgba: &mut Vec<u8>) -> (u16, u16) {
+        self.0.rasterize(self.1, rgba)
+    }
+}
+
+/// recto: lets go of what drawing keeps on this thread between pages.
+pub fn release_render_memory() {
+    KIT.with(|k| k.borrow_mut().take());
 }
 
 /// recto: a page being drawn a slice at a time: the same result as [`render`], with the thread
 /// given back between slices. Between them nothing here is borrowed from the caches.
 pub struct PageJob<'a, 'c> {
-    ctx: RenderContext,
+    /// Taken back by the thread when the page is finished.
+    kit: Option<Kit>,
     state: Context<'a>,
     run: Option<PageRun<'a>>,
     replay: group::PageReplay<'a, 'c>,
@@ -497,7 +593,8 @@ impl<'a, 'c> PageJob<'a, 'c> {
         pixmap_settings: &PixmapSettings,
     ) -> Self {
         let (width, height, transform, whole) = pixmap_settings.target(page);
-        let mut ctx = RenderContext::new(width, height);
+        let mut kit = Kit::take(width, height);
+        let ctx = &mut kit.ctx;
         let render_settings = RenderSettings {
             background: pixmap_settings.bg_color,
             ..*render_settings
@@ -514,7 +611,7 @@ impl<'a, 'c> PageJob<'a, 'c> {
             interpreter_settings,
             global.clone(),
             transform,
-            &ctx,
+            ctx,
             render_settings.background,
         );
 
@@ -545,7 +642,7 @@ impl<'a, 'c> PageJob<'a, 'c> {
 
         let run = PageRun::new(page, &mut state);
         Self {
-            ctx,
+            kit: Some(kit),
             state,
             run: Some(run),
             replay,
@@ -564,7 +661,8 @@ impl<'a, 'c> PageJob<'a, 'c> {
             return true;
         };
         let kept = std::mem::take(&mut self.kept);
-        let mut device = Renderer::new(&mut self.ctx, &self.global);
+        let ctx = &mut self.kit.as_mut().expect("not finished").ctx;
+        let mut device = Renderer::new(ctx, &self.global);
         device.soft_mask_cache = kept.soft_mask_cache;
         device.groups = kept.groups;
         device.captures = kept.captures;
@@ -588,19 +686,13 @@ impl<'a, 'c> PageJob<'a, 'c> {
         done
     }
 
-    /// The finished page, and whether it passed a limit. Only after `step` said it's done.
-    pub fn finish(&mut self) -> (Pixmap, bool) {
-        self.ctx.flush();
-        let mut pixmap = Pixmap::new(self.ctx.width(), self.ctx.height());
-        self.ctx.render_with(
-            &mut pixmap,
-            &mut vello_cpu::Resources::default(),
-            vello_cpu::RasterizerSettings {
-                target_init: vello_cpu::TargetInit::Clear(self.background),
-                ..Default::default()
-            },
-        );
-        (pixmap, self.degraded.replace(false) || self.state.budget_tripped())
+    /// The finished page in `rgba`, as [`render_rgba`] leaves it, its width and height, and
+    /// whether it passed a limit. Once, after `step` said it's done.
+    pub fn finish(&mut self, rgba: &mut Vec<u8>) -> ((u16, u16), bool) {
+        let mut kit = self.kit.take().expect("finished once");
+        let size = kit.rasterize(self.background, rgba);
+        kit.keep();
+        (size, self.degraded.replace(false) || self.state.budget_tripped())
     }
 }
 

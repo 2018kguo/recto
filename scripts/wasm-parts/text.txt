@@ -855,6 +855,7 @@ document_structureTruncated multivalue shim
 document_textAndAnnotations
 document_textAndAnnotations multivalue shim
 fmodf
+hayro::release_render_memory
 hayro_cmap::bcmap::embedded::bundle
 hayro_cmap::bcmap::embedded::load_embedded
 hayro_cmap::bcmap::embedded::set_bundle_source

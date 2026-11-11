@@ -123,6 +123,30 @@ pub struct Bitmap {
     pub page_height: u32,
 }
 
+thread_local! {
+    /// A bitmap's buffer given back, for the next render on this thread to draw into.
+    static PIXELS: std::cell::Cell<Vec<u8>> = const { std::cell::Cell::new(Vec::new()) };
+}
+
+impl Bitmap {
+    /// Gives the pixels' buffer back once you're done with them, so the next render on this
+    /// thread draws into it instead of allocating its own. Only a buffer, so nothing breaks if you don't.
+    pub fn recycle(self) {
+        recycle_pixels(self.rgba);
+    }
+}
+
+fn recycle_pixels(rgba: Vec<u8>) {
+    PIXELS.set(rgba);
+}
+
+/// Lets go of what rendering keeps on this thread from page to page: the renderer's scene
+/// buffers, as large as recent pages needed, and a recycled bitmap's buffer.
+pub fn release_render_memory() {
+    hayro::release_render_memory();
+    PIXELS.take();
+}
+
 /// A part of a page to draw, in the viewer frame: points from the top-left of the page as it's
 /// shown, with `/Rotate` and the crop box applied, as char and annotation boxes are.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -518,21 +542,20 @@ impl Document {
         Ok((settings, Some(Placed { page, region: (x, y, w, h) })))
     }
 
-    fn pixmap(
-        &self,
-        index: usize,
-        settings: &PixmapSettings,
-    ) -> Result<(hayro::vello_cpu::Pixmap, bool), EngineError> {
+    /// The page's pixels, its size, and whether it was cut short.
+    fn pixmap(&self, index: usize, settings: &PixmapSettings) -> Result<(Vec<u8>, (u16, u16), bool), EngineError> {
         let cuts = hayro::hayro_syntax::decodes_cut();
         self.with_page(index, |_, page, caches| {
-            let pixmap = render(
+            let mut rgba = PIXELS.take();
+            let size = hayro::render_rgba(
                 page,
                 &caches.render,
                 &crate::assets::settings(),
                 &RenderSettings::default(),
                 settings,
+                &mut rgba,
             );
-            (pixmap, caches.render.take_degraded() || hayro::hayro_syntax::decodes_cut() != cuts)
+            (rgba, size, caches.render.take_degraded() || hayro::hayro_syntax::decodes_cut() != cuts)
         })
     }
 
@@ -546,8 +569,8 @@ impl Document {
     /// scale may be up to `MAX_REGION_PAGE_SIDE` a side.
     pub fn render_region(&self, index: usize, width: f32, max_height: f32, region: Option<Region>) -> Result<Bitmap, EngineError> {
         let (settings, page) = self.pixmap_settings(index, width, max_height, region)?;
-        let (pixmap, truncated) = self.pixmap(index, &settings)?;
-        Ok(bitmap_of(pixmap, truncated, &settings, page))
+        let (rgba, size, truncated) = self.pixmap(index, &settings)?;
+        Ok(bitmap_of(rgba, size, truncated, &settings, page))
     }
 }
 
@@ -608,13 +631,13 @@ impl RenderTask {
     /// Rasterizes what `step` drew. One call, after `step` returned true.
     pub fn finish(&mut self) -> Bitmap {
         let cuts = hayro::hayro_syntax::decodes_cut();
-        let (pixmap, truncated) = self.job.finish();
+        let mut rgba = PIXELS.take();
+        let (size, truncated) = self.job.finish(&mut rgba);
         self.cut |= hayro::hayro_syntax::decodes_cut() != cuts;
-        bitmap_of(pixmap, truncated || self.cut, &self.settings, self.page)
+        bitmap_of(rgba, size, truncated || self.cut, &self.settings, self.page)
     }
 }
 
-/// The pixmap's own buffer, with no second page-sized allocation at the render's peak.
 /// A region's place: the whole page's pixmap's size, and the region's pixels in it.
 #[derive(Clone, Copy, Debug)]
 struct Placed {
@@ -628,29 +651,31 @@ struct Placed {
 /// its origin, or an image on a nearest-neighbour tie, can come out differently.
 const WINDOW_ALIGN: (u32, u32) = (256, 4);
 
+/// The drawn buffer as the bitmap's, with a region cut from its window in place: no second
+/// page-sized allocation at the render's peak.
 fn bitmap_of(
-    pixmap: hayro::vello_cpu::Pixmap,
+    mut rgba: Vec<u8>,
+    (width, height): (u16, u16),
     truncated: bool,
     settings: &PixmapSettings,
     placed: Option<Placed>,
 ) -> Bitmap {
-    let (width, height) = (u32::from(pixmap.width()), u32::from(pixmap.height()));
-    let rgba = pixmap.take_rgba8(hayro::vello_cpu::peniko::ImageAlphaType::AlphaPremultiplied);
+    let (width, height) = (u32::from(width), u32::from(height));
     let (Some(placed), Some(window)) = (placed, settings.window) else {
         return Bitmap { width, height, rgba, truncated, x: 0, y: 0, page_width: width, page_height: height };
     };
-    // The region, cut from the window drawn round it.
+    // The region, cut from the window drawn round it. Each row moves to the front, never past
+    // a row not yet moved.
     let (x, y, w, h) = placed.region;
     let (dx, dy) = ((x - window.x) as usize, (y - window.y) as usize);
-    let rgba = if (dx, dy, w, h) == (0, 0, width, height) {
-        rgba
-    } else {
+    if (dx, dy, w, h) != (0, 0, width, height) {
         let (stride, row) = (width as usize * 4, w as usize * 4);
-        (0..h as usize).flat_map(|r| {
+        for r in 0..h as usize {
             let at = (dy + r) * stride + dx * 4;
-            rgba[at..at + row].iter().copied()
-        }).collect()
-    };
+            rgba.copy_within(at..at + row, r * row);
+        }
+        rgba.truncate(h as usize * row);
+    }
     Bitmap { width: w, height: h, rgba, truncated, x, y, page_width: placed.page.0, page_height: placed.page.1 }
 }
 
@@ -1971,6 +1996,60 @@ mod tests {
             assert_eq!(px(&widened, 30, 20), [255, 0, 0, 255], "red between the holes");
             assert_eq!(px(&widened, 15, 82), [255, 255, 255, 255], "white in the first hole");
             assert_eq!(px(&widened, 7, 50), [255, 255, 255, 255], "white outside the rectangle");
+        }
+    }
+
+    /// What a render keeps for the next (the scene's buffers, a recycled bitmap's) never shows
+    /// in its pixels: each render, in any order, at any size, whole, region or sliced, is the one
+    /// drawn on a thread that kept nothing.
+    #[test]
+    fn a_render_is_the_same_whatever_was_drawn_before_it() {
+        let busy = stream("", b"0 0 1 rg 10 10 500 700 re f 1 0 0 RG 8 w 20 20 m 580 780 l S q 0.5 g 50 50 200 200 re W n 0 0 600 800 re f Q BT /F1 40 Tf 60 400 Td (Kept) Tj ET");
+        let plain = stream("", b"0 1 0 rg 30 30 40 40 re f");
+        let doc = std::rc::Rc::new(
+            Document::open(
+                pdf(&[
+                    b"<< /Type /Catalog /Pages 2 0 R >>",
+                    b"<< /Type /Pages /Kids [3 0 R 5 0 R] /Count 2 >>",
+                    b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 800] /Contents 4 0 R /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> >>",
+                    &busy,
+                    b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 300] /Contents 6 0 R >>",
+                    &plain,
+                ]),
+                "",
+            )
+            .unwrap(),
+        );
+        let region = Region { x: 100.0, y: 150.0, width: 300.0, height: 200.0 };
+        type Draw = (usize, f32, Option<Region>, bool);
+        let draws: [Draw; 6] =
+            [(0, 900.0, None, false), (1, 120.0, None, false), (0, 900.0, Some(region), false), (0, 1600.0, None, true), (1, 2000.0, None, true), (0, 300.0, Some(region), false)];
+        let draw = |&(index, width, region, sliced): &Draw| {
+            if sliced {
+                let mut task = RenderTask::new(doc.clone(), index, width, f32::INFINITY, region).unwrap();
+                while !task.step(&|| true) {}
+                task.finish()
+            } else {
+                doc.render_region(index, width, f32::INFINITY, region).unwrap()
+            }
+        };
+        let fresh: Vec<Vec<u8>> = draws
+            .iter()
+            .map(|d| {
+                release_render_memory();
+                draw(d).rgba
+            })
+            .collect();
+        release_render_memory();
+        // Every order of a few: each after a different one, its buffer recycled or not.
+        for round in 0..3 {
+            for (i, d) in draws.iter().enumerate().cycle().skip(round).take(draws.len() * 2) {
+                let bitmap = draw(d);
+                assert!(bitmap.rgba == fresh[i], "draw {i} in round {round}");
+                if (i + round) % 2 == 0 {
+                    bitmap.recycle();
+                }
+            }
         }
     }
 }

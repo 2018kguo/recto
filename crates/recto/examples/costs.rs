@@ -7,8 +7,10 @@
 //!
 //! By default each file is opened, its first `--text-pages` read, then opened again and its first
 //! `--render-pages` drawn. `both` draws each of those pages and then reads its text, as a viewer does;
-//! `textfirst` reads each page's text and then draws it. `COSTS_WORST=n` lists the n slowest items.
+//! `textfirst` reads each page's text and then draws it. `COSTS_WORST=n` lists the n slowest items;
+//! `COSTS_HASHES=file` writes each drawn page's size and pixels' SHA-256 there.
 use std::alloc::{GlobalAlloc, Layout, System};
+use std::io::Write;
 use std::sync::atomic::{AtomicU64, Ordering::Relaxed};
 use std::time::Instant;
 use std::{env, fs};
@@ -97,6 +99,8 @@ fn main() {
     let only = take("--only", "");
     let text_pages: usize = take("--text-pages", "20").parse().unwrap();
     let render_pages: usize = take("--render-pages", "2").parse().unwrap();
+    // Each drawn page's size and the SHA-256 of its pixels, a line each, to compare two builds.
+    let mut hashes = env::var("COSTS_HASHES").ok().map(|p| std::io::BufWriter::new(fs::File::create(p).unwrap()));
     let mut files = Vec::new();
     for dir in &args {
         let mut paths: Vec<_> = fs::read_dir(dir).unwrap().map(|e| e.unwrap().path()).collect();
@@ -133,7 +137,13 @@ fn main() {
                         totals[1] += c.ns;
                         per_item.entry(("text".into(), name.clone(), i)).or_insert_with(|| (Vec::new(), c)).0.push(c.ns);
                     }
-                    let (_b, c) = measure(|| doc.render(i, width, 16384.0));
+                    let (b, c) = measure(|| doc.render(i, width, 16384.0));
+                    if run == 0
+                        && let (Some(out), Ok(b)) = (hashes.as_mut(), &b)
+                    {
+                        let hex: String = hayro::hayro_syntax::sha256(&b.rgba).iter().map(|x| format!("{x:02x}")).collect();
+                        writeln!(out, "{name} {i} {}x{} {hex}", b.width, b.height).unwrap();
+                    }
                     totals[2] += c.ns;
                     per_item.entry(("render".into(), name.clone(), i)).or_insert_with(|| (Vec::new(), c)).0.push(c.ns);
                     if only == "both" {

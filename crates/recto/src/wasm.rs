@@ -47,6 +47,29 @@ pub fn sha256(bytes: &[u8]) -> Vec<u8> {
 #[wasm_bindgen]
 pub struct Document(std::rc::Rc<crate::Document>);
 
+thread_local! {
+    static OPEN: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
+}
+
+impl From<crate::Document> for Document {
+    fn from(document: crate::Document) -> Self {
+        OPEN.set(OPEN.get() + 1);
+        Document(document.into())
+    }
+}
+
+/// What rendering keeps from page to page goes with the last document open. Kept across
+/// documents, it sits in memory that never shrinks and splits the free space the next file
+/// and its pages need: more memory at the peak, for less time saved than it costs.
+impl Drop for Document {
+    fn drop(&mut self) {
+        OPEN.set(OPEN.get() - 1);
+        if OPEN.get() == 0 {
+            crate::release_render_memory();
+        }
+    }
+}
+
 macro_rules! getters {
     ($ty:ident { $($field:ident : $t:ty => $js:literal),* $(,)? }) => {
         #[wasm_bindgen]
@@ -368,10 +391,15 @@ fn region(x: f64, y: f64, width: f64, height: f64) -> Option<crate::Region> {
 
 #[wasm_bindgen]
 impl RenderedPage {
-    /// Moves the pixels out; call once.
+    /// The pixels, copied once into memory of JavaScript's own, which outlives this and the next
+    /// render; the buffer here goes back for the next render to draw into. Call once.
     #[wasm_bindgen(js_name = takeRgba)]
-    pub fn take_rgba(&mut self) -> Vec<u8> {
-        std::mem::take(&mut self.rgba)
+    pub fn take_rgba(&mut self) -> js_sys::Uint8Array {
+        let rgba = std::mem::take(&mut self.rgba);
+        let out = js_sys::Uint8Array::new_with_length(rgba.len() as u32);
+        out.copy_from(&rgba);
+        crate::recycle_pixels(rgba);
+        out
     }
 }
 
@@ -396,7 +424,7 @@ impl Document {
     #[wasm_bindgen(constructor)]
     pub fn open(bytes: Vec<u8>, password: Option<String>) -> Result<Document, JsValue> {
         crate::Document::open(bytes, password.as_deref().unwrap_or(""))
-            .map(|document| Document(document.into()))
+            .map(Document::from)
             .map_err(js_error)
     }
 
@@ -438,7 +466,7 @@ impl Document {
             Box::new(fill),
             password.as_deref().unwrap_or(""),
         )
-        .map(|document| Document(document.into()))
+        .map(Document::from)
         .map_err(js_error)
     }
 

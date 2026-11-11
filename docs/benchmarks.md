@@ -678,6 +678,56 @@ node bench/fuzz.mjs path/to/pdfs [--seed 1] [--count 2000] [--repair] [--results
 node bench/fuzz.mjs --structures [--seed 1] [--count 2000]
 ```
 
+## Stage by stage
+
+A whole render's time moves by more than most changes to one part of it, on a shared machine. So each
+stage has its own benchmark, in `examples/stages.rs`, with its inputs made before the clock starts:
+
+| Stage | What's timed |
+|---|---|
+| `inflate` | Every Flate stream in each file, from its raw bytes |
+| `lex` | Each page's decoded content, split into operators and operands |
+| `interpret` | Each page through the interpreter, onto a device that draws nothing |
+| `raster` | Each page's recorded scene, rasterized into one buffer kept from page to page |
+| `render`, `text` | `Document::render` and `Document::text`, all of each |
+
+`examples/costs.rs` adds allocations, reallocations and the peak live heap, per open, text page and drawn
+page; `COSTS_HASHES=file` writes each drawn page's SHA-256, to check two builds draw the same pixels.
+
+```sh
+cargo run --release -p recto --example stages -- [--stages lex,raster] [--runs 5] [--width 1024] [--pages 3] dir...
+cargo run --release -p recto --example costs -- --only render --render-pages 3 --width 1024 dir...
+```
+
+To compare two builds:
+
+1. Build each once, `cargo build --release -p recto --example stages` in a checkout of each, and copy
+   the binaries out, so nothing rebuilds between runs.
+2. Run them on the same files, one at a time: never two benchmarks at once, nor a build alongside.
+3. Alternate which goes first, round by round, each run a fresh process, for at least 8 rounds.
+4. Compare medians over the rounds, not means, and check the pixels with `COSTS_HASHES` before the times.
+5. On a shared machine, time each process with `/usr/bin/time -l` too (macOS; `perf stat` on Linux): the
+   instructions it retired move far less than its time.
+
+Keeping the render state from page to page was measured this way: 500 files, pages 1 to 3 of each (619 pages) drawn on
+one document at 1024 px, 8 rounds, medians, load average about 20.
+
+| Per drawn page | Before | After |
+|---|---:|---:|
+| Allocations | 1,835 | 1,650 |
+| Reallocations | 560 | 294 |
+| Native: median page / 90th percentile | 0.520 / 3.72 ms | 0.549 / 3.63 ms |
+| Native: instructions, whole process | 99.0 B | 98.6 B |
+| WebAssembly in Node: median page / 90th percentile | 0.903 / 5.44 ms | 0.871 / 5.28 ms |
+| WebAssembly in Node: instructions, whole process | 198.5 B | 198.4 B |
+| Peak native heap | 213.2 MB | 213.2 MB |
+| Peak WebAssembly memory | 214.9 MB | 232.1 MB |
+
+The time is the same within the noise, and so it was at 1600 px and at one page a document. The peak in
+WebAssembly is one file's 190 MB image, placed above whatever earlier pages left; at the other three settings
+it peaks where it did. Kept across documents as well, it cost more memory everywhere, so it goes with the last
+document closed.
+
 ## What this doesn't show
 
 - **Your files.** A different set of PDFs moves these ratios. Rerun it on yours.

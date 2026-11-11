@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **Drawing a page reuses the last page's render state.** The render context's buffers and the rasterizer's
+  resources stay on the thread from page to page and are reset between them, and a page is drawn straight
+  into its buffer with no zero-filled pixmap before it. In WebAssembly the pixel buffer is kept too, and
+  `takeRgba` copies it once into JavaScript's memory, the only copy a page makes, as before; what's kept goes
+  when the instance's last document closes. Natively, `Bitmap::recycle` gives a buffer back and
+  `release_render_memory` lets go of what's kept. Per drawn page, pages 1 to 3 of 500 files (619 pages) at 1024 px:
+  294 reallocations where there were 560, and 1,650 allocations from 1,835. Time and instructions retired
+  are the same within this machine's noise, in 8 alternating runs, natively and in WebAssembly in Node; so
+  are peak native heap and resident size. WebAssembly memory peaks where it did in three of four runs
+  (1024 and 1600 px, one page or three a document); at 1024 px and three pages it peaks 17 MB higher, at
+  232 MB, on the one file that draws a 190 MB image, from where earlier pages left the free space.
+  Every pixel of 619 pages at 1024 and 1600 px, drawn whole and a slice at a time, is the same.
+- `examples/stages.rs`: inflating, lexing, interpreting and rasterizing timed one at a time, and
+  `COSTS_HASHES` in `examples/costs.rs` to check two builds draw the same pixels. See
+  [Stage by stage](docs/benchmarks.md#stage-by-stage).
+
 ## 0.5.3
 
 Word-made pages, and reading text, are faster; every pixel and every character is unchanged.

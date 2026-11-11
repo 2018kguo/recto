@@ -51,6 +51,9 @@ They are patched for what upstream does not have:
 - **hayro-syntax** and **hayro-interpret**: a JPEG decoded at 1/2, 1/4 or 1/8 when it's drawn that much
   smaller (`dct_scale_shift`), but never under a `/Matte`, a colour key or an indexed colour space; **hayro**:
   the images a document draws again at the same size kept as drawn (`src/image_cache.rs`).
+- **hayro**: the render context and rasterizer resources kept on the thread from page to page and reset
+  between them (`Kit`), and a page drawn into a buffer the caller passes back (`render_rgba`), not a
+  zeroed pixmap of its own.
 
 `zune-jpeg` (0.5.15, by Caleb Etemesi, MIT, Apache-2.0 or Zlib) is vendored as well, for the decode at
 1/2, 1/4 or 1/8 it lacks (`src/scaled.rs`): each component's blocks go through a truncated IDCT, as

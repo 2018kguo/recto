@@ -86,6 +86,8 @@
 <hashbrown::raw::RawTable<(hayro_syntax::object::ObjectIdentifier, i32)>>::reserve_rehash::<hashbrown::map::make_hasher<hayro_syntax::object::ObjectIdentifier, i32, rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<(u32, alloc::sync::Arc<dyn core::convert::AsRef<[u8]> + core::marker::Send + core::marker::Sync>)>>::reserve_rehash::<hashbrown::map::make_hasher<u32, alloc::sync::Arc<dyn core::convert::AsRef<[u8]> + core::marker::Send + core::marker::Sync>, std::hash::random::RandomState>::{closure#0}>
 <hayro::GlobalState>::new
+<hayro::Kit>::rasterize
+<hayro::Kit>::take
 <hayro::PageJob>::finish
 <hayro::PageJob>::new
 <hayro::PageJob>::step
@@ -162,6 +164,10 @@
 <hayro_syntax::page::Pages as core::ops::deref::Deref>::deref
 <hayro_syntax::page::Resources>::get_shading
 <js_sys::Date>::now
+<js_sys::Uint8Array>::copy_from
+<js_sys::Uint8Array>::copy_from_slice::__wbg_set externref shim
+<js_sys::Uint8Array>::new_with_length
+<js_sys::Uint8Array>::new_with_length::__wbg_new_with_length externref shim
 <kurbo::affine::Affine>::transform_rect_bbox
 <kurbo::bezpath::BezPath as kurbo::shape::Shape>::bounding_box
 <kurbo::bezpath::BezPath>::control_box
@@ -309,6 +315,7 @@
 <recto::Document>::links
 <recto::Document>::pixmap_settings
 <recto::Document>::render_region
+<recto::RenderTask>::finish
 <recto::RenderTask>::new
 <recto::assets::resolve as core::ops::function::Fn<(&hayro_font::FontQuery,)>>::call
 <recto::device::PageDevice as hayro_interpret::device::Device>::draw_image
@@ -398,12 +405,12 @@
 <vello_common::pixmap::Pixmap>::data_as_u8_slice
 <vello_common::pixmap::Pixmap>::from_parts
 <vello_common::pixmap::Pixmap>::new
-<vello_common::pixmap::Pixmap>::take_rgba8
 <vello_common::pixmap::PixmapMut as core::convert::From<&mut vello_common::pixmap::Pixmap>>::from
 <vello_common::record::CommandRecorder<vello_cpu::record::RecordedFill>>::push_node
 <vello_common::record::CommandRecorder<vello_cpu::record::RecordedFill>>::push_recorded_layer
 <vello_common::record::RecordedLayer>::regular
 <vello_common::render_state::RenderState as core::default::Default>::default
+<vello_common::render_state::RenderState>::reset
 <vello_common::strip::Strip>::emit_culled_background::<vello_common::strip::render_impl<fearless_simd::generated::wasm::WasmSimd128>::{closure#1}>::{closure#0}
 <vello_common::strip_generator::StripGenerator>::generate_filled_rect_fast
 <vello_common::strip_generator::StripGenerator>::generate_with_clip
@@ -415,10 +422,12 @@
 <vello_common::transforms::RootTransforms>::effective_path_transform
 <vello_common::transforms::RootTransforms>::pop_root
 <vello_common::transforms::RootTransforms>::push_root
+<vello_common::transforms::RootTransforms>::reset
 <vello_common::viewport::ViewportState>::new
 <vello_common::viewport::ViewportState>::pop_clip
 <vello_common::viewport::ViewportState>::push_clip_path
 <vello_common::viewport::ViewportState>::push_clip_rect
+<vello_common::viewport::ViewportState>::reset
 <vello_cpu::coarse::bucketer::CommandBucketer>::bbox_span
 <vello_cpu::coarse::bucketer::CommandBucketer>::bucket_commands
 <vello_cpu::coarse::bucketer::CommandBucketer>::pop_layer
@@ -436,6 +445,7 @@
 <vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher as vello_cpu::dispatch::Dispatcher>::push_clip_rect
 <vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher as vello_cpu::dispatch::Dispatcher>::push_layer
 <vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher as vello_cpu::dispatch::Dispatcher>::rasterize
+<vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher as vello_cpu::dispatch::Dispatcher>::reset
 <vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher as vello_cpu::dispatch::Dispatcher>::stroke_path
 <vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher>::bucket_and_rasterize::<fearless_simd::generated::wasm::WasmSimd128, vello_cpu::fine::lowp::U8Kernel>
 <vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher>::record_fill
@@ -463,6 +473,7 @@
 <vello_cpu::render::RenderContext>::push_clip_rect
 <vello_cpu::render::RenderContext>::push_layer
 <vello_cpu::render::RenderContext>::render_with::<&mut vello_common::pixmap::Pixmap>
+<vello_cpu::render::RenderContext>::reset_and_resize
 <vello_cpu::render::RenderContext>::reset_filter_effect
 <vello_cpu::render::RenderContext>::reset_mask
 <vello_cpu::render::RenderContext>::set_stroke
@@ -526,6 +537,7 @@ core::ptr::drop_in_place::<core::option::Option<skrifa::outline::autohint::metri
 core::ptr::drop_in_place::<core::result::Result<[u8; 4usize], zune_core::bytestream::reader::ZByteIoError>>
 core::ptr::drop_in_place::<core::result::Result<usize, std::io::error::Error>>
 core::ptr::drop_in_place::<hayro::Kept>
+core::ptr::drop_in_place::<hayro::Kit>
 core::ptr::drop_in_place::<hayro::Renderer>
 core::ptr::drop_in_place::<hayro::group::PageReplay>
 core::ptr::drop_in_place::<hayro_interpret::encode::EncodedShadingPattern>
@@ -547,6 +559,7 @@ core::ptr::drop_in_place::<std::collections::hash::map::HashMap<hayro_syntax::ob
 core::ptr::drop_in_place::<std::sync::poison::rwlock::RwLockWriteGuard<alloc::vec::Vec<core::option::Option<skrifa::outline::autohint::metrics::UnscaledStyleMetrics>>>>
 core::ptr::drop_in_place::<vello_common::clip::ClipContext>
 core::ptr::drop_in_place::<vello_common::clip::ClipState>
+core::ptr::drop_in_place::<vello_common::encode::EncodedPaint>
 core::ptr::drop_in_place::<vello_common::record::CommandRecorder<vello_cpu::record::RecordedFill>>
 core::ptr::drop_in_place::<vello_common::strip_generator::StripGenerator>
 core::ptr::drop_in_place::<vello_cpu::dispatch::single_threaded::SingleThreadedDispatcher>
@@ -583,7 +596,8 @@ fmod
 foldhash::seed::gen_per_hasher_seed
 hayro::draw_page
 hayro::image::resize_image_data
-hayro::render
+hayro::record
+hayro::render_rgba
 hayro_interpret::context::widen_covering_rect
 hayro_interpret::gradient::approximate_gradient_interval::<<hayro_interpret::encode::EncodedRadialAxialShading>::as_svg_gradient::{closure#0}>
 hayro_interpret::interpret::annot_fallback::appearance
@@ -666,7 +680,7 @@ recto::links::whole_number
 recto::outline::name_tree
 recto::unlimited_scale
 renderedpage_takeRgba
-renderedpage_takeRgba multivalue shim
+renderedpage_takeRgba externref shim
 rendertask_finish
 rendertask_step
 round
