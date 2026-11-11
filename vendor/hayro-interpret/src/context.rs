@@ -258,6 +258,10 @@ impl<'a> Context<'a> {
         }
 
         let bbox = clip_path.bounding_box();
+        let clip_path = match fill {
+            FillRule::EvenOdd => widen_covering_rect(clip_path, self.bbox()),
+            FillRule::NonZero => clip_path,
+        };
         device.push_clip_path(&ClipPath {
             path: clip_path,
             fill,
@@ -538,6 +542,49 @@ impl<'a> Context<'a> {
             self.fallback_font()
         }
     }
+}
+
+/// recto: an even-odd clip whose first subpath is a rectangle around all of `cur_bbox`, with holes cut
+/// in it by the others. Word draws these: a page-sized rectangle with one hole, a clip per hole, nested
+/// dozens deep, and rasterizing the rectangle's outline on every push took a third to half of such a
+/// page's time. Inside `cur_bbox` that rectangle and any larger one cover everything, so it becomes one
+/// far past any viewport, whose edges the rasterizer culls (the left one only adds winding). As when a
+/// rectangle clip around `cur_bbox` is dropped (`push_clip_path`), all that can change is the pixels the
+/// rectangle's edge crosses, if the current clip lets them through: they're no longer cut by it again.
+fn widen_covering_rect(path: BezPath, cur_bbox: Rect) -> BezPath {
+    // Past the largest viewport (u16 a side), in every direction.
+    const FAR: f64 = 100_000.0;
+    let els = path.elements();
+    let Some(second) = els.iter().skip(1).position(|e| matches!(e, PathEl::MoveTo(_))) else {
+        return path;
+    };
+    let first = &els[..second + 1];
+    // Word closes its `m l l l l` back at the start with an `h` as well.
+    let outline = match first {
+        [head @ .., PathEl::LineTo(_), PathEl::ClosePath] if head.len() == 4 => &first[..5],
+        _ => first,
+    };
+    let Some(rect) = path_as_rect(&BezPath::from_vec(outline.to_vec())) else {
+        return path;
+    };
+    let covers = cur_bbox.min_x().is_nearly_greater_or_equal(rect.min_x())
+        && cur_bbox.min_y().is_nearly_greater_or_equal(rect.min_y())
+        && cur_bbox.max_x().is_nearly_less_or_equal(rect.max_x())
+        && cur_bbox.max_y().is_nearly_less_or_equal(rect.max_y());
+    let wide = Rect::new(-FAR, -FAR, FAR, FAR);
+    if !covers || !wide.contains_rect(cur_bbox) {
+        return path;
+    }
+    let mut out = BezPath::with_capacity(els.len() - first.len() + 5);
+    out.move_to((-FAR, -FAR));
+    out.line_to((FAR, -FAR));
+    out.line_to((FAR, FAR));
+    out.line_to((-FAR, FAR));
+    out.close_path();
+    for &el in &els[first.len()..] {
+        out.push(el);
+    }
+    out
 }
 
 pub(crate) fn path_as_rect(path: &BezPath) -> Option<Rect> {

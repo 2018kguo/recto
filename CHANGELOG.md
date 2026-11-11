@@ -12,6 +12,13 @@
   it took 0.295 in WebAssembly in Node (90th percentile 1.93 ms from 2.14), 0.149 ms from 0.174 natively (1.13 from
   1.25); the instance's heap after them is 17.4 MB where it was 24.0. Every char, box, font and flag of 10,354
   pages is the same, read alone or after drawing, and so is every pixel.
+- **Word's page-with-a-hole clips are no longer rasterized in full on every push.** Word exports clip text
+  with an even-odd path per hole: a page-sized rectangle and the hole, nested dozens deep, and drawing the
+  rectangle's outline again for each was a third to half of such a page's time. A rectangle that already
+  covers the current clip is now given to the renderer far outside the viewport, where its edges are culled.
+  On two public Word files, every page drawn at 1280 px takes 13% less in total in WebAssembly in Node and
+  17% less natively, and the 90th-percentile page 28% and 30% less. Every pixel is unchanged, on those
+  files and on the 650 pages of the scorecard's set.
 - **A page's text after it's drawn, or drawn after its text, no longer loads its fonts' programs again.**
   Reading text and drawing keep their own fonts (they resolve missing fonts differently), but now share the
   document's embedded font programs, each decoded and parsed once. Drawing a page and then reading its text, as
