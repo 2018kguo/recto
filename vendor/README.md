@@ -31,6 +31,9 @@ They are patched for what upstream does not have:
   long as its document is open (`recent` in `src/page.rs`), and `FlateDecode` inflated in one call
   into a sized buffer rather than through a reader; a limit on what one stream or image decodes to
   (`set_max_decoded_bytes`), and an inline image's end found in one pass.
+- **hayro-syntax**: the chain of objects a read came through (`parent_chain` in `src/reader.rs`), which
+  refuses a reference back into it, keeps its last 64 objects and refuses any read once it has held
+  131,072, rather than being copied and searched whole at every step of a list linked by `/Next`.
 - **hayro-interpret**: a function listed again at the same depth built once and shared.
 - **hayro-interpret**: an even-odd clip whose first subpath is a rectangle around the current clip, as Word
   cuts holes in a page, given to the renderer with that rectangle far past the viewport, so it's culled

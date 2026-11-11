@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **A list of objects each linked to the next reads in time linear in its length.** Every object read carried
+  the chain of objects read to reach it, and copied and searched it at each step, so walking a list linked by
+  `/Next`, as an outline's bookmarks are, took time in the square of its length: listing 64,000 bookmarks took
+  0.78 s, and takes 0.04 s now (natively). The chain keeps its last 64 objects (no chain in the 531 files of the
+  benchmark corpus holds more than 12), so a ring of references through up to 64 objects is refused where it
+  was; a longer ring, which was refused after one turn, is refused after 131,072 steps. Every pixel and
+  character of the corpus's pages is unchanged.
+
 ## 0.5.3
 
 Word-made pages, and reading text, are faster; every pixel and every character is unchanged.
