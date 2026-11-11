@@ -4,6 +4,14 @@
 
 ### Changed
 
+- **Reading text decodes a font's embedded program only for what the font's dictionary leaves out.** A
+  `ToUnicode` map or an encoding names the codes and `Widths` gives their advances, so a font that has them, and
+  states its weight, no longer inflates and parses its program to be read. A Type 1 font on its built-in encoding,
+  a TrueType font without `Widths`, a font without `FontWeight` (the weight is the program's), a glyph's outline and
+  drawing still load it, as before. Text alone, median page over 936 pages, in 8 alternating runs: 0.256 ms where
+  it took 0.295 in WebAssembly in Node (90th percentile 1.93 ms from 2.14), 0.149 ms from 0.174 natively (1.13 from
+  1.25); the instance's heap after them is 17.4 MB where it was 24.0. Every char, box, font and flag of 10,354
+  pages is the same, read alone or after drawing, and so is every pixel.
 - **A page's text after it's drawn, or drawn after its text, no longer loads its fonts' programs again.**
   Reading text and drawing keep their own fonts (they resolve missing fonts differently), but now share the
   document's embedded font programs, each decoded and parsed once. Drawing a page and then reading its text, as

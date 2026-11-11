@@ -1,4 +1,5 @@
 use crate::CMapResolverFn;
+use crate::EmbeddedProgram;
 use crate::FontLoader;
 use crate::GlyphId;
 use crate::generated::glyph_names;
@@ -16,11 +17,12 @@ use hayro_syntax::object::dict::keys::*;
 use hayro_syntax::object::{Array, Object};
 use kurbo::Vec2;
 use rustc_hash::FxHashMap;
+use std::cell::OnceCell;
 use std::ops::Deref;
 
 #[derive(Debug)]
-pub(crate) struct Type0Font {
-    program: FontProgram,
+pub(crate) struct Type0Font<'a> {
+    program: EmbeddedProgram<'a>,
     horizontal: bool,
     dw: f32,
     dw2: (f32, f32),
@@ -40,8 +42,8 @@ pub(crate) struct Type0Font {
     to_unicode_is_cid_indexed: bool,
 }
 
-impl Type0Font {
-    pub(crate) fn new(dict: &Dict<'_>, loader: &FontLoader<'_>) -> Option<Self> {
+impl<'a> Type0Font<'a> {
+    pub(crate) fn new(dict: &Dict<'a>, loader: &FontLoader<'_>) -> Option<Self> {
         let cmap_resolver = loader.cmap_resolver;
         let cmap = read_encoding(&dict.get::<Object<'_>>(ENCODING)?, cmap_resolver)?;
 
@@ -52,7 +54,7 @@ impl Type0Font {
             .iter::<Dict<'_>>()
             .next()?;
         let font_descriptor = descendant_font
-            .get::<Dict<'_>>(FONT_DESC)
+            .get::<Dict<'a>>(FONT_DESC)
             .unwrap_or_default();
 
         let character_collection = cmap
@@ -76,7 +78,11 @@ impl Type0Font {
                             (FontQuery::Fallback(query), false)
                         };
 
-                    (loader.programs.resolve(&query)?, true, is_standard)
+                    (
+                        EmbeddedProgram::loaded(loader.programs.resolve(&query)?),
+                        true,
+                        is_standard,
+                    )
                 }
             };
 
@@ -94,8 +100,7 @@ impl Type0Font {
             .get::<Array<'_>>(W2)
             .and_then(|a| read_widths2(&a))
             .unwrap_or_default();
-        let needs_inverse = program.kind() == ProgramKind::Cff && program.is_cid_keyed();
-        let cid_to_gid_map = CidToGIdMap::new(&descendant_font, needs_inverse).unwrap_or_default();
+        let cid_to_gid_map = CidToGIdMap::new(&descendant_font).unwrap_or_default();
         let mut to_unicode = read_to_unicode(dict, cmap_resolver);
         let mut to_unicode_is_cid_indexed = false;
 
@@ -163,15 +168,18 @@ impl Type0Font {
         // At this point, not much we can do anymore. Just hope that the
         // selected font has the right glyph order, and map via that.
 
-        match self.program.kind() {
+        let Some(program) = self.program.get() else {
+            return GlyphId::NOTDEF;
+        };
+        match program.kind() {
             ProgramKind::Sfnt => self.cid_to_gid_map.map(cid as u16),
             ProgramKind::Cff => {
-                if self.program.is_cid_keyed() {
+                if program.is_cid_keyed() {
                     // Very confusing stuff going on here, see https://github.com/mozilla/pdf.js/pull/15563.
                     // The PDF spec makes it sounds like cid-to-gid map should only be used for TrueType fonts,
                     // but Acrobat also seems to support it for CFF fonts with some weird behavior.
                     if matches!(self.cid_to_gid_map, CidToGIdMap::Identity) {
-                        self.program.glyph_by_cid(cid).unwrap_or(GlyphId::NOTDEF)
+                        program.glyph_by_cid(cid).unwrap_or(GlyphId::NOTDEF)
                     } else {
                         GlyphId::new(self.cid_to_gid_map.inverse_map(GlyphId::new(cid)) as u32)
                     }
@@ -209,11 +217,13 @@ impl Type0Font {
                 BfString::String(_) => None,
             })?;
 
-        match self.program.kind() {
-            ProgramKind::Sfnt => self.program.cmap_glyph(character),
+        let program = self.program.get()?;
+        match program.kind() {
+            ProgramKind::Sfnt => program.cmap_glyph(character),
             // Map the character to a glyph name via the AGL, and then look it up.
-            ProgramKind::Cff | ProgramKind::Type1 => glyph_names::get_reverse(character)
-                .and_then(|name| self.program.glyph_by_name(name)),
+            ProgramKind::Cff | ProgramKind::Type1 => {
+                glyph_names::get_reverse(character).and_then(|name| program.glyph_by_name(name))
+            }
         }
     }
 
@@ -227,14 +237,20 @@ impl Type0Font {
         None
     }
 
-    pub(crate) fn program(&self) -> FontProgram {
-        self.program.clone()
+    pub(crate) fn program(&self) -> Option<&FontProgram> {
+        self.program.get()
+    }
+
+    /// recto: see `Font::maps_on_use`. A substitute's glyphs are stretched to the widths, so it
+    /// maps its codes as it reads them.
+    pub(crate) fn maps_on_use(&self) -> bool {
+        !self.fallback && self.program.on_use()
     }
 
     pub(crate) fn glyph_stretch(&self, glyph: GlyphId, code: u32) -> f64 {
         if self.fallback
             && let Some(cid) = self.code_to_cid(code)
-            && let Some(actual_width) = self.program.advance_width(glyph)
+            && let Some(actual_width) = self.program.get().and_then(|p| p.advance_width(glyph))
             // Only use an expected width if there is an explicit /W array,
             // not the default width, as it leads to weird results from my testing.
             && let Some(expected_width) = self.widths.get(&cid).copied()
@@ -246,8 +262,9 @@ impl Type0Font {
     }
 
     pub(crate) fn font_data(&self) -> Option<crate::FontData> {
-        match self.program.kind() {
-            ProgramKind::Sfnt | ProgramKind::Cff => Some(self.program.data().clone()),
+        let program = self.program.get()?;
+        match program.kind() {
+            ProgramKind::Sfnt | ProgramKind::Cff => Some(program.data().clone()),
             ProgramKind::Type1 => None,
         }
     }
@@ -261,7 +278,7 @@ impl Type0Font {
     ///
     /// Returns `None` if weight cannot be determined (CFF fonts or invalid weight).
     pub(crate) fn weight(&self) -> Option<u32> {
-        self.program.weight()
+        self.program.get().and_then(FontProgram::weight)
     }
 
     /// Check if font is italic based on font flags or font attributes.
@@ -271,7 +288,7 @@ impl Type0Font {
         {
             return true;
         }
-        self.program.is_italic()
+        self.program.get().is_some_and(FontProgram::is_italic)
     }
 
     /// Check if font is serif based on font flags.
@@ -288,7 +305,7 @@ impl Type0Font {
         {
             return true;
         }
-        self.program.is_monospace()
+        self.program.get().is_some_and(FontProgram::is_monospace)
     }
 
     pub(crate) fn code_advance(&self, code: u32) -> Vec2 {
@@ -359,12 +376,14 @@ enum CidToGIdMap {
     Identity,
     Mapped {
         forward: Vec<u16>,
-        inverse: FxHashMap<GlyphId, u16>,
+        /// recto: built on its first use, by a CID-keyed CFF font: whether the font is one may
+        /// wait for its program.
+        inverse: OnceCell<FxHashMap<GlyphId, u16>>,
     },
 }
 
 impl CidToGIdMap {
-    fn new(dict: &Dict<'_>, with_inverse: bool) -> Option<Self> {
+    fn new(dict: &Dict<'_>) -> Option<Self> {
         if let Some(name) = dict.get::<Name<'_>>(CID_TO_GID_MAP) {
             if name.deref() == IDENTITY {
                 Some(Self::Identity)
@@ -381,15 +400,10 @@ impl CidToGIdMap {
                 .map(|gid| u16::from_be_bytes(*gid))
                 .collect();
 
-            let mut inverse = FxHashMap::default();
-            if with_inverse {
-                inverse.reserve(forward.len());
-                for (cid, gid) in forward.iter().enumerate() {
-                    inverse.insert(GlyphId::new(u32::from(*gid)), cid as u16);
-                }
-            }
-
-            Some(Self::Mapped { forward, inverse })
+            Some(Self::Mapped {
+                forward,
+                inverse: OnceCell::new(),
+            })
         } else {
             None
         }
@@ -407,25 +421,35 @@ impl CidToGIdMap {
     fn inverse_map(&self, gid: GlyphId) -> u16 {
         match self {
             Self::Identity => gid.to_u32() as u16,
-            Self::Mapped { inverse, .. } => {
-                inverse.get(&gid).copied().unwrap_or(gid.to_u32() as u16)
-            }
+            Self::Mapped { forward, inverse } => inverse
+                .get_or_init(|| {
+                    let mut inverse = FxHashMap::default();
+                    inverse.reserve(forward.len());
+                    for (cid, gid) in forward.iter().enumerate() {
+                        inverse.insert(GlyphId::new(u32::from(*gid)), cid as u16);
+                    }
+                    inverse
+                })
+                .get(&gid)
+                .copied()
+                .unwrap_or(gid.to_u32() as u16),
         }
     }
 }
 
-fn load_program(descriptor: &Dict<'_>, loader: &FontLoader<'_>) -> Option<FontProgram> {
+fn load_program<'a>(descriptor: &Dict<'a>, loader: &FontLoader<'_>) -> Option<EmbeddedProgram<'a>> {
     // PDF has a distinction between CIDFontType0 and CIDFontType 2, with
     // specific requirements what font type can appear where. However, some
     // PDFs use wrong metadata, so we simply bruteforce without even looking
     // at the metadata.
     let stream = descriptor
-        .get::<Stream<'_>>(FONT_FILE2)
-        .or_else(|| descriptor.get::<Stream<'_>>(FONT_FILE3))
+        .get::<Stream<'a>>(FONT_FILE2)
+        .or_else(|| descriptor.get::<Stream<'a>>(FONT_FILE3))
         // See PDFBOX-2599. Apparently, Acrobat accepts this as well.
-        .or_else(|| descriptor.get::<Stream<'_>>(FONT_FILE))?;
+        .or_else(|| descriptor.get::<Stream<'a>>(FONT_FILE))?;
 
-    loader.programs.load(&stream)
+    // recto: a CID font's Unicode and widths are its dictionary's, so it can wait for its program.
+    loader.programs.embedded(stream, None, false)
 }
 
 fn read_widths(arr: &Array<'_>) -> Option<FxHashMap<u32, f32>> {

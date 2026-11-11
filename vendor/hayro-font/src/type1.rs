@@ -1,3 +1,4 @@
+use crate::EmbeddedProgram;
 use crate::GlyphId;
 use crate::program::FontProgram;
 use crate::standard_font::{StandardFont, StandardKind, select_standard_font};
@@ -13,10 +14,10 @@ use hayro_syntax::object::dict::keys::{FONT_DESC, FONT_FILE, FONT_FILE3};
 use rustc_hash::FxHashMap;
 
 #[derive(Debug)]
-pub(crate) struct Type1Font(Kind, Option<CMap>);
+pub(crate) struct Type1Font<'a>(Kind<'a>, Option<CMap>);
 
-impl Type1Font {
-    pub(crate) fn new(dict: &Dict<'_>, loader: &FontLoader<'_>) -> Option<Self> {
+impl<'a> Type1Font<'a> {
+    pub(crate) fn new(dict: &Dict<'a>, loader: &FontLoader<'_>) -> Option<Self> {
         let to_unicode = read_to_unicode(dict, loader.cmap_resolver);
 
         let fallback = || {
@@ -62,11 +63,16 @@ impl Type1Font {
         }
     }
 
-    pub(crate) fn program(&self) -> FontProgram {
+    pub(crate) fn program(&self) -> Option<&FontProgram> {
         match &self.0 {
-            Kind::Standard(s) => s.program.clone(),
-            Kind::Embedded(e) => e.program.clone(),
+            Kind::Standard(s) => Some(&s.program),
+            Kind::Embedded(e) => e.program.get(),
         }
+    }
+
+    /// recto: see `Font::maps_on_use`.
+    pub(crate) fn maps_on_use(&self) -> bool {
+        matches!(&self.0, Kind::Embedded(e) if e.program.on_use())
     }
 
     pub(crate) fn is_standard(&self) -> bool {
@@ -108,14 +114,14 @@ impl Type1Font {
 }
 
 #[derive(Debug)]
-enum Kind {
+enum Kind<'a> {
     Standard(StandardKind),
-    Embedded(EmbeddedKind),
+    Embedded(EmbeddedKind<'a>),
 }
 
 #[derive(Debug)]
-struct EmbeddedKind {
-    program: FontProgram,
+struct EmbeddedKind<'a> {
+    program: EmbeddedProgram<'a>,
     encoding: Encoding,
     widths: Vec<Width>,
     missing_width: f32,
@@ -123,15 +129,18 @@ struct EmbeddedKind {
     standard_font: Option<StandardFont>,
 }
 
-impl EmbeddedKind {
-    fn new(dict: &Dict<'_>, loader: &FontLoader<'_>) -> Option<Self> {
-        let descriptor = dict.get::<Dict<'_>>(FONT_DESC)?;
+impl<'a> EmbeddedKind<'a> {
+    fn new(dict: &Dict<'a>, loader: &FontLoader<'_>) -> Option<Self> {
+        let descriptor = dict.get::<Dict<'a>>(FONT_DESC)?;
         let data = descriptor
-            .get::<Stream<'_>>(FONT_FILE3)
-            .or_else(|| descriptor.get::<Stream<'_>>(FONT_FILE))?;
-        let program = loader.programs.load(&data)?;
-
+            .get::<Stream<'a>>(FONT_FILE3)
+            .or_else(|| descriptor.get::<Stream<'a>>(FONT_FILE))?;
         let (encoding, encodings) = read_encoding(dict);
+        // recto: the built-in encoding is the program's, so it loads now.
+        let program =
+            loader
+                .programs
+                .embedded(data, None, matches!(encoding, Encoding::BuiltIn))?;
         let (widths, missing_width) = read_widths(dict, &descriptor)?;
         let standard_font = select_standard_font(dict, &descriptor).map(|(f, _)| f);
 
@@ -146,9 +155,10 @@ impl EmbeddedKind {
     }
 
     fn glyph_by_name(&self, name: &str) -> Option<GlyphId> {
-        self.program
+        let program = self.program.get()?;
+        program
             .glyph_by_name(name)
-            .or_else(|| self.program.glyph_by_name(normalized_glyph_name(name)))
+            .or_else(|| program.glyph_by_name(normalized_glyph_name(name)))
     }
 
     fn map_code(&self, code: u8) -> GlyphId {
@@ -159,7 +169,10 @@ impl EmbeddedKind {
                 // For OpenType programs, this uses the encoding of the CFF table instead of
                 // the "cmap" table described in 9.6.5.4 of the PDF specification, as other
                 // viewers do.
-                Encoding::BuiltIn => self.program.builtin_encoding_glyph(code),
+                Encoding::BuiltIn => self
+                    .program
+                    .get()
+                    .and_then(|p| p.builtin_encoding_glyph(code)),
                 _ => self
                     .encoding
                     .map_code(code)
@@ -174,7 +187,7 @@ impl EmbeddedKind {
             Some(entry.as_str())
         } else {
             match self.encoding {
-                Encoding::BuiltIn => self.program.builtin_encoding_glyph_name(code),
+                Encoding::BuiltIn => self.program.get()?.builtin_encoding_glyph_name(code),
                 _ => self.encoding.map_code(code),
             }
         }

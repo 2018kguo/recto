@@ -123,6 +123,22 @@ impl<'a> InterpreterCache<'a> {
             object_cache: Cache::new(),
         }
     }
+
+    /// recto: as `sharing_font_programs`, but its fonts load an embedded program only when
+    /// something is asked of them that their dictionary doesn't answer (see
+    /// `FontCache::loading_programs_on_use`), for passes that read text rather than draw it.
+    pub fn sharing_font_programs_loaded_on_use(&self) -> Self {
+        Self {
+            font_cache: self.font_cache.loading_programs_on_use(),
+            object_cache: Cache::new(),
+        }
+    }
+
+    /// recto: how many embedded font programs this cache and those sharing them have decoded, for tests.
+    #[doc(hidden)]
+    pub fn embedded_font_programs_decoded(&self) -> usize {
+        self.font_cache.embedded_programs_decoded()
+    }
 }
 
 /// A per-page interpretation context that borrows shared data from an [`InterpreterCache`].

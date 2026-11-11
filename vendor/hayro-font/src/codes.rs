@@ -12,7 +12,8 @@ use std::cell::RefCell;
 
 #[derive(Clone, Debug)]
 pub(crate) struct CodeInfo {
-    pub(crate) gid: GlyphId,
+    /// `None` where the font maps codes on use (`CodeMetrics::glyph`).
+    pub(crate) gid: Option<GlyphId>,
     pub(crate) stretch: f64,
     pub(crate) advance: Vec2,
     pub(crate) displacement: Vec2,

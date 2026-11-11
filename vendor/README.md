@@ -37,6 +37,11 @@ They are patched for what upstream does not have:
   `RenderCache::text_interpreter_cache`); programs a font resolver gives stay with each cache. The
   generated name tables index each entry's key and value once per thread rather than scanning for them
   at every step of a lookup.
+- **hayro-font** and **hayro-interpret**: a cache that loads an embedded font program only when something is
+  asked of the font that its dictionary doesn't answer (`FontCache::loading_programs_on_use`,
+  `InterpreterCache::sharing_font_programs_loaded_on_use`): a glyph's outline, `OutlineGlyph::font_data`,
+  or a simple font's built-in encoding or missing `Widths`, which load it as before. Its codes leave the
+  glyph unmapped (`CodeMetrics::glyph` is `None`) until an outline needs it.
 - **hayro-cmap**: `host-cmaps`, so a WebAssembly build gets its CMaps from the host on first
   use instead of embedding them, deflated rather than brotli so the wasm needs no brotli decoder.
 

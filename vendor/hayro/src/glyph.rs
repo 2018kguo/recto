@@ -65,7 +65,7 @@ impl Renderer<'_> {
 
     fn fill_outline(
         &self,
-        glyph: &OutlineGlyph,
+        glyph: &OutlineGlyph<'_>,
         id: u128,
         transform: Affine,
         hint: bool,
@@ -86,7 +86,7 @@ impl Renderer<'_> {
 
     fn cached_hinted_outline(
         &self,
-        glyph: &OutlineGlyph,
+        glyph: &OutlineGlyph<'_>,
         id: u128,
         ppem: f32,
     ) -> Option<Rc<BezPath>> {
@@ -95,7 +95,7 @@ impl Renderer<'_> {
         })
     }
 
-    fn cached_outline(&self, glyph: &OutlineGlyph, id: u128) -> Rc<BezPath> {
+    fn cached_outline(&self, glyph: &OutlineGlyph<'_>, id: u128) -> Rc<BezPath> {
         self.cached_path(id, 0.0, || Some(glyph.outline()))
             .unwrap_or_default()
     }

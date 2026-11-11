@@ -31,11 +31,11 @@ use hayro_syntax::object::dict::keys::*;
 use hayro_syntax::object::{Dict, Stream};
 use kurbo::{BezPath, Vec2};
 use outline::OutlineFont;
-use program::FontProgram;
+use program::{FontProgram, ProgramKind};
 use rustc_hash::FxHashMap;
 use skrifa::ScalerFont;
 use std::borrow::Cow;
-use std::cell::RefCell;
+use std::cell::{OnceCell, RefCell};
 use std::fmt::Debug;
 use std::ops::Deref;
 use std::rc::Rc;
@@ -103,8 +103,9 @@ impl GlyphId {
 /// recto: see [`Font::code_metrics`].
 #[derive(Clone, Copy, Debug)]
 pub struct CodeMetrics {
-    /// `map_code`.
-    pub glyph: GlyphId,
+    /// `map_code`, or `None` where the font maps its codes when a glyph's outline is asked for: a
+    /// font whose program loads on first use (see [`FontCache::loading_programs_on_use`]).
+    pub glyph: Option<GlyphId>,
     /// `glyph_stretch` of that glyph.
     pub stretch: f64,
     /// `code_advance`.
@@ -186,13 +187,17 @@ impl<'a> Font<'a> {
         self.1.get(
             code,
             || {
-                let gid = self.map_code_raw(code);
+                // recto: a font that loads its program on first use isn't a substitute, so its glyphs
+                // aren't stretched, and its glyph is left to whoever needs the outline.
+                let (gid, stretch) = if self.maps_on_use() {
+                    (None, 1.0)
+                } else {
+                    let gid = self.map_code_raw(code);
+                    (Some(gid), self.glyph_stretch_raw(gid, code))
+                };
                 let advance = self.code_advance_raw(code);
-                let (stretch, displacement) = fit_substitute(
-                    self.glyph_stretch_raw(gid, code),
-                    advance,
-                    self.origin_displacement_raw(code),
-                );
+                let (stretch, displacement) =
+                    fit_substitute(stretch, advance, self.origin_displacement_raw(code));
                 codes::CodeInfo {
                     gid,
                     stretch,
@@ -236,7 +241,7 @@ impl<'a> Font<'a> {
                 self.origin_displacement_raw(code),
             );
             CodeMetrics {
-                glyph,
+                glyph: Some(glyph),
                 stretch,
                 advance,
                 displacement,
@@ -247,7 +252,18 @@ impl<'a> Font<'a> {
     /// Map a character code to a glyph.
     pub fn map_code(&self, code: u32) -> GlyphId {
         self.cached(code, |i| i.gid)
+            .flatten()
             .unwrap_or_else(|| self.map_code_raw(code))
+    }
+
+    /// recto: whether the code table leaves glyphs unmapped (`CodeMetrics::glyph` is `None`).
+    fn maps_on_use(&self) -> bool {
+        match &self.0 {
+            FontType::Type1(t) => t.maps_on_use(),
+            FontType::TrueType(t) => t.maps_on_use(),
+            FontType::Type0(t) => t.maps_on_use(),
+            FontType::Type3(_) => false,
+        }
     }
 
     fn map_code_raw(&self, code: u32) -> GlyphId {
@@ -271,13 +287,15 @@ impl<'a> Font<'a> {
         }
     }
 
-    /// Return the glyph that a glyph ID refers to.
-    pub fn glyph(&self, glyph: GlyphId, char_code: u32) -> FontGlyph<'a> {
+    /// Return the glyph that a glyph ID refers to. recto: `None` maps `char_code` when the glyph's
+    /// outline is asked for (see [`CodeMetrics::glyph`]).
+    pub fn glyph(&self, glyph: Option<GlyphId>, char_code: u32) -> FontGlyph<'a> {
         let font = match &self.0 {
             FontType::Type1(t) => OutlineFont::Type1(t.clone()),
             FontType::TrueType(t) => OutlineFont::TrueType(t.clone()),
             FontType::Type0(t) => OutlineFont::Type0(t.clone()),
             FontType::Type3(t) => {
+                let glyph = glyph.unwrap_or_else(|| t.map_code(char_code as u8));
                 return FontGlyph::Type3(Type3Glyph::new(t.clone(), glyph, char_code, self.1.clone()));
             }
         };
@@ -289,7 +307,7 @@ impl<'a> Font<'a> {
     /// font expects for it.
     pub fn glyph_stretch(&self, glyph: GlyphId, code: u32) -> f64 {
         match self.cached(code, |i| (i.gid, i.stretch)) {
-            Some((gid, stretch)) if gid == glyph => stretch,
+            Some((Some(gid), stretch)) if gid == glyph => stretch,
             _ => self.glyph_stretch_raw(glyph, code),
         }
     }
@@ -448,7 +466,32 @@ impl<'a> FontCache<'a> {
             fonts: RefCell::default(),
             programs: RefCell::default(),
             embedded: self.0.embedded.clone(),
+            on_use: false,
         }))
+    }
+
+    /// recto: as [`sharing_programs`](Self::sharing_programs), but its fonts load an embedded
+    /// program only when something is asked of them that their dictionary doesn't answer: a
+    /// glyph's outline, a width or glyph name the dictionary leaves to the program, or
+    /// [`OutlineGlyph::font_data`]. Text that a `ToUnicode` map or an encoding names, at the
+    /// widths the dictionary gives, never decodes the program.
+    ///
+    /// A font counts as embedded when its descriptor has a program stream, so one whose program
+    /// turns out not to parse is read from its dictionary rather than replaced by a standard font,
+    /// and its glyphs have no outlines. Drawing, which needs every program, wants the default.
+    pub fn loading_programs_on_use(&self) -> Self {
+        Self(Rc::new(FontCacheInner {
+            fonts: RefCell::default(),
+            programs: RefCell::default(),
+            embedded: self.0.embedded.clone(),
+            on_use: true,
+        }))
+    }
+
+    /// recto: how many embedded programs the caches sharing them have decoded, for tests.
+    #[doc(hidden)]
+    pub fn embedded_programs_decoded(&self) -> usize {
+        self.0.embedded.borrow().len()
     }
 
     fn program_loader<'l>(&'l self, font_resolver: &'l FontResolverFn) -> ProgramLoader<'l> {
@@ -456,6 +499,7 @@ impl<'a> FontCache<'a> {
             font_resolver,
             cache: &self.0.programs,
             embedded: &self.0.embedded,
+            on_use: self.0.on_use,
         }
     }
 }
@@ -493,31 +537,31 @@ impl HintingCache {
 #[derive(Clone, Debug)]
 pub enum FontGlyph<'a> {
     /// A glyph defined by an outline.
-    Outline(OutlineGlyph),
+    Outline(OutlineGlyph<'a>),
     /// A glyph of a Type 3 font, defined by a content stream of the font.
     Type3(Type3Glyph<'a>),
 }
 
 /// A glyph defined by an outline.
 #[derive(Clone, Debug)]
-pub struct OutlineGlyph {
+pub struct OutlineGlyph<'a> {
     /// recto: the font's code table, for Unicode and width.
     codes: Rc<codes::CodeTable>,
-    id: GlyphId,
+    /// recto: `None` for a font that maps its codes on use (see `CodeMetrics::glyph`).
+    id: Option<GlyphId>,
     // recto: no `program` copy per glyph (an atomic count up and down each);
     // the paths that draw outlines take it from `font`.
     hidden: bool,
-    font: OutlineFont,
+    font: OutlineFont<'a>,
     char_code: u32,
 }
 
-impl OutlineGlyph {
+impl<'a> OutlineGlyph<'a> {
     /// Return the outline of the glyph, assuming an upem value of 1000.
     pub fn outline(&self) -> BezPath {
-        if self.hidden {
-            BezPath::new()
-        } else {
-            self.font.program().outline(self.id)
+        match self.font.program() {
+            Some(program) if !self.hidden => program.outline(self.glyph_id()),
+            _ => BezPath::new(),
         }
     }
 
@@ -527,15 +571,17 @@ impl OutlineGlyph {
             return Some(BezPath::new());
         }
 
-        self.font.program().hinted_outline(self.id, ppem, cache)
+        self.font
+            .program()?
+            .hinted_outline(self.glyph_id(), ppem, cache)
     }
 
     /// Return the identifier of the glyph. You can use this to calculate the cache key
     /// for the outline of the glyph.
     pub fn identifier(&self) -> GlyphIdentifier {
         GlyphIdentifier {
-            program: self.font.program(),
-            glyph: (!self.hidden).then_some(self.id),
+            program: self.font.program().cloned(),
+            glyph: (!self.hidden).then(|| self.glyph_id()),
         }
     }
 
@@ -557,6 +603,7 @@ impl OutlineGlyph {
     /// Get the glyph ID within the font.
     pub fn glyph_id(&self) -> GlyphId {
         self.id
+            .unwrap_or_else(|| self.font.map_code(self.char_code))
     }
 
     /// Get the original character code that selected this glyph.
@@ -580,7 +627,7 @@ impl OutlineGlyph {
     }
 
     /// recto: whether both glyphs come from one font (the same code table).
-    pub fn same_font(&self, other: &OutlineGlyph) -> bool {
+    pub fn same_font(&self, other: &OutlineGlyph<'_>) -> bool {
         Rc::ptr_eq(&self.codes, &other.codes)
     }
 
@@ -597,11 +644,18 @@ impl OutlineGlyph {
             .unwrap_or_else(|| (self.as_unicode(), self.advance_width()))
     }
 
-    fn new(font: OutlineFont, id: GlyphId, char_code: u32, codes: Rc<codes::CodeTable>) -> Self {
+    fn new(
+        font: OutlineFont<'a>,
+        id: Option<GlyphId>,
+        char_code: u32,
+        codes: Rc<codes::CodeTable>,
+    ) -> Self {
+        // recto: only a standard font hides `.notdef`, and its codes are always mapped.
+        debug_assert!(id.is_some() || !font.hides_notdef());
         Self {
             codes,
+            hidden: id == Some(GlyphId::NOTDEF) && font.hides_notdef(),
             id,
-            hidden: id == GlyphId::NOTDEF && font.hides_notdef(),
             font,
             char_code,
         }
@@ -611,7 +665,8 @@ impl OutlineGlyph {
 /// An identifier that uniquely identifies the outline of a glyph, for caching purposes.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct GlyphIdentifier {
-    program: FontProgram,
+    /// recto: `None` for a font whose program, loaded on use, doesn't parse.
+    program: Option<FontProgram>,
     glyph: Option<GlyphId>,
 }
 
@@ -801,6 +856,8 @@ struct FontCacheInner<'a> {
     /// recto: programs embedded in the document, which don't depend on the resolver, so caches
     /// made by `sharing_programs` share them.
     embedded: Rc<ProgramMap>,
+    /// recto: see `FontCache::loading_programs_on_use`.
+    on_use: bool,
 }
 
 type ProgramMap = RefCell<FxHashMap<u128, (Option<FontProgram>, bool)>>;
@@ -814,14 +871,38 @@ pub(crate) struct FontLoader<'l> {
 pub(crate) struct ProgramLoader<'l> {
     font_resolver: &'l FontResolverFn,
     cache: &'l ProgramMap,
-    embedded: &'l ProgramMap,
+    embedded: &'l Rc<ProgramMap>,
+    on_use: bool,
 }
 
 impl ProgramLoader<'_> {
-    pub(crate) fn load(&self, stream: &Stream<'_>) -> Option<FontProgram> {
+    /// recto: the program embedded in `stream`, if it parses and is of `kind` (any if `None`). In
+    /// a cache that loads programs on use, unless the font's codes `need` it (their Unicode or
+    /// widths come from the program), it's loaded when first asked for, and the font counts as
+    /// embedded whether or not it parses; otherwise it's loaded now, and `None` if it doesn't, as
+    /// a font that would read its codes from a program that isn't there reads them as a standard
+    /// font instead.
+    pub(crate) fn embedded<'a>(
+        &self,
+        stream: Stream<'a>,
+        kind: Option<ProgramKind>,
+        need: bool,
+    ) -> Option<EmbeddedProgram<'a>> {
+        let program = EmbeddedProgram {
+            loaded: OnceCell::new(),
+            source: Some((stream, self.embedded.clone(), kind)),
+        };
+        if self.on_use && !need {
+            Some(program)
+        } else {
+            Some(EmbeddedProgram::loaded(program.get()?.clone()))
+        }
+    }
+
+    fn load(embedded: &ProgramMap, stream: &Stream<'_>) -> Option<FontProgram> {
         let key = hash128(&("font program", stream.cache_key()));
 
-        Self::get_or_insert_with(self.embedded, key, || {
+        Self::get_or_insert_with(embedded, key, || {
             FontProgram::new(Arc::new(stream.decoded_data().ok()?.into_owned()), 0)
         })
     }
@@ -854,11 +935,53 @@ impl ProgramLoader<'_> {
     }
 }
 
+/// recto: a font's program: loaded, or embedded in a stream and loaded on first use (see
+/// `FontCache::loading_programs_on_use`).
+pub(crate) struct EmbeddedProgram<'a> {
+    loaded: OnceCell<Option<FontProgram>>,
+    /// While the program loads on use: its stream, the document's programs, and the kind it must be.
+    source: Option<(Stream<'a>, Rc<ProgramMap>, Option<ProgramKind>)>,
+}
+
+impl EmbeddedProgram<'_> {
+    pub(crate) fn loaded(program: FontProgram) -> Self {
+        Self {
+            loaded: OnceCell::from(Some(program)),
+            source: None,
+        }
+    }
+
+    /// The program, loaded the first time; `None` if it doesn't parse or isn't of its kind.
+    pub(crate) fn get(&self) -> Option<&FontProgram> {
+        self.loaded
+            .get_or_init(|| {
+                let (stream, embedded, kind) = self.source.as_ref()?;
+                ProgramLoader::load(embedded, stream)
+                    .filter(|program| kind.is_none_or(|kind| program.kind() == kind))
+            })
+            .as_ref()
+    }
+
+    /// Whether the program loads on first use, so that a font that can do without it doesn't.
+    pub(crate) fn on_use(&self) -> bool {
+        self.source.is_some()
+    }
+}
+
+impl Debug for EmbeddedProgram<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("EmbeddedProgram")
+            .field("loaded", &self.loaded.get())
+            .field("on_use", &self.on_use())
+            .finish()
+    }
+}
+
 #[derive(Clone, Debug)]
 enum FontType<'a> {
-    Type1(Rc<Type1Font>),
-    TrueType(Rc<TrueTypeFont>),
-    Type0(Rc<Type0Font>),
+    Type1(Rc<Type1Font<'a>>),
+    TrueType(Rc<TrueTypeFont<'a>>),
+    Type0(Rc<Type0Font<'a>>),
     Type3(Rc<Type3Font<'a>>),
 }
 

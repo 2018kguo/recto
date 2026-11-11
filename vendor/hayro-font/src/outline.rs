@@ -1,3 +1,4 @@
+use crate::GlyphId;
 use crate::cid::Type0Font;
 use crate::program::FontProgram;
 use crate::true_type::TrueTypeFont;
@@ -25,18 +26,27 @@ pub struct OutlineFontData {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) enum OutlineFont {
-    Type1(Rc<Type1Font>),
-    TrueType(Rc<TrueTypeFont>),
-    Type0(Rc<Type0Font>),
+pub(crate) enum OutlineFont<'a> {
+    Type1(Rc<Type1Font<'a>>),
+    TrueType(Rc<TrueTypeFont<'a>>),
+    Type0(Rc<Type0Font<'a>>),
 }
 
-impl OutlineFont {
-    pub(crate) fn program(&self) -> FontProgram {
+impl OutlineFont<'_> {
+    /// recto: `None` only for a program loaded on use that doesn't parse.
+    pub(crate) fn program(&self) -> Option<&FontProgram> {
         match self {
             Self::Type1(t) => t.program(),
             Self::TrueType(t) => t.program(),
             Self::Type0(t) => t.program(),
+        }
+    }
+
+    pub(crate) fn map_code(&self, code: u32) -> GlyphId {
+        match self {
+            Self::Type1(t) => t.map_code(code as u8),
+            Self::TrueType(t) => t.map_code(code as u8),
+            Self::Type0(t) => t.map_code(code),
         }
     }
 
@@ -71,13 +81,14 @@ impl OutlineFont {
     ///
     /// Returns None for Type1 fonts and non-embedded TrueType fonts.
     pub(crate) fn font_data(&self) -> Option<OutlineFontData> {
-        let cache_key = self.program().content_hash();
+        // recto: a Type 1 font's program isn't loaded for this.
+        let cache_key = || self.program().map(FontProgram::content_hash);
 
         match self {
             Self::Type1(_) => None,
             Self::TrueType(t) => Some(OutlineFontData {
                 data: t.font_data()?,
-                cache_key,
+                cache_key: cache_key()?,
                 postscript_name: t.postscript_name().map(|s| s.to_string()),
                 weight: t.weight(),
                 is_italic: t.is_italic(),
@@ -86,7 +97,7 @@ impl OutlineFont {
             }),
             Self::Type0(t) => Some(OutlineFontData {
                 data: t.font_data()?,
-                cache_key,
+                cache_key: cache_key()?,
                 postscript_name: t.postscript_name().map(|s| s.to_string()),
                 weight: t.weight(),
                 is_italic: t.is_italic(),
