@@ -32,6 +32,8 @@ pub(crate) struct Destinations<'a> {
     pdf: &'a Pdf,
     /// Each page's object and its index, made on first use: it walks the whole page tree.
     pages: Option<FxHashMap<ObjectIdentifier, i32>>,
+    /// The indexes `pages` gives, for a destination that names its page by number.
+    indexes: Option<FxHashSet<i32>>,
     /// `Dests` of the catalog, and the name tree's entries, read on first use.
     names: Option<FxHashMap<Vec<u8>, Object<'a>>>,
     root: Dict<'a>,
@@ -52,12 +54,19 @@ pub const MAX_NAME_NODES: usize = MAX_ITEMS * 4;
 
 impl<'a> Destinations<'a> {
     pub(crate) fn new(pdf: &'a Pdf, root: Dict<'a>) -> Self {
-        Self { pdf, pages: None, names: None, root, walked: Walked::default() }
+        Self { pdf, pages: None, indexes: None, names: None, root, walked: Walked::default() }
     }
 
     fn pages(&mut self) -> &FxHashMap<ObjectIdentifier, i32> {
         let pdf = self.pdf;
         self.pages.get_or_insert_with(|| page_map(pdf))
+    }
+
+    fn indexes(&mut self) -> &FxHashSet<i32> {
+        if self.indexes.is_none() {
+            self.indexes = Some(self.pages().values().copied().collect());
+        }
+        self.indexes.get_or_insert_with(Default::default)
     }
 
     fn names(&mut self) -> &FxHashMap<Vec<u8>, Object<'a>> {
@@ -112,7 +121,7 @@ impl<'a> Destinations<'a> {
             // Some producers write the page's index rather than a reference to it.
             Some(MaybeRef::NotRef(Object::Number(n))) => {
                 let page = n.as_i64();
-                i32::try_from(page).ok().filter(|p| self.pages().values().any(|v| v == p)).unwrap_or(-1)
+                i32::try_from(page).ok().filter(|p| self.indexes().contains(p)).unwrap_or(-1)
             }
             _ => -1,
         }

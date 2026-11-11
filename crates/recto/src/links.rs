@@ -211,6 +211,11 @@ mod tests {
             let extra = if i == 0 { format!("/Annots[{annots}]") } else { String::new() };
             objects.push(format!("<</Type/Page/Parent 2 0 R/MediaBox[0 0 10 10]{extra}>>"));
         }
+        file(&objects)
+    }
+
+    /// A file of these objects, numbered from 1, with the first the catalog.
+    fn file(objects: &[String]) -> Vec<u8> {
         let mut out = b"%PDF-1.7\n".to_vec();
         let mut offsets = vec![];
         for (i, body) in objects.iter().enumerate() {
@@ -263,5 +268,49 @@ mod tests {
             // What 400 links add is theirs: a few reads each, not the 4,000 pages again.
             assert!(many < one + 400 * 8, "{one} reads for one link, {many} for 400");
         }
+    }
+
+    /// `n` pages, and on the first a link to each by its index, last first, as some producers write
+    /// a destination's page.
+    fn numbered(n: usize) -> Vec<u8> {
+        let mut objects = vec![
+            "<</Type/Catalog/Pages 2 0 R>>".to_string(),
+            format!("<</Type/Pages/Count {n}/Kids[{}]>>", (0..n).map(|i| format!("{} 0 R", i + 3)).collect::<Vec<_>>().join(" ")),
+        ];
+        let annots: String = (0..n).map(|i| format!("<</Type/Annot/Subtype/Link/Rect[0 0 1 1]/Dest[{} /Fit]>>", n - 1 - i)).collect();
+        for i in 0..n {
+            let extra = if i == 0 { format!("/Annots[{annots}]") } else { String::new() };
+            objects.push(format!("<</Type/Page/Parent 2 0 R/MediaBox[0 0 10 10]{extra}>>"));
+        }
+        file(&objects)
+    }
+
+    // Each link that named its page by index looked for that index among every page's, so a page of
+    // links to each of n pages took n² steps: 16,000 took 0.14 s. Eight times the links and pages take
+    // about eight times as long now, where they took 64.
+    #[test]
+    fn links_to_pages_by_index_take_time_linear_in_them() {
+        let time = |n: usize| {
+            let doc = Document::open(numbered(n), "").unwrap();
+            let pages: Vec<i32> = doc
+                .links(0)
+                .unwrap()
+                .into_iter()
+                .map(|l| match l.target {
+                    Target::Page(d) => d.page,
+                    other => panic!("{other:?}"),
+                })
+                .collect();
+            assert_eq!(pages, (0..n as i32).rev().collect::<Vec<_>>());
+            (0..3)
+                .map(|_| {
+                    let start = std::time::Instant::now();
+                    assert_eq!(doc.links(0).unwrap().len(), n);
+                    start.elapsed().as_secs_f64()
+                })
+                .fold(f64::INFINITY, f64::min)
+        };
+        let (small, large) = (time(1_000), time(8_000));
+        assert!(large < 24.0 * small, "{small:.4} s for 1,000 links, {large:.4} s for 8,000");
     }
 }

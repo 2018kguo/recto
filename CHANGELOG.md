@@ -27,6 +27,12 @@
   benchmark corpus holds more than 12), so a ring of references through up to 64 objects is refused where it
   was; a longer ring, which was refused after one turn, is refused after 131,072 steps. Every pixel and
   character of the corpus's pages is unchanged.
+- **A link or bookmark that names its page by index no longer looks through every page.** Some producers
+  write a destination's page as its index rather than a reference to it, and each such destination was checked
+  against the index of every page in turn, so n of them in an n-page file took time in n²: the outline of a
+  16,000-page file with a bookmark to each page took 0.14 s to list, and takes 0.02 s now (natively); a page of
+  8,000 such links, 0.038 s and now 0.012. The pages' indexes are gathered once a call. Every pixel and character
+  of the benchmark corpus's pages is unchanged.
 
 ## 0.5.3
 
