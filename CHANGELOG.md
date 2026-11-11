@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.5.3
+
+Word-made pages, and reading text, are faster; every pixel and every character is unchanged.
 
 ### Changed
 
@@ -43,25 +45,6 @@ Scanned pages draw faster at the sizes viewers and thumbnails use, with the scor
 - **An image drawn more than once is decoded once**: a cache of up to 256 images and 48 MiB (or
   `maxDecodedBytes / 8`), least recently used first, keeping an image from its second draw. The same scan on
   6 pages at 1600 px renders in 118 ms instead of 358; a logo on 12 pages in 10 ms instead of 60.
-
-## Unreleased
-
-Scanned and image-heavy pages draw faster and in less memory. See
-[docs/benchmarks.md](docs/benchmarks.md#scanned-pages).
-
-### Changed
-
-- **A JPEG drawn at under half its size is decoded smaller**, at 1/2, 1/4 or 1/8, in the IDCT, as libjpeg's
-  `scale_denom` does: the largest reduction that still leaves it at least as large as it's drawn, on both axes.
-  A 300 dpi Letter scan at 1024 px takes 34 ms where it took 46 and 22 MB where it took 33; at 400 px 22 ms
-  and 8 MB where it took 41 ms and 29 MB; a 160 px thumbnail 17 ms where it took 60. Pixels move by a
-  mean of 1 to 2.4 of 255, on the edges of strokes; no 4×4 cell by more than 16. At 1600 px and larger, nothing
-  changes. The decode limit still applies to the full size.
-- **An image drawn again at the same size isn't decoded again** while its document is open: a logo or a
-  scanned letterhead on every page, a page drawn as tiles or drawn again. Up to 256 images and 48 MiB a document (an eighth
-  of `maxDecodedBytes` if that's less), kept from an image's second draw; never anything a decode limit cut.
-  Six pages with the same scan behind them draw in 70 ms where they took 285 at 1024 px.
-- `zune-jpeg` is vendored, for the scaled decode.
 
 ## 0.5.1
 

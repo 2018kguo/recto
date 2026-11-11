@@ -543,7 +543,7 @@ dependencies = [
 
 [[package]]
 name = "recto"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
  "flate2",
  "hayro",
