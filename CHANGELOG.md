@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **A pool's threads start sooner: each takes `recto.wasm` as the pool compiled it.** The pool reads, hashes and
+  compiles it once, while its first thread boots, and posts the module to each thread, which no longer reads and
+  hashes it again (loading node:crypto first, in Node). A fresh process's first text from a pool comes about
+  5 ms sooner of about 45 (paired median of 21 runs, at 1 and at 4 threads). The wasm is unchanged, and so is
+  every result.
+- **In Node, an engine compiles `recto.wasm` while it hashes it**, rather than after: the hash first waits on
+  loading node:crypto, 3–5 ms in a fresh process, and V8 compiles on threads of its own. The module is still used
+  only if the hash is its pin. `createPdfEngine` in a fresh process is about 1 ms sooner of 8 (paired median of
+  31 runs). A fetched wasm is still hashed before it's compiled.
+
 ## 0.5.3
 
 Word-made pages, and reading text, are faster; every pixel and every character is unchanged.

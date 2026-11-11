@@ -190,7 +190,8 @@ call into vello_cpu; slicing that by row would mean vendoring it.
 
 ## Instances
 
-The wasm is compiled once per thread and per location. Each instance gets its own wasm-bindgen
+The wasm is compiled once per thread and per location; a pool's threads take `recto.wasm` as the pool's
+own thread compiled it, posted to them, so a thread starting doesn't read, hash and compile it again. Each instance gets its own wasm-bindgen
 glue closure (`scripts/package-wasm.mjs`), because the stock glue keeps its instance in module
 scope, and one module record per instance would pin every retired instance's memory. A trap
 retires the instance: `panic = abort` on wasm32, so a panic or a failed allocation arrives as a

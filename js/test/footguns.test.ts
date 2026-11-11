@@ -65,7 +65,11 @@ test("a missing or wrong wasm fails the engine's creation; the refusal is not ca
   const wrong = readFileSync(packaged("recto.wasm"));
   wrong[wrong.length - 1] = (wrong.at(-1) ?? 0) ^ 1;
   writeFileSync(join(dir, "recto.wasm"), wrong);
-  await assert.rejects(createPdfEngine({ assetBase: dir, preloadAssets: [] }), hasCode("missing-asset"));
+  const notThisBuild = (error: PdfError) => hasCode("missing-asset")(error) && /not this build's file/u.test(error.message);
+  await assert.rejects(createPdfEngine({ assetBase: dir, preloadAssets: [] }), notThisBuild);
+  // Compiled while it's hashed in Node: a file that doesn't compile either still says it's the wrong file.
+  writeFileSync(join(dir, "recto.wasm"), "<!doctype html>");
+  await assert.rejects(createPdfEngine({ assetBase: dir, preloadAssets: [] }), notThisBuild);
   copyFileSync(packaged("recto.wasm"), join(dir, "recto.wasm"));
   const engine = await createPdfEngine({ assetBase: pathToFileURL(dir), preloadAssets: [] });
   (await engine.open(pdf())).close();
