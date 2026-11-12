@@ -20,6 +20,11 @@
 
   Text reads the same on all 531 files of the scoreboard, at the same speed; reading text downloads 1.8 kB
   more (brotli), drawing 1.4 kB.
+- **`bench/wild.mjs`, and a "Real-world files" section in docs/benchmarks.md.** It runs 7,000 PDFs drawn at random
+  from Common Crawl (the SafeDocs CC-MAIN-2021-31-PDF-UNTRUNCATED corpus) through recto, pdf.js and pdfium, each
+  file and engine in a fresh process with 20 s and 2 GB. recto had no crash, no timeout and nothing past the memory
+  limit. It did worse than another engine on 2 files, and the cause is fixed separately. `bench/engines.mjs`'s
+  pdfium adapter now throws when a page doesn't load, instead of passing a null page on.
 
 ### Changed
 
