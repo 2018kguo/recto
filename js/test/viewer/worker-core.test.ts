@@ -133,7 +133,7 @@ test("a small file is read whole in one round trip: its head and tail, asked for
   assert.ok(smallServer.served().requests - before <= 2, `${smallServer.served().requests - before} requests`);
 });
 
-test("a file under the cut draws its first page from a few ranges, then downloads the rest in one request", async () => {
+test("a file under the cut draws its first page from a few ranges, then downloads the rest in the background", async () => {
   // About 2.7 MB: the first page's objects are a small part of it.
   const mid = textPdf({ pages: 40, padBytes: 64 * 1024 });
   // A little latency, so the rest's first bytes can't have arrived by the time the render answers.
@@ -154,8 +154,9 @@ test("a file under the cut draws its first page from a few ranges, then download
       await call<"text">({ docId: 1, op: "text", page });
     }
     const all = server.served();
-    assert.equal(all.requests - first.requests, 1, "the rest is one request");
-    assert.ok(all.bytes <= mid.byteLength + 2 * 64 * 1024, `${all.bytes} bytes served for a ${mid.byteLength}-byte file`);
+    // In a few pieces, none of it twice.
+    assert.ok(all.requests - first.requests <= Math.ceil(mid.byteLength / (256 * 1024)), `${all.requests - first.requests} requests for the rest`);
+    assert.ok(all.bytes <= mid.byteLength, `${all.bytes} bytes served for a ${mid.byteLength}-byte file`);
   } finally {
     await server.close();
   }

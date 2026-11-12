@@ -403,7 +403,7 @@ test("a read started before there's an engine opens on it, its first round alrea
   await assert.rejects(async () => engine.openRanged(startRangedRead("file:///x.pdf")), TypeError);
 });
 
-test("fetchRest downloads what's left in one request, and no read after it fetches", async () => {
+test("fetchRest downloads what's left, nothing held again, and no read after it fetches", async () => {
   const bytes = await bulkyPdf(true);
   for (const source of ["http", "bytes"] as const) {
     const server = source === "http" ? await startRangeServer(bytes) : null;
@@ -413,9 +413,9 @@ test("fetchRest downloads what's left in one request, and no read after it fetch
       const before = doc.stats();
       await doc.fetchRest();
       const after = doc.stats();
-      assert.equal(after.requests - before.requests, 1, source);
-      // From the first chunk missing to the last: what's held past it, the tail, isn't asked for again.
-      assert.ok(after.bytesFetched <= bytes.byteLength + 4 * 64 * 1024, `${source}: ${after.bytesFetched} of ${bytes.byteLength}`);
+      assert.ok(after.requests > before.requests, source);
+      // Only what was missing: no byte comes twice.
+      assert.ok(after.bytesFetched <= bytes.byteLength, `${source}: ${after.bytesFetched} of ${bytes.byteLength}`);
       for (let i = 0; i < doc.pageCount; i++) {
         doc.text(i);
       }
@@ -426,6 +426,26 @@ test("fetchRest downloads what's left in one request, and no read after it fetch
     } finally {
       await server?.close();
     }
+  }
+});
+
+test("a read that misses during fetchRest is not fetched again: the download goes on from where it read", async () => {
+  const bytes = syntheticPdf({ pages: 40, charsPerPage: 900, padBytes: 64 * 1024 });
+  // Latency, so the background pieces are still out when the read misses.
+  const server = await startRangeServer(bytes, { latencyMs: 30 });
+  try {
+    await using doc = await engine.openRanged(server.url);
+    const rest = doc.fetchRest();
+    // Far from the head, where the download starts: a blocking read of its own.
+    assert.ok(doc.text(38).text.length > 0);
+    await rest;
+    assert.ok(doc.stats().bytesFetched <= bytes.byteLength, `${doc.stats().bytesFetched} fetched of ${bytes.byteLength}`);
+    for (let i = 0; i < doc.pageCount; i++) {
+      doc.text(i);
+    }
+    assert.ok(doc.stats().bytesFetched <= bytes.byteLength, "nothing fetched after the rest");
+  } finally {
+    await server.close();
   }
 });
 
