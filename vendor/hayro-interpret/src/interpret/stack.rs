@@ -64,6 +64,10 @@ pub(crate) struct StateStack<'a> {
 
 macro_rules! accessors {
     ($get:ident, $get_mut:ident, $field:ident, $ty:ty) => {
+        accessors!($get, $get_mut, $field, $ty, );
+    };
+    ($get:ident, $get_mut:ident, $field:ident, $ty:ty, $(#[$attr:meta])*) => {
+        $(#[$attr])*
         pub(crate) fn $get(&self) -> &$ty {
             self.$field.get(self.top().$field)
         }
@@ -111,7 +115,8 @@ impl<'a> StateStack<'a> {
     accessors!(stroke, stroke_mut, stroke, PaintState<'a>);
     accessors!(fill, fill_mut, fill, PaintState<'a>);
     accessors!(stroke_props, stroke_props_mut, stroke_props, StrokeProps);
-    accessors!(text, text_mut, text, TextState<'a>);
+    // recto: read inlined, as text reads its state at every glyph.
+    accessors!(text, text_mut, text, TextState<'a>, #[inline]);
     accessors!(
         compositing,
         compositing_mut,

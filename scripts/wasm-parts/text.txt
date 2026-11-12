@@ -309,6 +309,7 @@
 <hayro_interpret::interpret::stack::StateStack>::push_clip
 <hayro_interpret::interpret::stack::StateStack>::restore
 <hayro_interpret::interpret::stack::StateStack>::restore_target_clips
+<hayro_interpret::interpret::stack::StateStack>::top
 <hayro_interpret::interpret::state::PaintState as core::clone::Clone>::clone
 <hayro_interpret::interpret::state::State>::new
 <hayro_interpret::interpret::state::TextState as core::clone::Clone>::clone

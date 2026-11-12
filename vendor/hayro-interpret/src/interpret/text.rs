@@ -37,6 +37,7 @@ pub(crate) fn append_text_string<'a>(
     let show_glyphs = matches!(font, TextStateFont::Font(_))
         || (matches!(font, TextStateFont::Fallback(_)) && bytes.is_ascii());
 
+    let horizontal = ctx.text_state().font_horizontal();
     let mut cur_idx = 0;
     while cur_idx < bytes.len() {
         let (code, adv) = font.read_code(bytes, cur_idx);
@@ -68,7 +69,7 @@ pub(crate) fn append_text_string<'a>(
         }
 
         ctx.text_state_mut()
-            .apply_advance(code, adv, metrics.advance);
+            .apply_advance(code, adv, metrics.advance, horizontal);
     }
 }
 

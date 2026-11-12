@@ -333,7 +333,10 @@ fn copies(glyphs: &[Glyph]) -> Vec<bool> {
     let mut next: Vec<u32> = Vec::with_capacity(glyphs.len());
     // Bit `L - MIN_LEVEL` set once a glyph is indexed on level L.
     let mut levels: u128 = 0;
+    // The recent runs, each from its first shown glyph (its end if none) to its end: what each run
+    // after them compares against.
     let mut recent: Vec<(usize, usize)> = Vec::with_capacity(RECENT_RUNS);
+    let shows = |g: &Glyph| !g.text.is_empty() && !g.is_space();
     let mut start = 0;
     while start < glyphs.len() {
         let run = glyphs[start].run;
@@ -344,18 +347,19 @@ fn copies(glyphs: &[Glyph]) -> Vec<bool> {
         // Faux bold: the whole text object again, a little off, in any font. Two glyphs at least: a lone glyph near its twin is often
         // real text (see the per-glyph bound below).
         let span = &glyphs[start..end];
-        let shown = || span.iter().filter(|g| !g.text.is_empty() && !g.is_space());
-        let repeats = shown().count() >= 2
-            && recent.iter().any(|&(s, e): &(usize, usize)| {
-                let earlier = || {
-                    glyphs[s..e]
-                        .iter()
-                        .filter(|g| !g.text.is_empty() && !g.is_space())
-                };
-                let (a, b) = (shown().next(), earlier().next());
-                a.zip(b).is_some_and(|(a, b)| {
+        let first = span.iter().position(shows).map_or(end, |n| start + n);
+        let repeats = first < end
+            && glyphs[first + 1..end].iter().any(shows)
+            && recent.iter().any(|&(b, e)| {
+                let a = &glyphs[first];
+                b < e && {
+                    let b = &glyphs[b];
                     (a.origin - b.origin).hypot2() < (a.em.min(b.em) * WHOLE_RUN_COPY).powi(2)
-                }) && shown().map(|g| &g.text).eq(earlier().map(|g| &g.text))
+                } && glyphs[first..end]
+                    .iter()
+                    .filter(|g| shows(g))
+                    .map(|g| &g.text)
+                    .eq(glyphs[b..e].iter().filter(|g| shows(g)).map(|g| &g.text))
             });
         if repeats {
             copy[start..end].fill(true);
@@ -365,7 +369,7 @@ fn copies(glyphs: &[Glyph]) -> Vec<bool> {
         if recent.len() == RECENT_RUNS {
             recent.remove(0);
         }
-        recent.push((start, end));
+        recent.push((first, end));
         let mut over_another = false;
         for i in start..end {
             let g = &glyphs[i];

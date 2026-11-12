@@ -200,7 +200,7 @@ pub(crate) fn interpret<'a>(
         });
         let unreadable = !ops[..ops.len() - own.min(ops.len())]
             .iter()
-            .all(|o| lex::readable(d, o));
+            .all(|o| matches!(o, Operand::Num(_) | Operand::Str(..)) || lex::readable(d, o));
         if unreadable {
             break;
         }

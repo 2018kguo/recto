@@ -424,6 +424,7 @@ impl<'a> Context<'a> {
         self.stack.stroke_props_mut()
     }
 
+    #[inline]
     pub(crate) fn text_state(&self) -> &TextState<'a> {
         self.stack.text()
     }

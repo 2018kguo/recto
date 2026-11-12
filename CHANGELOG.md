@@ -18,6 +18,13 @@
   132 of 1,306 pages change, by at most 3 levels a channel and almost all by 1, on pixels a glyph partly covers.
   The scorecard is unchanged (519 of 530 agree). The drawing part of the wasm is 1.3 kB larger.
 
+- **Text reads about 2% fewer instructions a page.** Finding faux-bold copies compared each run with
+  the recent ones by filtering both for shown glyphs again at every comparison; each run's first shown
+  glyph is now found once. A string's writing direction is read once rather than at every glyph, the
+  text state is read inline, and an operand that's a number or a string isn't checked for being
+  readable. Every char, box, font and flag of the 10,354 pages, and every pixel of the first three of
+  each file, are the same. The text part of the wasm is 0.2 kB larger.
+
 ### Fixed
 
 - **A non-isolated group's blend modes no longer blend with the paper.** The page group is isolated

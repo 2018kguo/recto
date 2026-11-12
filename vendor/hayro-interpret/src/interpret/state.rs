@@ -182,9 +182,14 @@ impl<'a> TextState<'a> {
     }
 
     /// recto: was `apply_code_advance`; the caller passes the font's advance for
-    /// the code, read with the rest of its metrics.
-    pub(crate) fn apply_advance(&mut self, char_code: u32, code_len: usize, glyph_advance: Vec2) {
-        let horizontal = self.font_horizontal();
+    /// the code, read with the rest of its metrics, and `font_horizontal()`, read once a string.
+    pub(crate) fn apply_advance(
+        &mut self,
+        char_code: u32,
+        code_len: usize,
+        glyph_advance: Vec2,
+        horizontal: bool,
+    ) {
 
         let word_space = if char_code == 32 && code_len == 1 {
             self.word_space
