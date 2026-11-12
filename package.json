@@ -11,6 +11,8 @@
     "smoke": "node smoke/run.mjs",
     "bench": "npm install --prefix bench --no-audit --no-fund && node bench/bench.mjs",
     "demo": "node bench/viewer-demo.mjs",
+    "demo:compare": "npm install --prefix bench/compare --no-audit --no-fund && node bench/compare/demo.mjs",
+    "bench:compare": "npm install --prefix bench --no-audit --no-fund && npm install --prefix bench/compare --no-audit --no-fund && node bench/compare/run.mjs",
     "bench:browser": "npm install --prefix bench --no-audit --no-fund && node bench/browser.mjs",
     "scoreboard": "npm install --prefix bench --no-audit --no-fund && node scripts/scoreboard.mjs",
     "assets":"npm install --prefix bench --no-audit --no-fund && node scripts/assets/all.mjs"

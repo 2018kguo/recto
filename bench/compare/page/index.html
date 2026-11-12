@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>recto vs pdf.js</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f5f5f7;
+    --card: #ffffff;
+    --text: #1d1d1f;
+    --muted: #6e6e73;
+    --faint: #aeaeb2;
+    --line: rgb(0 0 0 / 0.08);
+    --stage: #e9e9ec;
+    --accent: #0071e3;
+    --good: #248a3d;
+    --chip: rgb(0 0 0 / 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #000000;
+      --card: #1c1c1e;
+      --text: #f5f5f7;
+      --muted: #98989d;
+      --faint: #636366;
+      --line: rgb(255 255 255 / 0.1);
+      --stage: #2a2a2d;
+      --accent: #2997ff;
+      --good: #30d158;
+      --chip: rgb(255 255 255 / 0.08);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 28px 24px 40px; }
+  header { display: flex; align-items: end; justify-content: space-between; gap: 16px 24px; flex-wrap: wrap; margin-bottom: 18px; }
+  h1 { font-size: 32px; line-height: 1.1; font-weight: 700; letter-spacing: -0.025em; margin: 0; }
+  h1 .vs { color: var(--faint); font-weight: 500; margin: 0 0.18em; }
+  .sub { margin: 6px 0 0; color: var(--muted); font-size: 15px; }
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  select, button, .file {
+    font: inherit;
+    font-size: 14px;
+    color: var(--text);
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 980px;
+    padding: 7px 14px;
+    min-height: 36px;
+    cursor: pointer;
+  }
+  select { appearance: none; padding-right: 30px; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: right 15px top 15px, right 10px top 15px; background-size: 5px 5px; background-repeat: no-repeat; max-width: 230px; }
+  .file { position: relative; display: inline-flex; align-items: center; }
+  .file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .segmented { display: inline-flex; background: var(--chip); border-radius: 980px; padding: 3px; }
+  .segmented button { border: 0; background: transparent; min-height: 30px; padding: 4px 12px; color: var(--muted); }
+  .segmented button[aria-pressed="true"] { background: var(--card); color: var(--text); box-shadow: 0 1px 3px rgb(0 0 0 / 0.12); }
+  .run { background: var(--accent); color: #fff; border-color: transparent; font-weight: 600; padding: 7px 20px; }
+  .run:disabled { opacity: 0.5; cursor: default; }
+  button:focus-visible, select:focus-visible, .file:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 14px; min-height: 36px; flex-wrap: wrap; }
+  .status { color: var(--muted); font-size: 14px; }
+  .status b { color: var(--text); font-weight: 600; }
+  .zoom { display: inline-flex; gap: 6px; }
+  .zoom button { min-width: 36px; padding: 6px 12px; }
+  .panes { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .pane { background: var(--card); border-radius: 18px; overflow: hidden; box-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 24px rgb(0 0 0 / 0.04); display: flex; flex-direction: column; min-width: 0; }
+  .pane-head { display: flex; align-items: baseline; gap: 8px; padding: 14px 18px 12px; }
+  .pane-head .name { font-size: 19px; font-weight: 650; letter-spacing: -0.01em; }
+  .pane-head .version { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .pane-head .state { margin-left: auto; font-size: 13px; color: var(--muted); }
+  .pane-head .state.active { color: var(--accent); }
+  .stage { position: relative; height: 520px; background: var(--stage); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .stage iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: transparent; }
+  .stage .waiting { position: absolute; inset: 0; display: grid; place-items: center; color: var(--faint); font-size: 14px; }
+  .stats { margin: 0; padding: 6px 18px 12px; display: grid; grid-template-columns: 1fr auto; }
+  .stats dt, .stats dd { margin: 0; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .stats dt { color: var(--muted); font-size: 14px; }
+  .stats dd { text-align: right; font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; white-space: nowrap; }
+  .stats dt:nth-last-of-type(1), .stats dd:nth-last-of-type(1) { border-bottom: 0; }
+  .stats dd .unit { font-size: 13px; font-weight: 500; color: var(--muted); margin-left: 2px; }
+  .stats dd .note { font-size: 12px; font-weight: 500; color: var(--muted); margin-left: 6px; }
+  .stats dd.empty { color: var(--faint); font-weight: 500; }
+  .stats dd.better { color: var(--good); }
+  .stats dd.better::before { content: "●"; font-size: 8px; vertical-align: 3px; margin-right: 7px; }
+  .drop { position: fixed; inset: 12px; border: 2px dashed var(--accent); border-radius: 22px; background: color-mix(in srgb, var(--accent) 7%, transparent); pointer-events: none; display: none; z-index: 3; }
+  body.dragging .drop { display: block; }
+  footer { margin-top: 22px; color: var(--muted); font-size: 13px; line-height: 1.55; max-width: 860px; }
+  footer p { margin: 0 0 8px; }
+  @media (max-width: 760px) {
+    .wrap { padding: 20px 16px 32px; }
+    h1 { font-size: 26px; }
+    .panes { grid-template-columns: 1fr; gap: 16px; }
+    .stage { height: 62vh; min-height: 360px; }
+    .controls { width: 100%; }
+    .controls select { flex: 1 1 100%; max-width: none; }
+    .segmented { flex: 1 1 auto; justify-content: space-between; }
+    .segmented button { padding: 4px 9px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>recto<span class="vs">vs</span>pdf.js</h1>
+      <p class="sub">The same PDF, server and window size. One viewer at a time, from a cold start.</p>
+    </div>
+    <div class="controls">
+      <select id="doc" aria-label="Document"></select>
+      <label class="file">Open a PDF…<input type="file" id="file" accept="application/pdf,.pdf" /></label>
+      <div class="segmented" id="network" role="group" aria-label="Network"></div>
+      <button class="run" id="run">Run</button>
+    </div>
+  </header>
+  <div class="bar">
+    <div class="status" id="status" aria-live="polite">Choose a document, or drop one here.</div>
+    <div class="zoom" aria-label="Zoom both">
+      <button id="zoom-out" aria-label="Zoom out">−</button>
+      <button id="zoom-fit">Fit</button>
+      <button id="zoom-in" aria-label="Zoom in">+</button>
+    </div>
+  </div>
+  <main class="panes" id="panes"></main>
+  <footer>
+    <p><b>Run</b> opens the file, scrolls to page 50 in 2.5 s, zooms to 300% and finds a word, on the left and then on the right. Each side loads in a new frame from unique URLs, so nothing is cached. Times start when the frame is created and include downloading the viewer.</p>
+    <p>pdf.js runs as its components example sets it up: a worker, range requests and streaming on, its default rendering. Its zoom is set to recto's fit-width scale, so both draw the same pixels. Code is served brotli-compressed; the network presets are Chrome DevTools', applied by the server to one shared link. Memory is the browser's own measure of each side's frame and workers (Chromium only); canvas is the pixels each holds.</p>
+  </footer>
+</div>
+<div class="drop" aria-hidden="true"></div>
+<script type="module" src="./app.mjs"></script>
+</body>
+</html>
