@@ -1,0 +1,8 @@
+{
+  "name": "recto-compare",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "pdfjs-dist": "6.4.299"
+  }
+}

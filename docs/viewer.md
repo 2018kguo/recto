@@ -222,3 +222,27 @@ named, answering `Range` requests, so a file past 8 MiB opens by range as it wou
 server. `node bench/viewer-perf.mjs` measures it in Chromium (`--browser webkit` or `firefox` too): the
 first page, scrolling a 520-page document read whole and a 600-page one read by range, what is held
 after scrolling all of it, and how long a zoom to 200% and 400% takes to turn sharp.
+
+### Beside pdf.js
+
+`npm run demo:compare [-- file.pdf]` serves a page with the same file open in this viewer and in
+pdf.js's own viewer components (`PDFViewer`, `EventBus`, `PDFLinkService`, `PDFFindController`, set
+up as its components example does: a worker, range requests and streaming on). Both get a frame of the
+same size and the same scale; scrolling or zooming one moves the other. Choose a generated sample or
+drop a PDF of your own (it is sent only to the local server, so both sides read it the same way).
+
+**Run** plays one script on the left and then on the right, never both at once: open, scroll to page 50
+in 2.5 s, zoom to 300%, find a word. Each side starts in a new frame from URLs no run has used, so
+nothing is cached, and the next side waits until the last has stopped downloading. Under each side:
+the time to the first page and until everything on screen is sharp (from the frame's creation, so
+downloading the viewer counts), bytes downloaded, its JS and wasm under brotli, main-thread long tasks
+while scrolling, how long page 50 and 300% take to turn sharp, the search, and memory (Chromium's
+`measureUserAgentSpecificMemory`, the frame and its workers) and the canvas pixels each holds.
+
+The server sends code brotli-compressed and PDFs as they are, answering `Range`. A network preset
+(none, fast 4G, slow 4G, slow 3G: Chrome DevTools' round trips and bandwidths) delays each response by
+a round trip and shares the bandwidth among every response in flight, as one link would.
+
+`npm run bench:compare -- [--doc report-200.pdf] [--network none,fast-4g,slow-4g,slow-3g] [--runs 3]
+[--video dir]` plays the script in headless Chromium, a fresh browser per run, alternating which side
+goes first, prints the medians and writes every run to `bench/results/compare.json`.

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>side</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  body { background: #e9e9ec; }
+  @media (prefers-color-scheme: dark) { body { background: #2a2a2d; } }
+  #view { position: absolute; inset: 0; }
+  /* pdf.js: its container must be absolutely positioned and scroll. Its scrollbar always shows, as
+     recto's does on any document longer than the screen, so both fit pages to the same width. */
+  #view.pdfjs { overflow-x: auto; overflow-y: scroll; }
+  .recto-viewer { --recto-background: transparent; }
+</style>
+</head>
+<body>
+<div id="view"></div>
+<script type="module" src="./side.mjs"></script>
+</body>
+</html>
