@@ -793,6 +793,66 @@ by hash only. The PDFs are read from `~/.cache/recto-corpus/{pub,suites/pdfjs,su
 (65b2e9d) on its own, for the sizes, lines and fidelity a later run can be read against without rebuilding it;
 its times are this machine's on that day, so compare times only within one run.
 
+## Real-world files
+
+The other sections use small sets, mostly files written to break things. This one is a random sample of PDFs as
+they are found on the web: 7,000 files (10.6 GB) from the DARPA SafeDocs
+[CC-MAIN-2021-31-PDF-UNTRUNCATED](https://digitalcorpora.org/corpora/file-corpora/cc-main-2021-31-pdf-untruncated)
+corpus, about 8 million PDFs from Common Crawl's July–August 2021 crawl, fetched again in full where the crawl had
+cut them. The corpus comes as 7,933 zips of up to 1,000 files, numbered by each file's SHA-256, so each zip is
+itself a random draw. `bench/wild.mjs fetch` takes 7 whole zips: zip *n* is the first 4 bytes of
+`sha256("recto-wild-n")` modulo 7,933, which picks 7153, 1534, 1388, 3486, 5418, 5695 and 3200. It writes each
+file's SHA-256 to `~/.cache/recto-corpus/wild/hashes.txt`, whose own SHA-256 is
+`b3e99cc9f944c84c6b627cbb53dcfbe09fbc808d1e50678e6a1e4fd94651c7f9`. No file is committed.
+
+Each file and engine gets a fresh Node process with 20 s and 2 GB (resident, polled every 200 ms): open it,
+read the page count, read the text of up to 5 pages, then draw the first 2 at 1024 px. pdfium has its form-fill
+environment. A process that dies or traps counts as a crash. On main at 47cb4ad:
+
+| 7,000 files | recto | pdf.js | pdfium |
+|---|---:|---:|---:|
+| Opened, and every page asked for read and drawn | 6,974 | 6,964 | 6,968 |
+| Refused as not a PDF, or too damaged | 18 | 23 | 24 |
+| Refused for a password | 8 | 8 | 8 |
+| Opened, then a page failed | 0 | 0 | 0 |
+| Past 20 s | 0 | 0 | 0 |
+| Past 2 GB | 0 | 5 | 0 |
+| Crashed | 0 | 0 | 0 |
+| **Worse than another engine on the same file** | **2** | 12 | 6 |
+| Time per file, median (99th percentile) | 137 ms (1,983) | 398 ms (5,007) | 131 ms (1,979) |
+| Peak memory per process, median (largest) | 120 MB (729) | 221 MB (2,640) | 116 MB (1,070) |
+
+**Worse than another engine** means that on a file another engine opened, this one failed, ran out of time
+or memory, gave a different page count, drew a blank page where both others drew something, or found no text
+on a page where both others found at least 20 words. recto's 2 files are one cause. A report writer put
+`stream \r\n`, with a space before the end of line, and recto read no stream in those files, so their
+174 pages were blank. #35 fixes it: with the fix, recto's count is 0, and no other file's text or pixels
+change. pdf.js's 12 are 5 files past 2 GB, 2 pages with no text, and 5 damaged files it refuses that recto
+opens. pdfium's 6 are the same 5 files and one more. Most of those 5 lost bytes in transfer, and recto opens
+them with blank pages, as is all that's left of them: only one has text.
+
+There's a softer list: a page with under half the words, or the ink, that both others agree on. It flags
+15 recto files, 60 for pdf.js and 9 for pdfium. All 15 of recto's were checked against poppler's
+`pdftotext`, and 14 aren't faults. In those, the others count each dot of a leader or each letter of a
+letter-spaced word as a word, or text is drawn several times over. One is a fault: in a table of contents whose letters are kerned
+tighter than the gap between words, recto runs the words together ("Adequacyofassistance") where poppler
+splits them. That's for the text code to fix.
+
+The times are a loaded machine's. Compare within a column, not with the tables above. The engines' slowest files
+are mostly the same: large scanned or Illustrator pages. On one, a 32 MB A3 poster, recto takes 5 s to draw what
+pdfium draws in 3.3 s.
+
+```sh
+node bench/wild.mjs fetch                    # 7 zips, 10.6 GB, into ~/.cache/recto-corpus/wild
+npm run build
+node bench/wild.mjs run --jobs 4 --results bench/results/wild.json
+```
+
+A run caches one line per file and engine, with recto's keyed by its wasm, so a rerun after a change runs recto
+alone. It writes counts and file hashes to [`bench/results/wild.json`](../bench/results/wild.json), and each
+engine's worse files, by local name, to `~/.cache/recto-corpus/wild/worse.json`. Run it on an idle machine:
+with a load average past 100, 74 runs across all three engines went past 20 s, and none did when they were run again.
+
 ## What this doesn't show
 
 - **Your files.** A different set of PDFs moves these ratios. Rerun it on yours.

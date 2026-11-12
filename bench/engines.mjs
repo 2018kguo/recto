@@ -86,6 +86,7 @@ export function pdfiumEngine(pdfium, { forms = false } = {}) {
         pageCount: pdfium.FPDF_GetPageCount(handle),
         async text(i) {
           const page = pdfium.FPDF_LoadPage(handle, i);
+          if (!page) throw new Error(`pdfium could not load page ${i}: error ${pdfium.FPDF_GetLastError()}`);
           const textPage = pdfium.FPDFText_LoadPage(page);
           const count = pdfium.FPDFText_CountChars(textPage);
           const buffer = m.wasmExports.malloc((count + 1) * 2);
@@ -98,6 +99,7 @@ export function pdfiumEngine(pdfium, { forms = false } = {}) {
         },
         async render(i, width) {
           const page = pdfium.FPDF_LoadPage(handle, i);
+          if (!page) throw new Error(`pdfium could not load page ${i}: error ${pdfium.FPDF_GetLastError()}`);
           const height = Math.ceil((width * pdfium.FPDF_GetPageHeightF(page)) / pdfium.FPDF_GetPageWidthF(page));
           const bitmap = pdfium.FPDFBitmap_CreateEx(width, height, FPDFBitmap_BGRA, 0, 0);
           pdfium.FPDFBitmap_FillRect(bitmap, 0, 0, width, height, 0xffffffff);

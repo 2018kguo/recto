@@ -1,0 +1,126 @@
+{
+ "date": "2026-11-12T18:01:11.240Z",
+ "node": "v25.9.0",
+ "rectoBuild": "dd611bd9f2f1",
+ "files": 7000,
+ "bytes": 10609999466,
+ "engines": {
+  "recto": {
+   "outcomes": {
+    "ok": 6974,
+    "page-error": 0,
+    "open-error": 26,
+    "timeout": 0,
+    "memory": 0,
+    "crash": 0
+   },
+   "codes": {
+    "open-error invalid-file": 18,
+    "open-error password-required": 8
+   },
+   "ms": {
+    "p50": 137,
+    "p90": 342,
+    "p99": 1983,
+    "total": 1610347
+   },
+   "peakRssMb": {
+    "p50": 120,
+    "p99": 236,
+    "max": 729
+   },
+   "blankWhereOthersDraw": 4,
+   "noTextWhereOthersHave": 10,
+   "softDisagreements": 15,
+   "worseThanAnother": 2
+  },
+  "pdf.js": {
+   "outcomes": {
+    "ok": 6964,
+    "page-error": 0,
+    "open-error": 31,
+    "timeout": 0,
+    "memory": 5,
+    "crash": 0
+   },
+   "codes": {
+    "open-error InvalidPDFException": 23,
+    "open-error PasswordException": 8
+   },
+   "ms": {
+    "p50": 398,
+    "p90": 993,
+    "p99": 5007,
+    "total": 4346209
+   },
+   "peakRssMb": {
+    "p50": 221,
+    "p99": 653,
+    "max": 2640
+   },
+   "blankWhereOthersDraw": 0,
+   "noTextWhereOthersHave": 2,
+   "softDisagreements": 60,
+   "worseThanAnother": 12
+  },
+  "pdfium": {
+   "outcomes": {
+    "ok": 6968,
+    "page-error": 0,
+    "open-error": 32,
+    "timeout": 0,
+    "memory": 0,
+    "crash": 0
+   },
+   "codes": {
+    "open-error pdfium-3": 24,
+    "open-error pdfium-4": 8
+   },
+   "ms": {
+    "p50": 131,
+    "p90": 400,
+    "p99": 1979,
+    "total": 1649280
+   },
+   "peakRssMb": {
+    "p50": 116,
+    "p99": 218,
+    "max": 1070
+   },
+   "blankWhereOthersDraw": 0,
+   "noTextWhereOthersHave": 0,
+   "softDisagreements": 9,
+   "worseThanAnother": 6
+  }
+ },
+ "rectoWorse": [
+  {
+   "engine": "recto",
+   "file": "67408469f4fec63b",
+   "problems": [
+    "render 0 blank",
+    "render 1 blank",
+    "text 0 empty",
+    "text 1 empty",
+    "text 2 empty",
+    "text 3 empty",
+    "text 4 empty"
+   ],
+   "soft": []
+  },
+  {
+   "engine": "recto",
+   "file": "e6e7d13d91df4a32",
+   "problems": [
+    "render 0 blank",
+    "render 1 blank",
+    "text 0 empty",
+    "text 1 empty",
+    "text 2 empty",
+    "text 3 empty",
+    "text 4 empty"
+   ],
+   "soft": []
+  }
+ ]
+}
