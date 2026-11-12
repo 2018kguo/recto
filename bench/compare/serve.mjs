@@ -60,7 +60,7 @@ export async function serveCompare({ docs = new Map(), word = "interchange" } = 
   const count = (run, side) => {
     if (!runs.has(run)) runs.set(run, {});
     const sides = runs.get(run);
-    sides[side] ??= { requests: 0, inflight: 0, wire: 0, doc: 0, codeBrotli: 0, codeFiles: [], other: 0 };
+    sides[side] ??= { requests: 0, inflight: 0, wire: 0, doc: 0, codeBrotli: 0, codeFiles: [], other: 0, log: [] };
     return sides[side];
   };
   // One link per preset: a byte can leave once every byte reserved before it has.
@@ -171,7 +171,11 @@ export async function serveCompare({ docs = new Map(), word = "interchange" } = 
       headers["Content-Length"] = part.length;
       const preset = NETWORKS[network] ?? NETWORKS.none;
       const counted = tally && kind !== "harness";
-      if (counted) tally.inflight++;
+      const entry = counted && { path: parts.slice(4).join("/"), range: request.headers.range ?? null, start: Math.round(performance.now()), end: null };
+      if (counted) {
+        tally.inflight++;
+        tally.log.push(entry);
+      }
       try {
         if (preset.latencyMs) await sleep(preset.latencyMs);
         response.writeHead(status, headers);
@@ -188,7 +192,10 @@ export async function serveCompare({ docs = new Map(), word = "interchange" } = 
           },
         });
       } finally {
-        if (counted) tally.inflight--;
+        if (counted) {
+          tally.inflight--;
+          entry.end = Math.round(performance.now());
+        }
       }
     } catch (error) {
       if (!response.headersSent) response.writeHead(500).end(String(error));

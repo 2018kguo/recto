@@ -56,7 +56,7 @@ function show(key, row, value, text, note = "") {
   const a = results[key]?.[row];
   const b = results[other]?.[row];
   for (const k of [key, other]) panes[k].cells[row].classList.remove("better");
-  if (typeof a === "number" && typeof b === "number" && Math.abs(a - b) > 0.05 * Math.max(a, b) && Math.abs(a - b) >= 1) {
+  if (typeof a === "number" && typeof b === "number" && Math.abs(a - b) > 0.1 * Math.max(a, b) && Math.abs(a - b) >= 5) {
     panes[a < b ? key : other].cells[row].classList.add("better");
   }
 }
@@ -178,7 +178,7 @@ async function playSide(key, doc, run, script) {
     await wait(250);
   }
   const counted = (await stats(run))[key] ?? { wire: 0, codeBrotli: 0, requests: 0, doc: 0 };
-  Object.assign(out, { downloadedBytes: counted.wire, docBytes: counted.doc, codeBrotliBytes: counted.codeBrotli, requests: counted.requests, codeFiles: counted.codeFiles });
+  Object.assign(out, { downloadedBytes: counted.wire, docBytes: counted.doc, codeBrotliBytes: counted.codeBrotli, requests: counted.requests, codeFiles: counted.codeFiles, requestLog: counted.log });
   show(key, "downloaded", counted.wire, mb(counted.wire), `${counted.requests} requests`);
   show(key, "code", counted.codeBrotli, mb(counted.codeBrotli));
   p.state.textContent = "Done";
@@ -319,6 +319,8 @@ addEventListener("drop", (event) => {
 
 window.compare = { run: compare, done: false, result: null };
 if (params.has("run")) {
+  // Scripted (headless, or on film): the page around the viewers stays put whatever they scroll.
+  addEventListener("scroll", () => scrollY !== 0 && scrollTo(0, 0));
   window.compare.result = await compare({ script: true });
   window.compare.done = true;
 } else {

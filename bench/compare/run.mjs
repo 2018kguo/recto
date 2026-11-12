@@ -69,9 +69,10 @@ async function once(network, run) {
     args: ["--enable-blink-features=ForceEagerMeasureMemory"],
   });
   const context = await browser.newContext({
-    viewport: { width: 1280, height: 1000 },
+    // Tall enough that the panes and every number are on screen at once (the frames are 520 px either way).
+    viewport: { width: 1280, height: 1320 },
     deviceScaleFactor: 2,
-    ...(values.video && { recordVideo: { dir: values.video, size: { width: 1280, height: 1000 } } }),
+    ...(values.video && { recordVideo: { dir: values.video, size: { width: 1280, height: 1320 } } }),
   });
   out.browser = `Chromium ${browser.version()}`;
   const page = await context.newPage();
@@ -101,6 +102,11 @@ for (const network of networks) {
   for (let run = 0; run < runs; run++) {
     const result = await once(network, run);
     if (result?.error) console.error(`${network} run ${run + 1}: ${result.error}`);
+    // Both must draw the same pixels, or nothing else here compares.
+    for (const key of ["scale", "zoomScale"]) {
+      const [a, b] = SIDES.map((side) => result?.[side]?.[key]);
+      if (a && b && Math.abs(a - b) > 0.01 * a) console.error(`${network} run ${run + 1}: the sides' ${key} differ, ${a} and ${b}`);
+    }
     all.push(result);
     process.stderr.write(`${network} run ${run + 1}/${runs} done\n`);
   }
