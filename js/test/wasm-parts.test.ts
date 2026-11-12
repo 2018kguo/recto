@@ -142,7 +142,7 @@ test("the same through renderAsync, and a paused render on the abandoned instanc
   assert.equal((await other.renderAsync(1, { width: 64 })).width, 64);
 });
 
-test("a password and a ranged read survive being reopened, the ranged one with nothing fetched twice", async () => {
+test("a password and a ranged read survive being reopened, the ranged one fetching again at most what it had read", async () => {
   const dir = assetDir("recto-rare.wasm");
   const engine = await createPdfEngine({ assetBase: dir });
   using trigger = await engine.open(bilevel.jbig2());
@@ -156,7 +156,9 @@ test("a password and a ranged read survive being reopened, the ranged one with n
     assert.throws(() => trigger.render(0, { width: 64 }), missing("recto-rare.wasm"));
     assert.equal(locked.text(0).text, lockedText);
     assert.equal(ranged.text(0).text, text);
-    assert.equal(ranged.stats().bytesFetched, fetched);
+    // The loader drops what the engine has copied in (the file is held once), so the fresh instance's
+    // reads fetch it again: no more than the first one read.
+    assert.ok(ranged.stats().bytesFetched <= 2 * fetched, `${ranged.stats().bytesFetched} after ${fetched}`);
   } finally {
     await server.close();
   }

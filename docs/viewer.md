@@ -117,7 +117,7 @@ Server rendering is fine: importing the module touches no DOM. Create the viewer
 | Option | | |
 |---|---|---|
 | `container` | `HTMLElement` | Required. The viewer adds one scrolling element to it. |
-| `source` | `string \| URL \| ArrayBuffer \| Uint8Array \| Blob` | A URL is read by the worker: whole up to 8 MiB, by range past that. Bytes and a `Blob` (a dropped `File`) are copied to it. |
+| `source` | `string \| URL \| ArrayBuffer \| Uint8Array \| Blob` | A URL is read by the worker, by range from its first request, which goes out while the engine itself downloads: the first page needs only its own bytes. Up to 8 MiB the rest of the file follows in one request once that page is drawn; past it, only what's read is fetched. Bytes and a `Blob` (a dropped `File`) are copied to it. |
 | `fetch` | `(url) => Promise<Response>` | Read a URL with this on the page instead, whole: for headers, signed requests, or another transport. |
 | `credentials` | `RequestCredentials` | Sent with the worker's requests. |
 | `zoom` | `number` | 1 (the default) fits the first page's width; 0.25 to 4. |
@@ -204,7 +204,8 @@ worker. `assetBase` is `createPdfEngine`'s, for wasm that isn't beside the packa
 
 The client starts its worker as `new Worker(new URL("./worker.js", import.meta.url), { type: "module" })`,
 the form Vite, webpack 5, Rollup and esbuild recognise, and the worker finds the wasm the way the engine
-always does. From another origin (a CDN), it starts a one-line worker that imports the real one, which
+always does. The viewer and its worker are shipped bundled, a file each, so a browser fetches the code in
+two round trips rather than one per module. From another origin (a CDN), it starts a one-line worker that imports the real one, which
 needs the CDN to allow CORS, as the wasm does. Pass `createWorker` to start it some other way.
 
 ## Not here yet
@@ -218,8 +219,7 @@ cached as it was read: to show a changed file, give it a new URL.
 ## The demo
 
 `npm run demo [-- file.pdf]` serves the viewer, a generated 60-page sample with bookmarks, and the file
-named, answering `Range` requests, so a file past 8 MiB opens by range as it would from any static
-server. `node bench/viewer-perf.mjs` measures it in Chromium (`--browser webkit` or `firefox` too): the
+named, answering `Range` requests, so a file opens by range as it would from any static server. `node bench/viewer-perf.mjs` measures it in Chromium (`--browser webkit` or `firefox` too): the
 first page, scrolling a 520-page document read whole and a 600-page one read by range, what is held
 after scrolling all of it, and how long a zoom to 200% and 400% takes to turn sharp.
 

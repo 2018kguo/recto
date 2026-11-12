@@ -5,7 +5,7 @@ import { test } from "node:test";
 
 import { degrees, PDFDocument } from "pdf-lib";
 
-import { createPdfEngine, PdfError } from "../src/index.ts";
+import { createPdfEngine, PdfError, startRangedRead } from "../src/index.ts";
 import { syntheticPageText, syntheticPdf } from "./synthetic-pdf.ts";
 import { startRangeServer } from "./range-server.ts";
 
@@ -384,6 +384,61 @@ test("an HTTP source reads by Range; errors never carry the URL", async () => {
   } finally {
     await server.close();
   }
+});
+
+test("a read started before there's an engine opens on it, its first round already done", async () => {
+  const bytes = await bulkyPdf(false);
+  const server = await startRangeServer(bytes);
+  try {
+    const read = startRangedRead(server.url);
+    const fresh = await createPdfEngine();
+    await using doc = await fresh.openRanged(read);
+    const expected = await wholeFile(bytes);
+    assert.equal(doc.pageCount, expected.pageCount);
+    assert.deepEqual(doc.pageInfo(7), expected.pages[7]);
+    assert.equal(doc.stats().bytesFetched, server.served().bytes);
+  } finally {
+    await server.close();
+  }
+  await assert.rejects(async () => engine.openRanged(startRangedRead("file:///x.pdf")), TypeError);
+});
+
+test("fetchRest downloads what's left in one request, and no read after it fetches", async () => {
+  const bytes = await bulkyPdf(true);
+  for (const source of ["http", "bytes"] as const) {
+    const server = source === "http" ? await startRangeServer(bytes) : null;
+    try {
+      await using doc = await engine.openRanged(server ? server.url : bytes);
+      doc.text(0);
+      const before = doc.stats();
+      await doc.fetchRest();
+      const after = doc.stats();
+      assert.equal(after.requests - before.requests, 1, source);
+      // From the first chunk missing to the last: what's held past it, the tail, isn't asked for again.
+      assert.ok(after.bytesFetched <= bytes.byteLength + 4 * 64 * 1024, `${source}: ${after.bytesFetched} of ${bytes.byteLength}`);
+      for (let i = 0; i < doc.pageCount; i++) {
+        doc.text(i);
+      }
+      doc.outline();
+      assert.equal(doc.stats().requests, after.requests, `${source}: nothing fetched after the rest`);
+      await doc.fetchRest();
+      assert.equal(doc.stats().requests, after.requests, `${source}: nothing left to fetch`);
+    } finally {
+      await server?.close();
+    }
+  }
+});
+
+test("a ranged read holds the file once: what the engine has read is dropped from the loader", async () => {
+  const bytes = syntheticPdf({ pages: 300, charsPerPage: 1500, vary: true });
+  await using doc = await engine.openRanged(bytes);
+  for (let i = 0; i < doc.pageCount; i++) {
+    doc.text(i);
+  }
+  const { bytesFetched, heldBytes } = doc.stats();
+  assert.ok(bytesFetched > bytes.byteLength / 2, `fixture check: ${bytesFetched} fetched`);
+  // Only what was fetched ahead and never read is still here.
+  assert.ok(heldBytes < bytesFetched / 4, `${heldBytes} held of ${bytesFetched} fetched`);
 });
 
 test("a URL that redirects to an error page fails with its status, or as not a PDF, never as maxBytes", async () => {

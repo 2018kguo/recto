@@ -55,7 +55,7 @@ export type ViewerRequest =
        * opening by range, since its blocking reads would stall every other document on the worker.
        */
       wholeOnly?: boolean;
-      /** Files up to this size are read in one request; larger ones by range. */
+      /** Files up to this size are downloaded whole (after the first page); larger ones only by range. */
       wholeFileMaxBytes?: number;
     }
   | { op: "pageInfo"; id: number; docId: number; page: number }
@@ -78,6 +78,7 @@ export type ViewerRequest =
 export type ViewerOpenTiming = {
   /** Waiting for the engine's wasm; about 0 once the worker has it. */
   engineMs: number;
+  /** 0 for a file opened by range: its first reads overlap `engineMs`, and the rest are in `parseMs`. */
   fetchMs: number;
   parseMs: number;
   /** Bytes read before parsing; 0 for a file read by range. */
