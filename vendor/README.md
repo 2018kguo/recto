@@ -35,7 +35,12 @@ They are patched for what upstream does not have:
   (`set_max_decoded_bytes`), and an inline image's end found in one pass.
 - **hayro-syntax**: the chain of objects a read came through (`parent_chain` in `src/reader.rs`), which
   refuses a reference back into it, keeps its last 64 objects and refuses any read once it has held
-  131,072, rather than being copied and searched whole at every step of a list linked by `/Next`.
+  131,072, rather than being copied and searched whole at every step of a list linked by `/Next`. Its last
+  object is held inline (`chain_top`), so reading an object one down from a context with no chain, as the
+  page walk does for every page, allocates nothing.
+- **hayro-syntax**: what opening a large file costs. A reference is tried only where a number can start
+  (`may_start_ref` in `src/object/ref.rs`); the page walk makes room for a node's kids at once; and a page
+  not yet built takes a pointer, not a `Page`, in `LazyPages::built`.
 - **hayro-interpret**: a function listed again at the same depth built once and shared.
 - **hayro-interpret**: an even-odd clip whose first subpath is a rectangle around the current clip, as Word
   cuts holes in a page, given to the renderer with that rectangle far past the viewport, so it's culled

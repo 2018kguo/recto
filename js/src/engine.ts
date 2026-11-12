@@ -253,7 +253,47 @@ function instantiate(
   if (maxDecodedBytes !== undefined) {
     glue.setMaxDecodedBytes(maxDecodedBytes);
   }
+  if (!warmed.has(module)) {
+    warmed.add(module);
+    warmUp(glue);
+    instance.startBytes = exports.memory.buffer.byteLength;
+  }
   return instance;
+}
+
+/**
+ * V8 compiles a wasm function on its first call, so the first open in a process paid for compiling
+ * the open's code: 1.5–2 ms of a large file's first open. A module's first instance opens a one-page
+ * file of its own as it starts, so that's paid here instead, before a caller's file arrives. The code
+ * is the module's, shared by its later instances and the threads it's posted to.
+ */
+const warmed = new WeakSet<WebAssembly.Module>();
+
+function warmUp(glue: ReturnType<typeof createGlue>): void {
+  const objects = [
+    "<</Type /Catalog /Pages 2 0 R>>",
+    "<</Type /Pages /Count 1 /Kids [3 0 R]>>",
+    "<</Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources <<>>>>",
+  ];
+  let pdf = "%PDF-1.7\n";
+  const offsets = objects.map((object, i) => {
+    const at = pdf.length;
+    pdf += `${i + 1} 0 obj\n${object}\nendobj\n`;
+    return at;
+  });
+  const xref = pdf.length;
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  pdf += offsets.map((at) => `${String(at).padStart(10, "0")} 00000 n \n`).join("");
+  pdf += `trailer\n<</Size ${objects.length + 1} /Root 1 0 R>>\nstartxref\n${xref}\n%%EOF\n`;
+  try {
+    const doc = new glue.Document(new TextEncoder().encode(pdf), null);
+    doc.filePointer();
+    doc.fileLength();
+    doc.pageCount;
+    doc.free();
+  } catch {
+    // Only time is at stake: an instance this left abandoned is replaced at the next open.
+  }
 }
 
 function bytesOf(input: Uint8Array | ArrayBuffer): Uint8Array {

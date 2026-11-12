@@ -141,9 +141,10 @@ where
     }
 
     fn skip_with_depth(r: &mut Reader<'_>, is_content_stream: bool, depth: usize) -> Option<()> {
-        r.skip::<ObjRef>(is_content_stream)
-            .or_else(|| r.skip_with_depth::<T>(is_content_stream, depth))
-            .map(|_| {})
+        // recto: a reference starts as a number does; anything else skips trying one.
+        (may_start_ref(r) && r.skip::<ObjRef>(is_content_stream).is_some())
+            .then_some(())
+            .or_else(|| r.skip_with_depth::<T>(is_content_stream, depth).map(|_| {}))
     }
 }
 
@@ -152,10 +153,17 @@ where
     T: Readable<'a>,
 {
     fn read(r: &mut Reader<'a>, ctx: &ReaderContext<'a>) -> Option<Self> {
-        if let Some(obj) = r.read::<ObjRef>(ctx) {
+        if may_start_ref(r) && let Some(obj) = r.read::<ObjRef>(ctx) {
             Some(Self::Ref(obj))
         } else {
             Some(Self::NotRef(r.read::<T>(ctx)?))
         }
     }
+}
+
+/// recto: whether what's next could begin a reference: its object number is read as a number, which
+/// starts with a sign, a point or a digit.
+#[inline(always)]
+fn may_start_ref(r: &Reader<'_>) -> bool {
+    matches!(r.peek_byte(), Some(b'0'..=b'9' | b'+' | b'-' | b'.'))
 }

@@ -53,7 +53,8 @@ pub struct Pages<'a> {
 /// takes the walk from the first thing that doesn't add up.
 struct LazyPages<'a> {
     reader: ReaderContext<'a>,
-    built: Vec<OnceLock<Option<Page<'a>>>>,
+    /// Boxed, so a page not yet read costs a word, not a `Page`: a large file's open touched all of them.
+    built: Vec<OnceLock<Option<Box<Page<'a>>>>>,
     walked: Mutex<Walked<'a>>,
     eager: OnceLock<Vec<Page<'a>>>,
 }
@@ -213,6 +214,8 @@ struct PageWalk<'a> {
     /// recto: the kids ran out, so pages may be missing.
     stopped: bool,
     kids_read: usize,
+    /// The file's objects.
+    objects: usize,
 }
 
 struct WalkFrame<'a> {
@@ -232,6 +235,7 @@ impl<'a> PageWalk<'a> {
             lost_kid: false,
             stopped: false,
             kids_read: 0,
+            objects,
         };
         walk.enter(root, root.obj_id(), 0)?;
         Some(walk)
@@ -243,7 +247,13 @@ impl<'a> PageWalk<'a> {
         id: Option<ObjectIdentifier>,
         parent: u32,
     ) -> Option<()> {
-        let kids = dict.get::<Array<'a>>(KIDS)?.raw_iter();
+        let kids = dict.get::<Array<'a>>(KIDS)?;
+        // recto: room for the kids at once, rather than growing and rehashing on the way. A reference
+        // takes at least 6 bytes, and the tree has no more distinct objects than the file. Kids that
+        // repeat one object take no room, so a guess is held to what 65,536 pages would use.
+        let room = (kids.data().len() / 6).min(self.objects.saturating_sub(self.read.len())).min(1 << 16);
+        self.read.reserve(room);
+        let kids = kids.raw_iter();
         let context = if [MEDIA_BOX, CROP_BOX, ROTATE, RESOURCES]
             .iter()
             .any(|key| dict.contains_key(key))
@@ -460,14 +470,14 @@ impl<'a> Pages<'a> {
                 let mut walked = lazy.walked.get();
                 if let Some(descent) = &mut walked.descent {
                     if let Some((dict, context)) = descent.find(index, &lazy.reader) {
-                        return Page::new(&dict, &context, &lazy.reader, false);
+                        return Page::new(&dict, &context, &lazy.reader, false).map(Box::new);
                     }
                     walked.descent = None;
                 }
                 let (dict, context) = walked.page(index, &lazy.reader)?;
-                Page::new(&dict, &walked.walk.contexts[context as usize], &lazy.reader, false)
+                Page::new(&dict, &walked.walk.contexts[context as usize], &lazy.reader, false).map(Box::new)
             })
-            .as_ref()
+            .as_deref()
     }
 
     /// Create a new `Pages` object by bruteforce-searching.

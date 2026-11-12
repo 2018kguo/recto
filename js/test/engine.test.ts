@@ -654,3 +654,16 @@ test("a document behind an unsupported security handler says so, and is not inva
   (await engine.open(new Uint8Array(Buffer.from(text, "latin1")))).close();
   await assert.rejects(engine.open(drm), { code: "unsupported" });
 });
+
+test("the file a new engine opens to compile the open's code leaves nothing open or pending", async () => {
+  const engine = await createPdfEngine();
+  const started = engine.stats();
+  assert.equal(started.openDocuments, 0);
+  assert.ok(started.heapBytes > 0);
+  // Not counted as a document that closed, so no idle drop is pending: the instance stays.
+  await new Promise((resolve) => setTimeout(resolve, 1100));
+  assert.deepEqual(engine.stats(), started);
+  const doc = await engine.open(syntheticPdf({ pages: 2 }));
+  assert.equal(doc.pageCount, 2);
+  doc.close();
+});
