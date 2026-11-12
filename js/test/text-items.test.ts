@@ -11,6 +11,7 @@ import {
   annotationTextItems,
   BREAK_LINE,
   BREAK_SPACE,
+  CHAR_GENERATED,
   createPdfEngine,
   NOT_TEXT,
   type PdfDocument,
@@ -401,5 +402,36 @@ test("invisible hints cannot change text item spacing or geometry", () => {
       expected,
       hint.codePointAt(0)?.toString(16)
     );
+  }
+});
+
+test("tight boxes are each glyph's own, at every page turn and in an embedded CJK font; the text is the same", async () => {
+  const doc = await engine.open(await languageRotationsPdf());
+  try {
+    for (let p = 0; p < doc.pageCount; p++) {
+      const font = doc.text(p);
+      const tight = doc.text(p, { boxes: "tight" });
+      assert.equal(tight.text, font.text);
+      assert.deepEqual(tight.codepoints, font.codepoints);
+      let [fontArea, tightArea] = [0, 0];
+      for (let c = 0; c < font.count; c++) {
+        if (/\s/u.test(String.fromCodePoint(font.codepoints[c] ?? 0)) || (font.flags[c] ?? 0) & CHAR_GENERATED) {
+          continue;
+        }
+        const [fx = 0, fy = 0, fw = 0, fh = 0] = font.boxes.subarray(4 * c, 4 * c + 4);
+        const [x = 0, y = 0, w = 0, h = 0] = tight.boxes.subarray(4 * c, 4 * c + 4);
+        assert.ok(w > 0 && h > 0, `page ${p}, char ${c}: an empty tight box`);
+        // The glyph is drawn in its own advance and em, so its middle is in its font box.
+        const [mx, my] = [x + w / 2, y + h / 2];
+        assert.ok(mx > fx && mx < fx + fw && my > fy && my < fy + fh, `page ${p}, char ${c}: outside its font box`);
+        fontArea += fw * fh;
+        tightArea += w * h;
+      }
+      assert.ok(tightArea < 0.6 * fontArea, `page ${p}: tight boxes cover ${tightArea / fontArea} of the font boxes`);
+    }
+    assert.deepEqual(doc.text(0, { boxes: "font" }), doc.text(0));
+    assert.throws(() => doc.text(0, { boxes: "ink" as "tight" }), RangeError);
+  } finally {
+    doc.close();
   }
 });

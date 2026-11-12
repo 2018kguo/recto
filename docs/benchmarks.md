@@ -411,6 +411,80 @@ Where recto disagrees with poppler on purpose:
 node bench/text-compare.mjs path/to/pdfs [more/paths] [--worst file.json]
 ```
 
+## Character boxes
+
+Against pdfium's tight char boxes (`FPDFText_GetCharBox`, the bounds of each glyph's outline), on the first
+5 pages of the 226 files of the public set and the pdf.js, pdfium and hayro test suites that all three
+engines open and that have text: 388,076 chars, 99.7% of them matched to one of pdfium's by code point in
+content order, whitespace and the chars the engines add left out. IoU is the area two boxes share over the
+area of both; 1 is the same box.
+
+| IoU against pdfium's tight box | Median | 10th percentile | At least 0.8 |
+|---|---:|---:|---:|
+| Chars: recto, `text(i, { boxes: "tight" })` | 0.998 | 0.982 | 96.5% |
+| Chars: recto's font boxes (the default, and every box before this) | 0.426 | 0.255 | 0.4% |
+| Chars: pdfium's own loose boxes (`FPDFText_GetLooseCharBox`) | 0.384 | 0.235 | 0.1% |
+| Words: recto, tight | 0.999 | 0.984 | 99.7% |
+| Words: recto, font boxes | 0.634 | 0.479 | 12.6% |
+| Words: pdfium's loose boxes, united | 0.580 | 0.426 | 4.5% |
+| Text items: pdf.js | 0.629 | 0.415 | 0.3% |
+| Text items: recto's `textItems` | 0.629 | 0.448 | 0.2% |
+
+A word is recto's, against the union of pdfium's boxes for the chars it matched (69,325 words). Text
+items, pdf.js's and `textItems`'s, are upright ones only, and are baseline-and-em boxes by design, for
+laying text over a page; they're here for scale.
+
+pdfium's box is an outline's bounds, not ink, so here are both against the ink itself: for each upright
+char, the bounds of the inked pixels around it in pdfium's render at 4 px a point, leaving out the pixels
+inside other chars' boxes, where that can be read cleanly (302,280 chars; not where ink runs on past the
+char, as a rule or a filled background does):
+
+| IoU against the ink | Median | 10th percentile | At least 0.8 |
+|---|---:|---:|---:|
+| pdfium's tight boxes | 0.848 | 0.551 | 64.8% |
+| recto's tight boxes | 0.846 | 0.543 | 63.8% |
+| recto's font boxes | 0.471 | 0.321 | 0.3% |
+
+Neither engine's box is the ink to the pixel: a curve's control points reach past the curve, and the
+render's pixels and anti-aliasing blur the edges by a quarter of a point. On this measure the two are level.
+
+**What font boxes are.** A char's font box is its advance across, by its font's ascent and descent: the
+same height for every char of a font, whether `x`, `.` or `H`, and the side bearings and an italic's
+overhang come with the advance. The ascent and descent are the font descriptor's, or 0.8 and −0.2 em for a
+font that states none: all of the 14 standard fonts a document doesn't embed, and every Type 3 font,
+whose glyphs can be drawn anywhere their matrix puts them. On the 7 files with Type 3 text, font boxes
+matched pdfium's at a median of 0.086 and tight boxes match at 0.989. Rise, skew and rotation were
+already in font boxes; a turned or skewed box is the upright bounds of the turned one, as pdfium's is. Font
+boxes stay the default, for selection and highlighting, where a line's boxes should be one height, and
+because they cost nothing: they come from the font's dictionary alone.
+
+**What tight boxes are.** The control box of the glyph's outline in its font program (the same box
+FreeType gives pdfium), or for a Type 3 glyph the bounds of what its procedure draws, through the matrix
+the glyph is drawn with. A font the document doesn't embed is measured in the font recto draws it with.
+A glyph with no outline, such as a space, keeps its font box. The text is the same either way: on every
+page measured, `text` reads the same string with either.
+
+**Where they still differ.** Of the 13,528 chars under 0.8, 11,649 are in one file whose Garamond isn't
+embedded, and pdfium and recto draw it in different stand-ins, so the glyphs themselves differ. Without
+it, 99.5% of chars are at 0.8 or more. Most of the rest are where the two place a glyph differently by a
+fraction of a point, which a thin glyph's IoU feels: an `i` a tenth of a point to the side is 0.75. And
+for a few CJK, Arabic and Type 3 fonts pdfium's tight box has no height at all, where recto's has the glyph's.
+
+**What they cost.** Font boxes are what `text` always read, at the same speed. Tight boxes load what
+drawing loads for fonts: each embedded font program, which reading text otherwise loads only when the
+font's dictionary leaves its codes or widths to it, the standard fonts a document names, and drawing's part
+of the wasm. On the public set, reading the first 10 pages of each file in a fresh document, so that
+the fonts load in the time: 1.35 ms a page at the median file where font boxes take 0.99, and 6.9 ms
+at the 90th percentile where they take 3.1 (WebAssembly in Node, best of 3).
+
+```sh
+npm run build
+node bench/box-compare.mjs path/to/pdfs [more/paths] --tight [--no-ink] [--worst file.json]
+```
+
+`--worst` writes the chars furthest from pdfium's, by page, for looking at; like the PDFs, it stays out of
+the repository.
+
 ## Ranged reads
 
 Reading the page count and the last page's text of a generated 14.1 MB report of 2,000 pages, in one

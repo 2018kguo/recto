@@ -151,3 +151,14 @@ test("a pool's render takes a region, and its links come back", async () => {
   assert.deepEqual(await pooled.links(0), doc.links(0));
   doc.close();
 });
+
+test("a pool's text takes the same options as a thread's", async () => {
+  const bytes = pdf();
+  const engine = await createPdfEngine();
+  using single = await engine.open(bytes);
+  using pool = await createPdfPool({ threads: 1 });
+  await using doc = await pool.open(bytes);
+  const tight = await doc.text(0, { boxes: "tight" });
+  assert.deepEqual(tight, single.text(0, { boxes: "tight" }));
+  assert.notDeepEqual(tight.boxes, single.text(0).boxes);
+});

@@ -41,6 +41,8 @@ pub(crate) struct Glyph {
     /// `Tc` along `dir`, in viewer points: letter spacing inside a text run.
     pub(crate) char_space: f64,
     bbox: [f32; 4],
+    /// The glyph's own bounds, with `Boxes::Tight`; `None` keeps `bbox`.
+    pub(crate) tight: Option<[f32; 4]>,
     /// The char's angle (see `Char::angle`).
     pub(crate) angle: f32,
     /// 0xRRGGBBAA.
@@ -115,6 +117,7 @@ pub(crate) fn glyph_from(
         advance,
         char_space: 0.0,
         bbox,
+        tight: None,
         angle: 0.0,
         fill: 0,
         font: 0,
@@ -490,7 +493,7 @@ pub(crate) fn build_page(glyphs: &[Glyph], fonts: &[Font], runs: &[Run]) -> Text
             class: g.class,
             text: g.text.clone(),
             code: g.code,
-            bbox: g.bbox,
+            bbox: g.tight.unwrap_or(g.bbox),
             flags,
             em: g.em as f32,
             tf: g.tf,

@@ -98,6 +98,20 @@ pub struct StructureTruncated {
     pub outline: bool,
 }
 
+/// What a char's box spans.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Boxes {
+    /// The advance across, by the font's ascent and descent: the same height for every char of a
+    /// font, read from its dictionary, so reading text never needs its program.
+    #[default]
+    Font,
+    /// The glyph's own outline bounds from its font program (for a Type 3 glyph, what its procedure
+    /// draws), transformed as it's drawn: a font the document doesn't embed is measured in the font
+    /// it's drawn with. A glyph with no outline (a space, a program that doesn't parse) keeps its
+    /// font box. Loads the programs reading text otherwise leaves alone.
+    Tight,
+}
+
 /// A page's text, objects and annotations from one load.
 pub struct Scan {
     /// Nested streams, annotation points and the largest `/VE`: see `PageBudget`.
@@ -138,6 +152,9 @@ pub struct Region {
 /// Limit: unbounded for the document's life.
 struct Caches<'a> {
     text: InterpreterCache<'a>,
+    /// For `Boxes::Tight`: fonts of their own, with the font resolver drawing has, sharing the
+    /// embedded programs. Made the first time it's asked for.
+    tight: std::cell::OnceCell<InterpreterCache<'a>>,
     render: RenderCache<'a>,
     /// The last page's glyph buffer, emptied: the next page fills it without
     /// regrowing (and recopying) it from nothing.
@@ -257,6 +274,7 @@ impl Document {
                         // and reading text loads one only for what the font's dictionary doesn't say.
                         text: render.text_interpreter_cache().sharing_font_programs_loaded_on_use(),
                         render,
+                        tight: Default::default(),
                         glyphs: Default::default(),
                     }
                 }))
@@ -331,6 +349,11 @@ impl Document {
         self.scan(index, false, false).map(|s| s.text)
     }
 
+    /// `text`, with char and word boxes that span what `boxes` says. The text is the same either way.
+    pub fn text_with(&self, index: usize, boxes: Boxes) -> Result<TextPage, EngineError> {
+        self.scan_with(index, false, false, boxes).map(|s| s.text)
+    }
+
     /// Text, and when asked the page's objects and annotations, from one
     /// interpretation of the page.
     pub fn scan(
@@ -339,14 +362,36 @@ impl Document {
         objects: bool,
         annotations: bool,
     ) -> Result<Scan, EngineError> {
+        self.scan_with(index, objects, annotations, Boxes::Font)
+    }
+
+    /// `scan`, with char and word boxes that span what `boxes` says.
+    pub fn scan_with(
+        &self,
+        index: usize,
+        objects: bool,
+        annotations: bool,
+        boxes: Boxes,
+    ) -> Result<Scan, EngineError> {
         let cuts = hayro::hayro_syntax::decodes_cut();
         self.with_page(index, |_, page, caches| {
             let (w, h) = page.render_dimensions();
             let viewer = page.initial_transform(true).to_kurbo();
+            let tight = boxes == Boxes::Tight;
+            // Tight boxes measure the glyphs drawing would draw, so their fonts are resolved as drawing
+            // resolves them; their codes, and so the text, read the same as in `caches.text`.
+            let (cache, font_resolver) = if tight {
+                let cache = caches.tight.get_or_init(|| {
+                    caches.render.text_interpreter_cache().sharing_font_programs_loaded_on_use()
+                });
+                (cache, crate::assets::settings().font_resolver)
+            } else {
+                (&caches.text, crate::assets::text_settings().font_resolver)
+            };
             let mut ctx = Context::new(
                 viewer,
                 Rect::new(0.0, 0.0, w as f64, h as f64),
-                &caches.text,
+                cache,
                 page.xref(),
                 // Text is the page's own content: widget and
                 // other annotation appearances are not part of it.
@@ -358,10 +403,12 @@ impl Document {
                     } else {
                         RenderContent::PAGE | RenderContent::TEXT_ONLY
                     },
+                    font_resolver,
                     ..crate::assets::text_settings()
                 },
             );
             let mut device = device::PageDevice::new(viewer, objects);
+            device.tight = tight;
             device.glyphs = caches.glyphs.take();
             interpret_page(page, &mut ctx, &mut device);
             let mut device = device.finish();
@@ -1992,6 +2039,10 @@ mod tests {
         assert_eq!(alone.0, "Hi");
         assert_eq!((alone.2[0].weight, alone.2[0].embedded), (400, true));
         assert_eq!(decoded(&doc), 0, "text alone decodes no program");
+        let asked = open("/FontWeight 400");
+        assert_eq!(asked.text_with(0, Boxes::Tight).unwrap().text(), "Hi");
+        assert_eq!(decoded(&asked), 1, "tight boxes decode it");
+        assert_eq!(decoded(&doc), 0, "and only for the document that asked");
         doc.render(0, 100.0, f32::INFINITY).unwrap();
         assert_eq!(decoded(&doc), 1, "drawing decodes it");
         assert!(text(&doc) == alone, "and the text is the same");
@@ -2003,6 +2054,129 @@ mod tests {
         let doc = open("");
         assert_eq!(text(&doc).0, "Hi");
         assert_eq!(decoded(&doc), 1);
+    }
+
+    /// A one-page, 100 pt square document drawing `content` with font `/F1`, object 5, and `extra`
+    /// objects after it (6 on).
+    fn one_font_page(font: &[u8], extra: &[&[u8]], content: &str) -> Document {
+        let content = stream("", content.as_bytes());
+        let mut objects: Vec<&[u8]> = vec![
+            b"<< /Type /Catalog /Pages 2 0 R >>",
+            b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+            &content,
+            font,
+        ];
+        objects.extend_from_slice(extra);
+        Document::open(pdf(&objects), "").unwrap()
+    }
+
+    /// Where a render at `scale` pixels a point put any ink: x, y, width, height in points.
+    fn ink_box(doc: &Document, scale: f32) -> [f32; 4] {
+        let bitmap = doc.render(0, 100.0 * scale, f32::INFINITY).unwrap();
+        let (mut x0, mut y0, mut x1, mut y1) = (u32::MAX, u32::MAX, 0, 0);
+        for (i, px) in bitmap.rgba.chunks(4).enumerate() {
+            if px[..3].iter().any(|&v| v < 250) {
+                let (x, y) = (i as u32 % bitmap.width, i as u32 / bitmap.width);
+                (x0, y0, x1, y1) = (x0.min(x), y0.min(y), x1.max(x + 1), y1.max(y + 1));
+            }
+        }
+        assert!(x1 > x0, "nothing drawn");
+        [x0 as f32 / scale, y0 as f32 / scale, (x1 - x0) as f32 / scale, (y1 - y0) as f32 / scale]
+    }
+
+    /// Tight boxes are the glyph as drawn, upright or not: each edge within a pixel or so of the ink a
+    /// render puts down for the one char on the page, at 8 px a point. Font boxes, the default, aren't;
+    /// the text reads the same either way.
+    #[test]
+    fn tight_boxes_are_the_glyph_ink_turned_skewed_raised_type3_and_cid() {
+        let helvetica: &[u8] = b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>";
+        // A Type 3 glyph that fills a rectangle well inside its `d1` box and its advance.
+        let type3: &[u8] = b"<< /Type /Font /Subtype /Type3 /FontBBox [0 0 1000 1000] /FontMatrix [0.001 0 0 0.001 0 0] \
+            /CharProcs << /sq 6 0 R >> /Encoding << /Type /Encoding /Differences [65 /sq] >> \
+            /FirstChar 65 /LastChar 65 /Widths [1000] /Resources << >> >>";
+        let square = stream("", b"1000 0 0 0 1000 1000 d1 200 100 400 500 re f");
+        // A CID font of two-byte codes, its program embedded: the CJK fallback, glyph 2000 by code.
+        let cid: &[u8] = b"<< /Type /Font /Subtype /Type0 /BaseFont /CJK /Encoding /Identity-H /DescendantFonts [6 0 R] \
+            /ToUnicode 9 0 R >>";
+        let descendant: &[u8] = b"<< /Type /Font /Subtype /CIDFontType2 /BaseFont /CJK \
+            /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor 7 0 R \
+            /DW 1000 /CIDToGIDMap /Identity >>";
+        let descriptor: &[u8] = b"<< /Type /FontDescriptor /FontName /CJK /Flags 4 /FontBBox [0 -200 1000 800] \
+            /ItalicAngle 0 /Ascent 880 /Descent -120 /CapHeight 700 /StemV 80 /FontFile2 8 0 R >>";
+        let program = stream(
+            "",
+            &std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../../assets/cjk-fallback.ttf")).unwrap(),
+        );
+        let to_unicode = stream(
+            "",
+            b"/CIDInit /ProcSet findresource begin 12 dict begin begincmap /CMapName /U def \
+              1 begincodespacerange <0000> <FFFF> endcodespacerange 1 beginbfchar <07D0> <4E2D> endbfchar \
+              endcmap CMapName currentdict /CMap defineresource pop end end",
+        );
+        let cases: [(&str, &[u8], Vec<&[u8]>, &str, &str); 6] = [
+            ("upright", helvetica, vec![], "BT /F1 60 Tf 20 30 Td (H) Tj ET", "H"),
+            ("turned 30°", helvetica, vec![], "BT /F1 50 Tf 0.866 0.5 -0.5 0.866 45 20 Tm (H) Tj ET", "H"),
+            ("skewed", helvetica, vec![], "BT /F1 50 Tf 1 0 0.4 1 20 30 Tm (l) Tj ET", "l"),
+            ("raised", helvetica, vec![], "BT /F1 40 Tf 20 10 Td 25 Ts (x) Tj ET", "x"),
+            ("Type 3", type3, vec![&square], "BT /F1 50 Tf 20 30 Td (A) Tj ET", "A"),
+            ("CID", cid, vec![descendant, descriptor, &program, &to_unicode], "BT /F1 60 Tf 20 30 Td <07D0> Tj ET", "中"),
+        ];
+        let mut raised = [0.0; 4];
+        for (name, font, extra, content, text) in cases {
+            let doc = one_font_page(font, &extra, content);
+            let loose = doc.text(0).unwrap();
+            let tight = doc.text_with(0, Boxes::Tight).unwrap();
+            assert_eq!((loose.text(), tight.text()), (text.to_string(), text.to_string()), "{name}");
+            let (loose, tight) = (loose.chars[0].bbox, tight.chars[0].bbox);
+            let ink = ink_box(&doc, 8.0);
+            // A pixel and a bit: the edge pixel of a slanted stroke is partly covered.
+            let near = |a: f32, b: f32| (a - b).abs() <= 0.2;
+            assert!(
+                near(tight[0], ink[0])
+                    && near(tight[1], ink[1])
+                    && near(tight[0] + tight[2], ink[0] + ink[2])
+                    && near(tight[1] + tight[3], ink[1] + ink[3]),
+                "{name}: tight {tight:?}, ink {ink:?}"
+            );
+            assert!(tight[2] * tight[3] < 0.85 * loose[2] * loose[3], "{name}: font box {loose:?}, tight {tight:?}");
+            if name == "raised" {
+                raised = tight;
+            }
+        }
+        // The rise moves the glyph up by exactly 25 points.
+        let unraised = one_font_page(helvetica, &[], "BT /F1 40 Tf 20 10 Td (x) Tj ET");
+        let flat = unraised.text_with(0, Boxes::Tight).unwrap().chars[0].bbox;
+        assert_eq!((raised[0], raised[2], raised[3]), (flat[0], flat[2], flat[3]));
+        assert!((flat[1] - raised[1] - 25.0).abs() < 1e-3, "{flat:?} {raised:?}");
+    }
+
+    /// Words are the union of their chars' boxes, tight or not, and a space the engine adds keeps the
+    /// font box of the char before it.
+    #[test]
+    fn tight_words_unite_tight_chars() {
+        let doc = one_font_page(
+            b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            &[],
+            "BT /F1 20 Tf 10 50 Td (ox) Tj 30 0 Td (yo) Tj ET",
+        );
+        let (loose, tight) = (doc.text(0).unwrap(), doc.text_with(0, Boxes::Tight).unwrap());
+        assert_eq!(tight.text(), "ox yo");
+        assert_eq!(loose.text(), tight.text());
+        let union = |chars: &[Char]| {
+            let x0 = chars.iter().map(|c| c.bbox[0]).fold(f32::MAX, f32::min);
+            let y0 = chars.iter().map(|c| c.bbox[1]).fold(f32::MAX, f32::min);
+            let x1 = chars.iter().map(|c| c.bbox[0] + c.bbox[2]).fold(f32::MIN, f32::max);
+            let y1 = chars.iter().map(|c| c.bbox[1] + c.bbox[3]).fold(f32::MIN, f32::max);
+            [x0, y0, x1 - x0, y1 - y0]
+        };
+        for word in &tight.words {
+            assert_eq!(word.bbox, union(&tight.chars[word.start as usize..word.end as usize]));
+        }
+        // "ox" has no descender, so its word is shorter than "yo"'s, which goes below the baseline.
+        assert!(tight.words[0].bbox[3] < tight.words[1].bbox[3]);
+        let space = &tight.chars[2];
+        assert_eq!((space.flags, space.bbox[1], space.bbox[3]), (CHAR_GENERATED, loose.chars[2].bbox[1], loose.chars[2].bbox[3]));
     }
 
     /// The linearized fixture, whose text and geometry were written by hand.

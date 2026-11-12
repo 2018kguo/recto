@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Tight character boxes: `text(i, { boxes: "tight" })`.** Each char's box is its glyph's outline bounds
+  from the font program (for a Type 3 glyph, what its procedure draws), through the matrix it's drawn with,
+  as pdfium's `FPDFText_GetCharBox` gives; word boxes unite them. Against pdfium's tight boxes on 388,076
+  chars of the public set and the three test suites, the median char's IoU is 0.998 (10th percentile
+  0.982, 96.5% at 0.8 or more), where font boxes were at 0.426; words 0.999, from 0.634. Against the ink of
+  a render, recto's tight boxes and pdfium's are level (0.846 and 0.848). Type 3 text, whose font boxes
+  were a fixed 0.8 and −0.2 em wherever its glyphs were drawn, goes from 0.086 to 0.989. The text is the
+  same with either box, and font boxes stay the default: they cost nothing, since they come from the
+  font's dictionary, where tight boxes load the font programs, standard fonts and the part of the wasm
+  that drawing loads (1.35 ms a page at the median file, from 0.99, including the loading). `PdfPool`'s
+  `text` takes the option too. `bench/box-compare.mjs` measures it, and
+  [character boxes](docs/benchmarks.md#character-boxes) has the numbers. The Rust crate has
+  `Document::text_with` and `scan_with` and `Boxes`.
+
+  Text reads the same on all 531 files of the scoreboard, at the same speed; reading text downloads 1.8 kB
+  more (brotli), drawing 1.4 kB.
+
 ## 0.6.0
 
 Pages draw a quarter to a third faster and in less memory, the scorecard rises to 97.92%, and the

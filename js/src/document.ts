@@ -42,7 +42,10 @@ export type PdfPageText = {
   count: number;
   /** Unicode code points (U+FFFD where a glyph's code is no scalar value). */
   codepoints: Uint32Array<ArrayBuffer>;
-  /** x, y, width, height per char: the advance by the font's ascent and descent, not glyph ink. */
+  /**
+   * x, y, width, height per char. By default the advance by the font's ascent and descent; with
+   * `{ boxes: "tight" }`, the glyph's own outline bounds. See `PdfTextOptions`.
+   */
   boxes: Float32Array<ArrayBuffer>;
   /** The size each char is drawn at, in points: `Tf` scaled by the text and page matrices. */
   fontSizes: Float32Array<ArrayBuffer>;
@@ -318,7 +321,7 @@ export interface PdfDocument {
    */
   structureTruncated(): { pages: boolean; pageLabels: boolean; outline: boolean };
   pageInfo(index: number): PdfPageInfo;
-  text(index: number): PdfPageText;
+  text(index: number, options?: PdfTextOptions): PdfPageText;
   /** `text`, `objects` and `annotations` from one interpretation of the page. */
   scan(index: number): {
     text: PdfPageText;
@@ -353,6 +356,27 @@ const DEFAULT_MAX_HEIGHT = 4096;
 const MAX_DIMENSION = 16_384;
 /** With a region, the whole page's bitmap may be up to this wide. */
 const MAX_REGION_DIMENSION = 262_144;
+
+/** What `text` takes. */
+export type PdfTextOptions = {
+  /**
+   * What each char's box spans. `"font"`, the default: the advance across, by the font's ascent and
+   * descent, the same height for every char of a font, read from the font's dictionary alone. `"tight"`:
+   * the glyph's outline bounds from its font program (what a Type 3 glyph draws), as pdfium's
+   * `FPDFText_GetCharBox` gives; a glyph with no outline, such as a space, keeps its font box. Word boxes
+   * are the union of their chars' either way, and the text is the same. Tight boxes load the font programs
+   * that reading text otherwise leaves alone, and the standard fonts a document names, as drawing does.
+   */
+  boxes?: "font" | "tight";
+};
+
+function tightBoxes(options: PdfTextOptions | undefined): boolean {
+  const boxes = options?.boxes ?? "font";
+  if (boxes !== "font" && boxes !== "tight") {
+    throw new RangeError(`text boxes must be "font" or "tight", not ${JSON.stringify(boxes)}`);
+  }
+  return boxes === "tight";
+}
 
 /** `width`, `maxHeight` and the region as the engine takes them (NaNs for none), or a RangeError. */
 function renderArgs(options: PdfRenderOptions): [number, number, number, number, number, number] {
@@ -682,9 +706,14 @@ export class RectoDocument implements PdfDocument {
     });
   }
 
-  text(index: number): PdfPageText {
+  text(index: number, options?: PdfTextOptions): PdfPageText {
     this.#check(index);
-    return this.#call(() => toText(this.#doc.pageText(index)));
+    const tight = tightBoxes(options);
+    // Glyph outlines are read by drawing's part of the wasm, and so are the fonts drawing resolves.
+    if (tight) {
+      this.#needsRender();
+    }
+    return this.#call(() => toText(this.#doc.pageText(index, tight)));
   }
 
   objects(index: number): PdfPageObjects {

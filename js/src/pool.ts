@@ -18,6 +18,7 @@ import type {
   PdfPageText,
   PdfRegionBitmap,
   PdfRenderOptions,
+  PdfTextOptions,
 } from "./document.ts";
 import { engineModule } from "./engine.ts";
 import { PdfError, type PdfErrorCode } from "./errors.ts";
@@ -38,7 +39,7 @@ export type PdfPoolOpenOptions = { password?: string };
 export interface PdfPoolDocument {
   readonly pageCount: number;
   pageInfo(index: number): Promise<PdfPageInfo>;
-  text(index: number): Promise<PdfPageText>;
+  text(index: number, options?: PdfTextOptions): Promise<PdfPageText>;
   objects(index: number): Promise<PdfPageObjects>;
   annotations(index: number): Promise<PdfAnnotation[]>;
   links(index: number): Promise<PdfLink[]>;
@@ -337,7 +338,8 @@ class Pool implements PdfPool {
     return {
       pageCount,
       pageInfo: (index) => call("pageInfo", index) as Promise<PdfPageInfo>,
-      text: (index) => call("text", index) as Promise<PdfPageText>,
+      text: (index, textOptions) =>
+        call("text", index, textOptions?.boxes === undefined ? undefined : { boxes: textOptions.boxes }) as Promise<PdfPageText>,
       objects: (index) => call("objects", index) as Promise<PdfPageObjects>,
       annotations: (index) => call("annotations", index) as Promise<PdfAnnotation[]>,
       links: (index) => call("links", index) as Promise<PdfLink[]>,

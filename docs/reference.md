@@ -48,7 +48,7 @@ isn't there. Fonts and CMaps can be named the same way.
 | `structureTruncated()` | `{ pages, pageLabels, outline }`: whether each was cut short. `pages` means `pageCount` may be short: a limit, or a damaged tree that left no pages, which an honestly empty document doesn't say. Walks the outline and labels again |
 | `pageLabels()` | What each page is called, one string per page: `"iv"`, `"A-5"`. `null` if the file doesn't say |
 | `pageInfo(i)` | `{ width, height, rotation }`, in the page's own units: `/UserUnit` doesn't scale them. Rendering by `width` doesn't depend on it |
-| `text(i)` | `PdfPageText`: the page's `text`, and columns per char: `codepoints`, `boxes`, `fontSizes`, `tfSizes`, `angles`, `fills`, `fontIds`, `flags`, `runIds`; plus `fonts`, `words`, `runs`, `truncated` |
+| `text(i, { boxes? })` | `PdfPageText`: the page's `text`, and columns per char: `codepoints`, `boxes`, `fontSizes`, `tfSizes`, `angles`, `fills`, `fontIds`, `flags`, `runIds`; plus `fonts`, `words`, `runs`, `truncated`. `boxes: "tight"` for glyph bounds, below |
 | `objects(i)` | `PdfPageObjects`: image boxes and pixel sizes, path boxes and flags, path segments, `truncated` |
 | `annotations(i)` | `PdfAnnotation[]`: subtype, box, contents, form field, appearance text |
 | `links(i)` | `PdfLink[]`: each `/Link` annotation's index in `annotations(i)`, its box, and its `target`. [Links](#links) |
@@ -63,10 +63,21 @@ Columns are typed arrays, so a page crosses a thread boundary by transfer. Char 
 
 What the columns mean:
 
-- **`boxes`** are each char's advance across, by its font's ascent and descent. The font's are in
+- **`boxes`** are, by default, each char's advance across, by its font's ascent and descent: font
+  boxes, a line's height whatever the glyph, for selecting and highlighting. The font's are in
   `fonts[fontIds[i]]`: the descriptor's values, or 0.8 and -0.2 em for a font that states none (the
-  standard fonts, Type 3). They are not glyph ink. For a substituted font the width is the one the
-  PDF states.
+  standard fonts, Type 3). For a substituted font the width is the one the PDF states. `readingOrder`
+  and `textItems` expect these.
+- **`text(i, { boxes: "tight" })`** gives each glyph's own bounds instead: the control box of its outline
+  from the font program, or of what a Type 3 glyph's procedure draws, through the same matrix it's drawn
+  with (rise, skew, rotation and a substituted font's widening included), as the axis-aligned box in the
+  viewer frame. This is pdfium's `FPDFText_GetCharBox`; [character boxes](benchmarks.md#character-boxes)
+  compares them. A font the document doesn't embed is measured in the font recto draws it with, so the box
+  is that font's glyph, not the original's. A glyph with no outline, such as a space, keeps its font box,
+  and so do the spaces and line breaks the engine adds. Word boxes are the union of their chars' either
+  way, and the text is the same. The cost is what drawing pays for fonts: tight boxes load the embedded
+  font programs that reading text otherwise leaves alone, the standard fonts a document names but doesn't
+  embed (and the CJK fallback, for a CJK font it doesn't embed), and drawing's part of the wasm.
 - **`fontSizes`** is the size a char is drawn at, in points: `Tf` scaled by the text and page
   matrices. **`tfSizes`** is the `Tf` operand itself.
 - **`fonts`** has one entry per font dictionary: `{ name, flags, weight, embedded, ascent, descent }`.

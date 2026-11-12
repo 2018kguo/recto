@@ -1,0 +1,80 @@
+{
+ "date": "2026-11-12T16:50:37.394Z",
+ "documents": 226,
+ "of": 400,
+ "pagesEach": 5,
+ "pages": 353,
+ "rectoChars": 388076,
+ "matched": 0.997,
+ "tightTextDiffers": [],
+ "reference": "pdfium FPDFText_GetCharBox (@embedpdf/pdfium 2.15.1); ink: pdfium's rendering at 4 px a point, chars whose surroundings are clear",
+ "seconds": 65,
+ "summary": {
+  "chars: pdfium loose": {
+   "median": 0.384,
+   "p10": 0.235,
+   "atLeast08": 0.001,
+   "n": 386852
+  },
+  "chars: recto (font box)": {
+   "median": 0.426,
+   "p10": 0.255,
+   "atLeast08": 0.004,
+   "n": 386852
+  },
+  "chars: recto tight": {
+   "median": 0.998,
+   "p10": 0.982,
+   "atLeast08": 0.965,
+   "n": 386852
+  },
+  "ink: pdfium tight": {
+   "median": 0.848,
+   "p10": 0.551,
+   "atLeast08": 0.648,
+   "n": 302280
+  },
+  "ink: recto (font box)": {
+   "median": 0.471,
+   "p10": 0.321,
+   "atLeast08": 0.003,
+   "n": 302280
+  },
+  "ink: recto tight": {
+   "median": 0.846,
+   "p10": 0.543,
+   "atLeast08": 0.638,
+   "n": 302280
+  },
+  "items: pdf.js": {
+   "median": 0.629,
+   "p10": 0.415,
+   "atLeast08": 0.003,
+   "n": 21100
+  },
+  "items: recto textItems": {
+   "median": 0.629,
+   "p10": 0.448,
+   "atLeast08": 0.002,
+   "n": 21268
+  },
+  "words: pdfium loose": {
+   "median": 0.58,
+   "p10": 0.426,
+   "atLeast08": 0.045,
+   "n": 69325
+  },
+  "words: recto (font box)": {
+   "median": 0.634,
+   "p10": 0.479,
+   "atLeast08": 0.126,
+   "n": 69325
+  },
+  "words: recto tight": {
+   "median": 0.999,
+   "p10": 0.984,
+   "atLeast08": 0.997,
+   "n": 69325
+  }
+ }
+}

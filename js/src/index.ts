@@ -27,6 +27,7 @@ export {
   type PdfRegionBitmap,
   type PdfRenderAsyncOptions,
   type PdfRenderOptions,
+  type PdfTextOptions,
   type PdfTextRuns,
   type PdfWords,
   SEGMENT_BEZIER,

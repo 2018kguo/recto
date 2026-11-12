@@ -157,7 +157,9 @@ that ignores `Range` is read whole, within `maxBytes`; a wrong answer fails clea
 <img src="docs/anatomy.png" alt="A report page with a box around every word, image and path: 375 words, 1 image of 480 by 360 pixels, 26 paths" width="560">
 
 A page of the generated report, with what the API returned drawn over it: `text(i)`, `objects(i)` and
-`render(i)`. The boxes are loose font boxes, not glyph ink.
+`render(i)`. These char and word boxes are font boxes, a line's height, for selecting and highlighting.
+`text(i, { boxes: "tight" })` gives each glyph's own outline bounds instead: on 388,000 chars the median one
+matches pdfium's tight box at an IoU of 0.998. See [character boxes](docs/benchmarks.md#character-boxes).
 
 All of them are in one frame, the page as it's shown: points from the top left, after `/Rotate` and the
 crop box. So is `render(i, { width, region })`, which draws only part of a page, with the same pixels as
@@ -220,7 +222,7 @@ changes. Four of its five vendored crates forbid `unsafe` outright; `hayro-synta
 so does recto. A panic still takes the instance with it, and recto reports that as `crash`.
 
 What that costs: there's no viewer. It's much younger than either, and less tested on odd files. Some
-rendering is approximate, and char boxes are loose. If you need a viewer or the most faithful pixels
+rendering is approximate. If you need a viewer or the most faithful pixels
 on anything a user might upload, use one of those two.
 
 ## What's in the package
@@ -246,8 +248,7 @@ on anything a user might upload, use one of those two.
 - **Ranged reads trust `/Count`:** a false `/Count` where the path to a page doesn't look, or a node of over
   32 kids, as many as its `/Count`, with a non-page before the page, can return a different page than a
   whole-file read. Open the whole file if you need the guarantee. See [ranged reads](docs/reference.md#ranged-reads).
-- **Char boxes** are loose font boxes, not glyph ink. A font that states no ascent and descent gets 0.8
-  and −0.2 em. A fill colour reads as the stroke colour for stroke-only text, and as opaque black for a
+- **Text colour:** a fill colour reads as the stroke colour for stroke-only text, and as opaque black for a
   pattern.
 - **Hostile pages:** past 2^19 glyphs, 2^21 path segments or 2^19 images on a page, the rest is left out
   and `truncated` is true on the result.
