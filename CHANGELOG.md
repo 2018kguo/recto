@@ -21,6 +21,20 @@
   Text reads the same on all 531 files of the scoreboard, at the same speed; reading text downloads 1.8 kB
   more (brotli), drawing 1.4 kB.
 
+### Changed
+
+- **A large file's first open is about 30% faster, level with pdfium's where it was 0.7×.** On a 2,000-page
+  report in Node, 8 alternating rounds: 5.0 ms where 0.6.0 took 7.0, and pdfium 5.4. V8 compiles a wasm function
+  on its first call, so the first open in a process paid 1.5–2 ms to compile the open's code. A module's first
+  instance now opens a one-page file of its own as `createPdfEngine` starts it, so that's paid before a caller's
+  file arrives; a fresh process's time to its first text or pixels is unchanged, since the same code is compiled
+  either way. The open's page walk, which reads every page's dictionary so that `/Count` can't change the page
+  count, does 9% less work (instructions, natively, on a 2,000-page report): the chain of objects a read came
+  through holds its last object inline, so reading a page's dictionary allocates nothing; a reference is tried only
+  where a number can start; the walk makes room for a node's kids at once; and a page not yet built takes a pointer,
+  not a `Page`, which also leaves 0.46 MB less WebAssembly memory after opening that report. Pages and text
+  are unchanged.
+
 ## 0.6.0
 
 Pages draw a quarter to a third faster and in less memory, the scorecard rises to 97.92%, and the

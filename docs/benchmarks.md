@@ -30,7 +30,7 @@ with the same thing, a page's text or its RGBA bytes.
 | A fresh process to the first page's pixels | 42.2 ms | 169 ms (4.0× [3.9–4.1]) | 46.3 ms (1.1× [1.1–1.1]) |
 | Warm: open, first page's text, close | 0.5 ms | 4.4 ms (8.0× [7.1–9.2]) | 1.0 ms (1.8× [1.7–2.0]) |
 | Warm: open, first page's pixels, close | 2.7 ms | 12.4 ms (4.7× [4.4–4.7]) | 3.6 ms (1.4× [1.3–1.4]) |
-| 2,000-page report: open | 4.1 ms | 36.9 ms (8.9× [8.2–9.1]) | 2.8 ms (0.7× [0.6–0.7]) |
+| 2,000-page report: open | 4.3 ms | 52.4 ms (12× [9.9–15]) | 4.5 ms (1.04× [0.81–1.29]) |
 | 2,000-page report: every page's text | 586 ms | 1,712 ms (2.9× [2.8–3.0]) | 917 ms (1.6× [1.5–1.6]) |
 | 2,000-page report: render 5 pages | 27.0 ms | 77.0 ms (2.9× [2.6–3.0]) | 29.8 ms (1.1× [1.0–1.1]) |
 
@@ -42,12 +42,16 @@ with the same thing, a page's text or its RGBA bytes.
 - **The characters** agree: 976,693 in recto, 967,399 in pdf.js, 976,704 in pdfium, not
   counting whitespace, over the same pages. That's a count. [Text quality](#text-quality) compares
   the words.
-- **pdfium still opens a large file faster** (0.7×): 2.8 ms against 4.1 ms, first open in a fresh process, where
-  it was 4.8 ms before (the same build run just before, 0.6×). recto walks the whole page tree on open,
-  reading every kid, so `/Count` can't change the page count or which page is which; it now notes where
-  each page's dictionary is and leaves building it to the page's first read. What's left: both copy the
-  file (about 1.1 ms each on 13.9 MB); V8 compiles recto's open lazily on its first call, about 1.7 ms
-  against pdfium's 1.25 ms; and the walk itself takes about 0.8 ms, which pdfium defers to the page.
+- **A large file's first open is level with pdfium's, where it was 0.7×.** That row is from a rerun after
+  0.6.0 (the rest of the table is 0.4-era), with 29 public documents in this directory, Node 24.22.1 and the machine at
+  load 12, so read the ratio. In 8 more rounds alternating 0.6.0, this build and pdfium, at load 15: 7.0 ms, 5.0 ms
+  and 5.4 ms. A process's first open paid 1.5–2 ms for V8 to compile the open's code; `createPdfEngine` now opens
+  a one-page file of its own, so that's paid while the engine starts, and a fresh process's first text and pixels
+  are where they were (16 alternating rounds: 53.9 ms against 54.0 ms for 0.6.0, and 74.3 against 76.3). recto still
+  walks the whole page tree on open, reading every kid, so `/Count` can't change the page count or which page is
+  which, where pdfium takes `/Count`; that walk now does 9% fewer instructions. Opened again in the same process,
+  pdfium is still faster, 1.1 ms against 1.6, and that's the walk: both copy the file, and a cold copy into fresh
+  WebAssembly memory is about 2 ms of either's first open.
 
 ### Peak memory
 
