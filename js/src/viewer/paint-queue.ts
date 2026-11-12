@@ -77,10 +77,38 @@ export function createPaintQueue<Record extends PaintQueueRecord>(params: {
     return textJob ? { kind: "text", record: textJob } : null;
   };
 
+  // Work for later (thumbnails): newest first, one at a time, only once the band is painted.
+  const idleJobs: { run: () => Promise<unknown>; signal: AbortSignal | undefined }[] = [];
+  let idleRunning = false;
+
+  const runIdle = (): boolean => {
+    // A page drawing shares its worker with nothing: the reader is waiting on it.
+    if (idleRunning || [...painting.values()].includes("canvas")) {
+      return false;
+    }
+    let idle = idleJobs.pop();
+    while (idle?.signal?.aborted) {
+      idle = idleJobs.pop();
+    }
+    if (!idle) {
+      return false;
+    }
+    idleRunning = true;
+    idle
+      .run()
+      .catch(() => {})
+      .finally(() => {
+        idleRunning = false;
+        pump();
+      });
+    return true;
+  };
+
   const pump = () => {
-    while (!params.isStopped() && painting.size < MAX_CONCURRENT_PAINTS) {
+    while (!params.isStopped() && painting.size + (idleRunning ? 1 : 0) < MAX_CONCURRENT_PAINTS) {
       const job = nextJob();
       if (!job) {
+        runIdle();
         return;
       }
       const { kind, record } = job;
@@ -128,7 +156,20 @@ export function createPaintQueue<Record extends PaintQueueRecord>(params: {
         visibleRecords.delete(record);
       }
     },
+    /**
+     * Runs `run` once nothing in the band needs painting: after every canvas and text layer there.
+     * The newest waits least; one whose signal aborts before it starts never runs.
+     */
+    schedule(run: () => Promise<unknown>, signal?: AbortSignal) {
+      if (idleJobs.length >= 64) {
+        // A fling through a list of thumbnails leaves a trail of stopped ones.
+        const live = idleJobs.filter((job) => !job.signal?.aborted);
+        idleJobs.splice(0, idleJobs.length, ...live);
+      }
+      idleJobs.push({ run, signal });
+      pump();
+    },
     pump,
-    painting: () => painting.size,
+    painting: () => painting.size + (idleRunning ? 1 : 0),
   };
 }

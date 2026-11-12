@@ -13,6 +13,7 @@ import {
   type PdfDocument,
   type PdfEngine,
   PdfError,
+  type PdfOutlineItem,
   type PdfPageInfo,
   type PdfPageText,
   readingOrder,
@@ -23,6 +24,7 @@ import type {
   ViewerFindHit,
   ViewerLink,
   ViewerOpenTiming,
+  ViewerOutlineItem,
   ViewerPageInfo,
   ViewerRequest,
   ViewerResponse,
@@ -124,6 +126,26 @@ export function pageText(doc: Pick<PdfDocument, "links" | "pageCount" | "pageInf
   return { runs, links };
 }
 
+/** A bookmark list too long to be read is cut here; a table of contents is a few hundred at most. */
+export const MAX_OUTLINE_ITEMS = 10_000;
+
+/** The document's bookmarks with pages from 1, cut at `MAX_OUTLINE_ITEMS`. */
+export function viewerOutline(doc: Pick<PdfDocument, "outline" | "pageCount">): ViewerOutlineItem[] {
+  let left = MAX_OUTLINE_ITEMS;
+  const convert = (items: readonly PdfOutlineItem[]): ViewerOutlineItem[] => {
+    const out: ViewerOutlineItem[] = [];
+    for (const item of items) {
+      if (left-- <= 0) {
+        break;
+      }
+      const page = item.page >= 0 && item.page < doc.pageCount ? item.page + 1 : null;
+      out.push({ children: convert(item.children), page, title: item.title.trim() || "Untitled", url: item.url });
+    }
+    return out;
+  };
+  return convert(doc.outline());
+}
+
 const HYPHEN_MARK = 0x02;
 
 /**
@@ -131,7 +153,7 @@ const HYPHEN_MARK = 0x02;
  * from. Word and line breaks are one space each; a line-end hyphenation joins its word ("anti-" and
  * "body" read "antibody"), as a reader would search for it.
  */
-export type SearchText = { text: string; chars: Int32Array };
+export type SearchText = { text: string; chars: Int32Array; exact?: NormalizedText; folded?: NormalizedText };
 
 export function searchText(page: Pick<PdfPageText, "count" | "codepoints" | "flags" | "boxes" | "angles">, info: PdfPageInfo): SearchText {
   const plan = readingOrder(page, info);
@@ -171,25 +193,72 @@ export function searchText(page: Pick<PdfPageText, "count" | "codepoints" | "fla
   return { text, chars: Int32Array.from(chars) };
 }
 
-/** Folds case (and nothing else) unit by unit, so offsets in the folded string are offsets in the original. */
-function foldCase(text: string): string {
-  let out = "";
-  for (const unit of text) {
-    const lower = unit.toLowerCase();
-    // A fold that changes length ("İ" to "i̇") would shift every later offset: keep the original.
-    out += lower.length === unit.length ? lower : unit;
-  }
-  return out;
+/**
+ * Text as search compares it, and where each of its units came from. Each cluster (a code point and
+ * the combining marks after it) is put in NFKC, so a ligature reads as its letters, a full-width
+ * letter as its plain one, and an accent written as a separate mark as the accented letter; then its
+ * case is folded ("ß" reads "ss", "Σ" and "ς" read "σ"). Characters that show nothing (a soft hyphen,
+ * zero-width spaces and joiners) are dropped.
+ *
+ * `from[k]` and `to[k]` are the source units the k-th unit came from; `part[k]` and `parts[k]` say
+ * which of the units a cluster became it is, so a hit on part of a ligature covers part of its box.
+ */
+export type NormalizedText = { text: string; from: Int32Array; to: Int32Array; part: Uint8Array; parts: Uint8Array };
+
+const INVISIBLE = /^[­​-‍⁠﻿]+$/u;
+const CLUSTER = /\P{M}\p{M}*|\p{M}+/gu;
+
+function foldCluster(cluster: string, caseSensitive: boolean): string {
+  const composed = cluster.normalize("NFKC");
+  // Upper then lower is the full case fold JavaScript has: "ß" → "SS" → "ss", "ς" → "Σ" → "σ".
+  return caseSensitive ? composed : composed.toUpperCase().toLowerCase().normalize("NFKC");
 }
 
-/** The boxes chars `first..last` cover, one per line: consecutive chars that sit on one baseline merge. */
-export function charRangeBoxes(boxes: Float32Array, chars: readonly number[]): PdfBox[] {
+export function normalizeForSearch(source: string, caseSensitive: boolean): NormalizedText {
+  let text = "";
+  const from: number[] = [];
+  const to: number[] = [];
+  const part: number[] = [];
+  const parts: number[] = [];
+  for (const match of source.matchAll(CLUSTER)) {
+    const cluster = match[0];
+    const start = match.index;
+    if (INVISIBLE.test(cluster)) {
+      continue;
+    }
+    const folded = foldCluster(cluster, caseSensitive);
+    // Plain ASCII, the usual case, folds to itself one to one.
+    const count = Math.min(255, folded.length);
+    for (let k = 0; k < folded.length; k++) {
+      from.push(start);
+      to.push(start + cluster.length);
+      part.push(Math.min(k, count - 1));
+      parts.push(count);
+    }
+    text += folded;
+  }
+  return { from: Int32Array.from(from), part: Uint8Array.from(part), parts: Uint8Array.from(parts), text, to: Int32Array.from(to) };
+}
+
+/** A query as `normalizeForSearch` compares it: trimmed, runs of whitespace one space. */
+function normalizeQuery(query: string, caseSensitive: boolean): string {
+  return normalizeForSearch(query.trim().replace(/\s+/gu, " "), caseSensitive).text.replace(/\s+/gu, " ").trim();
+}
+
+/** A char, and the share of its box a hit covers (0..1 from its left), for a hit on part of a ligature. */
+export type CharSpan = { char: number; start: number; end: number };
+
+/** The boxes chars cover, one per line: consecutive chars that sit on one baseline merge. */
+export function charRangeBoxes(boxes: Float32Array, chars: readonly (number | CharSpan)[]): PdfBox[] {
   const out: PdfBox[] = [];
   let line: { x0: number; y0: number; x1: number; y1: number } | null = null;
-  for (const char of chars) {
-    const x = boxes[4 * char] ?? 0;
+  for (const entry of chars) {
+    const span = typeof entry === "number" ? { char: entry, end: 1, start: 0 } : entry;
+    const { char } = span;
+    const fullWidth = boxes[4 * char + 2] ?? 0;
+    const x = (boxes[4 * char] ?? 0) + fullWidth * span.start;
     const y = boxes[4 * char + 1] ?? 0;
-    const width = boxes[4 * char + 2] ?? 0;
+    const width = fullWidth * (span.end - span.start);
     const height = boxes[4 * char + 3] ?? 0;
     if (!(width > 0 && height > 0)) {
       continue;
@@ -214,24 +283,55 @@ export function charRangeBoxes(boxes: Float32Array, chars: readonly number[]): P
   return out;
 }
 
-/** Every hit of `query` on a page, whitespace in it matching any break. */
-export function findInText(search: SearchText, boxes: Float32Array, query: string, caseSensitive: boolean): ViewerFindHit[] {
-  const needle = query.trim().replace(/\s+/gu, " ");
-  if (!needle) {
+/**
+ * Every hit of `query` on a page, whitespace in it matching any break, compared as
+ * `normalizeForSearch` puts both. `index` is where the hit starts in `search.text`.
+ */
+export function findInText(
+  search: SearchText,
+  boxes: Float32Array,
+  query: string,
+  caseSensitive: boolean,
+  normalized: NormalizedText = normalizeForSearch(search.text, caseSensitive)
+): ViewerFindHit[] {
+  const wanted = normalizeQuery(query, caseSensitive);
+  if (!wanted) {
     return [];
   }
-  const haystack = caseSensitive ? search.text : foldCase(search.text);
-  const wanted = caseSensitive ? needle : foldCase(needle);
+  const haystack = normalized.text;
   const hits: ViewerFindHit[] = [];
   for (let at = haystack.indexOf(wanted); at >= 0; at = haystack.indexOf(wanted, at + wanted.length)) {
-    const chars: number[] = [];
-    for (let unit = at; unit < at + wanted.length; unit++) {
-      const char = search.chars[unit] ?? -1;
-      if (char >= 0 && chars.at(-1) !== char && haystack[unit] !== " ") {
-        chars.push(char);
+    const spans: CharSpan[] = [];
+    let k = at;
+    const end = at + wanted.length;
+    while (k < end) {
+      // One cluster at a time: the units of the hit inside it, out of the units it became.
+      const first = normalized.from[k] ?? 0;
+      const count = normalized.parts[k] ?? 1;
+      const startPart = normalized.part[k] ?? 0;
+      let last = k;
+      while (last + 1 < end && normalized.from[last + 1] === first) {
+        last += 1;
       }
+      const chars: number[] = [];
+      for (let unit = first; unit < (normalized.to[k] ?? first); unit++) {
+        const char = search.chars[unit] ?? -1;
+        if (char >= 0 && search.text[unit] !== " " && !chars.includes(char)) {
+          chars.push(char);
+        }
+      }
+      const whole = count <= 1 || (startPart === 0 && (normalized.part[last] ?? 0) === count - 1);
+      for (const char of chars) {
+        if (spans.at(-1)?.char === char) {
+          continue;
+        }
+        // A cluster from one char (a ligature) is cut to the share the hit covers; one from several
+        // chars (a letter and its mark) is had whole.
+        spans.push(whole || chars.length > 1 ? { char, end: 1, start: 0 } : { char, end: ((normalized.part[last] ?? 0) + 1) / count, start: startPart / count });
+      }
+      k = last + 1;
     }
-    hits.push({ index: at, boxes: charRangeBoxes(boxes, chars) });
+    hits.push({ index: normalized.from[at] ?? at, boxes: charRangeBoxes(boxes, spans) });
   }
   return hits;
 }
@@ -452,16 +552,17 @@ export function createWorkerHandler(options: {
       text = searchText(page, doc.pageInfo(index));
       search.set(index, text);
     }
-    const needle = request.query.trim().replace(/\s+/gu, " ");
-    const folded = request.caseSensitive ? needle : foldCase(needle);
-    if (!needle || !(request.caseSensitive ? text.text : foldCase(text.text)).includes(folded)) {
+    const wanted = normalizeQuery(request.query, request.caseSensitive);
+    const key = request.caseSensitive ? "exact" : "folded";
+    const normalized = (text[key] ??= normalizeForSearch(text.text, request.caseSensitive));
+    if (!wanted || !normalized.text.includes(wanted)) {
       return [];
     }
     page ??= doc.text(index);
-    return findInText(text, page.boxes, request.query, request.caseSensitive);
+    return findInText(text, page.boxes, request.query, request.caseSensitive, normalized);
   };
 
-  const onDocument = async (request: Extract<ViewerRequest, { op: "pageInfo" | "render" | "text" | "find" }>) => {
+  const onDocument = async (request: Extract<ViewerRequest, { op: "pageInfo" | "render" | "text" | "find" | "outline" }>) => {
     const opening = documents.get(request.docId);
     if (!opening) {
       fail(request.id, new PdfError("closed", "the document was closed"));
@@ -480,6 +581,9 @@ export function createWorkerHandler(options: {
         case "find":
           reply({ id: request.id, ok: true, value: find(opened, request) }, []);
           return;
+        case "outline":
+          reply({ id: request.id, ok: true, value: viewerOutline(doc) }, []);
+          return;
         case "render":
           await render(doc, request);
           return;
@@ -497,6 +601,7 @@ export function createWorkerHandler(options: {
       case "render":
       case "text":
       case "find":
+      case "outline":
         return onDocument(request);
       case "cancel": {
         const running = renders.get(request.id);

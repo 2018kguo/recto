@@ -3,6 +3,8 @@
 // viewer has no side effects and works where there is no DOM.
 
 import type { ViewerEngine } from "./client.ts";
+import type { ViewerOutlineItem } from "./protocol.ts";
+import { safeLinkHref } from "./text-layer.ts";
 import type { FindMatch, Viewer, ViewerInput } from "./viewer.ts";
 import { createViewer } from "./viewer.ts";
 
@@ -31,6 +33,7 @@ const ELEMENT_CSS = `
     --recto-toolbar-muted: #a1a1a6;
     --recto-control-hover: rgb(255 255 255 / 0.1);
     --recto-accent: #0a84ff;
+    --recto-sidebar-overlay: #262628;
     background: #1c1c1e;
   }
 }
@@ -93,7 +96,55 @@ input {
 .findbar { gap: 6px; }
 .find-input { flex: 1 1 auto; min-width: 0; max-width: 320px; }
 .count { color: var(--recto-toolbar-muted); min-width: 64px; text-align: right; font-variant-numeric: tabular-nums; }
-.body { position: relative; flex: 1 1 auto; min-height: 0; }
+.main { position: relative; display: flex; flex: 1 1 auto; min-height: 0; }
+.body { position: relative; flex: 1 1 auto; min-width: 0; }
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  width: 184px;
+  box-sizing: border-box;
+  background: var(--recto-toolbar-background);
+  border-right: 1px solid var(--recto-toolbar-border);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+}
+.tabs {
+  display: flex;
+  margin: 8px 10px 4px;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--recto-control-hover);
+}
+.tabs button { flex: 1; height: 24px; border-radius: 6px; font-size: 12px; color: var(--recto-toolbar-muted); }
+.tabs button[aria-selected="true"] { background: var(--recto-toolbar-background); color: var(--recto-toolbar-text); box-shadow: 0 1px 2px rgb(0 0 0 / 0.12); }
+.panel { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.thumbs ol { list-style: none; margin: 0; padding: 8px 0 12px; }
+.thumbs li { display: flex; justify-content: center; }
+.thumbs button { display: flex; flex-direction: column; gap: 4px; height: auto; padding: 6px; color: var(--recto-toolbar-muted); font-size: 11px; }
+.thumbs button:hover:not(:disabled) { background: transparent; }
+.frame-thumb {
+  display: block;
+  width: 112px;
+  background: var(--recto-page-background, #fff);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.08), 0 1px 2px rgb(0 0 0 / 0.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.frame-thumb canvas { display: block; width: 100%; height: 100%; }
+.thumbs button[aria-current="page"] .frame-thumb { box-shadow: 0 0 0 2px var(--recto-accent); }
+.thumbs button[aria-current="page"] { color: var(--recto-toolbar-text); }
+.outline ul { list-style: none; margin: 0; padding: 0; }
+.outline { padding: 4px 6px 12px; }
+.outline ul ul { padding-left: 14px; }
+.outline .row { display: flex; align-items: center; }
+.outline .row button { height: 28px; justify-content: start; }
+.outline .twist { min-width: 20px; width: 20px; padding: 0; color: var(--recto-toolbar-muted); }
+.outline .twist svg { width: 10px; height: 10px; transition: transform 0.15s; }
+.outline .twist[aria-expanded="true"] svg { transform: rotate(90deg); }
+.outline .spacer { width: 20px; flex: none; }
+.outline .item { flex: 1; min-width: 0; display: block; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 28px; }
+.outline .item[aria-current="true"] { color: var(--recto-accent); }
 .status {
   position: absolute;
   inset: 0;
@@ -108,6 +159,21 @@ input {
   .bar { padding: 0 4px; justify-content: space-between; }
   button { min-width: 36px; height: 36px; }
   .percent { min-width: 44px; }
+  /* Over the pages, not beside them: a phone has no width to give. */
+  .sidebar {
+    position: absolute;
+    inset: 0 auto 0 0;
+    z-index: 2;
+    width: min(280px, 85%);
+    /* Opaque over the pages: blurred text behind a list reads as noise. */
+    background: var(--recto-sidebar-overlay, #f7f7f9);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: 0 0 0 1px var(--recto-toolbar-border), 0 8px 32px rgb(0 0 0 / 0.18);
+  }
+  .tabs button { height: 30px; }
+  .outline .row button { height: 40px; }
+  .outline .item { line-height: 40px; }
 }
 `;
 
@@ -118,12 +184,15 @@ const ICONS = {
   up: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 10 4-4 4 4"/></svg>',
   down: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>',
   close: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4.5 4.5 7 7M11.5 4.5l-7 7"/></svg>',
+  sidebar: '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="2"/><path d="M6.5 3v10"/></svg>',
+  chevron: '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="m3.5 2 3 3-3 3"/></svg>',
 };
 
 const TEMPLATE = `
 <style>${ELEMENT_CSS}</style>
 <div class="frame">
   <div class="bar" role="toolbar" aria-label="Document">
+    <button class="sidebar-toggle" aria-label="Sidebar" aria-expanded="false" aria-controls="sidebar">${ICONS.sidebar}</button>
     <div class="name" part="name"></div>
     <div class="group pages">
       <input class="page-input" inputmode="numeric" enterkeyhint="go" aria-label="Page" value="1" />
@@ -145,8 +214,23 @@ const TEMPLATE = `
     <button class="find-next" aria-label="Next match" aria-keyshortcuts="Enter" disabled>${ICONS.down}</button>
     <button class="find-close" aria-label="Close find" aria-keyshortcuts="Escape">${ICONS.close}</button>
   </div>
-  <div class="body" part="body"><div class="status" aria-live="polite"></div></div>
+  <div class="main">
+    <nav class="sidebar" id="sidebar" part="sidebar" aria-label="Pages and outline" hidden>
+      <div class="tabs" role="tablist" aria-label="Sidebar" hidden>
+        <button class="tab-thumbs" role="tab" id="tab-thumbs" aria-selected="true" aria-controls="thumbs">Pages</button>
+        <button class="tab-outline" role="tab" id="tab-outline" aria-selected="false" aria-controls="outline" tabindex="-1">Outline</button>
+      </div>
+      <div class="panel thumbs" id="thumbs"></div>
+      <div class="panel outline" id="outline" hidden></div>
+    </nav>
+    <div class="body" part="body"><div class="status" aria-live="polite"></div></div>
+  </div>
 </div>`;
+
+/** How wide a thumbnail is drawn, in CSS pixels; its bitmap is at most twice that. */
+const THUMB_CSS_WIDTH = 112;
+/** The container width at or below which the sidebar covers the pages instead of sitting beside them. */
+const OVERLAY_MAX_WIDTH = 520;
 
 /** What `<recto-viewer>` adds to HTMLElement. */
 export interface ViewerElement extends HTMLElement {
@@ -158,6 +242,8 @@ export interface ViewerElement extends HTMLElement {
   engine: ViewerEngine | null;
   /** Opens the find bar, with `query` in it if given. */
   openFind(query?: string): void;
+  /** Shows the sidebar of page thumbnails and the outline, or hides it; flips it without `open`. */
+  toggleSidebar(open?: boolean): void;
 }
 
 function nameOf(source: ViewerInput | null): string {
@@ -214,7 +300,19 @@ export function defineViewerElement(name = "recto-viewer", registry: CustomEleme
       close: HTMLButtonElement;
       body: HTMLElement;
       status: HTMLElement;
+      sidebarToggle: HTMLButtonElement;
+      sidebar: HTMLElement;
+      tabs: HTMLElement;
+      tabThumbs: HTMLButtonElement;
+      tabOutline: HTMLButtonElement;
+      thumbs: HTMLElement;
+      outline: HTMLElement;
     };
+    // The sidebar's contents, made for the open viewer the first time it's shown.
+    #sidebarFor: Viewer | null = null;
+    #thumbObserver: IntersectionObserver | null = null;
+    readonly #thumbJobs = new Map<HTMLElement, AbortController>();
+    #roving: { thumbs: HTMLElement | null; outline: HTMLElement | null } = { outline: null, thumbs: null };
 
     constructor() {
       super();
@@ -233,12 +331,32 @@ export function defineViewerElement(name = "recto-viewer", registry: CustomEleme
         next: $(".find-next"),
         of: $(".of"),
         pageInput: $(".page-input"),
+        outline: $(".outline"),
         prev: $(".find-prev"),
+        sidebar: $(".sidebar"),
+        sidebarToggle: $(".sidebar-toggle"),
         status: $(".status"),
+        tabOutline: $(".tab-outline"),
+        tabThumbs: $(".tab-thumbs"),
+        tabs: $(".tabs"),
+        thumbs: $(".thumbs"),
         zoomIn: $(".zoom-in"),
         zoomOut: $(".zoom-out"),
       };
       const p = this.#parts;
+      p.sidebarToggle.addEventListener("click", () => this.toggleSidebar());
+      p.tabThumbs.addEventListener("click", () => this.#showTab("thumbs"));
+      p.tabOutline.addEventListener("click", () => this.#showTab("outline"));
+      p.tabs.addEventListener("keydown", (event) => {
+        if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+          event.preventDefault();
+          const next = p.tabThumbs.getAttribute("aria-selected") === "true" ? "outline" : "thumbs";
+          this.#showTab(next);
+          (next === "thumbs" ? p.tabThumbs : p.tabOutline).focus();
+        }
+      });
+      p.sidebar.addEventListener("click", (event) => this.#onSidebarClick(event));
+      p.sidebar.addEventListener("keydown", (event) => this.#onSidebarKey(event));
       p.zoomOut.addEventListener("click", () => this.#viewer?.zoomOut());
       p.zoomIn.addEventListener("click", () => this.#viewer?.zoomIn());
       p.fit.addEventListener("click", () => this.#viewer?.fitWidth());
@@ -325,6 +443,7 @@ export function defineViewerElement(name = "recto-viewer", registry: CustomEleme
     }
 
     disconnectedCallback() {
+      this.#resetSidebar();
       this.#viewer?.destroy();
       this.#viewer = null;
     }
@@ -335,6 +454,7 @@ export function defineViewerElement(name = "recto-viewer", registry: CustomEleme
     }
 
     #open() {
+      this.#resetSidebar();
       this.#viewer?.destroy();
       this.#viewer = null;
       this.#resetFind();
@@ -368,6 +488,9 @@ export function defineViewerElement(name = "recto-viewer", registry: CustomEleme
       viewer.addEventListener("open", () => {
         p.status.textContent = "";
         update();
+        if (!p.sidebar.hidden) {
+          this.#buildSidebar();
+        }
         const CustomEventImpl = this.ownerDocument.defaultView?.CustomEvent ?? CustomEvent;
         this.dispatchEvent(new CustomEventImpl("open", { detail: { pageCount: viewer.pageCount } }));
       });
@@ -375,6 +498,7 @@ export function defineViewerElement(name = "recto-viewer", registry: CustomEleme
         if (this.#root.activeElement !== p.pageInput) {
           p.pageInput.value = String(viewer.page);
         }
+        this.#markCurrent();
       });
       viewer.addEventListener("zoomchange", update);
       viewer.addEventListener("error", (event) => {
@@ -382,6 +506,348 @@ export function defineViewerElement(name = "recto-viewer", registry: CustomEleme
           p.status.textContent = "This PDF couldn’t be opened.";
         }
       });
+    }
+
+    toggleSidebar(open = this.#parts.sidebar.hidden) {
+      const p = this.#parts;
+      p.sidebar.hidden = !open;
+      p.sidebarToggle.setAttribute("aria-expanded", String(open));
+      if (open) {
+        // Focus stays on the button; Tab reaches the list at the page being read.
+        this.#buildSidebar();
+      } else if (p.sidebar.contains(this.#root.activeElement)) {
+        p.sidebarToggle.focus();
+      }
+    }
+
+    /** Covering the pages (a narrow element), where choosing a place closes it. */
+    #overlaid(): boolean {
+      const width = this.clientWidth;
+      return width > 0 && width <= OVERLAY_MAX_WIDTH;
+    }
+
+    #resetSidebar() {
+      this.#thumbObserver?.disconnect();
+      this.#thumbObserver = null;
+      for (const job of this.#thumbJobs.values()) {
+        job.abort();
+      }
+      this.#thumbJobs.clear();
+      this.#sidebarFor = null;
+      this.#roving = { outline: null, thumbs: null };
+      const p = this.#parts;
+      p.thumbs.replaceChildren();
+      p.outline.replaceChildren();
+      p.tabs.hidden = true;
+      for (const panel of [p.thumbs, p.outline]) {
+        panel.removeAttribute("role");
+        panel.removeAttribute("aria-labelledby");
+      }
+      this.#showTab("thumbs");
+    }
+
+    /** Fills the sidebar for the open viewer: a placeholder per page, drawn as it scrolls into view, and the outline. */
+    #buildSidebar() {
+      const viewer = this.#viewer;
+      if (!viewer || viewer.state !== "ready" || this.#sidebarFor === viewer) {
+        return;
+      }
+      this.#sidebarFor = viewer;
+      const p = this.#parts;
+      const document = this.ownerDocument;
+      const fragment = document.createDocumentFragment();
+      const first = viewer.pageElement(1);
+      const ratio = `${first?.style.getPropertyValue("--w") || 612} / ${first?.style.getPropertyValue("--h") || 792}`;
+      for (let page = 1; page <= viewer.pageCount; page++) {
+        const item = document.createElement("li");
+        const button = document.createElement("button");
+        button.className = "thumb";
+        button.dataset.page = String(page);
+        button.tabIndex = -1;
+        button.setAttribute("aria-label", `Page ${page}`);
+        const frame = document.createElement("span");
+        frame.className = "frame-thumb";
+        frame.style.aspectRatio = ratio;
+        const label = document.createElement("span");
+        label.textContent = String(page);
+        label.setAttribute("aria-hidden", "true");
+        button.append(frame, label);
+        item.append(button);
+        fragment.append(item);
+      }
+      const list = document.createElement("ol");
+      list.setAttribute("aria-label", "Pages");
+      list.append(fragment);
+      p.thumbs.replaceChildren(list);
+      const IntersectionObserverImpl = document.defaultView?.IntersectionObserver ?? globalThis.IntersectionObserver;
+      if (IntersectionObserverImpl) {
+        this.#thumbObserver = new IntersectionObserverImpl(
+          (entries) => {
+            for (const entry of entries) {
+              this.#thumbVisible(entry.target as HTMLElement, entry.isIntersecting);
+            }
+          },
+          { root: p.thumbs, rootMargin: "240px 0px" }
+        );
+        const observer = this.#thumbObserver;
+        p.thumbs.querySelectorAll<HTMLElement>(".thumb").forEach((button) => observer.observe(button));
+      }
+      this.#markCurrent();
+      void viewer.outline().then(
+        (items) => {
+          if (this.#sidebarFor !== viewer || items.length === 0) {
+            return;
+          }
+          const list = this.#outlineList(items, items.length === 1);
+          p.outline.replaceChildren(list);
+          const firstItem = list.querySelector<HTMLElement>(".item");
+          if (firstItem) {
+            firstItem.tabIndex = 0;
+            this.#roving.outline = firstItem;
+          }
+          // Two views now: tabs, and panels they name.
+          p.tabs.hidden = false;
+          for (const [panel, tab] of [
+            [p.thumbs, "tab-thumbs"],
+            [p.outline, "tab-outline"],
+          ] as const) {
+            panel.setAttribute("role", "tabpanel");
+            panel.setAttribute("aria-labelledby", tab);
+          }
+        },
+        () => {
+          // No outline to show: the pages alone.
+        }
+      );
+    }
+
+    #outlineList(items: readonly ViewerOutlineItem[], open: boolean): HTMLElement {
+      const document = this.ownerDocument;
+      const list = document.createElement("ul");
+      for (const entry of items) {
+        const item = document.createElement("li");
+        const row = document.createElement("div");
+        row.className = "row";
+        const button = document.createElement("button");
+        button.className = "item";
+        button.tabIndex = -1;
+        button.textContent = entry.title;
+        button.title = entry.title;
+        const href = entry.url ? safeLinkHref(entry.url) : null;
+        if (entry.page !== null) {
+          button.dataset.page = String(entry.page);
+        } else if (href) {
+          button.dataset.href = href;
+        } else {
+          button.disabled = true;
+        }
+        if (entry.children.length > 0) {
+          const twist = document.createElement("button");
+          twist.className = "twist";
+          twist.tabIndex = -1;
+          twist.innerHTML = ICONS.chevron;
+          twist.setAttribute("aria-label", `${open ? "Collapse" : "Expand"} ${entry.title}`);
+          twist.setAttribute("aria-expanded", String(open));
+          button.setAttribute("aria-expanded", String(open));
+          const children = this.#outlineList(entry.children, false);
+          children.hidden = !open;
+          row.append(twist, button);
+          item.append(row, children);
+        } else {
+          const spacer = document.createElement("span");
+          spacer.className = "spacer";
+          row.append(spacer, button);
+          item.append(row);
+        }
+        list.append(item);
+      }
+      return list;
+    }
+
+    /** Opens or closes an outline entry's children. */
+    #expand(item: HTMLElement, open: boolean) {
+      const li = item.closest("li");
+      const children = li?.querySelector<HTMLElement>(":scope > ul");
+      const twist = li?.querySelector<HTMLElement>(":scope > .row > .twist");
+      if (!children || !twist) {
+        return;
+      }
+      children.hidden = !open;
+      twist.setAttribute("aria-expanded", String(open));
+      item.setAttribute("aria-expanded", String(open));
+      const title = item.textContent ?? "";
+      twist.setAttribute("aria-label", `${open ? "Collapse" : "Expand"} ${title}`);
+    }
+
+    #thumbVisible(button: HTMLElement, visible: boolean) {
+      const viewer = this.#viewer;
+      const canvas = button.querySelector("canvas");
+      if (!visible) {
+        // Far out of view: its bitmap goes, and a drawing on its way stops.
+        this.#thumbJobs.get(button)?.abort();
+        this.#thumbJobs.delete(button);
+        if (canvas) {
+          canvas.width = 0;
+          canvas.height = 0;
+          canvas.remove();
+        }
+        return;
+      }
+      if (!viewer || canvas || this.#thumbJobs.has(button)) {
+        return;
+      }
+      const controller = new AbortController();
+      this.#thumbJobs.set(button, controller);
+      const ratio = Math.min(2, Math.max(1, this.ownerDocument.defaultView?.devicePixelRatio ?? 1));
+      viewer.renderThumbnail(Number(button.dataset.page), { signal: controller.signal, width: THUMB_CSS_WIDTH * ratio }).then(
+        (bitmap) => {
+          if (this.#thumbJobs.get(button) !== controller) {
+            return;
+          }
+          this.#thumbJobs.delete(button);
+          const drawn = this.ownerDocument.createElement("canvas");
+          drawn.width = bitmap.width;
+          drawn.height = bitmap.height;
+          const context = drawn.getContext("2d");
+          const ImageDataImpl = this.ownerDocument.defaultView?.ImageData ?? globalThis.ImageData;
+          context?.putImageData(new ImageDataImpl(bitmap.rgba, bitmap.width, bitmap.height), 0, 0);
+          const frame = button.querySelector<HTMLElement>(".frame-thumb")!;
+          frame.style.aspectRatio = `${bitmap.width} / ${bitmap.height}`;
+          frame.replaceChildren(drawn);
+        },
+        () => {
+          if (this.#thumbJobs.get(button) === controller) {
+            this.#thumbJobs.delete(button);
+          }
+        }
+      );
+    }
+
+    /** Marks the page being read in the thumbnails, and keeps it in view there. */
+    #markCurrent() {
+      const viewer = this.#viewer;
+      const p = this.#parts;
+      if (!viewer || this.#sidebarFor !== viewer) {
+        return;
+      }
+      const current = p.thumbs.querySelector<HTMLElement>(`.thumb[data-page="${viewer.page}"]`);
+      const previous = p.thumbs.querySelector<HTMLElement>('.thumb[aria-current="page"]');
+      if (!current || current === previous) {
+        return;
+      }
+      previous?.removeAttribute("aria-current");
+      current.setAttribute("aria-current", "page");
+      // The list's one tab stop follows the page unless the reader is moving through the list.
+      if (!p.thumbs.contains(this.#root.activeElement)) {
+        this.#rove("thumbs", current);
+        if (!p.sidebar.hidden && !p.thumbs.hidden) {
+          const top = current.offsetTop - p.thumbs.offsetTop;
+          if (top < p.thumbs.scrollTop || top + current.offsetHeight > p.thumbs.scrollTop + p.thumbs.clientHeight) {
+            p.thumbs.scrollTop = top - (p.thumbs.clientHeight - current.offsetHeight) / 2;
+          }
+        }
+      }
+    }
+
+    /** Makes `target` its list's one tab stop. */
+    #rove(list: "thumbs" | "outline", target: HTMLElement) {
+      const previous = this.#roving[list];
+      if (previous && previous !== target) {
+        previous.tabIndex = -1;
+      }
+      target.tabIndex = 0;
+      this.#roving[list] = target;
+    }
+
+    #showTab(which: "thumbs" | "outline") {
+      const p = this.#parts;
+      const thumbs = which === "thumbs";
+      p.thumbs.hidden = !thumbs;
+      p.outline.hidden = thumbs;
+      p.tabThumbs.setAttribute("aria-selected", String(thumbs));
+      p.tabOutline.setAttribute("aria-selected", String(!thumbs));
+      p.tabThumbs.tabIndex = thumbs ? 0 : -1;
+      p.tabOutline.tabIndex = thumbs ? -1 : 0;
+    }
+
+    #onSidebarClick(event: MouseEvent) {
+      const target = (event.target as Element | null)?.closest?.<HTMLElement>("button");
+      const viewer = this.#viewer;
+      if (!target || !viewer) {
+        return;
+      }
+      if (target.classList.contains("twist")) {
+        const item = target.parentElement?.querySelector<HTMLElement>(".item");
+        if (item) {
+          this.#expand(item, target.getAttribute("aria-expanded") !== "true");
+        }
+        return;
+      }
+      if (!(target.classList.contains("thumb") || target.classList.contains("item"))) {
+        return;
+      }
+      this.#rove(target.classList.contains("thumb") ? "thumbs" : "outline", target);
+      if (target.dataset.href) {
+        this.ownerDocument.defaultView?.open(target.dataset.href, "_blank", "noopener,noreferrer");
+        return;
+      }
+      const page = Number(target.dataset.page);
+      if (page > 0) {
+        void viewer.goToPage(page);
+        if (this.#overlaid()) {
+          this.toggleSidebar(false);
+          viewer.element.focus({ preventScroll: true });
+        }
+      }
+    }
+
+    /** Arrows move through the list shown, Home and End to its ends; Right and Left open and close outline entries. */
+    #onSidebarKey(event: KeyboardEvent) {
+      const p = this.#parts;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        this.toggleSidebar(false);
+        return;
+      }
+      const target = event.target as HTMLElement;
+      const list = p.thumbs.contains(target) ? "thumbs" : p.outline.contains(target) ? "outline" : null;
+      if (!list) {
+        return;
+      }
+      const panel = list === "thumbs" ? p.thumbs : p.outline;
+      const selector = list === "thumbs" ? ".thumb" : ".item";
+      // Only entries whose lists are open.
+      const items = Array.from(panel.querySelectorAll<HTMLElement>(selector)).filter((item) => !item.closest("ul[hidden]"));
+      const at = items.indexOf(target);
+      let next: HTMLElement | undefined;
+      if (event.key === "ArrowDown") {
+        next = items[Math.min(items.length - 1, at + 1)];
+      } else if (event.key === "ArrowUp") {
+        next = items[Math.max(0, at - 1)];
+      } else if (event.key === "Home") {
+        next = items[0];
+      } else if (event.key === "End") {
+        next = items.at(-1);
+      } else if (list === "outline" && event.key === "ArrowRight" && target.hasAttribute("aria-expanded")) {
+        if (target.getAttribute("aria-expanded") === "true") {
+          next = items[at + 1];
+        } else {
+          this.#expand(target, true);
+        }
+      } else if (list === "outline" && event.key === "ArrowLeft") {
+        if (target.getAttribute("aria-expanded") === "true") {
+          this.#expand(target, false);
+        } else {
+          next = target.closest("ul")?.closest("li")?.querySelector<HTMLElement>(":scope > .row > .item") ?? undefined;
+        }
+      } else {
+        return;
+      }
+      event.preventDefault();
+      if (next) {
+        this.#rove(list, next);
+        next.focus();
+      }
     }
 
     openFind(query?: string) {

@@ -26,16 +26,20 @@
   limit. It did worse than another engine on 2 files, and the cause is fixed separately. `bench/engines.mjs`'s
   pdfium adapter now throws when a page doesn't load, instead of passing a null page on.
 - **A viewer: `@2018kguo/recto/viewer`.** `createViewer({ container, source })` shows a PDF in a scrolling
-  element, in plain DOM with no dependencies, about 13 kB brotli on the page and nothing for a program
+  element, in plain DOM with no dependencies, about 17 kB brotli on the page and nothing for a program
   that doesn't import it. Pages are drawn in Web Workers only as they near the screen, nearest first,
-  and a page the reader left has its render stopped; painted pages are held to a pixel budget. A text
-  layer makes text selectable, with links (web and mail only; links within the file scroll to their
-  destination). Zoom stretches the drawn page at once and swaps in a sharp one when the zoom settles,
-  keeping the point under the pointer still; pinch, ctrl + wheel and the keyboard zoom. `find` searches
-  every page in the worker and returns boxes; `setHighlights` draws them. A failed read or a crashed
-  worker reopens the document on the next call, backing off while a server stays down. Hooks for open
-  and render timing. `defineViewerElement()` adds `<recto-viewer src>` with a small toolbar (name, page,
-  zoom, find). `npm run demo` opens a dropped file in it. See [docs/viewer.md](docs/viewer.md).
+  and a page the reader left has its render stopped; painted pages are held to a pixel budget. Zoomed
+  past a whole page's pixel cap, the part on screen is drawn again at the screen's density as a tile.
+  A text layer makes text selectable, with links (web and mail only; links within the file scroll to
+  their destination). Zoom stretches the drawn page at once and swaps in a sharp one when the zoom
+  settles, keeping the point under the pointer still; a pinch (touch, trackpad, ctrl + wheel) is
+  previewed as a transform and laid out once at its end, and the keyboard zooms. `find` searches every
+  page in the worker, Unicode-normalized (ligatures, full width, combining accents, case folding), and
+  returns boxes; `setHighlights` draws them. A failed read or a crashed worker reopens the document on
+  the next call, backing off while a server stays down. Hooks for open and render timing.
+  `defineViewerElement()` adds `<recto-viewer src>` with a small toolbar (sidebar, name, page, zoom,
+  find) and a sidebar of lazily drawn page thumbnails and the outline. `npm run demo` opens a dropped
+  file in it, by range when it's large. See [docs/viewer.md](docs/viewer.md).
 
 ### Changed
 

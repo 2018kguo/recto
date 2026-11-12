@@ -4,6 +4,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+import type { PdfBox } from "../../src/document.ts";
 import { createViewerEngine, type RenderTask, type ViewerBitmap, type ViewerDocument, type ViewerEngine } from "../../src/viewer/client.ts";
 import { outputScale } from "../../src/viewer/layout.ts";
 import { createViewer, type Viewer } from "../../src/viewer/viewer.ts";
@@ -94,7 +95,7 @@ test("zooming is one style write that keeps the drawn page, and the sharp one re
     await layout.idle();
     const canvas = viewer.pageElement(1)!.querySelector("canvas")!;
     const writes = layout.scaleWrites();
-    const renders = () => workers.ports.flatMap((port) => port.sent).filter((message) => message.op === "render").length;
+    const renders = () => workers.ports.flatMap((port) => port.sent).filter((message) => message.op === "render" && !message.region).length;
     const before = renders();
     // A pinch: many small steps within one quiet window.
     for (let step = 0; step < 10; step++) {
@@ -104,7 +105,7 @@ test("zooming is one style write that keeps the drawn page, and the sharp one re
     // The old bitmap is still on screen, scaled, until a new one is drawn.
     assert.equal(viewer.pageElement(1)!.querySelector("canvas"), canvas);
     await layout.until(() => viewer.pageElement(1)!.querySelector("canvas") !== canvas, "the sharp bitmap");
-    const sharp = layout.drawn.findLast((draw) => draw.page === 1)!;
+    const sharp = layout.drawn.findLast((draw) => draw.page === 1 && !draw.tile)!;
     // Two device pixels a CSS pixel, up to the most pixels a canvas is given.
     const wanted = outputScale({ devicePixelRatio: 2, displayScale: viewer.scale, pageArea: 612 * 792 });
     assert.ok(wanted < viewer.scale * 2, "fixture check: this zoom reaches the canvas cap");
@@ -321,21 +322,30 @@ test("destroy lets go of the document and removes what the viewer added", async 
  * Every page is letter, 612 x 792 points; the bitmaps are stand-ins of the right size.
  */
 function heldEngine(pageCount: number) {
-  const renders: { page: number; width: number; cancelled: boolean; resolve(): void; reject(cause: unknown): void }[] = [];
+  const renders: { page: number; width: number; region: PdfBox | undefined; cancelled: boolean; resolve(): void; reject(cause: unknown): void }[] = [];
   const doc: ViewerDocument = {
     find: async () => [],
+    outline: async () => [],
     pageCount,
     pageInfo: async () => ({ height: 792, rotation: 0, width: 612 }),
     ranged: false,
-    render(page, { width }): RenderTask {
+    render(page, { width, region }): RenderTask {
       let settle!: { resolve(): void; reject(cause: unknown): void };
+      const k = width / 612;
+      const pageHeight = Math.round(792 * k);
+      const bitmap = (): ViewerBitmap =>
+        region
+          ? {
+              height: Math.round(region.height * k),
+              region: { pageHeight, pageWidth: width, x: Math.round(region.x * k), y: Math.round(region.y * k) },
+              rgba: new Uint8ClampedArray(4),
+              width: Math.round(region.width * k),
+            }
+          : { height: pageHeight, rgba: new Uint8ClampedArray(4), width };
       const promise = new Promise<ViewerBitmap>((resolve, reject) => {
-        settle = {
-          reject,
-          resolve: () => resolve({ height: Math.round((width * 792) / 612), rgba: new Uint8ClampedArray(4), width }),
-        };
+        settle = { reject, resolve: () => resolve(bitmap()) };
       });
-      const entry = { cancelled: false, page, width, ...settle };
+      const entry = { cancelled: false, page, region, width, ...settle };
       renders.push(entry);
       return {
         cancel() {
@@ -417,6 +427,183 @@ test("a page the reader scrolled past stops painting, and one on screen is never
     // Some pages that scrolled away were shrunk to thumbnails: memory stays flat.
     const shrunk = [...layout.container.querySelectorAll("canvas")].filter((canvas) => canvas.width <= 160);
     assert.ok(shrunk.length > 0);
+    // And past a few dozen of those, the oldest go entirely: a long read holds what a short one does.
+    for (let round = 0; round < 120; round++) {
+      for (const render of renders) {
+        render.resolve();
+      }
+      viewer.element.scrollTop += 2500;
+      await layout.idle(5);
+    }
+    const kept = [...layout.container.querySelectorAll("canvas")].filter((canvas) => canvas.width <= 160);
+    assert.ok(kept.length <= 48, `${kept.length} shrunk bitmaps kept`);
+    assert.ok(viewer.page > 200, `read to page ${viewer.page}`);
+  } finally {
+    viewer.destroy();
+  }
+});
+
+/** A touch event with these fingers down, as the gestures read it. */
+function touch(layout: ReturnType<typeof fakeLayout>, type: string, fingers: [number, number][]): Event {
+  const event = new layout.window.Event(type, { bubbles: true, cancelable: true });
+  Object.defineProperty(event, "touches", { value: fingers.map(([clientX, clientY]) => ({ clientX, clientY })) });
+  return event;
+}
+
+/** Where `point` falls on the page under it, as shares of the page. */
+function pointOnPage(viewer: Viewer, point: { clientX: number; clientY: number }) {
+  for (let page = 1; page <= viewer.pageCount; page++) {
+    const box = viewer.pageElement(page)!.getBoundingClientRect();
+    if (box.top <= point.clientY && box.bottom >= point.clientY) {
+      return { page, x: (point.clientX - box.left) / box.width, y: (point.clientY - box.top) / box.height };
+    }
+  }
+  return null;
+}
+
+test("a two-finger pinch zooms the viewer around the fingers: a transform while it moves, one layout and one repaint at its end", async () => {
+  const layout = fakeLayout();
+  const { engine, workers } = realEngine();
+  const viewer = createViewer({ container: layout.container, engine, source: textPdf({ pages: 30 }) });
+  try {
+    await viewer.ready;
+    await viewer.goToPage(5, { y: 200 });
+    await layout.until(() => renderedPages(viewer).includes(5), "page 5 to paint");
+    await layout.idle();
+    const pages = viewer.element.querySelector<HTMLElement>(".recto-pages")!;
+    const writes = layout.scaleWrites();
+    const renders = () => workers.ports.flatMap((port) => port.sent).filter((message) => message.op === "render" && !message.region).length;
+    const before = renders();
+    const middle = { clientX: 400, clientY: 300 };
+    const under = pointOnPage(viewer, middle)!;
+    viewer.element.dispatchEvent(touch(layout, "touchstart", [[350, 250], [450, 350]]));
+    // The fingers spread to twice as far apart, and slide 30 px down together.
+    for (const spread of [1.25, 1.5, 1.75, 2]) {
+      const move = touch(layout, "touchmove", [
+        [400 - 50 * spread, 300 - 50 * spread + 30],
+        [400 + 50 * spread, 300 + 50 * spread + 30],
+      ]);
+      viewer.element.dispatchEvent(move);
+      assert.ok(move.defaultPrevented, "the browser does not zoom the page");
+      await layout.idle(40);
+    }
+    // While it moves: a picture of the pages scaled about the pinch, no layout, no render.
+    assert.match(pages.style.transform, /translate\(0px, 30px\) scale\(2\)/u);
+    assert.equal(layout.scaleWrites(), writes);
+    assert.equal(viewer.zoom, 1);
+    assert.equal(renders(), before);
+    viewer.element.dispatchEvent(touch(layout, "touchend", []));
+    // At its end: the zoom it reached, one style write, and the point under the fingers where they left it.
+    assert.equal(pages.style.transform, "");
+    assert.ok(Math.abs(viewer.zoom - 2) < 1e-9, `zoom ${viewer.zoom}`);
+    assert.equal(layout.scaleWrites() - writes, 1);
+    const after = pointOnPage(viewer, { clientX: middle.clientX, clientY: middle.clientY + 30 })!;
+    assert.equal(after.page, under.page);
+    assert.ok(Math.abs(after.x - under.x) < 0.01 && Math.abs(after.y - under.y) < 0.01, `${JSON.stringify(under)} then ${JSON.stringify(after)}`);
+    // Then one sharp render of each page near the screen.
+    await layout.until(() => renders() > before, "the sharp render");
+    await layout.idle();
+    const near = renderedPages(viewer).length;
+    assert.ok(renders() - before <= near, `${renders() - before} renders for ${near} pages`);
+  } finally {
+    viewer.destroy();
+    engine.close();
+  }
+});
+
+test("a trackpad pinch (ctrl + wheel) previews the same way and lays out once it stops", async () => {
+  const layout = fakeLayout();
+  const { engine } = realEngine();
+  const viewer = createViewer({ container: layout.container, engine, source: textPdf({ pages: 10 }) });
+  try {
+    await viewer.ready;
+    const pages = viewer.element.querySelector<HTMLElement>(".recto-pages")!;
+    const writes = layout.scaleWrites();
+    const pointer = { clientX: 300, clientY: 200 };
+    const under = pointOnPage(viewer, pointer)!;
+    for (let step = 0; step < 6; step++) {
+      const wheel = new layout.window.WheelEvent("wheel", { bubbles: true, cancelable: true, ctrlKey: true, deltaY: -100 * Math.log(1.2), ...pointer });
+      viewer.element.dispatchEvent(wheel);
+      assert.ok(wheel.defaultPrevented);
+      await layout.idle(20);
+    }
+    assert.match(pages.style.transform, /scale\(2\.98/u);
+    assert.equal(layout.scaleWrites(), writes);
+    await layout.idle(250);
+    assert.equal(pages.style.transform, "");
+    assert.ok(Math.abs(viewer.zoom - 1.2 ** 6) < 1e-6, `zoom ${viewer.zoom}`);
+    assert.equal(layout.scaleWrites() - writes, 1);
+    const after = pointOnPage(viewer, pointer)!;
+    assert.ok(after.page === under.page && Math.abs(after.y - under.y) < 0.01 && Math.abs(after.x - under.x) < 0.01);
+    // Pinching on past the largest zoom holds there, and turning back zooms out at once.
+    for (const delta of [-400, -400, -400, 40]) {
+      viewer.element.dispatchEvent(new layout.window.WheelEvent("wheel", { bubbles: true, cancelable: true, ctrlKey: true, deltaY: delta / 4, ...pointer }));
+    }
+    await layout.idle(250);
+    assert.ok(viewer.zoom < 4 && viewer.zoom > 3.5, `zoom ${viewer.zoom}`);
+  } finally {
+    viewer.destroy();
+    engine.close();
+  }
+});
+
+test("past a whole page's pixel cap, the part on screen is drawn sharp over it, and a stale tile is stopped", async () => {
+  const layout = fakeLayout();
+  const { engine, renders } = heldEngine(10);
+  const viewer = createViewer({ container: layout.container, engine, source: "held.pdf" });
+  const settleAll = () => {
+    for (const render of renders) {
+      render.resolve();
+    }
+  };
+  try {
+    await viewer.ready;
+    await layout.until(() => renders.length > 0, "the first paint");
+    settleAll();
+    viewer.setZoom(4);
+    // The whole pages again, at the cap; then a tile for the page on screen.
+    await layout.until(() => renders.some((render) => !render.region && render.width > 2000), "the repaint at 400%");
+    settleAll();
+    await layout.until(() => renders.some((render) => render.region), "a tile");
+    const sharp = 2 * viewer.scale;
+    const capped = outputScale({ devicePixelRatio: 2, displayScale: viewer.scale, pageArea: 612 * 792 });
+    assert.ok(capped * 1.5 < sharp, "fixture check: the whole page is soft at this zoom");
+    const tile = renders.find((render) => render.region)!;
+    assert.equal(tile.page, 1);
+    assert.equal(tile.width, Math.round(612 * sharp), "the page's width at the screen's density");
+    // The part on screen, in points, and a margin around it.
+    const region = tile.region!;
+    const box = viewer.pageElement(1)!.getBoundingClientRect();
+    const seen = { x: -box.left / viewer.scale, y: -box.top / viewer.scale, width: 800 / viewer.scale, height: 600 / viewer.scale };
+    assert.ok(seen.x > 0 && seen.y > 0, "fixture check: the zoom kept the middle of the page in view");
+    assert.ok(region.x <= seen.x && region.y <= seen.y, JSON.stringify({ region, seen }));
+    assert.ok(region.x + region.width >= seen.x + seen.width && region.y + region.height >= seen.y + seen.height, JSON.stringify({ region, seen }));
+    assert.ok(region.width * viewer.scale <= 800 + 2 * 128 + 1 && region.height * viewer.scale <= 600 + 2 * 128 + 1, JSON.stringify(region));
+    settleAll();
+    const page = viewer.pageElement(1)!;
+    await layout.until(() => page.querySelector(".recto-tile") !== null, "the tile on screen");
+    const shown = page.querySelector<HTMLCanvasElement>(".recto-tile")!;
+    // Over the whole-page bitmap, under the text, at two device pixels a CSS pixel.
+    assert.equal(shown.previousElementSibling, page.querySelector("canvas:not(.recto-tile)"));
+    const cssWidth = (Number.parseFloat(shown.style.width) / 100) * page.getBoundingClientRect().width;
+    assert.ok(Math.abs(shown.width / cssWidth - 2) < 0.02, `${shown.width} px over ${cssWidth} CSS px`);
+    // Scroll down the page: a new tile is asked for; scroll on before it lands and it's stopped.
+    const asked = () => renders.filter((render) => render.region);
+    viewer.element.scrollTop += 900;
+    await layout.until(() => asked().length === 2, "a tile for the new part");
+    viewer.element.scrollTop += 900;
+    await layout.idle(20);
+    assert.ok(asked()[1]!.cancelled, "the tile for a part scrolled past is stopped");
+    await layout.until(() => asked().length === 3, "a tile for where the reader stopped");
+    // The old tile shows until the new one lands.
+    assert.equal(page.querySelector(".recto-tile"), shown);
+    // Zoomed back out, the whole page is sharp enough: no tile.
+    viewer.setZoom(1);
+    await layout.idle(400);
+    settleAll();
+    await layout.idle(400);
+    assert.ok(asked()[2]!.cancelled, "a tile at the old zoom is stopped");
+    assert.equal(layout.container.querySelectorAll(".recto-tile").length, 0);
   } finally {
     viewer.destroy();
   }

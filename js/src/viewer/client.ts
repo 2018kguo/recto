@@ -22,6 +22,7 @@ import type {
   ViewerFailure,
   ViewerFindHit,
   ViewerOpenTiming,
+  ViewerOutlineItem,
   ViewerPageInfo,
   ViewerRequest,
   ViewerResponse,
@@ -89,6 +90,8 @@ export interface ViewerDocument {
   render(page: number, options: { width: number; region?: PdfBox }): RenderTask;
   text(page: number): Promise<ViewerResult["text"]>;
   find(page: number, query: string, options?: { caseSensitive?: boolean }): Promise<ViewerFindHit[]>;
+  /** The document's bookmarks; empty if it has none. */
+  outline(): Promise<ViewerOutlineItem[]>;
 }
 
 export type DocumentLease = {
@@ -154,7 +157,7 @@ type OpenDocument = {
 
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 type Call = DistributiveOmit<Exclude<ViewerRequest, { op: "cancel" | "close" }>, "id">;
-type DocumentOp = "pageInfo" | "render" | "text" | "find";
+type DocumentOp = "pageInfo" | "render" | "text" | "find" | "outline";
 
 function defaultWorker(): WorkerPort {
   if (typeof Worker === "undefined") {
@@ -412,10 +415,20 @@ export function createViewerEngine(options: ViewerEngineOptions = {}): ViewerEng
         throw new RangeError(`page ${page} is not in 1..${opened.pageCount}`);
       }
     };
+    let outline: Promise<ViewerOutlineItem[]> | null = null;
     return {
       pageCount: opened.pageCount,
       ranged: opened.ranged,
       timing: opened.timing,
+      outline() {
+        const asked = (outline ??= callDocument(doc, (docId) => ({ docId, op: "outline" })));
+        asked.catch(() => {
+          if (outline === asked) {
+            outline = null;
+          }
+        });
+        return asked;
+      },
       pageInfo(page) {
         checkPage(page);
         let info = infos.get(page);

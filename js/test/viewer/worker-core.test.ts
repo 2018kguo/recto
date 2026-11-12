@@ -78,6 +78,18 @@ test("open, page size, text runs, links and a bitmap of the asked width", async 
   assert.deepEqual(region.region, { pageHeight: 792, pageWidth: 612, x: 0, y: 0 });
 });
 
+test("the outline, nested, with pages from 1", async () => {
+  const { call } = worker();
+  const pdf = textPdf({ outline: [{ page: 1, title: "Start" }, { children: [{ page: 3, title: "Deeper" }], page: 2, title: "Middle" }], pages: 3 });
+  await call<"open">({ docId: 1, op: "open", source: { kind: "bytes", bytes: pdf.slice().buffer } });
+  assert.deepEqual(await call<"outline">({ docId: 1, op: "outline" }), [
+    { children: [], page: 1, title: "Start", url: null },
+    { children: [{ children: [], page: 3, title: "Deeper", url: null }], page: 2, title: "Middle", url: null },
+  ]);
+  await call<"open">({ docId: 2, op: "open", source: { kind: "bytes", bytes: small.slice().buffer } });
+  assert.deepEqual(await call<"outline">({ docId: 2, op: "outline" }), []);
+});
+
 test("failures carry the engine's code", async () => {
   const { call } = worker();
   await assert.rejects(call<"open">({ docId: 1, op: "open", source: { kind: "bytes", bytes: new TextEncoder().encode("not a pdf").buffer } }), {
@@ -154,6 +166,49 @@ test("a shared worker refuses a file it would have to read by range", async () =
   await assert.rejects(call<"open">({ docId: 1, op: "open", source: { kind: "url", url: largeServer.url }, wholeOnly: true }), {
     code: "needs-own-worker",
   });
+});
+
+test("find normalizes Unicode: ligatures, full width, split accents and case fold, with boxes mapped back", () => {
+  // One char per unit but for the ligature, which is one char shown as one box; each char 10 pt wide.
+  const text = "ﬁnal Café ＲＥＰＯＲＴ STRASSE of­fice";
+  const chars = Int32Array.from(text.split("").map((_, i) => i));
+  const boxes = new Float32Array(text.length * 4);
+  for (let i = 0; i < text.length; i++) {
+    boxes.set([i * 10, 100, 10, 12], i * 4);
+  }
+  const search = { chars, text };
+  const at = (query: string, caseSensitive = false) => findInText(search, boxes, query, caseSensitive);
+  // The ligature is its letters, and a hit on part of it covers that part of its box.
+  assert.equal(at("final").length, 1);
+  assert.deepEqual(at("final")[0]!.boxes, [{ height: 12, width: 40, x: 0, y: 100 }]);
+  assert.deepEqual(at("inal")[0]!.boxes, [{ height: 12, width: 35, x: 5, y: 100 }]);
+  assert.equal(at("final")[0]!.index, 0);
+  // A precomposed é matches e and a combining acute, and the hit covers both chars.
+  const [cafe] = at("café");
+  assert.ok(cafe, "café");
+  assert.equal(cafe.index, text.indexOf("Cafe"));
+  assert.deepEqual(cafe.boxes, [{ height: 12, width: 50, x: 50, y: 100 }]);
+  // And the other way round.
+  assert.equal(findInText({ chars: Int32Array.from([0, 1, 2, 3]), text: "café" }, boxes, "café", false).length, 1);
+  assert.equal(at("CAFÉ", true).length, 0, "case-sensitive still tells case apart");
+  assert.equal(at("Café", true).length, 1, "but not how an accent is written");
+  // Full-width letters read as plain ones, ß folds to ss, a soft hyphen is invisible.
+  assert.equal(at("report").length, 1);
+  assert.equal(at("straße").length, 1);
+  assert.equal(at("office").length, 1);
+  assert.equal(at("cafe").length, 0, "an accent still counts");
+});
+
+test("find through the worker matches text a font maps to a ligature or a combining accent", async () => {
+  const { call } = worker();
+  const pdf = textPdf({ pages: 1, lines: 0, extra: ["\\001nal cafe\\002 done"], toUnicode: { 1: "ﬁ", 2: "́" } });
+  await call<"open">({ docId: 1, op: "open", source: { kind: "bytes", bytes: pdf.slice().buffer } });
+  const find = (query: string) => call<"find">({ caseSensitive: false, docId: 1, op: "find", page: 1, query });
+  const [hit] = await find("FINAL CAFÉ");
+  assert.ok(hit, "a precomposed query matches the decomposed text");
+  assert.equal(hit.boxes.length, 1);
+  assert.ok(hit.boxes[0]!.width > 40, JSON.stringify(hit.boxes));
+  assert.equal((await find("café done")).length, 1);
 });
 
 test("find: case, whitespace across line breaks, line-end hyphenation, and one box per line", async () => {

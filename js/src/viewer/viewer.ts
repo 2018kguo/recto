@@ -9,21 +9,28 @@
 // Painting: only pages within a couple of screens of the reader are drawn, nearest first, two at a
 // time. A page that leaves that band has its render cancelled; a render superseded by a newer one never
 // lands. Painted pages are held to a pixel budget: the oldest off-screen ones shrink to a thumbnail.
+//
+// Tiles: a whole page's bitmap is capped in pixels, so far in it is soft. A page on screen past that
+// cap gets a second canvas over it, the part on screen drawn at the screen's density, placed in shares
+// of the page so a zoom keeps it aligned until the next one lands.
+//
+// Pinch: while the fingers move, the pages are one transformed picture; at the end, one layout.
 
 import type { PdfBox } from "../document.ts";
 import {
   type DocumentLease,
   isAbort,
+  type RenderTask,
   sharedViewerEngine,
   type ViewerBitmap,
   type ViewerDocument,
   type ViewerEngine,
 } from "./client.ts";
 import { installViewerCss } from "./css.ts";
-import { attachZoomGestures } from "./gestures.ts";
+import { attachZoomGestures, type PinchMove } from "./gestures.ts";
 import { clampZoom, exceedsCanvasBudget, fitScale, outputScale, pageAt, pixelCost, stepZoom } from "./layout.ts";
 import { createPaintQueue, type PaintQueueRecord } from "./paint-queue.ts";
-import type { ViewerOpenTiming, ViewerSource } from "./protocol.ts";
+import type { ViewerOpenTiming, ViewerOutlineItem, ViewerSource } from "./protocol.ts";
 import { buildTextLayer } from "./text-layer.ts";
 
 /** A URL (relative to the page), the file's bytes, or a Blob such as a dropped File. */
@@ -70,7 +77,7 @@ export type ViewerOptions = {
   textLayer?: boolean;
   /** Clickable links over each page (needs the text layer). Default true. */
   links?: boolean;
-  /** Pinch, ctrl + wheel and ⌘/Ctrl + plus, minus, 0 zoom the document. Default true. */
+  /** A pinch (touch or trackpad), ctrl + wheel and ⌘/Ctrl + plus, minus, 0 zoom the document. Default true. */
   gestures?: boolean;
   /** The scrolling element's accessible name. Default "PDF document". */
   label?: string;
@@ -137,6 +144,13 @@ export interface Viewer extends EventTarget {
   scrollToBox(page: number, box: PdfBox, options?: { behavior?: ScrollBehavior }): Promise<void>;
   /** The element a page is laid out in. */
   pageElement(page: number): HTMLElement | null;
+  /** The document's bookmarks, pages from 1; empty if it has none. */
+  outline(): Promise<ViewerOutlineItem[]>;
+  /**
+   * The page drawn `width` pixels wide, for a thumbnail: queued behind the pages near the screen,
+   * newest first, and dropped if `signal` aborts first (rejecting with an `AbortError`).
+   */
+  renderThumbnail(page: number, options: { width: number; signal?: AbortSignal }): Promise<ViewerBitmap>;
   /** Stops everything, lets go of the document and removes what the viewer added. */
   destroy(): void;
   addEventListener<K extends keyof ViewerEventMap>(type: K, listener: (event: ViewerEventMap[K]) => void, options?: boolean | AddEventListenerOptions): void;
@@ -162,7 +176,23 @@ type PageRecord = PaintQueueRecord & {
   pendingOutputScale: number;
   /** Bumped by every render; a render that finds it changed was superseded and must not land. */
   renderToken: number;
+  /** On screen, where a tile may be drawn over it. */
+  onScreen: boolean;
+  /** A sharp drawing of the part of the page on screen, over its whole-page bitmap. */
+  tile: HTMLCanvasElement | null;
+  /** The tile shown or on its way: its part of the page in points, and device pixels a point. */
+  tileWant: (PdfBox & { scale: number }) | null;
+  /** The tile on screen's part and scale. */
+  tileShown: (PdfBox & { scale: number }) | null;
+  tileTask: RenderTask | null;
+  tileToken: number;
 };
+
+/** Whether `outer` holds all of `inner`, to a hundredth of a point. */
+function covers(outer: PdfBox, inner: PdfBox): boolean {
+  const e = 0.01;
+  return outer.x <= inner.x + e && outer.y <= inner.y + e && outer.x + outer.width >= inner.x + inner.width - e && outer.y + outer.height >= inner.y + inner.height - e;
+}
 
 // Start drawing at least two screens ahead of the reader: a fixed margin shorter than a page exposed
 // placeholders in ordinary scrolling.
@@ -177,6 +207,15 @@ const RASTER_REFRESH_QUIET_MS = 180;
 // An evicted page keeps a bitmap this wide, so scrolling back shows a blur, not a blank.
 const EVICTED_CANVAS_MAX_WIDTH_PX = 160;
 const DEFAULT_GAP_PX = 12;
+// A tile covers what is on screen and this much around it, so a small scroll stays sharp.
+const TILE_MARGIN_PX = 128;
+// Ask for a tile once scrolling or zooming has been still this long: each one mid-fling is thrown away.
+const TILE_QUIET_MS = 120;
+// The widest whole page a region render may be cut from (the engine's limit).
+const MAX_TILE_PAGE_WIDTH_PX = 262_144;
+// Shrunk bitmaps kept for pages far behind, so scrolling back shows a blur, not a blank; past this
+// many the oldest go entirely, so a long read holds the same memory as a short one.
+const MAX_EVICTED_PREVIEWS = 48;
 
 function resolveSource(input: ViewerInput, credentials: RequestCredentials | undefined): ViewerSource | Promise<ViewerSource> {
   if (typeof input === "string" || input instanceof URL) {
@@ -233,6 +272,8 @@ class PdfViewer extends EventTarget implements Viewer {
   readonly #recordByElement = new Map<Element, PageRecord>();
   // Painted pages, oldest first, held to the pixel budget.
   readonly #live: PageRecord[] = [];
+  // Pages holding only a shrunk bitmap, oldest first.
+  readonly #previews: PageRecord[] = [];
   #zoom: number;
   #fit = 1;
   #appliedScale = 0;
@@ -240,6 +281,8 @@ class PdfViewer extends EventTarget implements Viewer {
   #destroyed = false;
   #contentWidth: number | null = null;
   #refreshTimer: ReturnType<typeof setTimeout> | undefined;
+  #tileTimer: ReturnType<typeof setTimeout> | undefined;
+  #pinching = false;
   #scrollFrame = 0;
   #resizeFrame = 0;
   #programmaticTop: number | null = null;
@@ -399,9 +442,14 @@ class PdfViewer extends EventTarget implements Viewer {
           const record = this.#recordByElement.get(entry.target);
           if (record) {
             queue.setOnScreen(record, entry.isIntersecting);
+            record.onScreen = entry.isIntersecting;
+            if (!entry.isIntersecting) {
+              this.#dropTile(record);
+            }
           }
         }
         queue.pump();
+        this.#scheduleTiles();
       },
       { root: scroller }
     );
@@ -446,6 +494,7 @@ class PdfViewer extends EventTarget implements Viewer {
         highlightEl: null,
         highlightKey: "",
         near: false,
+        onScreen: false,
         outputScale: 0,
         pageNumber,
         pendingOutputScale: 0,
@@ -455,6 +504,11 @@ class PdfViewer extends EventTarget implements Viewer {
         textEl: null,
         textRendered: this.#options.textLayer === false,
         textTask: null,
+        tile: null,
+        tileShown: null,
+        tileTask: null,
+        tileToken: 0,
+        tileWant: null,
         width,
       };
       this.#records.push(record);
@@ -486,7 +540,11 @@ class PdfViewer extends EventTarget implements Viewer {
 
     const onScroll = () => {
       this.#cancelFrame(this.#scrollFrame);
-      this.#scrollFrame = this.#frame(() => this.#trackPage());
+      this.#scrollFrame = this.#frame(() => {
+        this.#trackPage();
+        this.#cancelStaleTiles();
+      });
+      this.#scheduleTiles();
     };
     scroller.addEventListener("scroll", onScroll, { passive: true });
     const onClick = (event: MouseEvent) => this.#followLink(event);
@@ -501,12 +559,48 @@ class PdfViewer extends EventTarget implements Viewer {
     if (this.#options.gestures !== false) {
       this.#cleanups.push(
         attachZoomGestures(scroller, {
+          clampScale: (scale) => clampZoom(this.#zoom * scale) / this.#zoom,
+          onPinch: (move) => this.#previewPinch(move),
+          onPinchEnd: (move) => this.#commitPinch(move),
           onReset: () => this.fitWidth(),
           onStep: (direction) => this.setZoom(stepZoom(this.#zoom, direction)),
-          onZoomBy: (factor, anchor) => this.setZoom(this.#zoom * factor, anchor),
         })
       );
     }
+  }
+
+  /**
+   * A pinch in progress, shown by scaling the pages as one picture about the pinch's start point: the
+   * compositor's work, with no layout and no render. The layout and the sharp render come at its end.
+   */
+  #previewPinch(move: PinchMove) {
+    const scroller = this.element;
+    const style = this.#pages.style;
+    if (!style.transform) {
+      const rect = scroller.getBoundingClientRect();
+      // The start point in the pages' own coordinates, which start at the scroll origin.
+      const x = scroller.scrollLeft + move.origin.clientX - rect.left;
+      const y = scroller.scrollTop + move.origin.clientY - rect.top;
+      style.transformOrigin = `${x}px ${y}px`;
+      style.willChange = "transform";
+      this.#pinching = true;
+    }
+    style.transform = `translate(${move.panX}px, ${move.panY}px) scale(${move.scale})`;
+  }
+
+  /** Lays out the pinch's end once: the zoom it reached, the start point where the fingers left it. */
+  #commitPinch(move: PinchMove) {
+    const style = this.#pages.style;
+    style.transform = "";
+    style.transformOrigin = "";
+    style.willChange = "";
+    this.#pinching = false;
+    this.setZoom(this.#zoom * move.scale, move.origin);
+    if (Math.abs(move.panX) >= 0.5 || Math.abs(move.panY) >= 0.5) {
+      this.element.scrollLeft -= move.panX;
+      this.element.scrollTop -= move.panY;
+    }
+    this.#scheduleTiles();
   }
 
   /** The width pages fit into: the scroller's content box less the gaps on either side. */
@@ -524,6 +618,7 @@ class PdfViewer extends EventTarget implements Viewer {
     if (Math.abs(this.#appliedScale - this.scale) > 1e-9) {
       this.#appliedScale = this.scale;
       this.element.style.setProperty("--recto-scale", String(this.scale));
+      this.#cancelStaleTiles();
       this.#scheduleRefresh();
     }
   }
@@ -615,9 +710,167 @@ class PdfViewer extends EventTarget implements Viewer {
     return record.sized;
   }
 
+  #devicePixelRatio(): number {
+    return this.#options.devicePixelRatio?.() ?? this.#view()?.devicePixelRatio ?? 1;
+  }
+
   #outputScaleFor(record: PageRecord): number {
-    const ratio = this.#options.devicePixelRatio?.() ?? this.#view()?.devicePixelRatio ?? 1;
-    return outputScale({ devicePixelRatio: ratio, displayScale: this.scale, pageArea: record.width * record.height });
+    return outputScale({ devicePixelRatio: this.#devicePixelRatio(), displayScale: this.scale, pageArea: record.width * record.height });
+  }
+
+  /** Device pixels a point at the screen's density, past any cap on a whole page's bitmap: a tile's. */
+  #sharpScale(): number {
+    return outputScale({ devicePixelRatio: this.#devicePixelRatio(), displayScale: this.scale, pageArea: 0 });
+  }
+
+  #scheduleTiles() {
+    clearTimeout(this.#tileTimer);
+    this.#tileTimer = setTimeout(() => this.#refreshTiles(), TILE_QUIET_MS);
+  }
+
+  /**
+   * The part of a page on screen, in points, and with the margin a tile is drawn with; null when none
+   * of it is.
+   */
+  #visiblePart(record: PageRecord): { seen: PdfBox; drawn: PdfBox } | null {
+    const view = this.element.getBoundingClientRect();
+    const page = record.element.getBoundingClientRect();
+    const scale = this.scale;
+    const part = (margin: number): PdfBox | null => {
+      const left = Math.max(page.left, view.left - margin);
+      const top = Math.max(page.top, view.top - margin);
+      const right = Math.min(page.right, view.left + this.element.clientWidth + margin);
+      const bottom = Math.min(page.bottom, view.top + this.element.clientHeight + margin);
+      if (!(right > left && bottom > top && scale > 0)) {
+        return null;
+      }
+      return { height: (bottom - top) / scale, width: (right - left) / scale, x: (left - page.left) / scale, y: (top - page.top) / scale };
+    };
+    const seen = part(0);
+    const drawn = part(TILE_MARGIN_PX);
+    return seen && drawn ? { drawn, seen } : null;
+  }
+
+  /** A tile asked for that no longer covers what's on screen, at the density shown, is stopped now. */
+  #cancelStaleTiles() {
+    const sharp = this.#sharpScale();
+    for (const record of this.#records) {
+      if (!record.tileTask || !record.tileWant) {
+        continue;
+      }
+      const visible = record.onScreen ? this.#visiblePart(record) : null;
+      if (!visible || Math.abs(record.tileWant.scale / sharp - 1) > 0.01 || !covers(record.tileWant, visible.seen)) {
+        record.tileTask.cancel();
+        record.tileTask = null;
+        record.tileToken += 1;
+        record.tileWant = record.tileShown;
+      }
+    }
+  }
+
+  /**
+   * Past the most pixels one bitmap of a whole page is given, a page zoomed far in is that bitmap
+   * stretched. The part of it on screen is drawn again at the screen's density, over it.
+   */
+  #refreshTiles() {
+    if (this.#destroyed || this.#pinching || !this.#doc) {
+      return;
+    }
+    this.#cancelStaleTiles();
+    const sharp = this.#sharpScale();
+    for (const record of this.#records) {
+      if (!record.onScreen) {
+        continue;
+      }
+      // The whole page first: it's what shows while a tile is drawn, and around it.
+      if (!record.canvasRendered || record.outputScale <= 0 || record.pendingOutputScale > 0) {
+        continue;
+      }
+      // A whole page about to be drawn sharper may need no tile at all.
+      if (record.outputScale * RASTER_REFRESH_THRESHOLD < this.#outputScaleFor(record)) {
+        continue;
+      }
+      if (record.outputScale * RASTER_REFRESH_THRESHOLD >= sharp) {
+        this.#dropTile(record);
+        continue;
+      }
+      const visible = this.#visiblePart(record);
+      if (!visible) {
+        this.#dropTile(record);
+        continue;
+      }
+      const want = record.tileWant;
+      if (want && Math.abs(want.scale / sharp - 1) <= 0.01 && covers(want, visible.seen)) {
+        continue;
+      }
+      void this.#renderTile(record, { ...visible.drawn, scale: sharp });
+    }
+  }
+
+  async #renderTile(record: PageRecord, want: PdfBox & { scale: number }) {
+    if (record.width * want.scale > MAX_TILE_PAGE_WIDTH_PX) {
+      // A page too wide for the engine's region renders at this zoom keeps its whole bitmap alone.
+      return;
+    }
+    record.tileTask?.cancel();
+    record.tileToken += 1;
+    const token = record.tileToken;
+    record.tileWant = want;
+    const { scale, ...region } = want;
+    const started = performance.now();
+    const task = this.#doc!.render(record.pageNumber, { region, width: Math.max(1, Math.round(record.width * scale)) });
+    record.tileTask = task;
+    let bitmap: ViewerBitmap;
+    try {
+      bitmap = await task.promise;
+    } catch (cause) {
+      if (record.tileToken === token) {
+        record.tileTask = null;
+        record.tileWant = null;
+      }
+      if (!isAbort(cause)) {
+        this.#report(cause, { page: record.pageNumber, stage: "render" });
+      }
+      return;
+    }
+    if (record.tileToken !== token || this.#destroyed || !record.onScreen || !bitmap.region) {
+      return;
+    }
+    record.tileTask = null;
+    const canvas = this.#bitmapCanvas(record, bitmap);
+    const { pageHeight, pageWidth, x, y } = bitmap.region;
+    canvas.className = "recto-tile";
+    record.tileShown = want;
+    // In shares of the page, so a zoom keeps it in place until a new one replaces it.
+    Object.assign(canvas.style, {
+      height: `${(100 * bitmap.height) / pageHeight}%`,
+      left: `${(100 * x) / pageWidth}%`,
+      top: `${(100 * y) / pageHeight}%`,
+      width: `${(100 * bitmap.width) / pageWidth}%`,
+    });
+    if (record.tile) {
+      record.tile.replaceWith(canvas);
+    } else if (record.canvas) {
+      record.canvas.after(canvas);
+    } else {
+      record.element.prepend(canvas);
+    }
+    record.tile = canvas;
+    this.#options.onRender?.({ height: bitmap.height, ms: Math.round(performance.now() - started), page: record.pageNumber, width: bitmap.width });
+  }
+
+  #dropTile(record: PageRecord) {
+    record.tileTask?.cancel();
+    record.tileTask = null;
+    record.tileToken += 1;
+    record.tileWant = null;
+    record.tileShown = null;
+    if (record.tile) {
+      record.tile.width = 0;
+      record.tile.height = 0;
+      record.tile.remove();
+      record.tile = null;
+    }
   }
 
   async #paintCanvas(record: PageRecord): Promise<boolean> {
@@ -679,11 +932,14 @@ class PdfViewer extends EventTarget implements Viewer {
     this.#noteRasterized(record);
     // A first paint that began before a zoom lands at the old density: reconcile once it does.
     this.#scheduleRefresh();
+    if (record.onScreen) {
+      this.#scheduleTiles();
+    }
     return true;
   }
 
-  /** Puts a bitmap on screen in a new canvas, swapped in whole: the old one shows until then. */
-  #draw(record: PageRecord, bitmap: ViewerBitmap) {
+  /** A new canvas holding `bitmap`, not yet on screen. */
+  #bitmapCanvas(record: PageRecord, bitmap: ViewerBitmap): HTMLCanvasElement {
     const canvas = record.element.ownerDocument.createElement("canvas");
     canvas.width = bitmap.width;
     canvas.height = bitmap.height;
@@ -694,6 +950,12 @@ class PdfViewer extends EventTarget implements Viewer {
     }
     const ImageDataImpl = this.#view()?.ImageData ?? globalThis.ImageData;
     context.putImageData(new ImageDataImpl(bitmap.rgba, bitmap.width, bitmap.height), 0, 0);
+    return canvas;
+  }
+
+  /** Puts a bitmap on screen in a new canvas, swapped in whole: the old one shows until then. */
+  #draw(record: PageRecord, bitmap: ViewerBitmap) {
+    const canvas = this.#bitmapCanvas(record, bitmap);
     if (record.canvas) {
       record.canvas.replaceWith(canvas);
     } else {
@@ -737,8 +999,10 @@ class PdfViewer extends EventTarget implements Viewer {
   }
 
   #release(record: PageRecord) {
+    this.#dropTile(record);
     if (record.canvas) {
       reduceCanvas(record.canvas);
+      this.#keepPreview(record);
     }
     record.canvasRendered = false;
     record.outputScale = 0;
@@ -747,6 +1011,27 @@ class PdfViewer extends EventTarget implements Viewer {
       record.textEl.replaceChildren();
       record.textRendered = false;
       record.textTask = null;
+    }
+  }
+
+  /** Holds `record`'s shrunk bitmap, letting the oldest such go once there are too many. */
+  #keepPreview(record: PageRecord) {
+    const previews = this.#previews;
+    const at = previews.indexOf(record);
+    if (at !== -1) {
+      previews.splice(at, 1);
+    }
+    previews.push(record);
+    while (previews.length > MAX_EVICTED_PREVIEWS) {
+      const oldest = previews.shift()!;
+      // Painted again since, or about to be: not a preview any more.
+      if (oldest.canvasRendered || oldest.near || !oldest.canvas) {
+        continue;
+      }
+      oldest.canvas.width = 0;
+      oldest.canvas.height = 0;
+      oldest.canvas.remove();
+      oldest.canvas = null;
     }
   }
 
@@ -790,6 +1075,7 @@ class PdfViewer extends EventTarget implements Viewer {
       }
     }
     this.#queue?.pump();
+    this.#scheduleTiles();
   }
 
   async #paintText(record: PageRecord): Promise<boolean> {
@@ -1099,6 +1385,46 @@ class PdfViewer extends EventTarget implements Viewer {
     return this.#records[page - 1]?.element ?? null;
   }
 
+  async outline(): Promise<ViewerOutlineItem[]> {
+    await this.ready;
+    return this.#doc ? this.#doc.outline() : [];
+  }
+
+  async renderThumbnail(page: number, { width, signal }: { width: number; signal?: AbortSignal }): Promise<ViewerBitmap> {
+    const stopped = () => Object.assign(new Error("the thumbnail was not needed"), { code: "aborted", name: "AbortError" });
+    await this.ready;
+    const doc = this.#doc;
+    const queue = this.#queue;
+    if (!doc || !queue || this.#destroyed) {
+      throw stopped();
+    }
+    return new Promise<ViewerBitmap>((resolve, reject) => {
+      if (signal?.aborted) {
+        reject(stopped());
+        return;
+      }
+      const onAbort = () => reject(stopped());
+      signal?.addEventListener("abort", onAbort, { once: true });
+      queue.schedule(async () => {
+        if (signal?.aborted || this.#destroyed) {
+          reject(stopped());
+          return;
+        }
+        const task = doc.render(page, { width: Math.max(1, Math.round(width)) });
+        const cancel = () => task.cancel();
+        signal?.addEventListener("abort", cancel, { once: true });
+        try {
+          resolve(await task.promise);
+        } catch (cause) {
+          reject(cause);
+        } finally {
+          signal?.removeEventListener("abort", cancel);
+          signal?.removeEventListener("abort", onAbort);
+        }
+      }, signal);
+    });
+  }
+
   destroy() {
     if (this.#destroyed) {
       return;
@@ -1106,6 +1432,7 @@ class PdfViewer extends EventTarget implements Viewer {
     this.#destroyed = true;
     this.#findController?.abort();
     clearTimeout(this.#refreshTimer);
+    clearTimeout(this.#tileTimer);
     this.#cancelFrame(this.#scrollFrame);
     this.#cancelFrame(this.#resizeFrame);
     for (const cleanup of this.#cleanups.splice(0)) {
@@ -1113,12 +1440,14 @@ class PdfViewer extends EventTarget implements Viewer {
     }
     for (const record of this.#records) {
       record.renderTask?.cancel();
+      record.tileTask?.cancel();
     }
     this.#lease?.release();
     this.#lease = null;
     this.#records = [];
     this.#recordByElement.clear();
     this.#live.length = 0;
+    this.#previews.length = 0;
     this.element.remove();
   }
 }

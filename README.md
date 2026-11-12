@@ -238,8 +238,8 @@ So recto is built on [hayro](https://github.com/LaurenzV/hayro), in Rust, where 
 changes. Four of its five vendored crates forbid `unsafe` outright; `hayro-syntax` has a little, and
 so does recto. A panic still takes the instance with it, and recto reports that as `crash`.
 
-What that costs: its viewer is small, with none of pdf.js's forms, annotation editing, printing or
-outline sidebar. It's much younger than either, and less tested on odd files. Some rendering is
+What that costs: its viewer is small, with none of pdf.js's forms, annotation editing or
+printing. It's much younger than either, and less tested on odd files. Some rendering is
 approximate. If you need a full viewer or the most faithful pixels on
 anything a user might upload, use one of those two.
 
@@ -251,7 +251,7 @@ anything a user might upload, use one of those two.
 | `wasm/recto-render.wasm` | 0.88 MB (0.27 MB brotli) | The first `render`, `objects` or `links` |
 | `wasm/recto-more.wasm`, `recto-rare.wasm` | 0.98, 0.89 MB (0.25, 0.19 MB brotli) | A file that runs a function the first two left out; on a main thread, up front |
 | `wasm/recto.gen.mjs`, `dist/` | 41 KB, 124 KB of JavaScript | Importing the package |
-| `dist/viewer/` | 40 KB minified (13 KB brotli) on the page, and a worker | Importing `@2018kguo/recto/viewer` |
+| `dist/viewer/` | 57 KB minified (17 KB brotli) on the page, and a worker | Importing `@2018kguo/recto/viewer` |
 | `wasm/Foxit*.pfb` | 14 files, 15–30 KB each | Drawing a standard font the document doesn't embed |
 | `wasm/cmaps.deflate` | 0.36 MB | A document uses a predefined CJK CMap |
 | `wasm/cjk-fallback.ttf` | 5.1 MB | Rendering CJK from a font the document doesn't embed |
