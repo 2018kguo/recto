@@ -18,7 +18,7 @@
 ### Added
 
 - `startRangedRead(url)` starts a ranged read before there is an engine; `engine.openRanged(read)` opens
-  it. `doc.fetchRest()` downloads the rest of a ranged file in one request, after which no read blocks.
+  it. `doc.fetchRest()` downloads the rest of a ranged file in the background, in pieces that follow the reader and never fetch a byte twice, after which no read blocks.
   `engine.preload(names)` fetches fonts and other assets together, ahead of the call that needs them.
   `stats().heldBytes` is what a ranged read's loader still holds.
 

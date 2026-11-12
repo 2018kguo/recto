@@ -75,8 +75,8 @@ export type PdfRangedStats = {
 export type PdfRangedDocument = PdfDocument & {
   stats(): PdfRangedStats;
   /**
-   * Downloads the rest of the file in the background, in one request from the first byte not held yet,
-   * so that reads after it never block on the network. Counts toward `maxBytes` (fails `too-large`
+   * Downloads the rest of the file in the background, in pieces from where reads last missed, nothing
+   * held asked for again, so that reads after it never block on the network. Counts toward `maxBytes` (fails `too-large`
    * up front past it). A failure fails no read: they fetch by range as before.
    */
   fetchRest(options?: { signal?: AbortSignal; stallMs?: number }): Promise<void>;

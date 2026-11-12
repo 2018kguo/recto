@@ -317,9 +317,12 @@ returns a handle; `engine.openRanged(handle)` opens it when the engine is ready.
 file's head and tail download alongside the engine's wasm instead of after it. Only `password` is taken
 at the open; the rest of the options are the read's.
 
-**Download the rest.** `await doc.fetchRest({ signal, stallMs })` asks for everything from the first byte
-not held yet to the last, in one request, and keeps each chunk as it arrives: reads after it never block.
-It's how a viewer reads a file whole while drawing its first page from a few ranges. It counts toward
+**Download the rest.** `await doc.fetchRest({ signal, stallMs })` asks for every byte not held yet, at low
+priority, in 256 KiB pieces starting from where the engine last read past what it had, the next piece asked
+for a round trip before the last one ends, and keeps each chunk as it arrives: reads after it never block.
+A read that misses meanwhile shares the link with one piece at most (it can't make the download stop:
+its thread is blocked on its own request), and nothing it fetched is fetched again. It's how a viewer
+reads a file whole while drawing its first page from a few ranges. It counts toward
 `maxBytes`, and gives up after `stallMs` (default `timeoutMs`) without a byte. A failure fails no read.
 
 **The file is held once.** What the engine reads it copies into its own memory, and the loader drops it

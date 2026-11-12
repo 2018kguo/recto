@@ -117,7 +117,7 @@ Server rendering is fine: importing the module touches no DOM. Create the viewer
 | Option | | |
 |---|---|---|
 | `container` | `HTMLElement` | Required. The viewer adds one scrolling element to it. |
-| `source` | `string \| URL \| ArrayBuffer \| Uint8Array \| Blob` | A URL is read by the worker, by range from its first request, which goes out while the engine itself downloads: the first page needs only its own bytes. Up to 8 MiB the rest of the file follows in one request once that page is drawn; past it, only what's read is fetched. Bytes and a `Blob` (a dropped `File`) are copied to it. |
+| `source` | `string \| URL \| ArrayBuffer \| Uint8Array \| Blob` | A URL is read by the worker, by range from its first request, which goes out while the engine itself downloads: the first page needs only its own bytes. Up to 8 MiB the rest of the file follows in the background once that page is drawn, in pieces that go on from what the reader last read; past it, only what's read is fetched. Bytes and a `Blob` (a dropped `File`) are copied to it. |
 | `fetch` | `(url) => Promise<Response>` | Read a URL with this on the page instead, whole: for headers, signed requests, or another transport. |
 | `credentials` | `RequestCredentials` | Sent with the worker's requests. |
 | `zoom` | `number` | 1 (the default) fits the first page's width; 0.25 to 4. |
@@ -236,7 +236,9 @@ in 2.5 s, zoom to 300%, find a word. Each side starts in a new frame from URLs n
 nothing is cached, and the next side waits until the last has stopped downloading. Under each side:
 the time to the first page and until everything on screen is sharp (from the frame's creation, so
 downloading the viewer counts), bytes downloaded, its JS and wasm under brotli, main-thread long tasks
-while scrolling, how long page 50 and 300% take to turn sharp, the search, and memory (Chromium's
+while scrolling, how long page 50 and 300% take to turn sharp, the search (page 50 and the search also from
+the frame's creation, when the reader opened the file: a viewer that draws its first page sooner may still
+be reading what a far page or a search needs), and memory (Chromium's
 `measureUserAgentSpecificMemory`, the frame and its workers) and the canvas pixels each holds.
 
 The server sends code brotli-compressed and PDFs as they are, answering `Range`. A network preset

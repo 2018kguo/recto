@@ -143,6 +143,8 @@ async function playSide(key, doc, run, script) {
     const scroll = await side.scrollToPage(Math.min(script.page, out.pageCount), script.scrollMs);
     const afterScroll = await side.untilSharp();
     out.scrollSharpMs = Math.round(afterScroll.at - scroll.ended);
+    // And from the frame's creation: when the reader, who opened the file then, sees it.
+    out.scrollSharpSinceOpenMs = Math.round(afterScroll.at - started);
     show(key, "scrollSharp", out.scrollSharpMs, ms(out.scrollSharpMs), "after scrolling");
     await wait(100);
     const tasks = side.longTasksBetween(scroll.started, scroll.ended);
@@ -163,6 +165,7 @@ async function playSide(key, doc, run, script) {
     status(`<b>${name}</b> · finding “${script.word}”`);
     const found = await side.find(script.word);
     out.findMs = Math.round(found.ms);
+    out.findDoneSinceOpenMs = Math.round(now() - started);
     out.findHits = found.hits;
     show(key, "find", out.findMs, ms(out.findMs), `${found.hits} hits`);
   }

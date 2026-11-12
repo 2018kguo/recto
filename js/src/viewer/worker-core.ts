@@ -38,7 +38,7 @@ import type {
 /**
  * Files up to this size are downloaded whole; larger ones are only ever read by range. Either way a
  * file is opened by range, its head and tail asked for while the engine itself downloads, so the first
- * page needs only its own objects: the rest of a file this size follows in one background request once
+ * page needs only its own objects: the rest of a file this size follows in the background once
  * the first page is drawn (bench/compare: on a 4.6 MB file, the first page at Slow 4G in a third of the
  * time a whole read took, and no later on an unthrottled link).
  */

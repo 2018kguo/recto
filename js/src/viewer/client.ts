@@ -111,7 +111,7 @@ export type ViewerEngineOptions = {
   /** At most this many workers, except for a file read by range past it. Default 4. */
   maxWorkers?: number;
   /**
-   * Files up to this size are downloaded whole, the rest of the file in one request after the first page
+   * Files up to this size are downloaded whole, the rest of the file in the background after the first page
    * is drawn; larger ones only by range. Default 8 MiB.
    */
   wholeFileMaxBytes?: number;
