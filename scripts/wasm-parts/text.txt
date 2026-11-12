@@ -943,6 +943,7 @@ hayro_syntax::filter::lzw_flate::flate::inflate
 hayro_syntax::filter::png::unfilter
 hayro_syntax::object::dict::read_inner
 hayro_syntax::object::rect::from_arr
+hayro_syntax::object::stream::stream_eol
 hayro_syntax::page::counts_add_up
 hayro_syntax::page::inherit
 hayro_syntax::page::is_node

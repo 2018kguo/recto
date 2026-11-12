@@ -780,6 +780,30 @@ mod tests {
         s
     }
 
+    /// `stream` followed by spaces or a tab before its end of line, as some report writers put it,
+    /// reads as the stream it is: it was skipped, so every page of such a file was blank.
+    #[test]
+    fn a_space_before_a_streams_end_of_line_is_skipped() {
+        let font = "/Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >>";
+        for keyword in ["stream \r\n", "stream  \n", "stream\t\r"] {
+            let data = b"BT /F1 10 Tf 10 10 Td (kept) Tj ET";
+            let mut content = format!("<< /Length {} >>\n{keyword}", data.len()).into_bytes();
+            content.extend_from_slice(data);
+            content.extend_from_slice(b"\nendstream");
+            let doc = Document::open(
+                pdf(&[
+                    b"<< /Type /Catalog /Pages 2 0 R >>",
+                    b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                    format!("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R /Resources << {font} >> >>").as_bytes(),
+                    &content,
+                ]),
+                "",
+            )
+            .unwrap();
+            assert_eq!(doc.text(0).unwrap().text().trim(), "kept", "{keyword:?}");
+        }
+    }
+
     /// A stream or image that decodes past the limit is left out, and what the page says is
     /// `truncated`, rather than taking memory it can't give back. 60,000 by 60,000 pixels declared by
     /// 16 bytes of `CCITTFaxDecode` crashed the wasm; a content stream inflating past the limit is

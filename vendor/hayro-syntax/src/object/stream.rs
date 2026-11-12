@@ -338,9 +338,7 @@ fn parse_proper<'a>(r: &mut Reader<'a>, dict: &Dict<'a>) -> Option<Stream<'a>> {
 
     r.skip_white_spaces_and_comments();
     r.forward_tag(b"stream")?;
-    r.forward_tag(b"\n")
-        .or_else(|| r.forward_tag(b"\r\n"))
-        .or_else(|| r.forward_tag(b"\r"))?;
+    stream_eol(r)?;
     let data = r.read_bytes(length as usize)?;
     r.skip_white_spaces();
     r.forward_tag(b"endstream")?;
@@ -351,11 +349,7 @@ fn parse_proper<'a>(r: &mut Reader<'a>, dict: &Dict<'a>) -> Option<Stream<'a>> {
 fn parse_fallback<'a>(r: &mut Reader<'a>, dict: &Dict<'a>) -> Option<Stream<'a>> {
     r.skip_white_spaces_and_comments();
     r.forward_tag(b"stream")?;
-
-    r.forward_tag(b"\n")
-        .or_else(|| r.forward_tag(b"\r\n"))
-        // Technically not allowed, but no reason to not try it.
-        .or_else(|| r.forward_tag(b"\r"))?;
+    stream_eol(r)?;
 
     // TODO: This search can take quadratic time in total when many streams with a wrong length
     // have no `endstream` after them, or only a distant one.
@@ -369,6 +363,24 @@ fn parse_fallback<'a>(r: &mut Reader<'a>, dict: &Dict<'a>) -> Option<Stream<'a>>
     r.forward_tag(b"endstream")?;
 
     Some(Stream::new(data, dict.clone()))
+}
+
+/// The end of line after `stream`: `\n`, `\r\n` or (not allowed, but seen) `\r`. Spaces or tabs
+/// before it are skipped, as pdf.js and pdfium do: some writers put `stream \r\n`.
+fn stream_eol(r: &mut Reader<'_>) -> Option<()> {
+    let eol = |r: &mut Reader<'_>| {
+        r.forward_tag(b"\n")
+            .or_else(|| r.forward_tag(b"\r\n"))
+            .or_else(|| r.forward_tag(b"\r"))
+    };
+    if eol(r).is_some() {
+        return Some(());
+    }
+    let mut ahead = r.clone();
+    while ahead.forward_tag(b" ").or_else(|| ahead.forward_tag(b"\t")).is_some() {}
+    eol(&mut ahead)?;
+    *r = ahead;
+    Some(())
 }
 
 fn trim_trailing_ascii_whitespace(data: &[u8]) -> usize {
