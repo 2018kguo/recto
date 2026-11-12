@@ -35,6 +35,14 @@
   not a `Page`, which also leaves 0.46 MB less WebAssembly memory after opening that report. Pages and text
   are unchanged.
 
+### Fixed
+
+- **A stream whose `stream` keyword has spaces before its end of line is read.** Some writers (a report
+  server, here) put `stream \r\n`; recto took every such stream as unreadable, so the pages of those files
+  drew nothing and had no text, where pdf.js and pdfium read them. Spaces and tabs before the end of line are
+  now skipped, as theirs do. Found by the real-world sample in docs/benchmarks.md: 2 files of 7,000 (174 pages), and
+  no other file's text or pixels changed.
+
 ## 0.6.0
 
 Pages draw a quarter to a third faster and in less memory, the scorecard rises to 97.92%, and the
