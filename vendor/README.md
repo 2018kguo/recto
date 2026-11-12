@@ -52,6 +52,9 @@ They are patched for what upstream does not have:
   glyph unmapped (`CodeMetrics::glyph` is `None`) until an outline needs it.
 - **hayro-syntax**: a repair scan that doesn't probe a `<<` it can tell can't end: inside one that
   stopped at the nesting limit, with too few `>>` and `]` after it (`Doomed` in `src/xref.rs`).
+- **hayro-interpret**: what a form's dictionary says read once per page rather than at every `Do`
+  (`XObjectInfo` in `src/x_object/form.rs`); **hayro-syntax**: `XRef::is_repaired`, after which it's
+  read again.
 - **hayro-cmap**: `host-cmaps`, so a WebAssembly build gets its CMaps from the host on first
   use instead of embedding them, deflated rather than brotli so the wasm needs no brotli decoder.
 

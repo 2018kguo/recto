@@ -3,7 +3,7 @@ pub(crate) mod form;
 mod image;
 pub(crate) mod soft_mask;
 
-pub(crate) use form::FormXObject;
+pub(crate) use form::{FormXObject, XObjectInfos};
 pub(crate) use image::ImageXObject;
 
 use crate::WarningSinkFn;

@@ -40,6 +40,13 @@
   the same documentation. The code is the same: the same tests pass and the wasm is the same to the byte.
   The download budget's numbers are 405.7 kB of 420 for text and 681.5 kB of 690 for drawing, from 413.6
   and 689.5.
+- **A form drawn again reads its dictionary once a page.** Each `Do` read the form's resources, matrix, box
+  and group again, which cost more than drawing a small form. A page now reads them once for each of the
+  first 256 forms it draws, however often it draws them; the content is still decoded at each `Do`, so the
+  limit on what decoding holds is as it was. A page drawing a one-glyph form 5,000 times reads its text in
+  3.4 ms where it took 4.7 natively, and draws in 6.2 ms where it took 7.5. Every char, box, font and flag
+  of the 10,354 pages, and every pixel of the first three of each file, are the same. The text part of the
+  wasm is 0.8 kB larger.
 
 ### Fixed
 

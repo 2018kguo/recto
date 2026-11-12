@@ -1328,6 +1328,52 @@ mod tests {
         }
     }
 
+    /// Each `Do` of a form read its dictionary (resources, matrix, box, group) again, which cost
+    /// more than drawing a small form. A page reads each once, however often it draws it, and two
+    /// forms that use the same names for different resources still each draw their own.
+    #[test]
+    fn a_form_drawn_again_reads_its_dictionary_once() {
+        use hayro::hayro_interpret::dictionary_reads;
+        const USES: usize = 200;
+        let form = |font: usize, text: &str| {
+            stream(
+                &format!("/Type /XObject /Subtype /Form /BBox [0 0 50 20] /Resources << /Font << /F {font} 0 R >> >>"),
+                format!("BT /F 10 Tf 0 5 Td ({text}) Tj ET").as_bytes(),
+            )
+        };
+        let content: String = (0..USES)
+            .map(|i| format!("q 1 0 0 1 {} {} cm /{} Do Q\n", i % 10 * 50, i / 10 * 20, ["A", "B"][i % 2]))
+            .collect();
+        let doc = Document::open(
+            pdf(&[
+                b"<< /Type /Catalog /Pages 2 0 R >>",
+                b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 500 400] /Contents 4 0 R \
+                   /Resources << /XObject << /A 5 0 R /B 6 0 R >> >> >>",
+                &stream("", content.as_bytes()),
+                &form(7, "a"),
+                &form(8, "b"),
+                b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+                b"<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>",
+            ]),
+            "",
+        )
+        .unwrap();
+        let before = dictionary_reads();
+        let text = doc.text(0).unwrap();
+        // Each form's `/Subtype`, and its dictionary.
+        assert!(dictionary_reads() - before <= 4, "{} reads", dictionary_reads() - before);
+        assert_eq!(text.text().matches('a').count(), USES / 2);
+        assert_eq!(text.text().matches('b').count(), USES / 2);
+        for c in text.chars.iter().filter(|c| c.font >= 0) {
+            let font = &text.fonts[c.font as usize].name;
+            assert_eq!(font.as_str(), if &*c.text == "a" { "Helvetica" } else { "Courier" });
+        }
+        let before = dictionary_reads();
+        doc.render(0, 500.0, f32::INFINITY).unwrap();
+        assert!(dictionary_reads() - before <= 4, "render: {} reads", dictionary_reads() - before);
+    }
+
     /// An inline image naming its colour space parsed it again: 8,000 naming one of 16 KB took 1 s a
     /// call.
     #[test]

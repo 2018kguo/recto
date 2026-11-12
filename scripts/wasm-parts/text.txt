@@ -23,6 +23,7 @@
 <[u8]>::repeat
 <alloc::collections::vec_deque::VecDeque<alloc::sync::Arc<alloc::vec::Vec<u8>>>>::grow
 <alloc::collections::vec_deque::VecDeque<alloc::sync::Arc<alloc::vec::Vec<u8>>>>::wrap_copy
+<alloc::raw_vec::RawVec<((usize, core::option::Option<hayro_syntax::object::ObjectIdentifier>, bool), hayro_interpret::x_object::form::XObjectInfo)>>::grow_one
 <alloc::raw_vec::RawVec<(hayro_interpret::interpret::state::CompositingState, u16)>>::grow_one
 <alloc::raw_vec::RawVec<(hayro_interpret::interpret::state::PaintState, u16)>>::grow_one
 <alloc::raw_vec::RawVec<(hayro_interpret::interpret::state::TextState, u16)>>::grow_one
@@ -318,8 +319,10 @@
 <hayro_interpret::pattern::Pattern>::new
 <hayro_interpret::shading::Shading>::new
 <hayro_interpret::types::DrawProps as core::clone::Clone>::clone
+<hayro_interpret::x_object::form::FormXObject>::cached
 <hayro_interpret::x_object::form::FormXObject>::draw::<recto::device::PageDevice>
 <hayro_interpret::x_object::form::FormXObject>::draw_contents::<recto::device::PageDevice>
+<hayro_interpret::x_object::form::FormXObject>::drawn
 <hayro_interpret::x_object::form::FormXObject>::new
 <hayro_postscript::Scanner>::at_end
 <hayro_postscript::Scanner>::parse_name
@@ -479,6 +482,7 @@
 <hayro_syntax::xref::XRef>::get_with::<hayro_syntax::object::stream::Stream>
 <hayro_syntax::xref::XRef>::get_with::<hayro_syntax::object::string::String>
 <hayro_syntax::xref::XRef>::get_with::<smallvec::SmallVec<[f32; 4usize]>>
+<hayro_syntax::xref::XRef>::is_repaired
 <hayro_syntax::xref::XRef>::locate
 <hayro_syntax::xref::XRef>::new
 <hayro_syntax::xref::XRef>::new::{closure#2}

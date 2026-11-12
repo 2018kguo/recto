@@ -25,12 +25,40 @@ pub(crate) struct FormXObject<'a> {
     pub(crate) resources: Option<Resources<'a>>,
 }
 
-impl<'a> FormXObject<'a> {
-    pub(crate) fn new(stream: &Stream<'a>) -> Option<Self> {
-        let dict = stream.dict();
+/// recto: what a form's dictionary says, read once per form in a context however often it's
+/// drawn: reading a form's resources, matrix, box and group cost a page that draws one small form
+/// a thousand times more than drawing it. The contents are still decoded at each use, so what a
+/// decode may hold and cut is as it was. Only the first `MAX_KEPT_FORMS` forms a context draws get
+/// an entry.
+#[derive(Default)]
+pub(crate) struct XObjectInfo<'a> {
+    /// Read after the decode of the contents, as `FormXObject::new` reads it.
+    form: Option<Option<FormDict<'a>>>,
+}
 
-        let decoded = stream.decoded_data().ok()?;
-        let held = hayro_syntax::hold_decoded(decoded.len());
+const MAX_KEPT_FORMS: usize = 256;
+
+/// A form's dictionary as `FormXObject::new` reads it; `None` without a `/BBox`.
+#[derive(Clone)]
+struct FormDict<'a> {
+    matrix: Affine,
+    bbox: [f32; 4],
+    is_transparency_group: bool,
+    isolated: bool,
+    knockout: bool,
+    dict: Dict<'a>,
+    resources: Option<Resources<'a>>,
+}
+
+/// recto: each form's `XObjectInfo`, by where its dictionary is in the file, its object number
+/// (which its strings are decrypted with) and whether the file's table has been repaired since,
+/// after which a reference in it may read something else. A list rather than a map, at most
+/// `MAX_KEPT_FORMS` long, as a map's code would cost the wasm more than the scan costs a page.
+pub(crate) type XObjectInfos<'a> =
+    Vec<((usize, Option<hayro_syntax::object::ObjectIdentifier>, bool), XObjectInfo<'a>)>;
+
+impl<'a> FormDict<'a> {
+    fn read(dict: &Dict<'a>) -> Option<Self> {
         let resources = dict.get(RESOURCES).map(Resources::new);
 
         let matrix = Affine::new(
@@ -47,15 +75,77 @@ impl<'a> FormXObject<'a> {
         let knockout = group.as_ref().and_then(|g| g.get::<bool>(K)).unwrap_or(false);
 
         Some(Self {
-            decoded,
-            held,
             matrix,
+            bbox,
             is_transparency_group,
             isolated,
             knockout,
-            bbox,
             dict: dict.clone(),
             resources,
+        })
+    }
+}
+
+impl<'a> FormXObject<'a> {
+    pub(crate) fn new(stream: &Stream<'a>) -> Option<Self> {
+        // recto: as `cached` with an info drawn nowhere else, which keeps nothing.
+        Self::cached(stream, &mut XObjectInfo::default())
+    }
+
+    /// recto: `None` if `stream` isn't a form, and otherwise `new`, with what `infos` keeps of
+    /// it. A form's `/Subtype` is read the first time only; another XObject's, each time.
+    pub(crate) fn drawn(
+        stream: &Stream<'a>,
+        infos: &mut XObjectInfos<'a>,
+        xref: &hayro_syntax::xref::XRef,
+    ) -> Option<Option<Self>> {
+        let dict = stream.dict();
+        let key = (dict.data().as_ptr() as usize, dict.obj_id(), xref.is_repaired());
+        if let Some((_, info)) = infos.iter_mut().find(|(k, _)| *k == key) {
+            return Some(Self::cached(stream, info));
+        }
+        crate::context::count_dictionary_read();
+        let (is_form, cut) = hayro_syntax::noting_cuts(|| {
+            dict.get::<Name<'_>>(SUBTYPE).as_deref() == Some(b"Form".as_slice())
+        });
+        if !is_form {
+            return None;
+        }
+        // As in `cached`: what a limit cut is read again next time.
+        if cut || infos.len() >= MAX_KEPT_FORMS {
+            return Some(Self::new(stream));
+        }
+        infos.push((key, XObjectInfo::default()));
+        Some(Self::cached(stream, &mut infos.last_mut()?.1))
+    }
+
+    /// recto: `new`, with the dictionary kept in `info`. A read that a limit cut short isn't
+    /// kept: read again, with less held, it can succeed.
+    fn cached(stream: &Stream<'a>, info: &mut XObjectInfo<'a>) -> Option<Self> {
+        let decoded = stream.decoded_data().ok()?;
+        let held = hayro_syntax::hold_decoded(decoded.len());
+        let form = match &info.form {
+            Some(form) => form.clone(),
+            None => {
+                crate::context::count_dictionary_read();
+                let (form, cut) = hayro_syntax::noting_cuts(|| FormDict::read(stream.dict()));
+                if !cut {
+                    info.form = Some(form.clone());
+                }
+                form
+            }
+        };
+        let form = form?;
+        Some(Self {
+            decoded,
+            held,
+            matrix: form.matrix,
+            is_transparency_group: form.is_transparency_group,
+            isolated: form.isolated,
+            knockout: form.knockout,
+            bbox: form.bbox,
+            dict: form.dict,
+            resources: form.resources,
         })
     }
 
