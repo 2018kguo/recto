@@ -75,34 +75,3 @@ pub(crate) fn decode_hex_digit(c: u8) -> Option<u8> {
         _ => None,
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use crate::filter::ascii_hex::decode;
-
-    #[test]
-    fn decode_simple() {
-        let input = b"AF3E2901>";
-        assert_eq!(decode(input).unwrap(), vec![0xaf, 0x3e, 0x29, 0x01]);
-    }
-
-    #[test]
-    fn decode_whitespaces() {
-        let input = b"AF3   E2   901>";
-        assert_eq!(decode(input).unwrap(), vec![0xaf, 0x3e, 0x29, 0x01]);
-    }
-
-    #[test]
-    // Not valid for ASCII hex streams since they require a trailing >,
-    // but used by PDF hex strings as well.
-    fn decode_without_gt() {
-        let input = b"AF3E2901";
-        assert_eq!(decode(input).unwrap(), vec![0xaf, 0x3e, 0x29, 0x01]);
-    }
-
-    #[test]
-    fn decode_with_padding() {
-        let input = b"AF3E291>";
-        assert_eq!(decode(input).unwrap(), vec![0xaf, 0x3e, 0x29, 0x10]);
-    }
-}

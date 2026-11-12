@@ -1145,6 +1145,94 @@ mod tests {
         assert_eq!(hops(65), (1 << 17) - 1);
     }
 
+    /// A file repaired by scanning it probes for a dictionary at each `<<`, and in `<< << << ...`
+    /// nested past the parser's limit of 512 each probe went 512 deep before it failed: 50,000 of
+    /// them in 150 KB took 180 ms to open. A probe that can't find enough `>>` and `]` after where
+    /// the last one stopped isn't run, and the objects after them are still found.
+    #[test]
+    fn repairing_dictionaries_nested_past_the_limit_is_linear() {
+        use hayro::hayro_syntax::xref::repair_probes;
+        let probes = |depth: usize| {
+            let mut file = b"%PDF-1.7\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n\
+                2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n\
+                3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 5 0 R \
+                /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> >> endobj\n\
+                4 0 obj "
+                .to_vec();
+            file.extend_from_slice(&b"<< ".repeat(depth));
+            file.extend_from_slice(b"endobj\n");
+            file.extend_from_slice(b"5 0 obj\n");
+            file.extend_from_slice(&stream("", b"BT /F1 10 Tf 10 10 Td (after) Tj ET"));
+            file.extend_from_slice(b"\nendobj\ntrailer << /Root 1 0 R >>\n%%EOF\n");
+            let before = repair_probes();
+            let doc = Document::open(file, "").unwrap();
+            assert_eq!(doc.text(0).unwrap().text(), "after");
+            repair_probes() - before
+        };
+        let (small, large) = (probes(2000), probes(8000));
+        // A probe at each `<<` was 8,000. Those within the limit of the end still run, each failing at
+        // `endobj` without reaching the limit: at most 512, however deep.
+        assert!(large <= 5 * small && large <= 1000, "{small} probes for 2,000 deep, {large} for 8,000");
+    }
+
+    /// Skipping the probes that can't end changes nothing a scan finds: random files of nested
+    /// dictionaries and arrays past the limit, closed or not, with objects, trailers and strings of
+    /// `>>` among them, scan and read the same with every probe run.
+    #[test]
+    fn repairing_skips_only_probes_that_fail() {
+        use hayro::hayro_syntax::xref::{repair_probes, repair_scan_for_tests, set_repair_skips_doomed_probes};
+        let mut seed = 0x2545_f491_4f6c_dd1du64;
+        let mut next = |n: u64| {
+            seed ^= seed << 13;
+            seed ^= seed >> 7;
+            seed ^= seed << 17;
+            seed % n
+        };
+        let read = |file: &[u8]| {
+            let Ok(doc) = Document::open(file.to_vec(), "") else { return None };
+            let pages: Vec<_> = (0..doc.page_count()).map(|i| doc.text(i).map(|t| t.text()).ok()).collect();
+            Some(pages)
+        };
+        let mut skipped = 0;
+        for _ in 0..24 {
+            let mut file = b"%PDF-1.7\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n".to_vec();
+            for _ in 0..1 + next(3) {
+                let depth = 400 + next(900) as usize;
+                file.extend_from_slice(format!("{} 0 obj ", 10 + next(5)).as_bytes());
+                for d in 0..depth {
+                    file.extend_from_slice(match next(10) {
+                        0 => b"[ ".as_slice(),
+                        1 if d % 7 == 0 => b"/A (>>) << ",
+                        2 if d % 5 == 0 => b"6 0 R << ",
+                        3 if d % 11 == 0 => b"<< /Type /Pages /Kids [3 0 R] /Count 1 >> << ",
+                        _ => b"<< /K ",
+                    });
+                }
+                let closers = match next(3) {
+                    0 => 0,
+                    1 => depth - next(40) as usize,
+                    _ => depth + 2,
+                };
+                file.extend_from_slice(&b">> ] ".repeat(closers / 2));
+                file.extend_from_slice(b"endobj\n");
+            }
+            file.extend_from_slice(b"2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n\
+                3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 5 0 R \
+                /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> >> endobj\n");
+            file.extend_from_slice(b"5 0 obj\n");
+            file.extend_from_slice(&stream("", b"BT /F1 10 Tf 10 10 Td (after) Tj ET"));
+            file.extend_from_slice(b"\nendobj\ntrailer << /Root 1 0 R >>\n%%EOF\n");
+            let before = repair_probes();
+            let skipping = (repair_scan_for_tests(file.clone()), read(&file));
+            let (middle, _) = (repair_probes(), set_repair_skips_doomed_probes(false));
+            let probing = (repair_scan_for_tests(file.clone()), read(&file));
+            set_repair_skips_doomed_probes(true);
+            assert_eq!(skipping, probing);
+            skipped += (repair_probes() - middle) - (middle - before);
+        }
+        assert!(skipped > 10_000, "only {skipped} probes skipped");
+    }
+
     /// The one-pass search for an inline image's end answers what upstream's rereading does, on
     /// random data made of what decides it: `EI`, `BI`, white space, strings and their escapes,
     /// binary bytes, operators, and dictionaries that start an image.

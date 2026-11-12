@@ -26,8 +26,7 @@
 //!     [`set_paint`][RenderContext::set_paint].
 //!   - Set the shape to be drawn for that object, using methods like
 //!     [`fill_path`][RenderContext::fill_path],
-//!     [`stroke_path`][RenderContext::stroke_path], or
-//!     [`glyph_run`][RenderContext::glyph_run].
+//!     or [`stroke_path`][RenderContext::stroke_path].
 //! - Render it to an image using [`RenderContext::render`][].
 //!
 //! ```rust
@@ -73,29 +72,8 @@
 //!
 //! ## Features
 //!
-//! - `std` (enabled by default): Get floating point functions from the standard
-//!   library (likely using your target's libc).
-//! - `libm`: Use floating point implementations from [libm][].
-//! - `png`(enabled by default): Allow loading [`Pixmap`]s from PNG images. Also
-//!   required for rendering glyphs with an embedded PNG. Implies `std`.
-//! - `multithreading`: Enable multi-threaded rendering. Implies `std`.
-//! - `text` (enabled by default): Enables glyph rendering
-//!   ([`glyph_run`][RenderContext::glyph_run]).
-//! - `u8_pipeline` (enabled by default): Enable the u8 pipeline, for speed focused
-//!   rendering using u8 math. The `u8` pipeline will be used for
-//!   [`OptimizeSpeed`][RenderMode::OptimizeSpeed], if both pipelines are enabled.
-//!   If you're using Vello CPU for application rendering, you should prefer this
-//!   pipeline.
-//! - `f32_pipeline`: Enable the `f32` pipeline, which is slower but has more
-//!   accurate results. This is espectially useful for rendering test snapshots. The
-//!   `f32` pipeline will be used for
-//!   [`OptimizeQuality`][RenderMode::OptimizeQuality], if both pipelines are
-//!   enabled.
-//!
-//! At least one of `std` and `libm` is required; `std` overrides `libm`. At least
-//! one of `u8_pipeline` and `f32_pipeline` must be enabled. You might choose to
-//! disable one of these pipelines if your application won't use it, so as to reduce
-//! binary size.
+//! recto: none. This copy builds what upstream's `std` and `u8_pipeline` features give, single-threaded;
+//! the f32 pipeline, multithreading, glyph runs and PNG are gone (vendor/README.md).
 //!
 //! ## Current state
 //!
@@ -160,13 +138,7 @@ extern crate alloc;
 extern crate core;
 // Unused in release mode because it's only used directly in the `text_debug` module
 // (or transitively in vello_common).
-#[cfg(feature = "png")]
-use png as _;
-#[cfg(feature = "std")]
 extern crate std;
-
-#[cfg(all(not(feature = "u8_pipeline"), not(feature = "f32_pipeline")))]
-compile_error!("vello_cpu must have at least one of the u8 or f32 pipelines enabled");
 
 mod render;
 
@@ -176,10 +148,6 @@ mod coverage;
 mod dispatch;
 mod filter;
 mod record;
-#[cfg(feature = "text")]
-mod text;
-#[cfg(all(feature = "text", feature = "std", debug_assertions, not(doc)))]
-mod text_debug;
 mod util;
 
 #[doc(hidden)]
@@ -194,19 +162,4 @@ pub use render::{
 };
 // Note: The first one is not something that should be
 // exposed, but is currently needed by vello_tests.
-#[cfg(feature = "text")]
-pub use glifo::Glyph;
-#[cfg(feature = "text")]
-pub use text::{CpuGlyphRunBackend, GlyphRunBuilder};
 pub use vello_common::reexports::cpu::*;
-
-/// The selected rendering mode.
-/// For using [`RenderMode::OptimizeQuality`] you also need to enable `f32_pipeline` feature.
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
-pub enum RenderMode {
-    /// Optimize speed (by performing calculations with u8/16).
-    #[default]
-    OptimizeSpeed,
-    /// Optimize quality (by performing calculations with f32).
-    OptimizeQuality,
-}

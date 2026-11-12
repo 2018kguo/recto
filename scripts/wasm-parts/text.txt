@@ -420,6 +420,7 @@
 <hayro_syntax::object::dict::Dict>::get_raw::<usize, &[u8]>
 <hayro_syntax::object::dict::Dict>::get_ref::<&[u8]>
 <hayro_syntax::object::dict::DictHead as hayro_syntax::reader::Readable>::read
+<hayro_syntax::object::indirect::IndirectObject<hayro_syntax::object::Object> as hayro_syntax::reader::Readable>::read
 <hayro_syntax::object::indirect::IndirectObject<hayro_syntax::object::dict::Dict> as hayro_syntax::reader::Readable>::read
 <hayro_syntax::object::name::Name as core::convert::TryFrom<hayro_syntax::object::Object>>::try_from
 <hayro_syntax::object::name::Name as hayro_syntax::reader::Readable>::read
@@ -953,6 +954,7 @@ hayro_syntax::util::find_needle
 hayro_syntax::util::findr_needle
 hayro_syntax::xref::fallback
 hayro_syntax::xref::fallback_xref_map_inner
+hayro_syntax::xref::fallback_xref_map_inner::{closure#5}
 hayro_syntax::xref::free_entry
 hayro_syntax::xref::populate_xref_impl_inner
 hayro_syntax::xref::read_xref_table_trailer

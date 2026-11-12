@@ -4,8 +4,6 @@
 //! Shared helpers for pixel-space filter operations.
 
 use vello_common::color::palette::css::TRANSPARENT;
-#[cfg(not(feature = "std"))]
-use vello_common::kurbo::common::FloatFuncs as _;
 use vello_common::peniko::color::PremulRgba8;
 use vello_common::pixmap::Pixmap;
 
@@ -137,117 +135,5 @@ fn process_offset_pixel(
 
     if should_clear {
         pixmap.set_pixel(x, y, transparent);
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// Test `offset_pixels` with positive offset (right and down).
-    #[test]
-    fn test_offset_pixels_positive() {
-        let mut pixmap = Pixmap::new(4, 4);
-        // Set center pixel to white
-        pixmap.set_pixel(
-            1,
-            1,
-            PremulRgba8 {
-                r: 255,
-                g: 255,
-                b: 255,
-                a: 255,
-            },
-        );
-
-        offset_pixels(&mut pixmap, 1.0, 1.0);
-
-        // White pixel should have moved from (1,1) to (2,2)
-        let moved = pixmap.sample(2, 2);
-        assert_eq!(moved.a, 255);
-
-        // Original position should be cleared (in exposed region)
-        let cleared = pixmap.sample(1, 1);
-        assert_eq!(cleared.a, 0);
-    }
-
-    /// Test `offset_pixels` with negative offset (left and up).
-    #[test]
-    fn test_offset_pixels_negative() {
-        let mut pixmap = Pixmap::new(4, 4);
-        // Set pixel at (2,2) to white
-        pixmap.set_pixel(
-            2,
-            2,
-            PremulRgba8 {
-                r: 255,
-                g: 255,
-                b: 255,
-                a: 255,
-            },
-        );
-
-        offset_pixels(&mut pixmap, -1.0, -1.0);
-
-        // White pixel should have moved from (2,2) to (1,1)
-        let moved = pixmap.sample(1, 1);
-        assert_eq!(moved.a, 255);
-
-        // Original position should be cleared (in exposed region)
-        let cleared = pixmap.sample(2, 2);
-        assert_eq!(cleared.a, 0);
-    }
-
-    /// Test `offset_pixels` with fractional offset (should round).
-    #[test]
-    fn test_offset_pixels_fractional() {
-        let mut pixmap = Pixmap::new(4, 4);
-        pixmap.set_pixel(
-            1,
-            1,
-            PremulRgba8 {
-                r: 255,
-                g: 255,
-                b: 255,
-                a: 255,
-            },
-        );
-
-        // 0.6 rounds to 1, -0.4 rounds to 0
-        offset_pixels(&mut pixmap, 0.6, -0.4);
-
-        // Should move by (1, 0): from (1,1) to (2,1)
-        let moved = pixmap.sample(2, 1);
-        assert_eq!(moved.a, 255);
-    }
-
-    /// Test `offset_pixels` with out-of-bounds offset (should clip).
-    #[test]
-    fn test_offset_pixels_out_of_bounds() {
-        let mut pixmap = Pixmap::new(4, 4);
-        pixmap.set_pixel(
-            1,
-            1,
-            PremulRgba8 {
-                r: 255,
-                g: 255,
-                b: 255,
-                a: 255,
-            },
-        );
-
-        // Large offset that moves pixel outside bounds
-        offset_pixels(&mut pixmap, 10.0, 10.0);
-
-        // Pixel moves outside, so (1,1) should be cleared
-        let cleared = pixmap.sample(1, 1);
-        assert_eq!(cleared.a, 0);
-
-        // All pixels should be cleared (entire image is exposed region)
-        for y in 0..4 {
-            for x in 0..4 {
-                assert_eq!(pixmap.sample(x, y).a, 0);
-            }
-        }
     }
 }

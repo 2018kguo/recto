@@ -65,30 +65,10 @@ impl SingleThreadedDispatcher {
         }
     }
 
-    /// Rasterizes the scene using f32 precision (high quality).
-    ///
-    /// This dispatches to the appropriate SIMD implementation based on the
-    /// configured level, using f32 for intermediate calculations.
-    #[cfg(feature = "f32_pipeline")]
-    fn rasterize_f32(
-        &self,
-        target: PixmapMut<'_>,
-        scene_width: u16,
-        scene_height: u16,
-        settings: RasterizerSettings,
-        encoded_paints: &[EncodedPaint],
-        image_resolver: &dyn ImageResolver,
-    ) {
-        use crate::fine::F32Kernel;
-        use vello_common::fearless_simd::dispatch;
-        dispatch!(self.level, simd => self.rasterize_with::<_, F32Kernel>(simd, target, scene_width, scene_height, settings, encoded_paints, image_resolver));
-    }
-
     /// Rasterizes the scene using u8 precision (fast).
     ///
     /// This dispatches to the appropriate SIMD implementation based on the
     /// configured level, using u8 for intermediate calculations to maximize speed.
-    #[cfg(feature = "u8_pipeline")]
     fn rasterize_u8(
         &self,
         target: PixmapMut<'_>,
@@ -276,10 +256,6 @@ impl SingleThreadedDispatcher {
                 filter_ctx.scratch(),
                 filter_plan.transform,
             );
-
-            // Save the filtered pixmap to disk for debugging.
-            // #[cfg(all(debug_assertions, feature = "std", feature = "png"))]
-            // save_filtered_layer_debug(&pixmap, id);
 
             filter_ctx.set_layer(id as usize, pixmap);
         }
@@ -506,72 +482,15 @@ impl Dispatcher for SingleThreadedDispatcher {
         encoded_paints: &[EncodedPaint],
         image_resolver: &dyn ImageResolver,
     ) {
-        // If only the u8 pipeline is enabled, then use it.
-        #[cfg(all(feature = "u8_pipeline", not(feature = "f32_pipeline")))]
-        {
-            self.rasterize_u8(
-                target,
-                scene_width,
-                scene_height,
-                settings,
-                encoded_paints,
-                image_resolver,
-            );
-        }
-
-        // If only the f32 pipeline is enabled, then use it.
-        #[cfg(all(feature = "f32_pipeline", not(feature = "u8_pipeline")))]
-        {
-            self.rasterize_f32(
-                target,
-                scene_width,
-                scene_height,
-                settings,
-                encoded_paints,
-                image_resolver,
-            );
-        }
-
-        // If both pipelines are enabled, select precision based on render mode parameter.
-        #[cfg(all(feature = "u8_pipeline", feature = "f32_pipeline"))]
-        match settings.render_mode {
-            crate::RenderMode::OptimizeSpeed => {
-                // Use u8 precision for faster rendering.
-                self.rasterize_u8(
-                    target,
-                    scene_width,
-                    scene_height,
-                    settings,
-                    encoded_paints,
-                    image_resolver,
-                );
-            }
-            crate::RenderMode::OptimizeQuality => {
-                // Use f32 precision for higher quality.
-                self.rasterize_f32(
-                    target,
-                    scene_width,
-                    scene_height,
-                    settings,
-                    encoded_paints,
-                    image_resolver,
-                );
-            }
-        }
-
-        #[cfg(all(not(feature = "u8_pipeline"), not(feature = "f32_pipeline")))]
-        {
-            // This case never gets hit because there is a compile_error in the root.
-            // But have this code disables some warnings and makes the compile error easier to read
-            let _ = (
-                target,
-                scene_width,
-                scene_height,
-                settings,
-                encoded_paints,
-                image_resolver,
-            );
-        }
+        // recto: only the u8 pipeline is built.
+        self.rasterize_u8(
+            target,
+            scene_width,
+            scene_height,
+            settings,
+            encoded_paints,
+            image_resolver,
+        );
     }
 
     fn push_clip_path(
@@ -591,69 +510,5 @@ impl Dispatcher for SingleThreadedDispatcher {
 
     fn pop_clip(&mut self) {
         self.viewport.pop_clip();
-    }
-
-    fn is_multi_threaded(&self) -> bool {
-        false
-    }
-}
-
-/// Saves a filtered pixmap to disk for debugging purposes.
-/// Only available in debug builds with `std` and `png` features enabled.
-#[allow(
-    dead_code,
-    reason = "useful debug utility, can be enabled by uncommenting the call site"
-)]
-#[cfg(all(debug_assertions, feature = "std", feature = "png"))]
-fn save_filtered_layer_debug(pixmap: &Pixmap, layer_id: usize) {
-    use std::path::PathBuf;
-
-    let diffs_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../vello_tests/diffs");
-    let _ = std::fs::create_dir_all(&diffs_path);
-    let filename = diffs_path.join(alloc::format!("filtered_layer_{layer_id}.png"));
-
-    if let Ok(png_data) = pixmap.clone().into_png() {
-        let _ = std::fs::write(&filename, &png_data);
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::kurbo::Shape;
-    use vello_common::color::palette::css::BLUE;
-    use vello_common::paint::PremulColor;
-
-    /// Verifies that `reset()` properly clears all internal buffers and state.
-    ///
-    /// This is important to ensure that a dispatcher can be reused for multiple
-    /// rendering passes without accumulating stale data from previous frames.
-    #[test]
-    fn buffers_cleared_on_reset() {
-        let mut dispatcher = SingleThreadedDispatcher::new(100, 100, Level::new());
-
-        // Render a simple shape to populate internal buffers.
-        dispatcher.fill_path(
-            &Rect::new(0.0, 0.0, 50.0, 50.0).to_path(0.1),
-            Fill::NonZero,
-            Affine::IDENTITY,
-            Paint::Solid(PremulColor::from_alpha_color(BLUE)),
-            BlendMode::default(),
-            None,
-            None,
-        );
-
-        // Ensure there is data to clear.
-        assert!(!dispatcher.strip_storage.strips.is_empty());
-        assert!(!dispatcher.recorder.nodes.is_empty());
-
-        dispatcher.reset(100, 100);
-
-        // Verify all buffers are cleared.
-        assert!(dispatcher.strip_storage.strips.is_empty());
-        assert!(dispatcher.strip_storage.alphas.is_empty());
-        assert!(dispatcher.recorder.nodes.is_empty());
-        assert!(dispatcher.recorder.layers.is_empty());
-        assert!(!dispatcher.viewport.has_root_viewports());
     }
 }

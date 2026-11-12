@@ -12,7 +12,7 @@
 //! mode clipped to the element's shape. Images and groups have no shape to hand, so they are painted
 //! once to erase and then again for real.
 
-use crate::{GlobalState, RenderCache, Renderer, convert_blend_mode, derive_settings, draw_page};
+use crate::{GlobalState, RenderCache, Renderer, convert_blend_mode, draw_page};
 use hayro_interpret::hayro_syntax::page::Page;
 use hayro_interpret::{BlendMode, FillRule, InterpreterSettings, SoftMask};
 use kurbo::{Affine, BezPath, Rect};
@@ -84,7 +84,7 @@ impl<'a, 'c> PageReplay<'a, 'c> {
             transform,
             width: ctx.width(),
             height: ctx.height(),
-            render_settings: derive_settings(ctx.render_settings()),
+            render_settings: *ctx.render_settings(),
             memo: RefCell::default(),
         }
     }

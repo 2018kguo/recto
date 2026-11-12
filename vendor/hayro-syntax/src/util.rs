@@ -108,35 +108,3 @@ impl<T, const C: usize> SegmentList<T, C> {
         (s, k)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_segment_list() {
-        let e = SegmentList::<String, 10>::new();
-
-        // Ensure that it works.
-        for i in 0..500 {
-            e.get_or_init(i, || format!("{i}"));
-        }
-        for i in 0..500 {
-            assert_eq!(e.get(i), Some(&format!("{i}")));
-        }
-
-        // Ensure that all slots in the first 8 segments are actually in use,
-        // i.e. we didn't overallocate.
-        for s in 0..8 {
-            assert!(e.0[s].get().unwrap().iter().all(|s| s.get().is_some()));
-        }
-    }
-
-    #[test]
-    fn test_findr_needle() {
-        assert_eq!(findr_needle(b"abc foo def foo xyz", b"foo"), Some(12));
-        assert_eq!(findr_needle(b"abc", b""), Some(3));
-        assert_eq!(findr_needle(b"abc", b"abcd"), None);
-        assert_eq!(findr_needle(b"abc", b"z"), None);
-    }
-}

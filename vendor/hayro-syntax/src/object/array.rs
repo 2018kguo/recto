@@ -87,10 +87,22 @@ impl Skippable for Array<'_> {
     }
 
     fn skip_with_depth(r: &mut Reader<'_>, is_content_stream: bool, depth: usize) -> Option<()> {
+        // recto: where a skip stops and what it was inside, for a repair scan.
+        let start = r.offset();
         if depth >= super::MAX_OBJECT_NESTING_DEPTH {
+            super::depth_chain::stopped(start);
             return None;
         }
+        let skipped = Self::skip_inside(r, is_content_stream, depth);
+        if skipped.is_none() {
+            super::depth_chain::failed(start);
+        }
+        skipped
+    }
+}
 
+impl Array<'_> {
+    fn skip_inside(r: &mut Reader<'_>, is_content_stream: bool, depth: usize) -> Option<()> {
         r.forward_tag(b"[")?;
 
         loop {
@@ -325,142 +337,4 @@ where
     U: Clone,
     U: Debug,
 {
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::object::Object;
-    use crate::object::r#ref::{MaybeRef, ObjRef};
-    use crate::object::{Array, FromBytes};
-    use crate::reader::Reader;
-    use crate::reader::{ReaderContext, ReaderExt};
-    use crate::xref::XRef;
-
-    fn array_impl(data: &[u8]) -> Option<Vec<Object<'_>>> {
-        Reader::new(data)
-            .read_with_context::<Array<'_>>(&ReaderContext::new(XRef::dummy(), false))
-            .map(|a| a.iter::<Object<'_>>().collect::<Vec<_>>())
-    }
-
-    fn array_ref_impl(data: &[u8]) -> Option<Vec<MaybeRef<Object<'_>>>> {
-        Reader::new(data)
-            .read_with_context::<Array<'_>>(&ReaderContext::new(XRef::dummy(), false))
-            .map(|a| a.raw_iter().collect::<Vec<_>>())
-    }
-
-    #[test]
-    fn empty_array_1() {
-        let res = array_impl(b"[]").unwrap();
-        assert!(res.is_empty());
-    }
-
-    #[test]
-    fn empty_array_2() {
-        let res = array_impl(b"[   \n]").unwrap();
-        assert!(res.is_empty());
-    }
-
-    #[test]
-    fn array_1() {
-        let res = array_impl(b"[34]").unwrap();
-        assert!(matches!(res[0], Object::Number(_)));
-    }
-
-    #[test]
-    fn array_2() {
-        let res = array_impl(b"[true  ]").unwrap();
-        assert!(matches!(res[0], Object::Boolean(_)));
-    }
-
-    #[test]
-    fn array_3() {
-        let res = array_impl(b"[true \n false 34.564]").unwrap();
-        assert!(matches!(res[0], Object::Boolean(_)));
-        assert!(matches!(res[1], Object::Boolean(_)));
-        assert!(matches!(res[2], Object::Number(_)));
-    }
-
-    #[test]
-    fn array_4() {
-        let res = array_impl(b"[(A string.) << /Hi 34.35 >>]").unwrap();
-        assert!(matches!(res[0], Object::String(_)));
-        assert!(matches!(res[1], Object::Dict(_)));
-    }
-
-    #[test]
-    fn array_5() {
-        let res = array_impl(b"[[32]  345.6]").unwrap();
-        assert!(matches!(res[0], Object::Array(_)));
-        assert!(matches!(res[1], Object::Number(_)));
-    }
-
-    #[test]
-    fn array_with_ref() {
-        let res = array_ref_impl(b"[345 34 5 R 34.0]").unwrap();
-        assert!(matches!(res[0], MaybeRef::NotRef(Object::Number(_))));
-        assert!(matches!(
-            res[1],
-            MaybeRef::Ref(ObjRef {
-                obj_number: 34,
-                gen_number: 5
-            })
-        ));
-        assert!(matches!(res[2], MaybeRef::NotRef(Object::Number(_))));
-    }
-
-    #[test]
-    fn malformed_ref_is_not_valid_array() {
-        assert!(array_ref_impl(b"[8 0R]").is_none());
-    }
-
-    #[test]
-    fn array_with_single_number_is_valid() {
-        assert!(array_ref_impl(b"[345345345]").is_some());
-    }
-
-    #[test]
-    fn array_with_comment() {
-        let res = array_impl(b"[true % A comment \n false]").unwrap();
-        assert!(matches!(res[0], Object::Boolean(_)));
-        assert!(matches!(res[1], Object::Boolean(_)));
-    }
-
-    #[test]
-    fn array_with_trailing() {
-        let res = array_impl(b"[(Hi) /Test]trialing data").unwrap();
-        assert!(matches!(res[0], Object::String(_)));
-        assert!(matches!(res[1], Object::Name(_)));
-    }
-
-    #[test]
-    fn array_repr() {
-        let array = Array::from_bytes(b"[34]").unwrap();
-
-        assert_eq!(format!("{array:?}"), "[Number(Number(Integer(34)))]");
-    }
-
-    #[test]
-    fn display() {
-        let array = Array::from_bytes(b"[  34 % comment\n /Test  [1   2] ]").unwrap();
-
-        assert_eq!(format!("{array}"), "[34 /Test [1 2]]");
-    }
-
-    #[test]
-    fn array_with_bare_number_sign_name() {
-        let res = array_impl(b"[34 /quotedbl /# 37 /percent]").unwrap();
-        assert_eq!(res.len(), 5);
-        assert!(matches!(&res[2], Object::Name(name) if name.as_ref() == b"#"));
-    }
-
-    #[test]
-    fn array_with_lone_plus() {
-        let array = Array::from_bytes(b"[+ 1]").unwrap();
-        assert_eq!(array.iter::<i32>().collect::<Vec<_>>(), vec![0, 1]);
-    }
-
-    #[test]
-    fn array_with_unreadable_item() {
-        let _ = array_ref_impl(b"[true <<>>stream false]");
-    }
 }

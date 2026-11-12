@@ -169,10 +169,22 @@ impl Skippable for Dict<'_> {
     }
 
     fn skip_with_depth(r: &mut Reader<'_>, is_content_stream: bool, depth: usize) -> Option<()> {
+        // recto: where a skip stops and what it was inside, for a repair scan.
+        let start = r.offset();
         if depth >= super::MAX_OBJECT_NESTING_DEPTH {
+            super::depth_chain::stopped(start);
             return None;
         }
+        let skipped = Self::skip_inside(r, is_content_stream, depth);
+        if skipped.is_none() {
+            super::depth_chain::failed(start);
+        }
+        skipped
+    }
+}
 
+impl Dict<'_> {
+    fn skip_inside(r: &mut Reader<'_>, is_content_stream: bool, depth: usize) -> Option<()> {
         r.forward_tag(b"<<")?;
 
         loop {
@@ -1104,180 +1116,4 @@ pub mod keys {
 
     // Z
     key!(ZA_DB, b"ZaDb");
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::object::dict::keys::{COLORSPACE, EXT_G_STATE, FONT, PROC_SET};
-    use crate::object::dict::{Dict, InlineImageDict};
-    use crate::object::string;
-    use crate::object::{FromBytes, Number};
-    use crate::object::{Name, ObjRef};
-    use crate::reader::Reader;
-    use crate::reader::{ReaderContext, ReaderExt};
-
-    fn dict_impl(data: &[u8]) -> Option<Dict<'_>> {
-        Reader::new(data).read_with_context::<Dict<'_>>(&ReaderContext::dummy())
-    }
-
-    #[test]
-    fn empty_dict_1() {
-        let dict_data = b"<<>>";
-        let dict = dict_impl(dict_data).unwrap();
-
-        assert_eq!(dict.len(), 0);
-    }
-
-    #[test]
-    fn empty_dict_2() {
-        let dict_data = b"<<   \n >>";
-        let dict = dict_impl(dict_data).unwrap();
-
-        assert_eq!(dict.len(), 0);
-    }
-
-    #[test]
-    fn dict_1() {
-        let dict_data = b"<<  /Hi 34.0 >>";
-        let dict = dict_impl(dict_data).unwrap();
-
-        assert_eq!(dict.len(), 1);
-        assert!(dict.get::<Number>(Name::new_unescaped(b"Hi")).is_some());
-    }
-
-    #[test]
-    fn dict_2() {
-        let dict_data = b"<<  /Hi \n 34.0 /Second true >>";
-        let dict = dict_impl(dict_data).unwrap();
-
-        assert_eq!(dict.len(), 2);
-        assert!(dict.get::<Number>(Name::new_unescaped(b"Hi")).is_some());
-        assert!(dict.get::<bool>(Name::new_unescaped(b"Second")).is_some());
-    }
-
-    #[test]
-    fn dict_complex() {
-        let data = "<< /Type /Example
-/Subtype /DictionaryExample
-/Version 0.01
-/IntegerItem 12
-/StringItem ( a string )
-/Subdictionary << /Item1 0.4
-                /Item2 true
-                /LastItem ( not ! )
-                /VeryLastItem ( OK )
-                >>
->>";
-
-        let dict = Reader::new(data.as_bytes())
-            .read_with_context::<Dict<'_>>(&ReaderContext::dummy())
-            .unwrap();
-        assert_eq!(dict.len(), 6);
-        assert!(dict.get::<Name<'_>>(Name::new_unescaped(b"Type")).is_some());
-        assert!(
-            dict.get::<Name<'_>>(Name::new_unescaped(b"Subtype"))
-                .is_some()
-        );
-        assert!(
-            dict.get::<Number>(Name::new_unescaped(b"Version"))
-                .is_some()
-        );
-        assert!(
-            dict.get::<i32>(Name::new_unescaped(b"IntegerItem"))
-                .is_some()
-        );
-        assert!(
-            dict.get::<string::String<'_>>(Name::new_unescaped(b"StringItem"))
-                .is_some()
-        );
-        assert!(
-            dict.get::<Dict<'_>>(Name::new_unescaped(b"Subdictionary"))
-                .is_some()
-        );
-    }
-
-    #[test]
-    fn dict_with_trailing() {
-        let dict_data = b"<<  /Hi 67.0  >>trailing data";
-        let dict = dict_impl(dict_data).unwrap();
-
-        assert_eq!(dict.len(), 1);
-    }
-
-    #[test]
-    fn dict_with_comment() {
-        let dict_data = b"<<  /Hi % A comment \n 67.0 % Another comment \n >>";
-        let dict = dict_impl(dict_data).unwrap();
-
-        assert_eq!(dict.len(), 1);
-    }
-
-    #[test]
-    fn inline_dict() {
-        let dict_data = b"/W 17 /H 17 /CS /RGB /BPC 8 /F [ /A85 /LZW ] ID ";
-
-        let dict = Reader::new(&dict_data[..])
-            .read_with_context::<InlineImageDict<'_>>(&ReaderContext::dummy())
-            .unwrap();
-
-        assert_eq!(dict.get_dict().len(), 5);
-    }
-
-    #[test]
-    fn dict_with_escaped_name() {
-        let dict_data = b"<< /PANTONE#20104#20C 234 >>";
-        let dict = dict_impl(dict_data).unwrap();
-
-        assert!(dict.contains_key("PANTONE 104 C"));
-    }
-
-    #[test]
-    fn garbage_in_between() {
-        let dict_data = b"<< 
-/ProcSet [ /PDF /Text ] 
-/Font << /F4 31 0 R /F6 23 0 R >> 
-/ExtGState << /GS2 14 0 R
-2000
- /GS3 15 0 R >> 
-/ColorSpace << /Cs5 13 0 R >> 
->> ";
-        let dict = dict_impl(dict_data).unwrap();
-
-        assert!(dict.contains_key(PROC_SET));
-        assert!(dict.contains_key(FONT));
-        assert!(dict.contains_key(EXT_G_STATE));
-        assert!(dict.contains_key(COLORSPACE));
-
-        let Some(dict) = dict.get::<Dict<'_>>(EXT_G_STATE) else {
-            panic!("failed to parse ext g state");
-        };
-
-        assert_eq!(dict.get_ref("GS2"), Some(ObjRef::new(14, 0)));
-        assert_eq!(dict.get_ref("GS3"), Some(ObjRef::new(15, 0)));
-    }
-
-    #[test]
-    fn dict_repr() {
-        let dict = Dict::from_bytes(b"<< /Hi 34 >>").unwrap();
-
-        assert_eq!(
-            format!("{dict:?}"),
-            "Dict { \"Hi\": Number(Number(Integer(34))) }"
-        );
-    }
-
-    #[test]
-    fn display() {
-        let dict = Dict::from_bytes(b"<< /B [1   2] % comment\n /A << /X   true >> >>").unwrap();
-
-        assert_eq!(format!("{dict}"), "<< /A << /X true >> /B [1 2] >>");
-        assert_eq!(format!("{}", Dict::empty()), "<<>>");
-    }
-
-    #[test]
-    fn dict_with_unreadable_value() {
-        let dict = Dict::from_bytes(b"<< /A <<>>stream /B true >>").unwrap();
-        let _ = dict.entries().count();
-        let _ = format!("{dict:?}");
-    }
 }

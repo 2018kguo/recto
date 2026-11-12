@@ -21,8 +21,6 @@ use vello_common::color::{AlphaColor, Srgb};
 use vello_common::filter::drop_shadow::DropShadow;
 use vello_common::filter_effects::EdgeMode;
 use vello_common::peniko::color::PremulRgba8;
-#[cfg(not(feature = "std"))]
-use vello_common::peniko::kurbo::common::FloatFuncs as _;
 use vello_common::pixmap::Pixmap;
 
 impl FilterEffect for DropShadow {
@@ -39,12 +37,6 @@ impl FilterEffect for DropShadow {
             self.composite_original,
             filter_scratch,
         );
-    }
-
-    fn execute_highp(&self, pixmap: &mut Pixmap, filter_scratch: &mut ScratchBuffer) {
-        // TODO: Currently only lowp is implemented and used for highp as well.
-        // This needs to be updated to use proper high-precision arithmetic.
-        Self::execute_lowp(self, pixmap, filter_scratch);
     }
 }
 
@@ -176,148 +168,4 @@ fn u8_to_norm(value: u8) -> f32 {
 #[inline]
 fn norm_to_u8(value: f32) -> u8 {
     (value * 255.0).round() as u8
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use vello_common::color::Srgb;
-
-    /// Test `u8_to_norm` conversion.
-    #[test]
-    fn test_u8_to_norm() {
-        assert_eq!(u8_to_norm(0), 0.0);
-        assert!((u8_to_norm(255) - 1.0).abs() < 1e-6);
-    }
-
-    /// Test `norm_to_u8` conversion.
-    #[test]
-    fn test_norm_to_u8() {
-        assert_eq!(norm_to_u8(0.0), 0);
-        assert_eq!(norm_to_u8(1.0), 255);
-        assert_eq!(norm_to_u8(0.5), 128); // 0.5 * 255 = 127.5 → 128
-    }
-
-    /// Test round-trip conversion u8 → norm → u8.
-    #[test]
-    fn test_conversion_roundtrip() {
-        for value in [0, 1, 50, 127, 128, 200, 254, 255] {
-            let normalized = u8_to_norm(value);
-            let back = norm_to_u8(normalized);
-            assert_eq!(back, value);
-        }
-    }
-
-    /// Test Porter-Duff source-over with fully opaque source.
-    #[test]
-    fn test_compose_src_over_opaque_source() {
-        let src = PremulRgba8 {
-            r: 255,
-            g: 0,
-            b: 0,
-            a: 255,
-        }; // Opaque red
-        let dst = PremulRgba8 {
-            r: 0,
-            g: 255,
-            b: 0,
-            a: 255,
-        }; // Opaque green
-
-        let result = compose_src_over(src, dst);
-        // Opaque source should completely cover destination
-        assert_eq!(result.r, 255);
-        assert_eq!(result.g, 0);
-        assert_eq!(result.b, 0);
-        assert_eq!(result.a, 255);
-    }
-
-    /// Test Porter-Duff source-over with transparent source.
-    #[test]
-    fn test_compose_src_over_transparent_source() {
-        let src = PremulRgba8 {
-            r: 0,
-            g: 0,
-            b: 0,
-            a: 0,
-        };
-        let dst = PremulRgba8 {
-            r: 0,
-            g: 255,
-            b: 0,
-            a: 255,
-        };
-
-        let result = compose_src_over(src, dst);
-        // Transparent source should leave destination unchanged
-        assert_eq!(result.r, 0);
-        assert_eq!(result.g, 255);
-        assert_eq!(result.b, 0);
-        assert_eq!(result.a, 255);
-    }
-
-    /// Test Porter-Duff source-over with semi-transparent source.
-    #[test]
-    fn test_compose_src_over_semi_transparent() {
-        let src = PremulRgba8 {
-            r: 128,
-            g: 0,
-            b: 0,
-            a: 128,
-        }; // 50% red (premul)
-        let dst = PremulRgba8 {
-            r: 0,
-            g: 128,
-            b: 0,
-            a: 128,
-        }; // 50% green (premul)
-
-        let result = compose_src_over(src, dst);
-        // Result should blend src + dst*(1-src_alpha)
-        // r: 128 + 0*(1-0.5) = 128
-        // g: 0 + 128*0.5 = 64
-        // a: 128 + 128*0.5 = 192
-        assert_eq!(
-            result,
-            PremulRgba8 {
-                r: 128,
-                g: 64,
-                b: 0,
-                a: 192,
-            }
-        );
-    }
-
-    /// Test `write_colored_shadow` applies color correctly.
-    #[test]
-    fn test_compose_shadow_color() {
-        let mut shadow_pixmap = Pixmap::new(2, 2);
-        let mut dst_pixmap = Pixmap::new(2, 2);
-
-        // Shadow has alpha=255 at (0,0)
-        shadow_pixmap.set_pixel(
-            0,
-            0,
-            PremulRgba8 {
-                r: 0,
-                g: 0,
-                b: 0,
-                a: 255,
-            },
-        );
-
-        let shadow_color = AlphaColor {
-            components: [1.0, 0.0, 0.0, 1.0], // Red
-            cs: std::marker::PhantomData::<Srgb>,
-        };
-
-        write_colored_shadow(&shadow_pixmap, &mut dst_pixmap, shadow_color, true);
-
-        // Shadow at (0,0) should be red
-        let result = dst_pixmap.sample(0, 0);
-        assert_eq!(result.r, 255);
-        assert_eq!(result.g, 0);
-        assert_eq!(result.b, 0);
-        assert_eq!(result.a, 255);
-    }
 }

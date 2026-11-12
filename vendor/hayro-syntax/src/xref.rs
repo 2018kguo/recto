@@ -165,6 +165,92 @@ fn xref_stream_frees(stream: &Stream<'_>) -> Option<Vec<(u32, i32)>> {
     Some(frees)
 }
 
+/// recto: a repair scan probes for a dictionary at every `<<`, and in `<< << << ...` nested past
+/// `MAX_OBJECT_NESTING_DEPTH` each probe went 512 levels deep before it failed: a 150 KB file took
+/// 90 ms to open. A probe that stops there records the dictionaries and arrays it was inside
+/// (`chain`, deepest first). One started later at the j-th of them (j >= 1) parses the same bytes
+/// the same way, a level shallower, so it gets inside the deepest with those j still open, each
+/// needing a `>>` or `]` after it to end. With fewer `>` and `]` bytes after it than that
+/// (`closers`), it can only fail, so it isn't run, and the scan goes on as after a failed probe.
+#[derive(Default)]
+struct Doomed {
+    chain: Vec<usize>,
+    closers: usize,
+}
+
+std::thread_local! {
+    static REPAIR_PROBES: core::cell::Cell<usize> = const { core::cell::Cell::new(0) };
+    static SKIP_DOOMED: core::cell::Cell<bool> = const { core::cell::Cell::new(true) };
+}
+
+/// recto: how many dictionaries repair scans on this thread have probed, for tests.
+#[doc(hidden)]
+pub fn repair_probes() -> usize {
+    REPAIR_PROBES.with(|n| n.get())
+}
+
+/// recto: what a repair scan of `data` finds, every entry sorted, and what it passes on, for tests.
+#[doc(hidden)]
+pub fn repair_scan_for_tests(data: Vec<u8>) -> String {
+    let data = PdfData::from(data);
+    let (map, input) = fallback_xref_map(&data, b"");
+    let mut entries: Vec<_> = map.into_iter().collect();
+    entries.sort_by_key(|(id, _)| *id);
+    alloc::format!("{entries:?} {input:?}")
+}
+
+/// recto: whether repair scans on this thread skip the probes `Doomed` says fail (on by default).
+/// Off, for tests that compare, every `<<` is probed.
+#[doc(hidden)]
+pub fn set_repair_skips_doomed_probes(on: bool) {
+    SKIP_DOOMED.with(|skip| skip.set(on));
+}
+
+impl Doomed {
+    fn dooms(&self, at: usize) -> bool {
+        if !SKIP_DOOMED.with(|skip| skip.get()) {
+            return false;
+        }
+        // `chain` is in descending order.
+        match self.chain.binary_search_by(|start| at.cmp(start)) {
+            Ok(j) => j >= 1 && self.closers < j,
+            Err(_) => false,
+        }
+    }
+}
+
+/// recto: how many `>` and `]` bytes there are from each 4 KiB of the file to its end, counted the
+/// first time a repair scan's probe stops at the nesting limit.
+struct Closers(Vec<usize>);
+
+impl Closers {
+    const CHUNK: usize = 4096;
+
+    fn count(bytes: &[u8]) -> usize {
+        bytes.iter().filter(|&&b| b == b'>' || b == b']').count()
+    }
+
+    fn new(data: &[u8]) -> Self {
+        let mut after = vec![0; data.len() / Self::CHUNK + 2];
+        for (i, chunk) in data.chunks(Self::CHUNK).enumerate().rev() {
+            after[i] = after[i + 1] + Self::count(chunk);
+        }
+        Self(after)
+    }
+
+    /// How many there are from `at` to the end, or at least `enough` if there are that many: a
+    /// probe needs no more than one a container it's inside, and counting the bytes up to the next
+    /// 4 KiB at each probe of a deep file that ends them all cost more than the probes.
+    fn after(&self, data: &[u8], at: usize, enough: usize) -> usize {
+        let chunk = at / Self::CHUNK;
+        if self.0[chunk + 1] >= enough {
+            return self.0[chunk + 1];
+        }
+        let end = ((chunk + 1) * Self::CHUNK).min(data.len());
+        Self::count(&data[at.min(end)..end]) + self.0[chunk + 1]
+    }
+}
+
 fn fallback_xref_map_inner<'a>(
     data: &'a PdfData,
     mut dummy_ctx: ReaderContext<'a>,
@@ -181,6 +267,10 @@ fn fallback_xref_map_inner<'a>(
     let mut last_obj_offset = 0;
     // recto: where the last xref section seen is, ending the revision before this one.
     let mut previous_section = 0;
+    // recto: what the last probe that stopped at the nesting limit says of the ones after it.
+    let mut doomed = Doomed::default();
+    let mut closers = None;
+    let mut chain = Vec::new();
 
     loop {
         let cur_pos = r.offset();
@@ -207,10 +297,26 @@ fn fallback_xref_map_inner<'a>(
             // Then, try to check whether we have a dictionary, in particular a trailer
             // dictionary.
             let mut probe_reader = r.clone();
-            if r.peek_bytes(2).is_some_and(|b| b == b"<<")
-                && let Some(probe) =
-                    { probe_dict(&mut probe_reader, &dummy_ctx, Some(b"<<"), b">>") }
-            {
+            // recto: a probe that can't end isn't run (see `Doomed`).
+            let probe = if r.peek_bytes(2).is_some_and(|b| b == b"<<") && !doomed.dooms(cur_pos) {
+                REPAIR_PROBES.with(|n| n.set(n.get() + 1));
+                let closers = closers.get_or_insert_with(|| Closers::new(data.as_ref()));
+                // A chain is at most a container a level and the one it stopped at: with more
+                // closers than that after here, it would doom nothing, and isn't recorded.
+                let longest = object::MAX_OBJECT_NESTING_DEPTH + 1;
+                let record = closers.after(data.as_ref(), cur_pos, longest + 1) <= longest;
+                let probe = object::depth_chain::recording(record, &mut chain, || {
+                    probe_dict(&mut probe_reader, &dummy_ctx, Some(b"<<"), b">>")
+                });
+                if let Some(&deepest) = chain.first() {
+                    doomed.closers = closers.after(data.as_ref(), deepest, chain.len());
+                    core::mem::swap(&mut doomed.chain, &mut chain);
+                }
+                probe
+            } else {
+                None
+            };
+            if let Some(probe) = probe {
                 r = probe_reader;
                 if probe.has_root || probe.has_type {
                     let mut dict_reader = Reader::new(probe.data);
@@ -1409,52 +1515,4 @@ pub fn object_reads() -> usize {
 #[inline]
 fn object_read() {
     OBJECT_READS.with(|n| n.set(n.get() + 1));
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn circular_prev_chain() {
-        let mut pdf = b"%PDF-1.0\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n".to_vec();
-        let expected_xref_pos = pdf.len();
-        pdf.extend_from_slice(
-            format!(
-                "xref\n\
-                 0 1\n\
-                 0000000000 65535 f \r\n\
-                 trailer\n<< /Size 1 /Root 1 0 R /Prev {expected_xref_pos} >>\n\
-                 startxref\n{expected_xref_pos}\n%%EOF"
-            )
-            .as_bytes(),
-        );
-
-        let mut xref_map = FxHashMap::default();
-        let xref_pos = find_last_xref_pos(pdf.as_ref()).unwrap();
-        let _result = populate_xref_impl(pdf.as_ref(), xref_pos, &mut xref_map);
-    }
-
-    #[test]
-    fn find_last_xref_uses_last_startxref() {
-        let pdf = b"%PDF-1.0\nstartxref\n5\n%%EOF\nstartxref\n42\n%%EOF";
-        assert_eq!(find_last_xref_pos(pdf), Some(42));
-    }
-
-    #[test]
-    fn xref_table_trailer_rejects_overflowing_entry_skip() {
-        let data = b"xref\n0 999999999999999999999\ntrailer\n<<>>";
-        let mut reader = Reader::new(data);
-        assert!(read_xref_table_trailer(&mut reader, &ReaderContext::dummy()).is_none());
-    }
-
-    #[test]
-    fn xref_stream_subsection_rejects_overflowing_object_number() {
-        let data = [1, 0, 1, 0];
-        let mut xref_map = FxHashMap::default();
-        let result =
-            xref_stream_subsection(&mut Reader::new(&data), u32::MAX, 2, 1, 1, 0, &mut xref_map);
-        assert!(result.is_none());
-        assert!(xref_map.contains_key(&ObjectIdentifier::new(u32::MAX, 0)));
-    }
 }

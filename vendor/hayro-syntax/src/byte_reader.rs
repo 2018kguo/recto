@@ -201,14 +201,3 @@ impl<'a> Reader<'a> {
         Some(u32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]))
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::Reader;
-
-    #[test]
-    fn peek_bytes_rejects_overflowing_len() {
-        let reader = Reader::new(b"abc");
-        assert!(reader.peek_bytes(usize::MAX).is_none());
-    }
-}

@@ -4,6 +4,14 @@
 
 ### Changed
 
+- **The vendored crates hold only what recto builds: 7,983 fewer lines and 13 fewer crates in the lock.**
+  `vello_cpu` drops what `hayro` never turned on (multithreading, the f32 pipeline, glyph runs, PNG, and
+  `RenderMode` and `num_threads`, which only chose between those) and its tests; `hayro` drops `image`,
+  which it didn't use; `zune-jpeg` drops `portable_simd`; `hayro-syntax` and `hayro-interpret` drop unit
+  tests that can't be built in this repository; `js-sys` is built without its default features, which only
+  brought `futures-util` in. `Cargo.lock` lists 76 crates, from 89. Pages and text are the same to the byte
+  on the corpus (1,337 pages of 531 files at 1024 px), and so is the wasm's code but for line numbers in
+  `vello_cpu`'s panic messages and the parameters it no longer passes; vendor/README.md lists what went.
 - **Text draws faster, and a page holds a bounded amount however many glyphs it draws.** A cached glyph was an
   RGBA image of which only the alpha was set, and every glyph drawn encoded an image paint of its own that was
   sampled, tinted and composited pixel by pixel, and held until the page was rasterized: 885 bytes a glyph, so
@@ -17,6 +25,21 @@
   rounds once where the image's tint and composite rounded twice, as a path filled in that colour already did:
   132 of 1,306 pages change, by at most 3 levels a channel and almost all by 1, on pixels a glyph partly covers.
   The scorecard is unchanged (519 of 530 agree). The drawing part of the wasm is 1.3 kB larger.
+- **Repairing a file of dictionaries nested past the parser's limit is linear.** A file without a
+  usable xref table is scanned for its objects, with a probe for a dictionary at each `<<`, and in
+  `<< << << ...` nested past the limit of 512 each probe went 512 levels deep before it failed: 50,000
+  of them in 150 KB took 180 ms to open. A probe that stops at the limit now records what it was
+  inside, and one that would start inside that and can't find enough `>>` and `]` after it to end
+  isn't run, since it can only fail; the scan goes on as after any failed probe, and finds the same
+  objects (checked against probing every `<<` on random nestings, and on the corpus). That file opens
+  in 0.9 ms. Only where too few `>` and `]` follow to end a chain is one recorded, so a deep file that
+  closes everything opens as fast as it did. The text part of the wasm is 0.4 kB larger.
+- **Reading text downloads 8.0 kB less (brotli), and so does drawing.** The package's JavaScript shipped its
+  source comments, and the wasm glue wasm-bindgen's JSDoc, to every page that loads it: 27.6 kB of the
+  download. Both are now emitted without comments (19.7 kB); the `.d.ts` files keep theirs, so editors show
+  the same documentation. The code is the same: the same tests pass and the wasm is the same to the byte.
+  The download budget's numbers are 405.7 kB of 420 for text and 681.5 kB of 690 for drawing, from 413.6
+  and 689.5.
 - **A form drawn again reads its dictionary once a page.** Each `Do` read the form's resources, matrix, box
   and group again, which cost more than drawing a small form. A page now reads them once for each of the
   first 256 forms it draws, however often it draws them; the content is still decoded at each `Do`, so the

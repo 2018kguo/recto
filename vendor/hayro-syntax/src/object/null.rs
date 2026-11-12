@@ -34,34 +34,3 @@ impl Readable<'_> for Null {
         Some(Self)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use crate::object::Null;
-    use crate::reader::Reader;
-    use crate::reader::ReaderExt;
-
-    #[test]
-    fn display() {
-        assert_eq!(format!("{}", Null), "null");
-    }
-
-    #[test]
-    fn null() {
-        assert_eq!(
-            Reader::new("null".as_bytes())
-                .read_without_context::<Null>()
-                .unwrap(),
-            Null
-        );
-    }
-
-    #[test]
-    fn null_trailing() {
-        assert!(
-            Reader::new("nullabs".as_bytes())
-                .read_without_context::<Null>()
-                .is_none()
-        );
-    }
-}

@@ -14,7 +14,76 @@ use crate::reader::Reader;
 use crate::reader::{Readable, ReaderContext, ReaderExt, Skippable};
 use core::fmt::{Debug, Display, Formatter};
 
-const MAX_OBJECT_NESTING_DEPTH: usize = 512;
+pub(crate) const MAX_OBJECT_NESTING_DEPTH: usize = 512;
+
+/// recto: while a repair scan probes for a dictionary, where the dictionaries and arrays a skip
+/// was inside start, deepest first, when it stopped at `MAX_OBJECT_NESTING_DEPTH`; see
+/// `fallback_xref_map_inner`. Each probe of `<< << << ...` past the limit went 512 deep, and one
+/// started at every `<<`.
+pub(crate) mod depth_chain {
+    use alloc::vec::Vec;
+    use core::cell::RefCell;
+    use core::sync::atomic::{AtomicUsize, Ordering};
+
+    /// How many threads are recording: while none is, a failed skip doesn't look at its thread's
+    /// chain, which every container of a deep file's every probe would.
+    static RECORDING: AtomicUsize = AtomicUsize::new(0);
+
+    std::thread_local! {
+        /// While recording: whether a skip stopped at the limit, and the chain so far.
+        static CHAIN: RefCell<Option<(bool, Vec<usize>)>> = const { RefCell::new(None) };
+    }
+
+    /// `f`'s result, with `chain` the chain if `on` and a skip in it stopped at the limit (empty
+    /// otherwise). `chain`'s allocation is reused, as a scan probes at every `<<`.
+    pub(crate) fn recording<T>(on: bool, chain: &mut Vec<usize>, f: impl FnOnce() -> Option<T>) -> Option<T> {
+        chain.clear();
+        if !on {
+            return f();
+        }
+        let buffer = core::mem::take(chain);
+        CHAIN.with_borrow_mut(|recorded| *recorded = Some((false, buffer)));
+        RECORDING.fetch_add(1, Ordering::Relaxed);
+        let result = f();
+        RECORDING.fetch_sub(1, Ordering::Relaxed);
+        if let Some((hit, buffer)) = CHAIN.with_borrow_mut(Option::take) {
+            *chain = buffer;
+            if !hit {
+                chain.clear();
+            }
+        }
+        result
+    }
+
+    /// A container starting at `start` was asked for at the limit.
+    #[inline]
+    pub(super) fn stopped(start: usize) {
+        if RECORDING.load(Ordering::Relaxed) != 0 {
+            note(start, true);
+        }
+    }
+
+    /// A container starting at `start` couldn't be skipped: one around where a skip stopped, if
+    /// one did, since nothing between there and here goes on after a failure.
+    #[inline]
+    pub(super) fn failed(start: usize) {
+        if RECORDING.load(Ordering::Relaxed) != 0 {
+            note(start, false);
+        }
+    }
+
+    #[inline(never)]
+    fn note(start: usize, stopped: bool) {
+        CHAIN.with_borrow_mut(|chain| {
+            if let Some((hit, chain)) = chain
+                && (stopped || *hit)
+            {
+                *hit = true;
+                chain.push(start);
+            }
+        });
+    }
+}
 
 mod bool;
 mod null;
@@ -299,121 +368,4 @@ mod macros {
     }
 
     pub(crate) use object;
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::object::{Array, Dict, FromBytes, Name, Null, Number, Object, Stream, String};
-    use crate::reader::Reader;
-    use crate::reader::{ReaderContext, ReaderExt};
-
-    fn object_impl(data: &[u8]) -> Option<Object<'_>> {
-        let mut r = Reader::new(data);
-        r.read_indirect::<Object<'_>>(&ReaderContext::dummy())
-    }
-
-    #[test]
-    fn deeply_nested_arrays() {
-        let data = format!("{}0{}", "[".repeat(5000), "]".repeat(5000));
-        assert!(object_impl(data.as_bytes()).is_none());
-    }
-
-    #[test]
-    fn deeply_nested_dictionaries() {
-        let data = format!("{}0{}", "<< /X ".repeat(5000), " >>".repeat(5000));
-        assert!(object_impl(data.as_bytes()).is_none());
-    }
-
-    #[test]
-    fn null() {
-        assert!(matches!(object_impl(b"null").unwrap(), Object::Null(_)));
-    }
-
-    #[test]
-    fn bool() {
-        assert!(matches!(object_impl(b"true").unwrap(), Object::Boolean(_)));
-    }
-
-    #[test]
-    fn number() {
-        assert!(matches!(object_impl(b"34.5").unwrap(), Object::Number(_)));
-    }
-
-    #[test]
-    fn string_1() {
-        assert!(matches!(object_impl(b"(Hi)").unwrap(), Object::String(_)));
-    }
-
-    #[test]
-    fn string_2() {
-        assert!(matches!(object_impl(b"<34>").unwrap(), Object::String(_)));
-    }
-
-    #[test]
-    fn name() {
-        assert!(matches!(object_impl(b"/Name").unwrap(), Object::Name(_)));
-    }
-
-    #[test]
-    fn dict() {
-        assert!(matches!(
-            object_impl(b"<</Entry 45>>").unwrap(),
-            Object::Dict(_)
-        ));
-    }
-
-    #[test]
-    fn array() {
-        assert!(matches!(object_impl(b"[45]").unwrap(), Object::Array(_)));
-    }
-
-    #[test]
-    fn stream() {
-        assert!(matches!(
-            object_impl(b"<< /Length 3 >> stream\nabc\nendstream").unwrap(),
-            Object::Stream(_)
-        ));
-    }
-
-    #[test]
-    fn stream_in_dict() {
-        let dict = Dict::from_bytes(b"<< /A << /Length 3 >> stream\nabc\nendstream >>").unwrap();
-
-        assert!(dict.get::<Stream<'_>>(b"A").is_none());
-    }
-
-    #[test]
-    fn display() {
-        let cases: &[(&[u8], &str)] = &[
-            (b"null", "null"),
-            (b"true", "true"),
-            (b"34.5", "34.5"),
-            (b"(Hi)", "\"Hi\""),
-            (b"/Name", "/Name"),
-            (b"[45]", "[45]"),
-            (b"<</Entry 45>>", "<< /Entry 45 >>"),
-            (b"<< /Length 3 >> stream\nabc\nendstream", "Stream (len: 3)"),
-        ];
-
-        for (input, expected) in cases {
-            assert_eq!(format!("{}", object_impl(input).unwrap()), *expected);
-        }
-    }
-
-    #[test]
-    #[cfg(target_pointer_width = "64")]
-    fn object_sizes() {
-        // TODO: Other crates in the workspace enable `smallvec`'s `union` feature, which
-        // removes the niche that `Name` and `String` rely on and grows them from 32 to 40
-        // bytes and `Object` from 40 to 48 bytes. Replace their `SmallVec` with a type of
-        // our own so that the sizes no longer depend on that feature.
-        assert!(size_of::<Object<'_>>() <= 48);
-        assert_eq!(size_of::<Array<'_>>(), 32);
-        assert_eq!(size_of::<Dict<'_>>(), 8);
-        assert!(size_of::<Name<'_>>() <= 40);
-        assert_eq!(size_of::<Null>(), 0);
-        assert_eq!(size_of::<Number>(), 16);
-        assert_eq!(size_of::<Stream<'_>>(), 24);
-        assert!(size_of::<String<'_>>() <= 40);
-    }
 }
