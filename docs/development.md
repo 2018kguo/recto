@@ -15,6 +15,9 @@ npm run smoke          # the packed package in a fresh directory, in Node and in
 npm run bench -- dir   # recto, pdf.js and pdfium in Node, on a directory of PDFs
 npm run bench:browser -- dir   # the same in Chromium: bytes, time, stutter, memory
 npm run assets         # the film, images and chart under docs/; needs ffmpeg
+npm run demo [-- file.pdf]     # the viewer on a page of its own, for a dropped file
+node bench/viewer-smoke.mjs    # the built viewer in Chromium, WebKit and Firefox, at 2x, at phone width, and a touch pinch
+node bench/viewer-perf.mjs     # first page, scrolling 520 and 600 pages, memory after, time to sharp at 200 and 400%
 ```
 
 `js/wasm` and `js/dist` are built, not committed; the npm package ships them. Rebuilding the
@@ -47,7 +50,10 @@ time limit and it fails naming the step it was on, so it can't hang.
   run; `assets/`, which draws what's generated under `docs/`.
 - `js/`: the npm package. `engine.ts` owns the instance, `document.ts` maps its columns,
   `assets.ts` finds and checks the files, `ranged.ts` is the loader. `text-items.ts`,
-  `reading-order.ts` and `page-measures.ts` are helpers over a page's columns.
+  `reading-order.ts` and `page-measures.ts` are helpers over a page's columns. `viewer/` is the
+  viewer, a client of the public API only: `worker-core.ts` answers in the worker, `client.ts` holds
+  the workers on the page, `viewer.ts` lays out and paints, `element.ts` is `<recto-viewer>`. Its tests
+  (`test/viewer/`) run the real engine in this thread behind the worker's port, in jsdom with a stand-in layout.
 - `smoke/`: the install test. `bench/`: the comparisons behind
   [benchmarks.md](benchmarks.md); they take a directory of PDFs and commit none.
 

@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>recto viewer</title>
+<style>
+  :root { color-scheme: light dark; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: #f3f3f5;
+    color: #1d1d1f;
+  }
+  @media (prefers-color-scheme: dark) { body { background: #1c1c1e; color: #f5f5f7; } }
+  recto-viewer { height: 100%; }
+  .empty {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    padding: 16px;
+  }
+  .empty h1 { font-size: 22px; font-weight: 600; margin: 0 0 6px; letter-spacing: -0.01em; }
+  .empty p { margin: 0 0 18px; color: #6e6e73; }
+  .actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .actions button, .actions label {
+    font: inherit;
+    border: 0;
+    border-radius: 8px;
+    padding: 8px 14px;
+    background: #007aff;
+    color: #fff;
+    cursor: pointer;
+  }
+  .actions .secondary { background: rgb(127 127 127 / 0.16); color: inherit; }
+  .actions button:focus-visible, .actions label:focus-within { outline: 2px solid #007aff; outline-offset: 2px; }
+  .drop {
+    position: fixed;
+    inset: 12px;
+    border: 2px dashed #007aff;
+    border-radius: 14px;
+    background: rgb(0 122 255 / 0.06);
+    pointer-events: none;
+    display: none;
+    z-index: 2;
+  }
+  body.dragging .drop { display: block; }
+  .timing {
+    position: fixed;
+    right: 12px;
+    bottom: 12px;
+    font: 12px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: #6e6e73;
+    background: rgb(127 127 127 / 0.12);
+    border-radius: 6px;
+    padding: 4px 8px;
+    pointer-events: none;
+  }
+  .timing:empty { display: none; }
+  input[type=file] { position: absolute; opacity: 0; width: 1px; height: 1px; }
+</style>
+</head>
+<body>
+<div class="empty" id="empty">
+  <div>
+    <h1>Open a PDF</h1>
+    <p>Drop a file anywhere, or choose one. Nothing leaves this page.</p>
+    <div class="actions">
+      <label>Choose a PDF…<input type="file" id="file" accept="application/pdf,.pdf" /></label>
+      <button class="secondary" id="sample">Open a sample</button>
+    </div>
+  </div>
+</div>
+<div class="drop" aria-hidden="true"></div>
+<div class="timing" id="timing" aria-live="polite"></div>
+<script type="module">
+  import { defineViewerElement } from "/recto/dist/viewer/index.js";
+
+  defineViewerElement();
+  const empty = document.getElementById("empty");
+  const timing = document.getElementById("timing");
+  let element = null;
+
+  function show(source, name) {
+    element?.remove();
+    element = document.createElement("recto-viewer");
+    if (name) element.setAttribute("name", name);
+    document.body.append(element);
+    empty.hidden = true;
+    const started = performance.now();
+    timing.textContent = "";
+    element.addEventListener("open", ({ detail }) => {
+      timing.textContent = `${detail.pageCount} pages · open ${Math.round(performance.now() - started)} ms`;
+      element.viewer.addEventListener("error", ({ detail }) => console.warn(detail.stage, detail.page ?? "", detail.error));
+    });
+    element.source = source;
+    // For a side-by-side recording: the time to the first page on screen.
+    const watch = new MutationObserver(() => {
+      if (element.shadowRoot.querySelector('.recto-page[data-rendered="true"]')) {
+        timing.textContent += ` · first page ${Math.round(performance.now() - started)} ms`;
+        watch.disconnect();
+      }
+    });
+    watch.observe(element.shadowRoot, { subtree: true, attributes: true, attributeFilter: ["data-rendered"] });
+  }
+
+  document.getElementById("file").addEventListener("change", (event) => {
+    const [file] = event.target.files;
+    if (file) show(file);
+  });
+  document.getElementById("sample").addEventListener("click", () => show("/doc/sample.pdf", "Sample report.pdf"));
+  addEventListener("dragover", (event) => {
+    event.preventDefault();
+    document.body.classList.add("dragging");
+  });
+  addEventListener("dragleave", (event) => {
+    if (event.relatedTarget === null) document.body.classList.remove("dragging");
+  });
+  addEventListener("drop", (event) => {
+    event.preventDefault();
+    document.body.classList.remove("dragging");
+    const file = [...event.dataTransfer.files].find((candidate) => candidate.type === "application/pdf" || candidate.name.toLowerCase().endsWith(".pdf"));
+    if (file) show(file);
+  });
+  const src = new URLSearchParams(location.search).get("src");
+  if (src) show(src);
+  window.showPdf = show;
+</script>
+</body>
+</html>

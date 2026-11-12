@@ -110,6 +110,23 @@ worker.postMessage(await (await fetch("/report.pdf")).arrayBuffer());
 It also runs on a page's main thread and in a service worker, where it fetches its assets when the
 engine is created, but on a main thread the page freezes for the length of each call.
 
+### A viewer
+
+`@2018kguo/recto/viewer` shows a PDF in a scrolling element: pages drawn in workers as they near the
+screen, selectable text, links, find and zoom. Plain DOM, no dependencies, about 13 kB brotli on the
+page; it isn't downloaded unless you import it.
+
+```js
+import { createViewer } from "@2018kguo/recto/viewer";
+
+const viewer = createViewer({ container: document.querySelector("#pdf"), source: "/report.pdf" });
+viewer.addEventListener("pagechange", ({ detail }) => console.log(detail.page));
+const matches = await viewer.find("revenue");
+```
+
+Or with a toolbar: call `defineViewerElement()` and write `<recto-viewer src="/report.pdf">`.
+`npm run demo` opens one on a file you drop. See [docs/viewer.md](docs/viewer.md).
+
 ### When things go wrong
 
 Every failure is a `PdfError` with a `code` to branch on:
@@ -221,9 +238,10 @@ So recto is built on [hayro](https://github.com/LaurenzV/hayro), in Rust, where 
 changes. Four of its five vendored crates forbid `unsafe` outright; `hayro-syntax` has a little, and
 so does recto. A panic still takes the instance with it, and recto reports that as `crash`.
 
-What that costs: there's no viewer. It's much younger than either, and less tested on odd files. Some
-rendering is approximate. If you need a viewer or the most faithful pixels
-on anything a user might upload, use one of those two.
+What that costs: its viewer is small, with none of pdf.js's forms, annotation editing or
+printing. It's much younger than either, and less tested on odd files. Some rendering is
+approximate. If you need a full viewer or the most faithful pixels on
+anything a user might upload, use one of those two.
 
 ## What's in the package
 
@@ -233,6 +251,7 @@ on anything a user might upload, use one of those two.
 | `wasm/recto-render.wasm` | 0.88 MB (0.27 MB brotli) | The first `render`, `objects` or `links` |
 | `wasm/recto-more.wasm`, `recto-rare.wasm` | 0.98, 0.89 MB (0.25, 0.19 MB brotli) | A file that runs a function the first two left out; on a main thread, up front |
 | `wasm/recto.gen.mjs`, `dist/` | 41 KB, 124 KB of JavaScript | Importing the package |
+| `dist/viewer/` | 57 KB minified (17 KB brotli) on the page, and a worker | Importing `@2018kguo/recto/viewer` |
 | `wasm/Foxit*.pfb` | 14 files, 15–30 KB each | Drawing a standard font the document doesn't embed |
 | `wasm/cmaps.deflate` | 0.36 MB | A document uses a predefined CJK CMap |
 | `wasm/cjk-fallback.ttf` | 5.1 MB | Rendering CJK from a font the document doesn't embed |
@@ -281,6 +300,7 @@ and WebKit are run by hand.
 ## Documentation
 
 - [reference.md](docs/reference.md): the whole API, every error code, ranged reads, setup per environment
+- [viewer.md](docs/viewer.md): the viewer, its element, and how to use it from React
 - [benchmarks.md](docs/benchmarks.md): every number, how it's measured, how to rerun it
 - [how-it-works.md](docs/how-it-works.md): the text layer, assets, transparency groups, ranged reads, instances
 - [development.md](docs/development.md): building it, tests, the repository layout
