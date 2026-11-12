@@ -132,20 +132,3 @@ pub(crate) struct LayerFillAttrs {
     /// the index of the thread that stores the alpha.
     pub(crate) thread_idx: u8,
 }
-
-#[cfg(test)]
-mod tests {
-    use super::{AlphaIdx, RenderCmd};
-    use core::mem::{needs_drop, size_of};
-
-    #[test]
-    fn alpha_idx_size() {
-        assert_eq!(size_of::<Option<AlphaIdx>>(), 4);
-    }
-
-    #[test]
-    fn render_cmd_assertions() {
-        assert_eq!(size_of::<RenderCmd>(), 16);
-        assert!(!needs_drop::<RenderCmd>());
-    }
-}

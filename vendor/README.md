@@ -79,6 +79,20 @@ the state and the clips, with `recorded_bytes` to say how much that is; a part r
 before it is what rasterizing them at once gives, except where a non-default blend mode at the page's root
 blends over the earlier parts rather than apart from them.
 
+What `hayro` doesn't turn on is gone from `vello_cpu`, so it has no features: its `multithreading`
+(`dispatch/multi_threaded`, `Regions::update_par`, and with them `rayon`, `crossbeam-channel`,
+`ordered-channel` and `thread_local`, and `RenderSettings::num_threads`); `f32_pipeline` (`F32Kernel` and
+`fine/highp` but for `blend.rs`, which the u8 kernel uses for the non-separable blend modes, the filters'
+`execute_highp`, and `RenderMode`, which only chose between the two); `text` (`text.rs`, `text_debug.rs`,
+`glyph_run` and `glifo`); `png` and `libm`; and its tests. A re-vendor can drop these again by building
+without the features and deleting what no longer compiles in. `hayro` no longer lists `image`, which it
+didn't use. `zune-jpeg` loses `portable_simd` (nightly only) and `log`; its `x86` and `neon` code stays, as
+native builds run it. `hayro-syntax` and `hayro-interpret` lose their unit tests and the dev-dependencies
+(`aes`, `cbc`, `md5`, `sha2`, `image`) only those used: outside this workspace they resolve the crates.io
+hayro rather than these copies, inside it a dependency with dev-dependencies can't be tested, and one no
+longer compiled against the patched code. The tests that do run here (`hayro`, `hayro-font`, `hayro-cmap`,
+`zune-jpeg`) stay.
+
 `zune-jpeg` (0.5.15, by Caleb Etemesi, MIT, Apache-2.0 or Zlib) is vendored as well, for the decode at
 1/2, 1/4 or 1/8 it lacks (`src/scaled.rs`): each component's blocks go through a truncated IDCT, as
 libjpeg's `jidctred.c`, into a plane at the reduced size, chroma at as many pixels a block as its sampling

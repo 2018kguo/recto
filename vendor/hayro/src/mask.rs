@@ -1,5 +1,5 @@
 use crate::group::GroupFrame;
-use crate::{GlobalState, Renderer, convert_blend_mode, derive_settings};
+use crate::{GlobalState, Renderer, convert_blend_mode};
 use hayro_interpret::{BlendMode, CacheKey, MaskType, SoftMask};
 use kurbo::Rect;
 use vello_cpu::color::palette::css::BLACK;
@@ -79,7 +79,7 @@ fn draw_soft_mask(
     height: u16,
     global: &GlobalState,
 ) -> Mask {
-    let mut ctx = vello_cpu::RenderContext::new_with(width, height, derive_settings(&settings));
+    let mut ctx = vello_cpu::RenderContext::new_with(width, height, settings);
     ctx.set_aliasing_threshold(global.aliasing_threshold);
     let mut renderer = Renderer::new(&mut ctx, global);
 

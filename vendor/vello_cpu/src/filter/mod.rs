@@ -23,11 +23,7 @@ use vello_common::pixmap::Pixmap;
 
 /// Trait for filter effects that can be applied to layers.
 ///
-/// Each filter implements this trait with both u8 and f32 variants
-/// to support different rendering backends and precision requirements.
-/// The low-precision path (`execute_lowp`) uses 8-bit color channels for
-/// better performance, while the high-precision path (`execute_highp`)
-/// uses 32-bit floating-point for higher quality at the cost of speed.
+/// recto: only the u8 path is built; upstream has an f32 one as well.
 pub(crate) trait FilterEffect {
     /// Apply the low-precision (u8) version of the filter.
     ///
@@ -35,13 +31,6 @@ pub(crate) trait FilterEffect {
     /// * `pixmap` - The target pixmap containing rendering metadata
     /// * `filter_scratch` - Reusable scratch storage for intermediate buffers
     fn execute_lowp(&self, pixmap: &mut Pixmap, filter_scratch: &mut ScratchBuffer);
-
-    /// Apply the high-precision (f32) version of the filter.
-    ///
-    /// # Arguments
-    /// * `pixmap` - The target pixmap containing rendering metadata
-    /// * `filter_scratch` - Reusable scratch storage for intermediate buffers
-    fn execute_highp(&self, pixmap: &mut Pixmap, filter_scratch: &mut ScratchBuffer);
 }
 
 /// Apply the low-precision (u8) version of a filter effect to a layer.
@@ -78,44 +67,6 @@ pub(crate) fn filter_lowp(
         }
         PreparedFilter::DropShadow(drop_shadow) => {
             drop_shadow.execute_lowp(pixmap, filter_scratch);
-        }
-    }
-}
-
-/// Apply the high-precision (f32) version of a filter effect to a layer.
-///
-/// This function dispatches filter primitives from a filter graph to their
-/// corresponding CPU implementations using 32-bit floating-point color channels.
-///
-/// # Arguments
-/// * `filter` - The filter containing the graph of primitives to apply
-/// * `pixmap` - The target pixmap containing rendering metadata
-/// * `filter_scratch` - Reusable scratch storage for intermediate buffers
-/// * `transform` - The transformation matrix to extract scale from for filter parameters
-///
-/// # Limitations
-/// Currently only supports filter graphs with a single primitive.
-/// Multi-primitive filter graphs are not yet implemented.
-pub(crate) fn filter_highp(
-    filter: &Filter,
-    pixmap: &mut Pixmap,
-    filter_scratch: &mut ScratchBuffer,
-    transform: Affine,
-) {
-    let prepared_filter = PreparedFilter::new(filter, &transform);
-
-    match prepared_filter {
-        PreparedFilter::Flood(flood) => {
-            flood.execute_highp(pixmap, filter_scratch);
-        }
-        PreparedFilter::GaussianBlur(blur) => {
-            blur.execute_highp(pixmap, filter_scratch);
-        }
-        PreparedFilter::Offset(offset) => {
-            offset.execute_highp(pixmap, filter_scratch);
-        }
-        PreparedFilter::DropShadow(drop_shadow) => {
-            drop_shadow.execute_highp(pixmap, filter_scratch);
         }
     }
 }

@@ -4,7 +4,7 @@
 //! Fine rasterization stage of the rendering pipeline.
 //!
 //! This module implements the fine rasterization phase, which processes tiles at the pixel level.
-//! It supports both high-precision (f32) and low-precision (u8) rendering paths, along with
+//! recto: only the low-precision (u8) rendering path is built, with
 //! various paint types including solid colors, gradients, images, and blurred rounded rectangles.
 
 mod common;
@@ -52,7 +52,6 @@ pub use crate::coarse::PaintFillAttrs;
 pub use crate::span::Span;
 #[doc(hidden)]
 pub use crate::span::TileAlignedSpan;
-pub use highp::F32Kernel;
 pub use lowp::U8Kernel;
 
 /// Offset to shift from pixel corner to pixel center for sampling.
@@ -76,11 +75,6 @@ pub trait Numeric: Copy + Default + Clone + Debug + PartialEq + Send + Sync + 's
 
     /// The maximum opacity value for this numeric type (1.0 for f32, 255 for u8).
     const ONE: Self;
-}
-
-impl Numeric for f32 {
-    const ZERO: Self = 0.0;
-    const ONE: Self = 1.0;
 }
 
 impl Numeric for u8 {
@@ -188,20 +182,6 @@ pub trait CompositeType<N: Numeric, S: Simd>: Copy + Clone + Send + Sync {
     fn from_color(simd: S, color: [N; 4]) -> Self;
 }
 
-impl<S: Simd> CompositeType<f32, S> for f32x16<S> {
-    const LENGTH: usize = 16;
-
-    #[inline(always)]
-    fn from_slice(simd: S, slice: &[f32]) -> Self {
-        <Self as SimdBase<_>>::from_slice(simd, slice)
-    }
-
-    #[inline(always)]
-    fn from_color(simd: S, color: [f32; 4]) -> Self {
-        Self::block_splat(f32x4::from_slice(simd, &color[..]))
-    }
-}
-
 impl<S: Simd> CompositeType<u8, S> for u8x32<S> {
     const LENGTH: usize = 32;
 
@@ -222,9 +202,7 @@ impl<S: Simd> CompositeType<u8, S> for u8x32<S> {
 /// different numeric precisions (f32 vs u8). Implementations provide the low-level pixel
 /// manipulation, blending, and painting operations needed to render tiles.
 ///
-/// The two main implementations are:
-/// - [`F32Kernel`]: High-precision rendering using 32-bit floating-point values
-/// - [`U8Kernel`]: Low-precision rendering using 8-bit integer values
+/// recto: [`U8Kernel`], rendering with 8-bit integer values, is the one implementation built.
 pub trait FineKernel<S: Simd>: Send + Sync + 'static {
     /// The basic underlying numerical type of the kernel (f32 or u8).
     type Numeric: Numeric;

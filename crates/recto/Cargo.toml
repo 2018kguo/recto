@@ -33,7 +33,7 @@ hayro-cmap = { version = "0.1.1", optional = true }
 rustc-hash = "2.1.3"
 # Must match the installed wasm-bindgen CLI.
 wasm-bindgen = { version = "=0.2.129", optional = true }
-js-sys = { version = "0.3", optional = true }
+js-sys = { version = "0.3", optional = true, default-features = false }
 
 [dev-dependencies]
 # Already in the tree through hayro-syntax: the reference decoder for its own inflate.

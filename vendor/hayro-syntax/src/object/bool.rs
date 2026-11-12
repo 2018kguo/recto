@@ -29,36 +29,3 @@ impl Readable<'_> for bool {
 }
 
 object!(bool, Boolean);
-
-#[cfg(test)]
-mod tests {
-    use crate::reader::Reader;
-    use crate::reader::ReaderExt;
-
-    #[test]
-    fn bool_true() {
-        assert!(
-            Reader::new("true".as_bytes())
-                .read_without_context::<bool>()
-                .unwrap()
-        );
-    }
-
-    #[test]
-    fn bool_false() {
-        assert!(
-            !Reader::new("false".as_bytes())
-                .read_without_context::<bool>()
-                .unwrap()
-        );
-    }
-
-    #[test]
-    fn bool_trailing() {
-        assert!(
-            Reader::new("trueabdf".as_bytes())
-                .read_without_context::<bool>()
-                .is_none()
-        );
-    }
-}

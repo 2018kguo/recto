@@ -86,8 +86,6 @@ mod avx2;
 #[cfg(target_arch = "aarch64")]
 #[cfg(feature = "neon")]
 mod neon;
-#[cfg(feature = "portable_simd")]
-mod portable_simd;
 mod scalar;
 
 // choose the best possible implementation for this platform
@@ -109,8 +107,6 @@ pub fn choose_horizontal_samp_function(options: &DecoderOptions) -> UpSampler {
             unsafe { neon::upsample_horizontal_neon(a, b, c, d, e) }
         };
     }
-    #[cfg(feature = "portable_simd")]
-    return portable_simd::upsample_horizontal_simd;
     return scalar::upsample_horizontal;
 }
 
@@ -132,8 +128,6 @@ pub fn choose_hv_samp_function(options: &DecoderOptions) -> UpSampler {
             unsafe { neon::upsample_hv_neon(a, b, c, d, e) }
         };
     }
-    #[cfg(feature = "portable_simd")]
-    return portable_simd::upsample_hv_simd;
     return scalar::upsample_hv;
 }
 
@@ -155,8 +149,6 @@ pub fn choose_v_samp_function(options: &DecoderOptions) -> UpSampler {
             unsafe { neon::upsample_vertical_neon(a, b, c, d, e) }
         };
     }
-    #[cfg(feature = "portable_simd")]
-    return portable_simd::upsample_vertical_simd;
     return scalar::upsample_vertical;
 }
 
@@ -178,26 +170,6 @@ pub fn generic_sampler() -> UpSampler {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[cfg(feature = "portable_simd")]
-    mod portable_simd_impl {
-        use super::*;
-
-        #[test]
-        fn portable_simd_vertical() {
-            _test_vertical(portable_simd::upsample_vertical_simd)
-        }
-
-        #[test]
-        fn portable_simd_horizontal() {
-            _test_horizontal(portable_simd::upsample_horizontal_simd)
-        }
-
-        #[test]
-        fn portable_simd_hv() {
-            _test_hv(portable_simd::upsample_hv_simd)
-        }
-    }
 
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     #[cfg(feature = "x86")]
