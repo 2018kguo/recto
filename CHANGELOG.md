@@ -26,6 +26,12 @@
   objects (checked against probing every `<<` on random nestings, and on the corpus). That file opens
   in 0.9 ms. Only where too few `>` and `]` follow to end a chain is one recorded, so a deep file that
   closes everything opens as fast as it did. The text part of the wasm is 0.4 kB larger.
+- **Reading text downloads 8.0 kB less (brotli), and so does drawing.** The package's JavaScript shipped its
+  source comments, and the wasm glue wasm-bindgen's JSDoc, to every page that loads it: 27.6 kB of the
+  download. Both are now emitted without comments (19.7 kB); the `.d.ts` files keep theirs, so editors show
+  the same documentation. The code is the same: the same tests pass and the wasm is the same to the byte.
+  The download budget's numbers are 405.7 kB of 420 for text and 681.5 kB of 690 for drawing, from 413.6
+  and 689.5.
 
 ### Fixed
 

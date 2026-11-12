@@ -35,7 +35,9 @@ body = body
   .replace(tail, "")
   .replace(glueImports, `${glueImports} ...placeholders,`)
   // What the collector frees: src/engine.ts decides if this instance can still run anything.
-  .replace(/new FinalizationRegistry\(ptr => (wasm\.\w+\(ptr, 1\))\)/gu, "new FinalizationRegistry(ptr => finalizing(() => $1))");
+  .replace(/new FinalizationRegistry\(ptr => (wasm\.\w+\(ptr, 1\))\)/gu, "new FinalizationRegistry(ptr => finalizing(() => $1))")
+  // Its comments are recto.types.d.mts's, and every page that reads text would download them.
+  .replace(/^[ \t]*(?:\/\*[\s\S]*?\*\/|\/\/.*)\n/gmu, "");
 if (!body.includes("finalizing(")) {
   throw new Error("unexpected wasm-bindgen glue finalizers; update scripts/package-wasm.mjs");
 }

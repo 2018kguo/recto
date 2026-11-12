@@ -35,7 +35,7 @@
   ],
   "scripts": {
     "build": "sh ../scripts/build-wasm.sh && npm run build:ts",
-    "build:ts": "tsc -p .",
+    "build:ts": "tsc -p . --removeComments --declaration false && tsc -p . --emitDeclarationOnly",
     "prepack": "npm run build",
     "test": "node --test --test-concurrency=2 test/*.test.ts",
     "typecheck": "tsc -p . --noEmit"
