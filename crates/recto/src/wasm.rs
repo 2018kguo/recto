@@ -465,10 +465,11 @@ impl Document {
         Ok(vec![p.width, p.height, p.rotation as f32])
     }
 
-    /// `PdfPageText` columns.
+    /// `PdfPageText` columns; `tight` for `Boxes::Tight`.
     #[wasm_bindgen(js_name = pageText)]
-    pub fn page_text(&self, index: usize) -> Result<PageText, JsValue> {
-        let page = self.0.text(index).map_err(js_error)?;
+    pub fn page_text(&self, index: usize, tight: bool) -> Result<PageText, JsValue> {
+        let boxes = if tight { crate::Boxes::Tight } else { crate::Boxes::Font };
+        let page = self.0.text_with(index, boxes).map_err(js_error)?;
         Ok(page_text(&page))
     }
 

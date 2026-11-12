@@ -116,6 +116,8 @@ const drawn = await profile("render", async (doc, openRanged) => {
     }
     doc.objects(i);
     doc.scan(i);
+    // Tight boxes read glyph outlines, as drawing does, and load drawing's part first.
+    doc.text(i, { boxes: "tight" });
   }
 });
 const present = new Set(functionNames(fs.readFileSync(input)).map(stableName));

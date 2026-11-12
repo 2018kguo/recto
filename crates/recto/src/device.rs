@@ -1,10 +1,11 @@
 //! One interpretation pass per page: glyphs for the text layer, plus (when
 //! asked) the page's paths, images and text-object count.
 
-use hayro::hayro_interpret::font::{Glyph as HayroGlyph, GlyphRun};
+use hayro::hayro_interpret::font::{Glyph as HayroGlyph, GlyphRun, OutlineGlyph};
 use hayro::hayro_interpret::hayro_cmap::{BfString, WritingMode};
 use hayro::hayro_interpret::{
-    BlendMode, ClipPath, Device, DrawMode, DrawProps, Image, ImageDrawProps, Paint, SoftMask,
+    BlendMode, CacheKey, ClipPath, Device, DrawMode, DrawProps, Image, ImageDrawProps, Paint,
+    SoftMask,
 };
 use hayro::kurbo::{Affine, BezPath, PathEl, Point, Rect};
 
@@ -91,6 +92,12 @@ pub(crate) struct PageDevice<'a> {
     in_shading_fill: bool,
     /// More glyphs than `MAX_PAGE_GLYPHS` were shown.
     pub text_truncated: bool,
+    /// Measure each glyph's own bounds (`Boxes::Tight`).
+    pub tight: bool,
+    /// Glyph bounds measured on this page, in glyph space (1000 units to the em): an outline glyph's
+    /// by its font's identity and glyph id, a Type 3 glyph's by its cache key. `None`: nothing drawn.
+    outline_bounds: rustc_hash::FxHashMap<(usize, u32), Option<Rect>>,
+    type3_bounds: rustc_hash::FxHashMap<u128, Option<Rect>>,
 }
 
 #[cfg(test)]
@@ -117,6 +124,9 @@ impl<'a> PageDevice<'a> {
             rect_starts: Vec::new(),
             in_shading_fill: false,
             text_truncated: false,
+            tight: false,
+            outline_bounds: Default::default(),
+            type3_bounds: Default::default(),
         }
     }
 
@@ -152,6 +162,27 @@ impl<'a> PageDevice<'a> {
         };
         self.last_font = Some((g.clone(), id));
         id
+    }
+
+    /// A glyph's bounds in glyph space, measured once per page: the control box of its outline, or of
+    /// what a Type 3 glyph's procedure draws. `None` where it draws nothing.
+    fn glyph_bounds(&mut self, glyph: &HayroGlyph<'a>, paint: &Paint<'a>) -> Option<Rect> {
+        match glyph {
+            HayroGlyph::Outline(g) => {
+                let key = (g.font_identity(), g.glyph_id().to_u32());
+                *self.outline_bounds.entry(key).or_insert_with(|| outline_box(g))
+            }
+            HayroGlyph::Type3(g) => {
+                let key = g.cache_key();
+                if let Some(bounds) = self.type3_bounds.get(&key) {
+                    return *bounds;
+                }
+                let mut ink = Ink::default();
+                g.interpret(&mut ink, Affine::IDENTITY, Affine::IDENTITY, paint);
+                self.type3_bounds.insert(key, ink.0);
+                ink.0
+            }
+        }
     }
 
     /// One id per font dictionary, as the file has them.
@@ -281,6 +312,70 @@ fn box_of(t: Affine, rect: Rect) -> [f32; 4] {
         b.width() as f32,
         b.height() as f32,
     ]
+}
+
+/// The control box of a glyph's outline, `None` if it has none (a space, a program that doesn't
+/// parse). The control box is what pdfium's tight char box is (FreeType's glyph bounds), and needs no
+/// curve solving.
+fn outline_box(glyph: &OutlineGlyph<'_>) -> Option<Rect> {
+    let path = glyph.outline();
+    if path.elements().is_empty() {
+        return None;
+    }
+    let r = path.control_box();
+    (r.width() > 0.0 || r.height() > 0.0).then_some(r)
+}
+
+/// Collects the bounds of everything a Type 3 glyph's procedure draws.
+#[derive(Default)]
+struct Ink(Option<Rect>);
+
+impl Ink {
+    fn add(&mut self, t: Affine, r: Rect) {
+        let r = t.transform_rect_bbox(r);
+        self.0 = Some(self.0.map_or(r, |b| b.union(r)));
+    }
+}
+
+impl<'a> Device<'a> for Ink {
+    fn draw_path(&mut self, path: &BezPath, props: DrawProps<'a>, mode: &DrawMode) {
+        if path.elements().is_empty() {
+            return;
+        }
+        let r = path.control_box();
+        match mode {
+            DrawMode::Invisible => {}
+            DrawMode::Fill(_) => self.add(props.transform, r),
+            DrawMode::Stroke(s) | DrawMode::FillAndStroke(_, s) => {
+                let w = f64::from(s.line_width) / 2.0;
+                self.add(props.transform, r.inflate(w, w));
+            }
+        }
+    }
+
+    fn draw_glyph_run(&mut self, run: &GlyphRun<'_, 'a>, props: DrawProps<'a>, mode: &DrawMode) {
+        if matches!(mode, DrawMode::Invisible) {
+            return;
+        }
+        for glyph in run.glyphs() {
+            // A Type 3 glyph drawing text of another Type 3 font: left out.
+            if let HayroGlyph::Outline(g) = &**glyph
+                && let Some(r) = outline_box(g)
+            {
+                self.add(props.transform * glyph.transform(), r);
+            }
+        }
+    }
+
+    fn draw_image(&mut self, image: Image<'a, '_>, props: ImageDrawProps<'a>) {
+        let (w, h) = (image.width(), image.height());
+        self.add(props.transform, Rect::new(0.0, 0.0, f64::from(w), f64::from(h)));
+    }
+
+    fn push_clip_path(&mut self, _: &ClipPath) {}
+    fn push_transparency_group(&mut self, _: f32, _: Option<SoftMask<'a>>, _: BlendMode) {}
+    fn pop_clip(&mut self) {}
+    fn pop_transparency_group(&mut self) {}
 }
 
 /// Appends a path's segments: a cubic is three Bezier points, and a close
@@ -482,6 +577,13 @@ impl<'a> Device<'a> for PageDevice<'a> {
                 transform
             };
             if let Some(mut g) = glyph_from(unstretched, text, f64::from(advance), vertical, metrics) {
+                if self.tight {
+                    // As drawn: a substituted font's glyph widened to the PDF's width.
+                    g.tight = self
+                        .glyph_bounds(glyph, &props.paint)
+                        .map(|r| box_of(transform, r))
+                        .filter(|b| b.iter().all(|v| v.is_finite()));
+                }
                 origin.get_or_insert((g.origin, g.em));
                 g.code = code;
                 g.tf = glyph.font_size();
