@@ -151,6 +151,9 @@ struct ReaderContextData<'a> {
     in_content_stream: bool,
     in_object_stream: bool,
     obj_number: Option<ObjectIdentifier>,
+    /// recto: the chain's last object, held here so that a read one object down from a context with no
+    /// chain, as most are, doesn't allocate one; the objects before it are in `parent_chain`.
+    chain_top: Option<ObjectIdentifier>,
     parent_chain: Option<Arc<SmallVec<[ObjectIdentifier; 8]>>>,
     /// recto: every object the chain has held, of which it keeps the last `CHAIN_WINDOW`.
     chain_len: u32,
@@ -182,6 +185,7 @@ impl<'a> ReaderContext<'a> {
             in_content_stream,
             obj_number: None,
             in_object_stream: false,
+            chain_top: None,
             parent_chain: None,
             chain_len: 0,
         }))
@@ -259,7 +263,9 @@ impl<'a> ReaderContext<'a> {
     pub(crate) fn parent_chain_contains(&self, id: &ObjectIdentifier) -> bool {
         match &self.0 {
             ReaderContextInner::Shared(inner) => {
-                inner.chain_len >= MAX_CHAIN || inner.parent_chain.as_ref().is_some_and(|chain| chain.contains(id))
+                inner.chain_len >= MAX_CHAIN
+                    || inner.chain_top.as_ref() == Some(id)
+                    || inner.parent_chain.as_ref().is_some_and(|chain| chain.contains(id))
             }
             ReaderContextInner::Dummy { .. } => false,
         }
@@ -270,11 +276,14 @@ impl<'a> ReaderContext<'a> {
         match &mut self.0 {
             ReaderContextInner::Shared(inner) => {
                 inner.chain_len = inner.chain_len.saturating_add(1);
+                let Some(below) = inner.chain_top.replace(id) else {
+                    return;
+                };
                 let chain = Arc::make_mut(inner.parent_chain.get_or_insert_with(Default::default));
-                if chain.len() >= CHAIN_WINDOW {
+                if chain.len() >= CHAIN_WINDOW - 1 {
                     chain.remove(0);
                 }
-                chain.push(id)
+                chain.push(below)
             }
             ReaderContextInner::Dummy { .. } => {}
         }
