@@ -1,10 +1,13 @@
 #!/usr/bin/env node
-// recto, pdf.js and stock pdfium in Node, each engine in processes of its own, on a directory of
+// recto, pdf.js, stock pdfium and MuPDF in Node, each engine in processes of its own, on a directory of
 // PDFs you provide plus generated ones. Nothing here ships PDFs: use files you may read, and do
 // not commit them. docs/benchmarks.md says what each number means.
 //
 //   npm run build
-//   npm run bench -- <directory of PDFs> [--docs 60] [--runs 5] [--out bench/results/node.json]
+//   npm run bench -- <directory of PDFs> [--docs 60] [--runs 5] [--max-load 4] [--out bench/results/node.json]
+//
+// `--max-load` holds each measured process until the 1-minute load average is under it, so a busy
+// machine delays the numbers instead of moving them; the loads each started at are in the results.
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -13,7 +16,7 @@ import { monitorEventLoopDelay } from "node:perf_hooks";
 import { parseArgs } from "node:util";
 import { Worker, isMainThread, parentPort, workerData } from "node:worker_threads";
 
-import { pdfiumEngine, pdfjsEngine, rectoEngine } from "./engines.mjs";
+import { mupdfEngine, pdfiumEngine, pdfjsEngine, rectoEngine } from "./engines.mjs";
 import { heavyPagePdf, reportPdf } from "./generate.mjs";
 
 const here = import.meta.dirname;
@@ -22,7 +25,7 @@ const RENDER_PAGES = 2;
 const WIDTH = 1024;
 const LARGE_PAGES = 2000;
 const LARGE_RENDERED = 5;
-const ENGINES = ["recto", "pdf.js", "pdfium"];
+const ENGINES = ["recto", "pdf.js", "pdfium", "mupdf"];
 const ms = (value) => Math.round(value * 10) / 10;
 
 async function load(name) {
@@ -42,6 +45,7 @@ async function load(name) {
       wasmUrl: path.join(root, "wasm/"),
     });
   }
+  if (name === "mupdf") return mupdfEngine(await import(path.join(here, "node_modules/mupdf/dist/mupdf.js")));
   const { init } = await import(path.join(here, "node_modules/@embedpdf/pdfium/dist/index.js"));
   const wasmBinary = fs.readFileSync(path.join(here, "node_modules/@embedpdf/pdfium/dist/pdfium.wasm"));
   return pdfiumEngine(await init({ wasmBinary }));
@@ -300,6 +304,7 @@ async function main() {
       docs: { type: "string", default: "60" },
       runs: { type: "string", default: "5" },
       out: { type: "string" },
+      "max-load": { type: "string" },
     },
   });
   const directory = positionals[0];
@@ -328,17 +333,27 @@ async function main() {
   const total = files.length;
   files = files.filter((file) => probes.every(({ ok }) => ok.includes(file)));
   const leftOut = Object.fromEntries(ENGINES.map((engine, i) => [engine, total - probes[i].ok.length]));
-  console.error(`${files.length} of ${total} documents opened in all three (refused: ${JSON.stringify(leftOut)})`);
+  console.error(`${files.length} of ${total} documents opened in all four (refused: ${JSON.stringify(leftOut)})`);
   const bytes = files.reduce((sum, file) => sum + fs.statSync(file).size, 0);
 
   const samples = Object.fromEntries(ENGINES.map((engine) => [engine, []]));
   const shared = { files, report, large, heavy };
+  const loads = [];
+  const maxLoad = values["max-load"] ? Number(values["max-load"]) : Infinity;
+  const quiet = async () => {
+    for (let waited = 0; os.loadavg()[0] > maxLoad; waited += 5) {
+      if (waited % 300 === 0) console.error(`load ${os.loadavg()[0].toFixed(1)}, waiting for under ${maxLoad}`);
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+    }
+    loads.push(os.loadavg()[0]);
+  };
   for (let run = 0; run < runs; run++) {
     for (let k = 0; k < ENGINES.length; k++) {
       const engine = ENGINES[(run + k) % ENGINES.length];
       const started = Date.now();
       const sample = {};
       for (const job of ["cold", "speed", "large", "blocking", "abort"]) {
+        await quiet();
         sample[job] = await child({ job, engine, ...shared });
       }
       samples[engine].push(sample);
@@ -383,8 +398,10 @@ async function main() {
     node: process.version,
     machine: `${os.cpus()[0].model}, ${os.cpus().length} cores, ${Math.round(os.totalmem() / 2 ** 30)} GB`,
     loadAverage: os.loadavg()[0],
+    // The 1-minute load average as each measured process started.
+    loads: { maxAllowed: Number.isFinite(maxLoad) ? maxLoad : null, median: ms(median(loads)), max: ms(Math.max(...loads)) },
     versions: Object.fromEntries(
-      ["pdfjs-dist", "@embedpdf/pdfium"].map((name) => [name, JSON.parse(fs.readFileSync(path.join(here, "node_modules", name, "package.json"))).version]),
+      ["pdfjs-dist", "@embedpdf/pdfium", "mupdf"].map((name) => [name, JSON.parse(fs.readFileSync(path.join(here, "node_modules", name, "package.json"))).version]),
     ),
     documents: { used: files.length, of: total, refused: leftOut, bytes, largePages: LARGE_PAGES, largeRendered: LARGE_RENDERED },
     widths: { render: WIDTH, textPages: TEXT_PAGES, renderPages: RENDER_PAGES },

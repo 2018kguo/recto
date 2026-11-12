@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// How far recto's pixels are from pdfium's, pdf.js's and poppler's, page by page, where those agree
+// How far recto's pixels are from pdfium's, pdf.js's and poppler's (and MuPDF's, asked), page by page, where those agree
 // with each other. See docs/benchmarks.md#the-scorecard for what each number means. Commits nothing
 // from the PDFs: page images stay in --out, and --results gets counts and a ranking, with the names
 // of suites given by --private replaced by hashes.
@@ -7,6 +7,7 @@
 //   npm run build
 //   node bench/scorecard.mjs label=dir [label=dir...] --out scratch/dir [--private label]
 //        [--width 800] [--pages 3] [--timeout 20] [--jobs 6] [--crops 60] [--results bench/results/scorecard.json]
+//        [--engines recto,pdfium,pdf.js,poppler,mupdf]
 //
 // References are cached in --out by file and width; recto is cached by the wasm's own hash, so a
 // rerun after a fix renders recto alone and compares only the pages whose pixels changed.
@@ -30,6 +31,8 @@ const { values, positionals } = parseArgs({
     private: { type: "string", multiple: true, default: [] },
     results: { type: "string" },
     limit: { type: "string" },
+    // MuPDF is asked for, so that the scoreboard's measure, over four engines, stays what it was.
+    engines: { type: "string", default: "recto,pdfium,pdf.js,poppler" },
   },
 });
 if (!values.out || positionals.length === 0) {
@@ -43,7 +46,8 @@ const JOBS = Number(values.jobs);
 const out = path.resolve(values.out);
 fs.mkdirSync(out, { recursive: true });
 
-const ENGINES = ["recto", "pdfium", "pdf.js", "poppler"];
+const ENGINES = values.engines.split(",");
+if (ENGINES[0] !== "recto") throw new Error("--engines starts with recto");
 /** Pixels: a channel off by more than this, with nothing that close in the 3×3 around it, is reported as `real`. */
 const CHANNEL = 48;
 /** Two pages agree when, over 4×4 cells, under both: this % of cells off by past CELL, and this mean error of 255. */
@@ -433,8 +437,8 @@ for (const [index, [prefix, row]] of toCrop.entries()) {
   const reference = images.find(([engine, image]) => engine === row.reference[0] && image)?.[1];
   const recto = images[0][1];
   const window = recto && reference && !row.shape ? worstWindow(recto, reference) : { x: 0, y: 0 };
-  const whole = Math.max(...images.map(([, image]) => (image ? (image.height * PANEL) / image.width : 0)));
-  const canvas = createCanvas(PANEL * 4 + 30, Math.ceil(whole) + 270 + 44);
+  const whole = Math.max(...images.map(([, image]) => (image?.width && image.height ? (image.height * PANEL) / image.width : 0)));
+  const canvas = createCanvas(PANEL * ENGINES.length + 10 * (ENGINES.length - 1), Math.ceil(whole) + 270 + 44);
   const context = canvas.getContext("2d");
   context.fillStyle = "#888";
   context.fillRect(0, 0, canvas.width, canvas.height);
@@ -443,7 +447,7 @@ for (const [index, [prefix, row]] of toCrop.entries()) {
     const x = i * (PANEL + 10);
     context.fillStyle = "#fff";
     context.fillText(`${engine}${row.reference.includes(engine) ? " *" : ""}${image ? ` ${image.width}x${image.height}` : " FAILED"}`, x + 4, 15);
-    if (!image) continue;
+    if (!image?.width || !image.height) continue;
     const source = canvasOf(image);
     context.drawImage(source, x, 20, PANEL, (image.height * PANEL) / image.width);
     context.drawImage(source, window.x, window.y, PANEL, 270, x, whole + 24, PANEL, 270);
@@ -463,6 +467,7 @@ fs.writeFileSync(path.join(out, "report.html"), html);
 const summary = {
   date: new Date().toISOString(),
   settings: { width: WIDTH, pagesPerFile: PAGES, timeoutSeconds: TIMEOUT_MS / 1000, channel: CHANNEL, cellSize: CELL_SIZE, cellLevel: CELL, agreeCellsPercent: AGREE_CELLS, agreeCoarseMae: AGREE_COARSE_MAE },
+  engines: ENGINES,
   files: files.length,
   suites: Object.fromEntries(Object.entries(Object.groupBy(files, (f) => f.label)).map(([label, list]) => [label, list.length])),
   agreement: Object.fromEntries(ENGINES.map((engine) => [engine, { ...tally[engine], percent: rate(tally[engine]) }])),

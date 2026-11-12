@@ -6,7 +6,8 @@
 // Chars are matched by code point, in content order, page by page; whitespace and generated chars
 // are left out on every side. A word is recto's word; its reference is the union of the pdfium
 // boxes of the chars it matched. pdf.js's text items and recto's `textItems` are compared the
-// same way, for context: both are baseline-and-em boxes by design.
+// same way, for context: both are baseline-and-em boxes by design. MuPDF's char quads are matched
+// as recto's chars are, by its default and with its "accurate-bboxes" option, which measures glyphs.
 //
 // IoU is the area two boxes share over the area of their union. Reported per box kind: the median,
 // the 10th percentile and the share at 0.8 or more.
@@ -55,6 +56,7 @@ async function startPdfium() {
   m = pdfium.pdfium;
 }
 await startPdfium();
+const mupdf = await import(path.join(here, "node_modules/mupdf/dist/mupdf.js"));
 
 // `--tight`: also read recto's `{ boxes: "tight" }`, the "after" column.
 const tightSupported = values.tight;
@@ -256,6 +258,27 @@ function rectoChars(text) {
   return { chars: out, index };
 }
 
+// ---- MuPDF ----
+/** MuPDF's chars on a page, in the viewer frame: the bounds of each char's quad. */
+function mupdfChars(page, options) {
+  const [bx, by] = page.getBounds();
+  const stext = page.toStructuredText(options);
+  const out = [];
+  stext.walk({
+    onChar(c, origin, font, size, quad) {
+      const code = c.codePointAt(0);
+      if (isSpace(code)) return;
+      const xs = [quad[0], quad[2], quad[4], quad[6]];
+      const ys = [quad[1], quad[3], quad[5], quad[7]];
+      const x0 = Math.min(...xs);
+      const y0 = Math.min(...ys);
+      out.push({ code, box: [x0 - bx, y0 - by, Math.max(...xs) - x0, Math.max(...ys) - y0] });
+    },
+  });
+  stext.destroy();
+  return out;
+}
+
 // ---- pdf.js ----
 async function pdfjsItems(doc, index) {
   const page = await doc.getPage(index + 1);
@@ -302,6 +325,12 @@ async function scoreFile(file) {
   if (!pd) return;
   let rdoc;
   let jdoc;
+  let mdoc = null;
+  try {
+    mdoc = mupdf.Document.openDocument(bytes, "application/pdf");
+  } catch {
+    // Scored without MuPDF's columns.
+  }
   try {
     rdoc = await recto.open(bytes);
     const task = pdfjs.getDocument({ ...pdfjsOptions, data: new Uint8Array(bytes) });
@@ -319,6 +348,16 @@ async function scoreFile(file) {
     let tight = null;
     let items = [];
     let info;
+    let mupdfPage = null;
+    try {
+      const page = mdoc?.loadPage(p);
+      if (page) {
+        mupdfPage = { quads: mupdfChars(page, "preserve-whitespace"), accurate: mupdfChars(page, "preserve-whitespace,accurate-bboxes") };
+        page.destroy();
+      }
+    } catch {
+      mupdfPage = null;
+    }
     try {
       ref = pdfiumPage(pd, p, values.ink ? 4 : 0);
       em = rdoc.text(p);
@@ -412,6 +451,17 @@ async function scoreFile(file) {
       });
     };
     itemScores(items, "items: pdf.js");
+    // MuPDF's chars, on the same pages, against the same pdfium chars and ink.
+    if (mupdfPage) {
+      for (const [list, name] of [[mupdfPage.quads, "mupdf"], [mupdfPage.accurate, "mupdf accurate-bboxes"]]) {
+        for (const [i, j] of align(list.map((c) => c.code), ref.chars.map((c) => c.code))) {
+          const r = ref.chars[j];
+          if (r.tight[2] <= 0 || r.tight[3] <= 0) continue;
+          add(`chars: ${name}`, iou(list[i].box, r.tight));
+          if (ink[j]) add(`ink: ${name}`, iou(list[i].box, ink[j]));
+        }
+      }
+    }
     const ritems = textItems(em, info)
       .filter((it) => !it.direction)
       .map((it) => ({ str: it.str, box: [it.x, info.height - it.y - it.height, it.width, it.height] }));
@@ -419,6 +469,7 @@ async function scoreFile(file) {
   }
   if (fileUsed) used++;
   rdoc.close();
+  mdoc?.destroy();
   await jdoc.task.destroy();
   pd.close();
 }
@@ -441,6 +492,7 @@ const results = {
   rectoChars: rectoTotal,
   matched: round(1 - unmatched / Math.max(rectoTotal, 1)),
   tightTextDiffers: tightSupported ? textDiffers : undefined,
+  versions: Object.fromEntries(["pdfjs-dist", "@embedpdf/pdfium", "mupdf"].map((name) => [name, JSON.parse(fs.readFileSync(path.join(here, "node_modules", name, "package.json"))).version])),
   reference: "pdfium FPDFText_GetCharBox (@embedpdf/pdfium 2.15.1); ink: pdfium's rendering at 4 px a point, chars whose surroundings are clear",
   seconds: Math.round((performance.now() - started) / 1000),
   summary,

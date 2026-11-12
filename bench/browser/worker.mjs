@@ -1,6 +1,6 @@
-// recto or pdfium in a dedicated worker, answering calls from the page.
+// recto, pdfium or MuPDF in a dedicated worker, answering calls from the page.
 import "./instrument.mjs";
-import { pdfiumEngine, rectoEngine } from "/app/engines.mjs";
+import { mupdfEngine, pdfiumEngine, rectoEngine } from "/app/engines.mjs";
 
 const name = new URL(import.meta.url).searchParams.get("engine");
 let engine;
@@ -9,6 +9,8 @@ if (name === "recto") {
   const { createPdfEngine } = await import("/recto/dist/index.js");
   recto = await createPdfEngine();
   engine = rectoEngine(recto);
+} else if (name === "mupdf") {
+  engine = mupdfEngine(await import("/mupdf/mupdf.js"));
 } else {
   const { init } = await import("/pdfium/index.browser.js");
   const wasmBinary = await (await fetch("/pdfium/pdfium.wasm")).arrayBuffer();

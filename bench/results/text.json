@@ -1,93 +1,149 @@
 {
- "date": "2026-11-07T03:09:13.910Z",
- "documents": 87,
- "of": 537,
+ "date": "2026-11-12T18:47:07.013Z",
+ "documents": 84,
+ "of": 531,
  "pagesEach": 10,
  "reference": null,
  "summary": {
   "recto against pdf.js": {
-   "precision": 98.15,
-   "recall": 98.99,
-   "microF1": 98.57,
+   "precision": 98.44,
+   "recall": 98.89,
+   "microF1": 98.66,
    "medianF1": 100,
-   "words": 146911
+   "words": 132522
   },
   "recto against pdfium": {
-   "precision": 97.73,
-   "recall": 97.68,
-   "microF1": 97.71,
+   "precision": 99.14,
+   "recall": 99.08,
+   "microF1": 99.11,
    "medianF1": 100,
-   "words": 146911
+   "words": 132522
+  },
+  "recto against mupdf": {
+   "precision": 98.12,
+   "recall": 98.24,
+   "microF1": 98.18,
+   "medianF1": 100,
+   "words": 132522
   },
   "recto against poppler": {
-   "precision": 98.72,
-   "recall": 98.6,
-   "microF1": 98.66,
+   "precision": 98.58,
+   "recall": 98.46,
+   "microF1": 98.52,
    "medianF1": 100,
-   "words": 146911
+   "words": 132522
   },
   "pdf.js against recto": {
-   "precision": 98.99,
-   "recall": 98.15,
-   "microF1": 98.57,
-   "medianF1": 100,
-   "words": 145668
-  },
-  "pdf.js against pdfium": {
-   "precision": 97.17,
-   "recall": 96.29,
-   "microF1": 96.73,
-   "medianF1": 99.98,
-   "words": 145668
-  },
-  "pdf.js against poppler": {
-   "precision": 98.3,
-   "recall": 97.35,
-   "microF1": 97.82,
-   "medianF1": 99.95,
-   "words": 145668
-  },
-  "pdfium against recto": {
-   "precision": 97.68,
-   "recall": 97.73,
-   "microF1": 97.71,
-   "medianF1": 100,
-   "words": 146993
-  },
-  "pdfium against pdf.js": {
-   "precision": 96.29,
-   "recall": 97.17,
-   "microF1": 96.73,
-   "medianF1": 99.98,
-   "words": 146993
-  },
-  "pdfium against poppler": {
-   "precision": 97.03,
-   "recall": 96.97,
-   "microF1": 97,
-   "medianF1": 99.98,
-   "words": 146993
-  },
-  "poppler against recto": {
-   "precision": 98.6,
-   "recall": 98.72,
+   "precision": 98.89,
+   "recall": 98.44,
    "microF1": 98.66,
    "medianF1": 100,
-   "words": 147087
+   "words": 131920
+  },
+  "pdf.js against pdfium": {
+   "precision": 98.53,
+   "recall": 98.03,
+   "microF1": 98.28,
+   "medianF1": 100,
+   "words": 131920
+  },
+  "pdf.js against mupdf": {
+   "precision": 98.01,
+   "recall": 97.67,
+   "microF1": 97.84,
+   "medianF1": 100,
+   "words": 131920
+  },
+  "pdf.js against poppler": {
+   "precision": 98.12,
+   "recall": 97.56,
+   "microF1": 97.84,
+   "medianF1": 99.98,
+   "words": 131920
+  },
+  "pdfium against recto": {
+   "precision": 99.08,
+   "recall": 99.14,
+   "microF1": 99.11,
+   "medianF1": 100,
+   "words": 132604
+  },
+  "pdfium against pdf.js": {
+   "precision": 98.03,
+   "recall": 98.53,
+   "microF1": 98.28,
+   "medianF1": 100,
+   "words": 132604
+  },
+  "pdfium against mupdf": {
+   "precision": 97.97,
+   "recall": 98.14,
+   "microF1": 98.06,
+   "medianF1": 100,
+   "words": 132604
+  },
+  "pdfium against poppler": {
+   "precision": 98.36,
+   "recall": 98.3,
+   "microF1": 98.33,
+   "medianF1": 100,
+   "words": 132604
+  },
+  "mupdf against recto": {
+   "precision": 98.24,
+   "recall": 98.12,
+   "microF1": 98.18,
+   "medianF1": 100,
+   "words": 132372
+  },
+  "mupdf against pdf.js": {
+   "precision": 97.67,
+   "recall": 98.01,
+   "microF1": 97.84,
+   "medianF1": 100,
+   "words": 132372
+  },
+  "mupdf against pdfium": {
+   "precision": 98.14,
+   "recall": 97.97,
+   "microF1": 98.06,
+   "medianF1": 100,
+   "words": 132372
+  },
+  "mupdf against poppler": {
+   "precision": 97.47,
+   "recall": 97.24,
+   "microF1": 97.35,
+   "medianF1": 99.92,
+   "words": 132372
+  },
+  "poppler against recto": {
+   "precision": 98.46,
+   "recall": 98.58,
+   "microF1": 98.52,
+   "medianF1": 100,
+   "words": 132682
   },
   "poppler against pdf.js": {
-   "precision": 97.35,
-   "recall": 98.3,
-   "microF1": 97.82,
-   "medianF1": 99.95,
-   "words": 147087
+   "precision": 97.56,
+   "recall": 98.12,
+   "microF1": 97.84,
+   "medianF1": 99.98,
+   "words": 132682
   },
   "poppler against pdfium": {
-   "precision": 96.97,
-   "recall": 97.03,
-   "microF1": 97,
-   "medianF1": 99.98,
-   "words": 147087
+   "precision": 98.3,
+   "recall": 98.36,
+   "microF1": 98.33,
+   "medianF1": 100,
+   "words": 132682
+  },
+  "poppler against mupdf": {
+   "precision": 97.24,
+   "recall": 97.47,
+   "microF1": 97.35,
+   "medianF1": 99.92,
+   "words": 132682
   }
  }
 }

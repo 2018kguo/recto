@@ -38,6 +38,7 @@ export async function serve({ extraRoots = {} } = {}) {
     recto: path.join(here, "../js"),
     pdfjs: path.join(here, "node_modules/pdfjs-dist"),
     pdfium: path.join(here, "node_modules/@embedpdf/pdfium/dist"),
+    mupdf: path.join(here, "node_modules/mupdf/dist"),
     ...extraRoots,
   };
   const uncounted = new Set(["app", ...Object.keys(extraRoots)]);

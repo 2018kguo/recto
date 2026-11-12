@@ -14,7 +14,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { parseArgs } from "node:util";
 
-import { pdfiumEngine, pdfjsEngine, rectoEngine } from "./engines.mjs";
+import { mupdfEngine, pdfiumEngine, pdfjsEngine, rectoEngine } from "./engines.mjs";
 
 const here = import.meta.dirname;
 const { values, positionals } = parseArgs({
@@ -43,6 +43,7 @@ const engines = [
   rectoEngine(await createPdfEngine()),
   pdfjsEngine(pdfjs, { isEvalSupported: false, verbosity: 0, standardFontDataUrl: `${root}/standard_fonts/`, cMapUrl: `${root}/cmaps/`, cMapPacked: true, wasmUrl: `${root}/wasm/` }),
   pdfiumEngine(await init({ wasmBinary: fs.readFileSync(path.join(here, "node_modules/@embedpdf/pdfium/dist/pdfium.wasm")) })),
+  mupdfEngine(await import(path.join(here, "node_modules/mupdf/dist/mupdf.js"))),
 ];
 
 // A line-end hyphen is marked, not dropped: recto and pdfium write U+0002 and keep the word whole,
@@ -134,6 +135,6 @@ const summary = Object.fromEntries(
 if (values.worst) fs.writeFileSync(values.worst, JSON.stringify(worst.sort((a, b) => b.gap - a.gap).slice(0, 300), null, 1));
 const results = { date: new Date().toISOString(), documents: used, of: files.length, pagesEach: PAGES, reference: execFileSync("pdftotext", ["-v"], { encoding: "utf8", stdio: ["ignore", "ignore", "pipe"] }), summary };
 fs.writeFileSync(values.out, `${JSON.stringify(results, null, 1)}\n`);
-for (const name of ["recto", "pdf.js", "pdfium"]) console.log(`${name.padEnd(7)} against poppler: F1 ${summary[`${name} against poppler`].microF1} (median ${summary[`${name} against poppler`].medianF1})`);
-for (const [a, b] of [["recto", "pdf.js"], ["recto", "pdfium"], ["pdf.js", "pdfium"]]) console.log(`${a} against ${b}: F1 ${summary[`${a} against ${b}`].microF1} (median ${summary[`${a} against ${b}`].medianF1})`);
+for (const name of ["recto", "pdf.js", "pdfium", "mupdf"]) console.log(`${name.padEnd(7)} against poppler: F1 ${summary[`${name} against poppler`].microF1} (median ${summary[`${name} against poppler`].medianF1})`);
+for (const [a, b] of [["recto", "pdf.js"], ["recto", "pdfium"], ["recto", "mupdf"], ["pdf.js", "pdfium"]]) console.log(`${a} against ${b}: F1 ${summary[`${a} against ${b}`].microF1} (median ${summary[`${a} against ${b}`].medianF1})`);
 console.log(`${used} documents`);
