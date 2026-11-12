@@ -17,6 +17,15 @@
   rounds once where the image's tint and composite rounded twice, as a path filled in that colour already did:
   132 of 1,306 pages change, by at most 3 levels a channel and almost all by 1, on pixels a glyph partly covers.
   The scorecard is unchanged (519 of 530 agree). The drawing part of the wasm is 1.3 kB larger.
+- **Repairing a file of dictionaries nested past the parser's limit is linear.** A file without a
+  usable xref table is scanned for its objects, with a probe for a dictionary at each `<<`, and in
+  `<< << << ...` nested past the limit of 512 each probe went 512 levels deep before it failed: 50,000
+  of them in 150 KB took 180 ms to open. A probe that stops at the limit now records what it was
+  inside, and one that would start inside that and can't find enough `>>` and `]` after it to end
+  isn't run, since it can only fail; the scan goes on as after any failed probe, and finds the same
+  objects (checked against probing every `<<` on random nestings, and on the corpus). That file opens
+  in 0.9 ms. Only where too few `>` and `]` follow to end a chain is one recorded, so a deep file that
+  closes everything opens as fast as it did. The text part of the wasm is 0.4 kB larger.
 
 ### Fixed
 

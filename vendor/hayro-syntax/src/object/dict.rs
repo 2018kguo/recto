@@ -169,10 +169,22 @@ impl Skippable for Dict<'_> {
     }
 
     fn skip_with_depth(r: &mut Reader<'_>, is_content_stream: bool, depth: usize) -> Option<()> {
+        // recto: where a skip stops and what it was inside, for a repair scan.
+        let start = r.offset();
         if depth >= super::MAX_OBJECT_NESTING_DEPTH {
+            super::depth_chain::stopped(start);
             return None;
         }
+        let skipped = Self::skip_inside(r, is_content_stream, depth);
+        if skipped.is_none() {
+            super::depth_chain::failed(start);
+        }
+        skipped
+    }
+}
 
+impl Dict<'_> {
+    fn skip_inside(r: &mut Reader<'_>, is_content_stream: bool, depth: usize) -> Option<()> {
         r.forward_tag(b"<<")?;
 
         loop {

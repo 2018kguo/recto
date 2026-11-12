@@ -14,7 +14,76 @@ use crate::reader::Reader;
 use crate::reader::{Readable, ReaderContext, ReaderExt, Skippable};
 use core::fmt::{Debug, Display, Formatter};
 
-const MAX_OBJECT_NESTING_DEPTH: usize = 512;
+pub(crate) const MAX_OBJECT_NESTING_DEPTH: usize = 512;
+
+/// recto: while a repair scan probes for a dictionary, where the dictionaries and arrays a skip
+/// was inside start, deepest first, when it stopped at `MAX_OBJECT_NESTING_DEPTH`; see
+/// `fallback_xref_map_inner`. Each probe of `<< << << ...` past the limit went 512 deep, and one
+/// started at every `<<`.
+pub(crate) mod depth_chain {
+    use alloc::vec::Vec;
+    use core::cell::RefCell;
+    use core::sync::atomic::{AtomicUsize, Ordering};
+
+    /// How many threads are recording: while none is, a failed skip doesn't look at its thread's
+    /// chain, which every container of a deep file's every probe would.
+    static RECORDING: AtomicUsize = AtomicUsize::new(0);
+
+    std::thread_local! {
+        /// While recording: whether a skip stopped at the limit, and the chain so far.
+        static CHAIN: RefCell<Option<(bool, Vec<usize>)>> = const { RefCell::new(None) };
+    }
+
+    /// `f`'s result, with `chain` the chain if `on` and a skip in it stopped at the limit (empty
+    /// otherwise). `chain`'s allocation is reused, as a scan probes at every `<<`.
+    pub(crate) fn recording<T>(on: bool, chain: &mut Vec<usize>, f: impl FnOnce() -> Option<T>) -> Option<T> {
+        chain.clear();
+        if !on {
+            return f();
+        }
+        let buffer = core::mem::take(chain);
+        CHAIN.with_borrow_mut(|recorded| *recorded = Some((false, buffer)));
+        RECORDING.fetch_add(1, Ordering::Relaxed);
+        let result = f();
+        RECORDING.fetch_sub(1, Ordering::Relaxed);
+        if let Some((hit, buffer)) = CHAIN.with_borrow_mut(Option::take) {
+            *chain = buffer;
+            if !hit {
+                chain.clear();
+            }
+        }
+        result
+    }
+
+    /// A container starting at `start` was asked for at the limit.
+    #[inline]
+    pub(super) fn stopped(start: usize) {
+        if RECORDING.load(Ordering::Relaxed) != 0 {
+            note(start, true);
+        }
+    }
+
+    /// A container starting at `start` couldn't be skipped: one around where a skip stopped, if
+    /// one did, since nothing between there and here goes on after a failure.
+    #[inline]
+    pub(super) fn failed(start: usize) {
+        if RECORDING.load(Ordering::Relaxed) != 0 {
+            note(start, false);
+        }
+    }
+
+    #[inline(never)]
+    fn note(start: usize, stopped: bool) {
+        CHAIN.with_borrow_mut(|chain| {
+            if let Some((hit, chain)) = chain
+                && (stopped || *hit)
+            {
+                *hit = true;
+                chain.push(start);
+            }
+        });
+    }
+}
 
 mod bool;
 mod null;
