@@ -215,7 +215,7 @@ impl<'r> Renderer<'r> {
 
     fn child_context(&self, width: u16, height: u16) -> RenderContext {
         let mut ctx =
-            RenderContext::new_with(width, height, derive_settings(self.ctx.render_settings()));
+            RenderContext::new_with(width, height, *self.ctx.render_settings());
         ctx.set_aliasing_threshold(self.global.aliasing_threshold);
         ctx
     }
@@ -746,13 +746,6 @@ fn draw_page<'a, 'r>(
 
     if clip_crop_box {
         device.pop_clip();
-    }
-}
-
-pub(crate) fn derive_settings(settings: &vello_cpu::RenderSettings) -> vello_cpu::RenderSettings {
-    vello_cpu::RenderSettings {
-        num_threads: 0,
-        ..*settings
     }
 }
 

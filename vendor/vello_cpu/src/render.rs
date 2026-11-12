@@ -3,14 +3,7 @@
 
 //! Basic render operations.
 
-use crate::RenderMode;
 use crate::dispatch::Dispatcher;
-#[cfg(feature = "multithreading")]
-use crate::dispatch::multi_threaded::MultiThreadedDispatcher;
-#[cfg(feature = "text")]
-use crate::text::{GlyphAtlasResources, GlyphRunBuilder};
-#[cfg(feature = "text")]
-use glifo::GlyphPrepCache;
 
 use crate::dispatch::single_threaded::SingleThreadedDispatcher;
 use crate::kurbo::{PathEl, Point};
@@ -35,8 +28,6 @@ use vello_common::render_state::RenderState;
 use vello_common::transforms::{RootTransforms, Transforms};
 use vello_common::util::into_fast_path_rect;
 
-#[cfg(feature = "text")]
-pub(crate) const DEFAULT_GLYPH_ATLAS_SIZE: u16 = 4096;
 // Why do we need this? The reason is that the way uploaded images work in Vello GPU
 // is different from how they work in Vello CPU.
 //
@@ -63,30 +54,12 @@ pub(crate) const ATLAS_IMAGE_ID_BASE: u32 = u32::MAX / 2;
 #[derive(Debug, Default)]
 pub struct Resources {
     pub(crate) image_registry: ImageRegistry,
-    #[cfg(feature = "text")]
-    pub(crate) glyph_prep_cache: GlyphPrepCache,
-    // Will be initialized lazily on first use.
-    #[cfg(feature = "text")]
-    pub(crate) glyph_resources: Option<GlyphAtlasResources>,
 }
 
 impl Resources {
     /// Create a new set of renderer resources.
     pub fn new() -> Self {
         Self::default()
-    }
-
-    pub(crate) fn before_render(&mut self, render_mode: RenderMode) {
-        #[cfg(feature = "text")]
-        self.prepare_glyph_cache(render_mode);
-
-        #[cfg(not(feature = "text"))]
-        let _ = render_mode;
-    }
-
-    pub(crate) fn after_render(&mut self) {
-        #[cfg(feature = "text")]
-        self.maintain_glyph_cache();
     }
 }
 
@@ -104,16 +77,6 @@ pub enum PixelFormat {
 /// Settings used when rasterizing a scene into a pixmap.
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct RasterizerSettings {
-    /// Whether to prioritize speed or quality when rendering.
-    ///
-    /// For most cases (especially for real-time rendering), it is highly recommended to set
-    /// this to [`RenderMode::OptimizeSpeed`]. If color accuracy is a more significant concern,
-    /// then you can set this to [`RenderMode::OptimizeQuality`].
-    ///
-    /// Currently, the only difference this makes is that when choosing [`RenderMode::OptimizeSpeed`],
-    /// rasterization will happen using u8/u16,
-    /// while [`RenderMode::OptimizeQuality`] will use a f32-based pipeline.
-    pub render_mode: RenderMode,
     /// How the destination is initialized before drawing.
     pub target_init: TargetInit,
     /// Pixel format of the destination.
@@ -127,7 +90,6 @@ pub struct RasterizerSettings {
 impl Default for RasterizerSettings {
     fn default() -> Self {
         Self {
-            render_mode: RenderMode::OptimizeSpeed,
             target_init: TargetInit::Clear(AlphaColor::TRANSPARENT),
             pixel_format: PixelFormat::Rgba8,
             offset: (0, 0),
@@ -157,10 +119,6 @@ pub struct RenderContext {
     pub(crate) aliasing_threshold: Option<u8>,
     pub(crate) encoded_paints: Vec<EncodedPaint>,
     pub(crate) filter: Option<Filter>,
-    #[cfg_attr(
-        not(feature = "text"),
-        allow(dead_code, reason = "used when the `text` feature is enabled")
-    )]
     pub(crate) render_settings: RenderSettings,
     dispatcher: Box<dyn Dispatcher>,
 }
@@ -170,23 +128,12 @@ pub struct RenderContext {
 pub struct RenderSettings {
     /// The SIMD level that should be used for rendering operations.
     pub level: Level,
-    /// The number of worker threads that should be used for rendering. Only has an effect
-    /// if the `multithreading` feature is active.
-    pub num_threads: u16,
 }
 
 impl Default for RenderSettings {
     fn default() -> Self {
         Self {
             level: Level::try_detect().unwrap_or(Level::baseline()),
-            #[cfg(feature = "multithreading")]
-            num_threads: (std::thread::available_parallelism()
-                .unwrap()
-                .get()
-                .saturating_sub(1) as u16)
-                .min(8),
-            #[cfg(not(feature = "multithreading"))]
-            num_threads: 0,
         }
     }
 }
@@ -199,21 +146,8 @@ impl RenderContext {
 
     /// Create a new render context with specific settings.
     pub fn new_with(width: u16, height: u16, settings: RenderSettings) -> Self {
-        #[cfg(feature = "multithreading")]
-        let dispatcher: Box<dyn Dispatcher> = if settings.num_threads == 0 {
-            Box::new(SingleThreadedDispatcher::new(width, height, settings.level))
-        } else {
-            Box::new(MultiThreadedDispatcher::new(
-                width,
-                height,
-                settings.num_threads,
-                settings.level,
-            ))
-        };
-
-        #[cfg(not(feature = "multithreading"))]
         let dispatcher: Box<dyn Dispatcher> =
-            { Box::new(SingleThreadedDispatcher::new(width, height, settings.level)) };
+            Box::new(SingleThreadedDispatcher::new(width, height, settings.level));
 
         let encoded_paints = vec![];
         let temp_path = BezPath::new();
@@ -516,25 +450,6 @@ impl RenderContext {
         );
     }
 
-    /// Creates a builder for drawing a run of glyphs that have the same attributes.
-    #[cfg(feature = "text")]
-    pub fn glyph_run<'a>(
-        &'a mut self,
-        resources: &'a mut Resources,
-        font: &crate::peniko::FontData,
-    ) -> GlyphRunBuilder<'a> {
-        glifo::GlyphRunBuilder::new(
-            font.clone(),
-            self.transforms().scene_transform(),
-            *self.transforms().paint_transform(),
-            crate::text::CpuGlyphRunBackend {
-                ctx: self,
-                resources,
-                atlas_cache_enabled: false,
-            },
-        )
-    }
-
     /// Push a new layer with the given properties.
     ///
     /// Note that the mask, if provided, needs to have the same size as the render context. Otherwise,
@@ -661,12 +576,6 @@ impl RenderContext {
     /// Get the current stroke.
     pub fn stroke(&self) -> &Stroke {
         &self.state.stroke
-    }
-
-    /// Get a mutable reference to the current stroke.
-    #[cfg(feature = "text")]
-    pub(crate) fn stroke_mut(&mut self) -> &mut Stroke {
-        &mut self.state.stroke
     }
 
     /// Set the current paint.
@@ -896,7 +805,6 @@ impl RenderContext {
             "some layers haven't been popped yet"
         );
 
-        resources.before_render(settings.render_mode);
         let mut target = target.into();
         let target_fully_covered = settings.offset == (0, 0)
             && self.width >= target.width()
@@ -939,12 +847,6 @@ impl RenderContext {
             &self.encoded_paints,
             &resources.image_registry,
         );
-        // TODO: We need to figure something out here API-wise. At the moment, the user can
-        // theoretically rasterize the same `RenderContext` multiple times without resetting in-between.
-        // However, if glyph caching is enabled, this method call could now evict that were previously
-        // assumed to exist in `RenderContext`, meaning that if the user rasterizes the same `RenderContext`
-        // again without resetting it, some of the cached glyphs might be stale and not exist anymore.
-        resources.after_render();
     }
 
     /// recto: the bytes held for what's been drawn and not yet rasterized: its strips, their alphas,
@@ -1026,11 +928,6 @@ impl RenderContext {
     pub fn restore_state(&mut self, state: RenderState) {
         self.state = state;
     }
-
-    /// Whether rendering is currently configured to run in multi-threaded mode.
-    pub fn is_multi_threaded(&self) -> bool {
-        self.dispatcher.is_multi_threaded()
-    }
 }
 
 /// Image registry implementation.
@@ -1078,21 +975,8 @@ impl ImageRegistry {
         ImageId::new(id)
     }
 
-    #[cfg(feature = "text")]
-    pub(crate) fn register_atlas_page(&mut self, page_index: u32, pixmap: Arc<Pixmap>) {
-        self.images.insert(
-            ImageId::new(ATLAS_IMAGE_ID_BASE + page_index).as_u32(),
-            pixmap,
-        );
-    }
-
     pub(crate) fn destroy(&mut self, id: ImageId) -> bool {
         self.images.remove(&id.as_u32()).is_some()
-    }
-
-    #[cfg(feature = "text")]
-    pub(crate) fn destroy_atlas_page(&mut self, page_index: u32) -> bool {
-        self.destroy(ImageId::new(ATLAS_IMAGE_ID_BASE + page_index))
     }
 
     fn resolve(&self, id: ImageId) -> Option<Arc<Pixmap>> {
@@ -1108,463 +992,5 @@ impl ImageRegistry {
 impl ImageResolver for ImageRegistry {
     fn resolve(&self, id: ImageId) -> Option<Arc<Pixmap>> {
         self.images.get(&id.as_u32()).cloned()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[cfg(feature = "text")]
-    use crate::peniko::{Blob, FontData};
-    use crate::{RasterizerSettings, RenderContext, Resources, TargetInit};
-    #[cfg(feature = "text")]
-    use alloc::sync::Arc;
-    use alloc::vec;
-    #[cfg(feature = "text")]
-    use glifo::Glyph;
-    use vello_common::color::PremulRgba8;
-    use vello_common::color::palette::css::{BLUE, RED};
-    use vello_common::kurbo::{Rect, Shape};
-    use vello_common::peniko::ImageAlphaType;
-    use vello_common::pixmap::{PixelMetadata, Pixmap, PixmapMut};
-    use vello_common::tile::Tile;
-
-    const GRAY: PremulRgba8 = PremulRgba8 {
-        r: 9,
-        g: 10,
-        b: 11,
-        a: 255,
-    };
-
-    fn red_pixel() -> PremulRgba8 {
-        RED.premultiply().to_rgba8()
-    }
-
-    fn blue_pixel() -> PremulRgba8 {
-        BLUE.premultiply().to_rgba8()
-    }
-
-    fn transparent_pixel() -> PremulRgba8 {
-        PremulRgba8::from_u32(0)
-    }
-
-    fn solid_pixmap(width: u16, height: u16, color: PremulRgba8) -> Pixmap {
-        Pixmap::from_parts(
-            bytemuck::cast_vec(vec![color; usize::from(width) * usize::from(height)]),
-            width,
-            height,
-            PixelMetadata::new(ImageAlphaType::AlphaPremultiplied, color.a != 255),
-        )
-    }
-
-    fn red_rect_context(width: u16, height: u16, rect: Rect) -> RenderContext {
-        let mut ctx = RenderContext::new(width, height);
-        ctx.set_paint(RED);
-        ctx.fill_rect(&rect);
-        ctx.flush();
-        ctx
-    }
-
-    #[test]
-    fn clip_overflow() {
-        let mut ctx = RenderContext::new(100, 100);
-
-        for _ in 0..(usize::from(u16::MAX) + 1).div_ceil(usize::from(Tile::HEIGHT * Tile::WIDTH)) {
-            ctx.fill_rect(&Rect::new(0.0, 0.0, 1.0, 1.0));
-        }
-
-        ctx.push_clip_layer(&Rect::new(20.0, 20.0, 180.0, 180.0).to_path(0.1));
-        ctx.pop_layer();
-        ctx.flush();
-    }
-
-    #[test]
-    fn render_with_offset_clears_pixels_outside_scene() {
-        let ctx = red_rect_context(2, 2, Rect::new(0.0, 0.0, 2.0, 2.0));
-        let mut resources = Resources::new();
-        let mut pixmap = solid_pixmap(4, 3, GRAY);
-
-        ctx.render_with(
-            &mut pixmap,
-            &mut resources,
-            RasterizerSettings {
-                offset: (1, 1),
-                ..Default::default()
-            },
-        );
-
-        for y in 0..3 {
-            for x in 0..4 {
-                let expected = if (1..=2).contains(&x) && (1..=2).contains(&y) {
-                    red_pixel()
-                } else {
-                    transparent_pixel()
-                };
-
-                assert_eq!(pixmap.sample(x, y), expected, "pixel at ({x}, {y})");
-            }
-        }
-    }
-
-    #[test]
-    fn render_clips_scene_to_target_bounds() {
-        let ctx = red_rect_context(3, 3, Rect::new(0.0, 0.0, 3.0, 3.0));
-        let mut resources = Resources::new();
-        let mut pixmap = solid_pixmap(4, 4, GRAY);
-
-        ctx.render_with(
-            &mut pixmap,
-            &mut resources,
-            RasterizerSettings {
-                offset: (2, 1),
-                ..Default::default()
-            },
-        );
-
-        for y in 0..4 {
-            for x in 0..4 {
-                let expected = if (2..=3).contains(&x) && (1..=3).contains(&y) {
-                    red_pixel()
-                } else {
-                    transparent_pixel()
-                };
-                assert_eq!(pixmap.sample(x, y), expected, "pixel at ({x}, {y})");
-            }
-        }
-    }
-
-    #[test]
-    fn render_into_padded_pixmap() {
-        let ctx = red_rect_context(2, 2, Rect::new(0.0, 0.0, 2.0, 2.0));
-        let mut resources = Resources::new();
-        let mut pixmap = solid_pixmap(4, 2, GRAY);
-
-        ctx.render(&mut pixmap, &mut resources);
-
-        for y in 0..2 {
-            for x in 0..4 {
-                let expected = if x < 2 {
-                    red_pixel()
-                } else {
-                    transparent_pixel()
-                };
-                assert_eq!(pixmap.sample(x, y), expected, "pixel at ({x}, {y})");
-            }
-        }
-    }
-
-    #[test]
-    fn reset_and_resize_updates_scene_size() {
-        let mut ctx = RenderContext::new(8, 4);
-        let mut resources = Resources::new();
-        let mut pixmap = Pixmap::new(4, 8);
-
-        ctx.reset_and_resize(4, 8);
-        assert_eq!(ctx.width(), 4);
-        assert_eq!(ctx.height(), 8);
-
-        ctx.set_paint(BLUE);
-        ctx.fill_rect(&Rect::new(0.0, 0.0, 4.0, 8.0));
-        ctx.flush();
-        ctx.render(&mut pixmap, &mut resources);
-
-        for y in 0..8 {
-            for x in 0..4 {
-                assert_eq!(pixmap.sample(x, y), blue_pixel(), "pixel at ({x}, {y})");
-            }
-        }
-    }
-
-    #[test]
-    fn reset_restores_default_aliasing_threshold() {
-        let mut ctx = RenderContext::new(4, 4);
-        ctx.set_aliasing_threshold(Some(128));
-
-        ctx.reset();
-
-        assert_eq!(ctx.aliasing_threshold, None);
-    }
-
-    #[test]
-    fn render_into_raw_buffer() {
-        let ctx = red_rect_context(2, 1, Rect::new(0.0, 0.0, 2.0, 1.0));
-        let mut resources = Resources::new();
-        let mut buffer = vec![0; 3 * 2 * 4];
-        for pixel in buffer.chunks_exact_mut(4) {
-            pixel.copy_from_slice(&[GRAY.r, GRAY.g, GRAY.b, GRAY.a]);
-        }
-
-        {
-            let pixmap = PixmapMut::new(3, 2, &mut buffer).unwrap();
-            ctx.render_with(
-                pixmap,
-                &mut resources,
-                RasterizerSettings {
-                    offset: (1, 1),
-                    ..Default::default()
-                },
-            );
-        }
-
-        let expected = [
-            transparent_pixel(),
-            transparent_pixel(),
-            transparent_pixel(),
-            transparent_pixel(),
-            red_pixel(),
-            red_pixel(),
-        ];
-        for (pixel, expected) in buffer.chunks_exact(4).zip(expected) {
-            assert_eq!(pixel, [expected.r, expected.g, expected.b, expected.a]);
-        }
-    }
-
-    #[test]
-    fn pixmap_mut_validates_buffer_length() {
-        let mut short_buffer = vec![0; 3 * 2 * 4 - 1];
-        assert!(PixmapMut::new(3, 2, &mut short_buffer).is_none());
-
-        let mut exact_buffer = vec![0; 3 * 2 * 4];
-        assert!(PixmapMut::new(3, 2, &mut exact_buffer).is_some());
-    }
-
-    #[test]
-    fn render_preserves_target_under_opaque_draw() {
-        let ctx = red_rect_context(2, 1, Rect::new(0.0, 0.0, 1.0, 1.0));
-        let mut resources = Resources::new();
-        let mut pixmap = solid_pixmap(2, 1, blue_pixel());
-
-        ctx.render_with(
-            &mut pixmap,
-            &mut resources,
-            RasterizerSettings {
-                target_init: TargetInit::SrcOver,
-                ..Default::default()
-            },
-        );
-
-        assert_eq!(pixmap.sample(0, 0), red_pixel());
-        assert_eq!(pixmap.sample(1, 0), blue_pixel());
-    }
-
-    #[test]
-    fn render_preserves_target_under_translucent_draw() {
-        let mut ctx = RenderContext::new(1, 1);
-        ctx.set_paint(RED.with_alpha(0.5));
-        ctx.fill_rect(&Rect::new(0.0, 0.0, 1.0, 1.0));
-        ctx.flush();
-
-        let mut resources = Resources::new();
-        let mut pixmap = solid_pixmap(1, 1, blue_pixel());
-
-        ctx.render_with(
-            &mut pixmap,
-            &mut resources,
-            RasterizerSettings {
-                target_init: TargetInit::SrcOver,
-                ..Default::default()
-            },
-        );
-
-        assert_eq!(
-            pixmap.sample(0, 0),
-            PremulRgba8 {
-                r: 128,
-                g: 0,
-                b: 127,
-                a: 255,
-            }
-        );
-    }
-
-    #[test]
-    fn opaque_clear_updates_target_transparency_hint() {
-        let mut ctx = RenderContext::new(1, 1);
-        ctx.flush();
-        let mut resources = Resources::new();
-        let mut pixmap = Pixmap::new(1, 1);
-
-        ctx.render_with(
-            &mut pixmap,
-            &mut resources,
-            RasterizerSettings {
-                target_init: TargetInit::Clear(BLUE),
-                ..Default::default()
-            },
-        );
-
-        assert!(!pixmap.may_have_transparency());
-        assert_eq!(pixmap.sample(0, 0), blue_pixel());
-    }
-
-    #[test]
-    fn translucent_clear_updates_target_transparency_hint() {
-        let mut ctx = RenderContext::new(1, 1);
-        ctx.flush();
-        let mut resources = Resources::new();
-        let mut pixmap = solid_pixmap(1, 1, blue_pixel());
-        let clear_color = RED.with_alpha(0.5);
-
-        ctx.render_with(
-            &mut pixmap,
-            &mut resources,
-            RasterizerSettings {
-                target_init: TargetInit::Clear(clear_color),
-                ..Default::default()
-            },
-        );
-
-        assert!(pixmap.may_have_transparency());
-        assert_eq!(pixmap.sample(0, 0), clear_color.premultiply().to_rgba8());
-    }
-
-    #[cfg(feature = "multithreading")]
-    #[test]
-    fn multithreaded_crash_after_reset() {
-        use crate::{Level, RasterizerSettings, RenderMode, RenderSettings};
-
-        let mut pixmap = Pixmap::new(200, 200);
-        let settings = RenderSettings {
-            level: Level::try_detect().unwrap_or(Level::baseline()),
-            num_threads: 1,
-        };
-        let rasterizer_settings = RasterizerSettings {
-            render_mode: RenderMode::OptimizeQuality,
-            ..Default::default()
-        };
-
-        let mut resources = Resources::new();
-        let mut ctx = RenderContext::new_with(200, 200, settings);
-        ctx.reset();
-        ctx.fill_path(&Rect::new(0.0, 0.0, 100.0, 100.0).to_path(0.1));
-        ctx.flush();
-        ctx.render_with(&mut pixmap, &mut resources, rasterizer_settings);
-        ctx.flush();
-        ctx.render_with(&mut pixmap, &mut resources, rasterizer_settings);
-    }
-
-    #[cfg(feature = "multithreading")]
-    #[test]
-    fn multithreaded_render_empty_frame_after_reset() {
-        use crate::RenderSettings;
-
-        let mut ctx = RenderContext::new_with(
-            100,
-            100,
-            RenderSettings {
-                num_threads: 4,
-                ..Default::default()
-            },
-        );
-        let mut resources = Resources::new();
-        let mut pixmap = Pixmap::new(100, 100);
-
-        ctx.fill_rect(&Rect::new(0.0, 0.0, 100.0, 100.0));
-        ctx.flush();
-        ctx.render(&mut pixmap, &mut resources);
-
-        ctx.reset();
-        ctx.flush();
-        ctx.render(&mut pixmap, &mut resources);
-    }
-
-    #[cfg(feature = "multithreading")]
-    #[test]
-    fn multithreaded_push_clip_path_before_draw() {
-        use crate::RenderSettings;
-
-        let mut ctx = RenderContext::new_with(
-            100,
-            100,
-            RenderSettings {
-                num_threads: 1,
-                ..Default::default()
-            },
-        );
-        let clip = Rect::new(0.0, 0.0, 50.0, 50.0).to_path(0.1);
-
-        // Just make sure we don't panic.
-        ctx.push_clip_path(&clip);
-        ctx.flush();
-        ctx.pop_clip();
-        ctx.flush();
-    }
-
-    #[cfg(feature = "multithreading")]
-    #[test]
-    fn multithreaded_reset_with_pending_tasks() {
-        use crate::RenderSettings;
-
-        let mut ctx = RenderContext::new_with(
-            100,
-            100,
-            RenderSettings {
-                num_threads: 4,
-                ..Default::default()
-            },
-        );
-
-        // Note: This test only works if we draw enough rectangles
-        // to trigger a batch send.
-        for _ in 0..300 {
-            ctx.fill_rect(&Rect::new(0.0, 0.0, 100., 100.0));
-        }
-
-        ctx.reset();
-    }
-
-    #[cfg(feature = "multithreading")]
-    #[test]
-    fn multithreaded_drop_with_pending_tasks() {
-        use crate::RenderSettings;
-
-        for _ in 0..10 {
-            let mut ctx = RenderContext::new_with(
-                100,
-                100,
-                RenderSettings {
-                    num_threads: 4,
-                    ..Default::default()
-                },
-            );
-
-            // Note: This test only works if we draw enough rectangles
-            // to trigger a batch send.
-            for _ in 0..300 {
-                ctx.fill_rect(&Rect::new(0.0, 0.0, 100., 100.0));
-            }
-
-            drop(ctx);
-        }
-    }
-
-    #[cfg(feature = "text")]
-    #[test]
-    fn glyph_atlas_resources_are_lazy() {
-        const ROBOTO_FONT: &[u8] = include_bytes!("../../assets/roboto/Roboto-Regular.ttf");
-
-        let font = FontData::new(Blob::new(Arc::new(ROBOTO_FONT)), 0);
-        let glyphs = [Glyph {
-            id: 1,
-            x: 0.0,
-            y: 0.0,
-        }];
-
-        let mut resources = Resources::new();
-        let mut ctx = RenderContext::new(100, 100);
-
-        ctx.fill_rect(&Rect::new(0.0, 0.0, 10.0, 10.0));
-        ctx.fill_path(&Rect::new(10.0, 10.0, 20.0, 20.0).to_path(0.1));
-        ctx.glyph_run(&mut resources, &font)
-            .fill_glyphs(glyphs.into_iter())
-            .unwrap();
-
-        assert!(resources.glyph_resources.is_none());
-
-        ctx.glyph_run(&mut resources, &font)
-            .atlas_cache(true)
-            .fill_glyphs(glyphs.into_iter())
-            .unwrap();
-
-        assert!(resources.glyph_resources.is_some());
     }
 }

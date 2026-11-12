@@ -46,9 +46,7 @@ default = [
     "neon",
     "std",
 ]
-log = ["zune-core/log"]
 neon = []
-portable_simd = []
 std = ["zune-core/std"]
 x86 = []
 

@@ -4,6 +4,14 @@
 
 ### Changed
 
+- **The vendored crates hold only what recto builds: 7,983 fewer lines and 13 fewer crates in the lock.**
+  `vello_cpu` drops what `hayro` never turned on (multithreading, the f32 pipeline, glyph runs, PNG, and
+  `RenderMode` and `num_threads`, which only chose between those) and its tests; `hayro` drops `image`,
+  which it didn't use; `zune-jpeg` drops `portable_simd`; `hayro-syntax` and `hayro-interpret` drop unit
+  tests that can't be built in this repository; `js-sys` is built without its default features, which only
+  brought `futures-util` in. `Cargo.lock` lists 76 crates, from 89. Pages and text are the same to the byte
+  on the corpus (1,337 pages of 531 files at 1024 px), and so is the wasm's code but for line numbers in
+  `vello_cpu`'s panic messages and the parameters it no longer passes; vendor/README.md lists what went.
 - **Text draws faster, and a page holds a bounded amount however many glyphs it draws.** A cached glyph was an
   RGBA image of which only the alpha was set, and every glyph drawn encoded an image paint of its own that was
   sampled, tinted and composited pixel by pixel, and held until the page was rasterized: 885 bytes a glyph, so

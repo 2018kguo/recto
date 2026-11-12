@@ -51,11 +51,6 @@ version = "1.0.0"
 version = "0.9.0"
 default-features = false
 
-[dependencies.image]
-version = "0.25"
-features = ["png"]
-default-features = false
-
 [dependencies.kurbo]
 version = "0.13.0"
 
@@ -73,12 +68,6 @@ version = "2"
 
 [dependencies.vello_cpu]
 version = "0.3"
-features = [
-    "std",
-    "png",
-    "u8_pipeline",
-]
-default-features = false
 
 [lints.clippy]
 collection_is_never_read = "warn"

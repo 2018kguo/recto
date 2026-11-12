@@ -22,30 +22,3 @@ pub(crate) fn calculate(data: &[u8]) -> [u8; 48] {
 
     result
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use sha2::{Digest, Sha384};
-
-    #[test]
-    fn correctness() {
-        let test_cases = [
-            b"" as &[u8],
-            b"a",
-            b"abc",
-            b"Hello, World!",
-            &[0xde, 0xad, 0xbe, 0xef],
-        ];
-
-        for test_case in test_cases {
-            let our_result = calculate(test_case);
-            let expected = Sha384::digest(test_case);
-            assert_eq!(
-                our_result,
-                expected.as_slice(),
-                "Failed for input: {test_case:?}"
-            );
-        }
-    }
-}

@@ -247,38 +247,3 @@ fn fill_short<T: Copy>(slice: &mut [T], value: T) {
         _ => slice.fill(value),
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::decode;
-    use crate::object::FromBytes;
-    use crate::object::dict::Dict;
-    use crate::object::stream::ImageDecodeParams;
-
-    #[test]
-    fn issue1258() {
-        let params = Dict::from_bytes(b"<< /K 0 /Columns 8 /Rows 1 >>").unwrap();
-
-        let decoded = decode(&[0x35, 0x14], &params, &ImageDecodeParams::default()).unwrap();
-
-        assert_eq!(decoded.data.as_ref(), &[0; 8]);
-        assert_eq!(decoded.image_data.unwrap().height, 1);
-    }
-
-    #[test]
-    fn unknown_rows() {
-        let params = Dict::from_bytes(b"<< /K 0 /Columns 8 >>").unwrap();
-
-        let decoded = decode(&[0x35, 0x14], &params, &ImageDecodeParams::default()).unwrap();
-        assert_eq!(decoded.data.as_ref(), &[0; 8]);
-        assert_eq!(decoded.image_data.unwrap().height, 1);
-
-        let image_params = ImageDecodeParams {
-            is_indexed: true,
-            ..Default::default()
-        };
-        let decoded = decode(&[0x35, 0x14], &params, &image_params).unwrap();
-        assert_eq!(decoded.data.as_ref(), &[0]);
-        assert_eq!(decoded.image_data.unwrap().height, 1);
-    }
-}
