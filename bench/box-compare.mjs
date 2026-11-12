@@ -327,7 +327,7 @@ async function scoreFile(file) {
   let jdoc;
   let mdoc = null;
   try {
-    mdoc = mupdf.Document.openDocument(bytes, "application/pdf");
+    mdoc = new mupdf.PDFDocument(bytes);
   } catch {
     // Scored without MuPDF's columns.
   }

@@ -312,13 +312,14 @@ async function run(values) {
     for (const engine of engines) {
       const mine = row[engine];
       const others = engines.filter((e) => e !== engine).map((e) => row[e]);
-      const whatOthersDid = others.filter((r) => r.outcome === "ok" || r.outcome === "page-error");
+      // A file opened with no pages hasn't been read: it doesn't count as another engine doing better.
+      const whatOthersDid = others.filter((r) => (r.outcome === "ok" || r.outcome === "page-error") && r.pageCount > 0);
       if (whatOthersDid.length === 0) continue;
       const problems = [];
       const soft = [];
       if (!["ok", "page-error"].includes(mine.outcome)) problems.push(`${mine.outcome}${mine.code ? ` ${mine.code}` : ""}${mine.step && mine.outcome !== "open-error" ? ` at ${mine.step}` : ""}`);
       else {
-        const counts = others.filter((r) => r.pageCount !== null).map((r) => r.pageCount);
+        const counts = whatOthersDid.map((r) => r.pageCount);
         if (counts.length && !counts.includes(mine.pageCount)) problems.push(`page count ${mine.pageCount} where others say ${counts.join("/")}`);
         for (const p of mine.text.concat(mine.render).filter((p) => p.failed)) {
           const kind = "words" in p || mine.text.includes(p) ? "text" : "render";

@@ -1,5 +1,5 @@
 {
- "date": "2026-11-12T18:50:58.145Z",
+ "date": "2026-11-12T19:33:41.469Z",
  "settings": {
   "width": 800,
   "pagesPerFile": 3,
@@ -239,7 +239,7 @@
   "pdfium": 130,
   "pdf.js": 767,
   "poppler": 73,
-  "mupdf": 266
+  "mupdf": 267
  },
  "contestedWhereRectoIsFurthest": 12,
  "nearMisses": 30,

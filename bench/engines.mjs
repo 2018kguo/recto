@@ -132,7 +132,9 @@ export function mupdfEngine(mupdf) {
   return {
     name: "mupdf",
     async open(bytes) {
-      const doc = mupdf.Document.openDocument(bytes, "application/pdf");
+      // `PDFDocument`, not `Document.openDocument`: the latter sniffs the bytes and opens HTML or an
+      // image as a document of its own, which is not reading a PDF.
+      const doc = new mupdf.PDFDocument(bytes);
       if (doc.needsPassword()) {
         doc.destroy();
         throw new Error("mupdf could not open it: needs a password");
