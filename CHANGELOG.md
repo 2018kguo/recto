@@ -1,6 +1,14 @@
 # Changelog
 
-## Unreleased
+## 0.6.0
+
+Pages draw a quarter to a third faster and in less memory, the scorecard rises to 97.92%, and the
+package downloads less. Against 0.5.3 on the scoreboard (`bench/scoreboard/0.6.0.json`, 8 alternating
+rounds), the median page draws 15 to 33% faster and the 90th-percentile page 16 to 21% faster, in
+WebAssembly and natively, at 1024 and 1600 px; peak memory is 4 to 5% lower; a cold engine's first page
+comes about 6% sooner; text is unchanged, character for character, and as fast. Reading text and drawing
+download 7.2 kB and 5.6 kB less (brotli). The vendored renderer this needed leaves recto with more vendored
+Rust (48,681 lines, from 43,630) and 13 fewer crates.
 
 ### Changed
 
@@ -47,6 +55,25 @@
   3.4 ms where it took 4.7 natively, and draws in 6.2 ms where it took 7.5. Every char, box, font and flag
   of the 10,354 pages, and every pixel of the first three of each file, are the same. The text part of the
   wasm is 0.8 kB larger.
+- **A list of objects each linked to the next reads in time linear in its length.** Every object read carried
+  the chain of objects read to reach it, and copied and searched it at each step, so walking a list linked by
+  `/Next`, as an outline's bookmarks are, took time in the square of its length: listing 64,000 bookmarks took
+  0.78 s, and takes 0.04 s now (natively). The chain keeps its last 64 objects (no chain in the 531 files of the
+  benchmark corpus holds more than 12), so a ring of references through up to 64 objects is refused where it
+  was; a longer ring, which was refused after one turn, is refused after 131,072 steps. Every pixel and
+  character of the corpus's pages is unchanged.
+- **A link or bookmark that names its page by index no longer looks through every page.** Some producers
+  write a destination's page as its index rather than a reference to it, and each such destination was checked
+  against the index of every page in turn, so n of them in an n-page file took time in n²: the outline of a
+  16,000-page file with a bookmark to each page took 0.14 s to list, and takes 0.02 s now (natively); a page of
+  8,000 such links, 0.038 s and now 0.012. The pages' indexes are gathered once a call. Every pixel and character
+  of the benchmark corpus's pages is unchanged.
+- **A pool's threads take `recto.wasm` as the pool compiled it.** The pool reads, checks and compiles the
+  wasm once as its first thread starts and hands each thread the compiled module, where every thread read,
+  hashed and compiled it again; a thread that can't take it loads its own, as before. A pool's first text
+  comes 5 to 11 ms sooner in Node. A changed wasm is still never compiled.
+- `npm run scoreboard -- --base <ref>`: speed, load, memory, size, growth exponents, fidelity and code size
+  of the tree against any ref, in alternating fresh processes, with each timed row's noise.
 
 ### Fixed
 
@@ -64,21 +91,6 @@
   edge of a cone (two circles apart, extended) a pixel out. Of the scorecard's 616 pages, the 21 with such
   shadings change, 15 of them closer to the references and the rest by a level or two of rounding; the radial
   gradients page in pdf.js's tests now agrees.
-### Changed
-
-- **A list of objects each linked to the next reads in time linear in its length.** Every object read carried
-  the chain of objects read to reach it, and copied and searched it at each step, so walking a list linked by
-  `/Next`, as an outline's bookmarks are, took time in the square of its length: listing 64,000 bookmarks took
-  0.78 s, and takes 0.04 s now (natively). The chain keeps its last 64 objects (no chain in the 531 files of the
-  benchmark corpus holds more than 12), so a ring of references through up to 64 objects is refused where it
-  was; a longer ring, which was refused after one turn, is refused after 131,072 steps. Every pixel and
-  character of the corpus's pages is unchanged.
-- **A link or bookmark that names its page by index no longer looks through every page.** Some producers
-  write a destination's page as its index rather than a reference to it, and each such destination was checked
-  against the index of every page in turn, so n of them in an n-page file took time in n²: the outline of a
-  16,000-page file with a bookmark to each page took 0.14 s to list, and takes 0.02 s now (natively); a page of
-  8,000 such links, 0.038 s and now 0.012. The pages' indexes are gathered once a call. Every pixel and character
-  of the benchmark corpus's pages is unchanged.
 
 ## 0.5.3
 
