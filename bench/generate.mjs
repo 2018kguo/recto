@@ -202,7 +202,7 @@ function coverContent() {
  * A report: a cover, then pages of a heading, paragraphs, a table, a chart and a captioned picture
  * on every `imageEvery`th page. Letter-size, standard fonts, not embedded. A fictional company.
  */
-export function reportPdf({ pages, seed = 7, imageEvery = 1, imageSize = 480 }) {
+export function reportPdf({ pages, seed = 7, imageEvery = 1, imageSize = 480, outline = false }) {
   const next = random(seed);
   const objects = [];
   const add = (object) => objects.push(object) && objects.length;
@@ -246,6 +246,34 @@ export function reportPdf({ pages, seed = 7, imageEvery = 1, imageSize = 480 }) 
     );
   }
   objects[1] = `<</Type /Pages /Count ${pages} /Kids [${kids.map((k) => `${k} 0 R`).join(" ")}]>>`;
+  if (outline && pages > 1) {
+    // Bookmarks: the cover, then a part per ten pages holding each page's heading.
+    const root = add("");
+    const entry = (title, page, parent) => ({ id: add(""), title, page, parent, kids: [] });
+    const top = [entry("Cover", 0, root)];
+    for (let page = 1; page < pages; page++) {
+      if ((page - 1) % 10 === 0) {
+        top.push(entry(`Part ${top.length}: pages ${page + 1}–${Math.min(pages, page + 10)}`, page, root));
+      }
+      const part = top.at(-1);
+      part.kids.push(entry(`${page}. ${SECTIONS[(page - 1 + SECTIONS.length) % SECTIONS.length]}`, page, part.id));
+    }
+    const write = (list) =>
+      list.forEach((item, i) => {
+        const links = [
+          i > 0 ? `/Prev ${list[i - 1].id} 0 R` : "",
+          i < list.length - 1 ? `/Next ${list[i + 1].id} 0 R` : "",
+          item.kids.length > 0 ? `/First ${item.kids[0].id} 0 R /Last ${item.kids.at(-1).id} 0 R /Count -${item.kids.length}` : "",
+        ].join(" ");
+        // A UTF-16 title, for the en dash.
+        const title = Buffer.from(`﻿${item.title}`, "utf16le").swap16().toString("hex");
+        objects[item.id - 1] = `<</Title <${title}> /Parent ${item.parent} 0 R ${links} /Dest [${kids[item.page]} 0 R /XYZ 0 792 null]>>`;
+        write(item.kids);
+      });
+    write(top);
+    objects[root - 1] = `<</Type /Outlines /First ${top[0].id} 0 R /Last ${top.at(-1).id} 0 R /Count ${top.length}>>`;
+    objects[0] = `<</Type /Catalog /Pages 2 0 R /Outlines ${root} 0 R>>`;
+  }
   return assemble(objects, 1);
 }
 

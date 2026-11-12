@@ -17,6 +17,8 @@ export const VIEWER_CSS = `
   overscroll-behavior: contain;
   /* A scrollbar that comes and goes with the fit would narrow the fit, and so on, for ever. */
   scrollbar-gutter: stable;
+  /* A pinch zooms the document, not the page around it; one finger still scrolls. */
+  touch-action: pan-x pan-y;
   background: var(--recto-background);
   outline: none;
 }

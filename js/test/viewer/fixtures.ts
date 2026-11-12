@@ -33,11 +33,17 @@ export type TextPdfOptions = {
   /** Width and height of every page but the last; the last can differ. */
   size?: [number, number];
   lastSize?: [number, number];
+  /** A ToUnicode map for the font: byte code to the text it stands for, as a ligature or a lone accent might. */
+  toUnicode?: Record<number, string>;
+  /** Bookmarks: a title and the page (from 1) it goes to, nested by `children`. */
+  outline?: FixtureOutline[];
 };
+
+export type FixtureOutline = { title: string; page: number; children?: FixtureOutline[] };
 
 /** "Page n line i" on every page, in Helvetica, 14 pt apart from the top. */
 export function textPdf(options: TextPdfOptions): Uint8Array {
-  const { pages, lines = 3, padBytes = 0, links = false, extra = [], size = [612, 792], lastSize = size } = options;
+  const { pages, lines = 3, padBytes = 0, links = false, extra = [], size = [612, 792], lastSize = size, toUnicode, outline = [] } = options;
   const parts: Uint8Array[] = [];
   let length = 0;
   const push = (part: string | Uint8Array) => {
@@ -60,9 +66,13 @@ export function textPdf(options: TextPdfOptions): Uint8Array {
   // 1 catalog, 2 pages, 3 font, then per page: page, content, filler; then the link annotations.
   const pageId = (page: number) => 4 + 3 * (page - 1);
   const annots = 4 + 3 * pages;
-  object(1, "<< /Type /Catalog /Pages 2 0 R >>");
+  const outlineRoot = outline.length > 0 ? annots + (links ? 4 : 0) + (toUnicode ? 1 : 0) : 0;
+  object(1, `<< /Type /Catalog /Pages 2 0 R${outlineRoot ? ` /Outlines ${outlineRoot} 0 R` : ""} >>`);
   object(2, `<< /Type /Pages /Kids [${Array.from({ length: pages }, (_, i) => `${pageId(i + 1)} 0 R`).join(" ")}] /Count ${pages} >>`);
-  object(3, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+  // Objects past the pages and links: the ToUnicode map, then the outline.
+  let spare = (links ? annots + 4 : annots);
+  const cmapId = toUnicode ? spare++ : 0;
+  object(3, `<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica${cmapId ? ` /ToUnicode ${cmapId} 0 R` : ""} >>`);
   for (let page = 1; page <= pages; page++) {
     const [width, height] = page === pages ? lastSize : size;
     const id = pageId(page);
@@ -82,7 +92,36 @@ export function textPdf(options: TextPdfOptions): Uint8Array {
     object(annots + 2, "<< /Type /Annot /Subtype /Link /Rect [72 520 272 540] /A << /S /URI /URI (mailto:someone@example.com) >> >>");
     object(annots + 3, `<< /Type /Annot /Subtype /Link /Rect [72 480 272 500] /Dest [${pageId(Math.min(2, pages))} 0 R /XYZ 36 400 null] >>`);
   }
-  const count = links ? annots + 4 : annots;
+  if (toUnicode) {
+    const hex = (text: string) => [...text].map((unit) => unit.charCodeAt(0).toString(16).padStart(4, "0")).join("");
+    const entries = Object.entries(toUnicode).map(([code, text]) => `<${Number(code).toString(16).padStart(2, "0")}> <${hex(text)}>`);
+    // Every other code reads as its Latin-1 self.
+    const cmap = `/CIDInit /ProcSet findresource begin 12 dict begin begincmap /CMapName /Fixture def 1 begincodespacerange <00> <FF> endcodespacerange ${entries.length} beginbfchar ${entries.join(" ")} endbfchar 1 beginbfrange <20> <7e> <0020> endbfrange endcmap CMapName currentdict /CMap defineresource pop end end`;
+    stream(cmapId, encoder.encode(cmap));
+  }
+  if (outlineRoot) {
+    // Ids in a depth-first walk, after the root.
+    let nextId = outlineRoot + 1;
+    const assign = (items: FixtureOutline[]): { item: FixtureOutline; id: number; kids: ReturnType<typeof assign> }[] =>
+      items.map((item) => ({ id: nextId++, item, kids: assign(item.children ?? []) }));
+    const tree = assign(outline);
+    const write = (nodes: ReturnType<typeof assign>, parent: number) => {
+      nodes.forEach(({ id, item, kids }, i) => {
+        const links = [
+          `/Parent ${parent} 0 R`,
+          i > 0 ? `/Prev ${nodes[i - 1]!.id} 0 R` : "",
+          i < nodes.length - 1 ? `/Next ${nodes[i + 1]!.id} 0 R` : "",
+          kids.length ? `/First ${kids[0]!.id} 0 R /Last ${kids.at(-1)!.id} 0 R /Count ${kids.length}` : "",
+        ].join(" ");
+        object(id, `<< /Title (${item.title}) ${links} /Dest [${pageId(item.page)} 0 R /XYZ 0 ${size[1] - 100} null] >>`);
+        write(kids, id);
+      });
+    };
+    object(outlineRoot, `<< /Type /Outlines /First ${tree[0]!.id} 0 R /Last ${tree.at(-1)!.id} 0 R /Count ${tree.length} >>`);
+    write(tree, outlineRoot);
+    spare = nextId;
+  }
+  const count = spare;
   const xref = length;
   push(`xref\n0 ${count}\n0000000000 65535 f \n`);
   for (let id = 1; id < count; id++) {

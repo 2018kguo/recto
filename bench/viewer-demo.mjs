@@ -17,7 +17,7 @@ if (!fs.existsSync(path.join(here, "../js/dist/viewer/index.js"))) {
   process.exit(1);
 }
 const server = await serve({ extraRoots: { demo: path.join(here, "viewer-demo") } });
-server.docs.set("sample.pdf", reportPdf({ pages: 60, imageEvery: 4, imageSize: 320 }));
+server.docs.set("sample.pdf", reportPdf({ pages: 60, imageEvery: 4, imageSize: 320, outline: true }));
 let open = "";
 const file = process.argv[2];
 if (file) {

@@ -16,7 +16,8 @@ npm run bench -- dir   # recto, pdf.js and pdfium in Node, on a directory of PDF
 npm run bench:browser -- dir   # the same in Chromium: bytes, time, stutter, memory
 npm run assets         # the film, images and chart under docs/; needs ffmpeg
 npm run demo [-- file.pdf]     # the viewer on a page of its own, for a dropped file
-node bench/viewer-smoke.mjs    # the built viewer in Chromium, WebKit and Firefox, and at phone width
+node bench/viewer-smoke.mjs    # the built viewer in Chromium, WebKit and Firefox, at 2x, at phone width, and a touch pinch
+node bench/viewer-perf.mjs     # first page, scrolling 520 and 600 pages, memory after, time to sharp at 200 and 400%
 ```
 
 `js/wasm` and `js/dist` are built, not committed; the npm package ships them. Rebuilding the

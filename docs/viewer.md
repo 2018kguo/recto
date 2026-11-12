@@ -9,9 +9,19 @@ it's a separate entry point: a program that doesn't import it doesn't download i
 - Each page has a transparent text layer, so text can be selected and copied, and its links: web and
   mail links open (other schemes are dropped), links within the file scroll to their destination.
 - Zoom is one style write: the page grows at once with its old bitmap stretched, and the sharp one
-  replaces it once the zoom has stopped moving. Pinch, ctrl + wheel and ⌘/Ctrl + plus, minus and 0 zoom;
-  the point under the fingers stays put.
-- `find` searches every page's text in the worker and returns boxes; `setHighlights` draws them.
+  replaces it once the zoom has stopped moving. ⌘/Ctrl + plus, minus and 0 zoom.
+- A pinch (two fingers on a touch screen, a trackpad pinch, ctrl + wheel, Safari's gesture events) zooms
+  the viewer, not the browser's page, about the point under the fingers. While the fingers move the
+  pages are scaled as one picture, which costs no layout and no render; when they lift, the zoom is laid
+  out once and drawn sharp once.
+- A page is drawn whole up to about 8 million pixels. Zoomed past that, the part of it on screen (and a
+  little around it) is drawn again at the screen's density over the stretched whole, and replaced as
+  the reader scrolls or zooms; a tile asked for that no longer covers the screen is stopped.
+- `find` searches every page's text in the worker and returns boxes; `setHighlights` draws them. Text is
+  compared in NFKC with case folded: a ligature matches its letters, a full-width letter its plain one,
+  an accent written as a separate mark the accented letter, "ß" matches "ss"; a soft hyphen is ignored.
+  Accents still count ("cafe" doesn't match "café"). A hit on part of a ligature covers that part of
+  its box.
 - A failed read (a 403, a dropped connection) or a crashed worker doesn't end the document: the next
   call opens it again, backing off while the server stays down.
 
@@ -45,14 +55,21 @@ The viewer fills its container and scrolls inside it, so give the container a he
 <recto-viewer src="/report.pdf" style="height: 80vh"></recto-viewer>
 ```
 
-A toolbar with the file's name, the page (type a number to go there), zoom out, fit to width, zoom in
-and find. ⌘/Ctrl + F opens find, Enter and Shift + Enter step through the hits, ⌘/Ctrl + G too, Escape
-closes it. In the pages, arrows scroll, Left and Right turn pages, Home and End go to the first and last.
-At phone widths the name is hidden and the buttons grow.
+A toolbar with a sidebar button, the file's name, the page (type a number to go there), zoom out, fit
+to width, zoom in and find. ⌘/Ctrl + F opens find, Enter and Shift + Enter step through the hits,
+⌘/Ctrl + G too, Escape closes it. In the pages, arrows scroll, Left and Right turn pages, Home and End
+go to the first and last. At phone widths the name is hidden and the buttons grow.
+
+The sidebar, hidden until its button is pressed, shows the pages as thumbnails and, when the file has
+bookmarks, its outline. Thumbnails are drawn small and only near view, through the viewer's paint queue
+behind the pages on screen, and let go of their bitmaps once scrolled far away; the page being read is
+marked. Up and Down move through either list, Home and End to its ends, Right and Left open and close
+outline entries, Escape closes the sidebar. Beside the pages it narrows them; at phone widths it covers
+them instead, and choosing a page closes it.
 
 Attributes: `src`, `name` (the title shown; the file's name by default), `zoom`, `page`. Properties:
 `source` (a URL, a `File`, an `ArrayBuffer` or a `Uint8Array`), `viewer` (the viewer inside), `engine`,
-and `openFind(query?)`. It fires `open` with `detail.pageCount`.
+`openFind(query?)` and `toggleSidebar(open?)`. It fires `open` with `detail.pageCount`.
 
 ```js
 const element = document.querySelector("recto-viewer");
@@ -130,6 +147,8 @@ The hooks are where timing goes: send them to whatever records your metrics.
 | `setHighlights([{ page, boxes, active? }])` | Draws boxes over pages, replacing the last set. |
 | `scrollToBox(page, box)` | Centres a box on the screen. |
 | `pageElement(n)` | A page's element, to put your own overlay in. |
+| `outline()` | The bookmarks, `[{ title, page, url, children }]`, `page` from 1 (null when it goes nowhere in the file). |
+| `renderThumbnail(n, { width, signal })` | Page `n` drawn `width` pixels wide, queued behind the pages near the screen, newest first; dropped if `signal` aborts first. |
 | `element`, `document` | The scrolling element, and the open `ViewerDocument` for calls of your own. |
 | `destroy()` | Stops everything and removes what the viewer added. |
 
@@ -154,12 +173,14 @@ The viewer adds one stylesheet to the document, or to the shadow root its contai
 `.recto-viewer`: `--recto-background`, `--recto-page-background`, `--recto-page-shadow`,
 `--recto-highlight`, `--recto-highlight-active`, `--recto-selection`, `--recto-focus`. On
 `<recto-viewer>`, `--recto-toolbar-background`, `--recto-toolbar-text`, `--recto-toolbar-muted` and
-`--recto-accent` style the toolbar, and `::part(name)` and `::part(body)` reach inside.
+`--recto-accent` style the toolbar and the sidebar, and `::part(name)`, `::part(sidebar)` and
+`::part(body)` reach inside.
 
 ## Documents without a viewer
 
-`createViewerEngine()` gives the worker side alone: open a document and ask for page sizes, bitmaps,
-text and search hits, with the same reopening on failure. Thumbnails, say:
+`createViewerEngine()` gives the worker side alone: open a document and ask for page sizes, bitmaps
+(whole, or a `region` of the page in points), text, search hits and the outline, with the same
+reopening on failure. Thumbnails, say:
 
 ```js
 import { sharedViewerEngine } from "@2018kguo/recto/viewer";
@@ -188,9 +209,16 @@ needs the CDN to allow CORS, as the wasm does. Pass `createWorker` to start it s
 
 ## Not here yet
 
-No outline or thumbnail sidebar, no printing, no form filling or annotation editing, no rotation
-control, and no tiled rendering: past about 8 million pixels a page is drawn at that and stretched, so
-a large page zoomed far in is soft. A two-finger pinch on a touch screen zooms the browser's page, not
-the viewer's. Find folds case but doesn't normalize Unicode, so a decomposed "é" or a ligature doesn't
-match its plain spelling. A file opened by URL is cached as it was read: to show a changed file, give it
-a new URL.
+No printing, no form filling or annotation editing, and no rotation control. The outline shows titles
+and pages, not the point on the page a bookmark names, and not page labels ("iv", "A-5"). A pinch shows
+the stretched bitmap while the fingers move and past the edge of the document can't scroll beyond it,
+so a pinch that ends there settles at the edge. Find tells accents apart. A file opened by URL is
+cached as it was read: to show a changed file, give it a new URL.
+
+## The demo
+
+`npm run demo [-- file.pdf]` serves the viewer, a generated 60-page sample with bookmarks, and the file
+named, answering `Range` requests, so a file past 8 MiB opens by range as it would from any static
+server. `node bench/viewer-perf.mjs` measures it in Chromium (`--browser webkit` or `firefox` too): the
+first page, scrolling a 520-page document read whole and a 600-page one read by range, what is held
+after scrolling all of it, and how long a zoom to 200% and 400% takes to turn sharp.

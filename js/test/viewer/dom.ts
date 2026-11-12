@@ -16,12 +16,13 @@ export type FakeLayout = {
   idle(ms?: number): Promise<void>;
   /** Style writes of `--recto-scale` so far. */
   scaleWrites(): number;
-  /** Renders drawn into canvases so far, by page. */
-  drawn: { page: number; width: number; height: number }[];
+  /** Renders drawn into canvases so far, by page; `tile` for a sharp drawing of part of one. */
+  drawn: { page: number; width: number; height: number; tile: boolean }[];
 };
 
 const VIEW_WIDTH = 800;
 const VIEW_HEIGHT = 600;
+const THUMB_ROW_PX = 160;
 
 export function fakeLayout(options: { width?: number; height?: number } = {}): FakeLayout {
   const width = options.width ?? VIEW_WIDTH;
@@ -87,6 +88,12 @@ export function fakeLayout(options: { width?: number; height?: number } = {}): F
       if (isScroller(this)) {
         return rect(0, 0, width, height);
       }
+      // A sidebar thumbnail: 160 px a page down its list, under a 44 px toolbar.
+      if (this.classList.contains("thumb")) {
+        const list = this.closest<HTMLElement>(".thumbs");
+        const index = Number(this.dataset.page) - 1;
+        return rect(0, 44 + index * THUMB_ROW_PX - (list?.scrollTop ?? 0), 112, THUMB_ROW_PX - 10);
+      }
       const scroller = scrollerOf(this);
       if (scroller && this.classList.contains("recto-page")) {
         const box = geometry(scroller).boxes.get(this);
@@ -122,14 +129,15 @@ export function fakeLayout(options: { width?: number; height?: number } = {}): F
     Object.defineProperty(proto, name, {
       configurable: true,
       get(this: HTMLElement) {
-        return isScroller(this) ? state(this)[key] : 0;
+        return state(this)[key];
       },
       set(this: HTMLElement, value: number) {
+        // Another element (the sidebar's list) scrolls without bounds: it has no layout here.
+        state(this)[key] = value;
         if (isScroller(this)) {
-          state(this)[key] = value;
           clampScroll(this);
-          this.dispatchEvent(new window.Event("scroll"));
         }
+        this.dispatchEvent(new window.Event("scroll"));
       },
     });
   }
@@ -170,6 +178,9 @@ export function fakeLayout(options: { width?: number; height?: number } = {}): F
             height: image.height,
             get page() {
               return Number(canvas.closest<HTMLElement>(".recto-page")?.dataset.pageNumber ?? 0);
+            },
+            get tile() {
+              return canvas.classList.contains("recto-tile");
             },
             width: image.width,
           });

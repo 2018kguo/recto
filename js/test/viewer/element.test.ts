@@ -31,7 +31,7 @@ test("the element's toolbar shows the file, the page and the zoom, and its find 
     assert.equal($(".fit").textContent, "100%");
     // Every control has a name a screen reader can say.
     for (const button of shadow.querySelectorAll("button")) {
-      assert.ok(button.getAttribute("aria-label"), button.className);
+      assert.ok(button.getAttribute("aria-label") || button.textContent?.trim(), button.className);
     }
 
     $<HTMLButtonElement>(".zoom-in").click();
@@ -71,4 +71,96 @@ test("the element's toolbar shows the file, the page and the zoom, and its find 
     engine.close();
   }
   assert.equal(element.viewer, null, "removing it destroys its viewer");
+});
+
+test("the sidebar: hidden until asked for, thumbnails drawn only near view and after the pages, an outline to jump with, and keys", async () => {
+  const layout = fakeLayout();
+  const { window } = layout;
+  Object.assign(globalThis, { HTMLElement: window.HTMLElement, ShadowRoot: window.ShadowRoot });
+  defineViewerElement("recto-viewer", window.customElements);
+  const workers = inProcessWorkers();
+  const engine = createViewerEngine({ createWorker: workers.createWorker });
+  const element = layout.document.createElement("recto-viewer") as ViewerElement;
+  element.engine = engine;
+  layout.container.append(element);
+  element.source = textPdf({
+    outline: [
+      { page: 1, title: "Introduction" },
+      { children: [{ page: 12, title: "Sampling" }, { page: 15, title: "Analysis" }], page: 10, title: "Methods" },
+      { page: 30, title: "Results" },
+    ],
+    pages: 40,
+  });
+  try {
+    const shadow = element.shadowRoot!;
+    const $ = <T extends Element>(selector: string) => shadow.querySelector<T>(selector)!;
+    const viewer = element.viewer!;
+    await viewer.ready;
+    const toggle = $<HTMLButtonElement>(".sidebar-toggle");
+    assert.equal($(".sidebar").hidden, true, "hidden by default");
+    assert.equal(toggle.getAttribute("aria-expanded"), "false");
+    assert.equal(shadow.querySelectorAll(".thumb").length, 0, "nothing is made for a sidebar never shown");
+    await layout.until(() => viewer.pageElement(1)!.dataset.rendered === "true", "page 1");
+
+    toggle.click();
+    assert.equal($(".sidebar").hidden, false);
+    assert.equal(toggle.getAttribute("aria-expanded"), "true");
+    const thumbs = [...shadow.querySelectorAll<HTMLElement>(".thumb")];
+    assert.equal(thumbs.length, 40);
+    const drawnThumbs = () => thumbs.filter((thumb) => thumb.querySelector("canvas")).map((thumb) => Number(thumb.dataset.page));
+    await layout.until(() => drawnThumbs().length >= 5, "the thumbnails in view");
+    await layout.idle(100);
+    // Those in view and a little past it; small bitmaps, drawn after the pages near the screen.
+    assert.deepEqual(drawnThumbs(), [1, 2, 3, 4, 5]);
+    const renders = workers.ports.flatMap((port) => port.sent).filter((message) => message.op === "render");
+    const small = renders.filter((message) => message.op === "render" && message.width === 224);
+    assert.equal(small.length, 5);
+    assert.ok(renders.indexOf(small[0]!) > 0, "a page's own render went first");
+    // The page being read is marked, and is the list's one tab stop.
+    assert.equal(thumbs[0]!.getAttribute("aria-current"), "page");
+    assert.equal(thumbs[0]!.tabIndex, 0);
+    assert.equal(thumbs[1]!.tabIndex, -1);
+
+    // Scrolled to the end: the end is drawn, and the start lets go of its bitmaps.
+    $<HTMLElement>(".thumbs").scrollTop = 36 * 160;
+    await layout.until(() => drawnThumbs().includes(40), "the last thumbnail");
+    assert.ok(!drawnThumbs().includes(1));
+    $<HTMLElement>(".thumbs").scrollTop = 0;
+
+    // Keys move through the list; a thumbnail goes to its page.
+    thumbs[0]!.focus();
+    thumbs[0]!.dispatchEvent(new window.KeyboardEvent("keydown", { bubbles: true, key: "ArrowDown" }));
+    assert.equal(shadow.activeElement, thumbs[1]);
+    assert.equal(thumbs[1]!.tabIndex, 0);
+    thumbs[1]!.click();
+    await layout.until(() => viewer.page === 2, "page 2");
+    await layout.until(() => thumbs[1]!.getAttribute("aria-current") === "page", "the thumbnail to follow");
+
+    // The outline: its tab appears once read; nested entries open with the arrow keys.
+    await layout.until(() => !$(".tabs").hidden, "the outline tab");
+    $<HTMLButtonElement>(".tab-outline").click();
+    assert.equal($(".thumbs").hidden, true);
+    assert.equal($(".outline").hidden, false);
+    const items = () => [...shadow.querySelectorAll<HTMLElement>(".outline .item")].filter((item) => !item.closest("ul[hidden]")).map((item) => item.textContent);
+    assert.deepEqual(items(), ["Introduction", "Methods", "Results"]);
+    const methods = [...shadow.querySelectorAll<HTMLElement>(".outline .item")].find((item) => item.textContent === "Methods")!;
+    methods.focus();
+    methods.dispatchEvent(new window.KeyboardEvent("keydown", { bubbles: true, key: "ArrowRight" }));
+    assert.equal(methods.getAttribute("aria-expanded"), "true");
+    assert.deepEqual(items(), ["Introduction", "Methods", "Sampling", "Analysis", "Results"]);
+    methods.dispatchEvent(new window.KeyboardEvent("keydown", { bubbles: true, key: "ArrowDown" }));
+    const sampling = shadow.activeElement as HTMLElement;
+    assert.equal(sampling.textContent, "Sampling");
+    sampling.click();
+    await layout.until(() => viewer.page === 12, "the bookmark's page");
+    sampling.dispatchEvent(new window.KeyboardEvent("keydown", { bubbles: true, key: "ArrowLeft" }));
+    assert.equal(shadow.activeElement, methods, "Left goes up to the parent");
+    // Escape closes it, back to the button that opened it.
+    methods.dispatchEvent(new window.KeyboardEvent("keydown", { bubbles: true, key: "Escape" }));
+    assert.equal($(".sidebar").hidden, true);
+    assert.equal(shadow.activeElement, toggle);
+  } finally {
+    element.remove();
+    engine.close();
+  }
 });

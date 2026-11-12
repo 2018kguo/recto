@@ -25,6 +25,7 @@ export type {
   ViewerFindHit,
   ViewerLink,
   ViewerOpenTiming,
+  ViewerOutlineItem,
   ViewerPageInfo,
   ViewerSource,
   ViewerTextRun,

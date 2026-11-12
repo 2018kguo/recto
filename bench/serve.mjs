@@ -1,6 +1,7 @@
 // A local server for the browser bench and the film: the engines' own files, a harness, and PDFs
 // from memory. `responses` is what the engines' files sent, the real bytes off the wire, with what
-// each would be under brotli.
+// each would be under brotli. Range requests are answered, so a large PDF opens by range as it
+// would from any static file server.
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
@@ -8,6 +9,28 @@ import zlib from "node:zlib";
 
 const here = import.meta.dirname;
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".wasm": "application/wasm", ".json": "application/json" };
+
+/**
+ * A single `bytes=` range of a body `length` long, as inclusive offsets: null to send it whole (no
+ * header, or one this doesn't take, such as several ranges), "unsatisfiable" for a 416.
+ */
+export function byteRange(header, length) {
+  const match = /^bytes=(\d*)-(\d*)$/u.exec(String(header ?? "").trim());
+  if (!match || (match[1] === "" && match[2] === "")) {
+    return null;
+  }
+  let start;
+  let end;
+  if (match[1] === "") {
+    // A suffix: the last n bytes, all of them if n is past the start.
+    start = Math.max(0, length - Number(match[2]));
+    end = length - 1;
+  } else {
+    start = Number(match[1]);
+    end = match[2] === "" ? length - 1 : Math.min(length - 1, Number(match[2]));
+  }
+  return start >= length || start > end || length === 0 ? "unsatisfiable" : { start, end };
+}
 
 export async function serve({ extraRoots = {} } = {}) {
   const roots = {
@@ -52,8 +75,19 @@ export async function serve({ extraRoots = {} } = {}) {
       response.writeHead(404).end();
       return;
     }
-    response.writeHead(200, { "Content-Type": type, "Content-Length": body.length, "Cache-Control": "no-store" });
-    response.end(body);
+    const headers = { "Content-Type": type, "Accept-Ranges": "bytes", "Cache-Control": "no-store" };
+    const range = byteRange(request.headers.range, body.length);
+    if (range === "unsatisfiable") {
+      response.writeHead(416, { ...headers, "Content-Range": `bytes */${body.length}` }).end();
+      return;
+    }
+    const [status, part] = range ? [206, body.subarray(range.start, range.end + 1)] : [200, body];
+    response.writeHead(status, {
+      ...headers,
+      "Content-Length": part.length,
+      ...(range && { "Content-Range": `bytes ${range.start}-${range.end}/${body.length}` }),
+    });
+    response.end(request.method === "HEAD" ? undefined : part);
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   return {

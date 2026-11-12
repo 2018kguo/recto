@@ -116,3 +116,40 @@ test("a page that keeps failing is left alone until it comes back into the band"
   queue.pump();
   assert.equal(started.length, 4);
 });
+
+test("work scheduled for later (thumbnails) waits for the band, runs newest first, one at a time, and skips what was stopped", async () => {
+  const pages = records(2);
+  const { done, queue, started } = manualQueue();
+  const finishIdle = new Map<string, () => void>();
+  const later = (name: string, signal?: AbortSignal) =>
+    queue.schedule(() => {
+      started.push(name);
+      return new Promise<void>((resolve) => finishIdle.set(name, resolve));
+    }, signal);
+  queue.setNearViewport(pages[0]!, true);
+  queue.setOnScreen(pages[0]!, true);
+  queue.pump();
+  const stopped = new AbortController();
+  later("thumb 1");
+  later("thumb 2", stopped.signal);
+  later("thumb 3");
+  stopped.abort();
+  assert.deepEqual(started, ["canvas 1"], "the page on screen first");
+  await done("canvas 1");
+  // Its text layer, and the newest thumbnail beside it.
+  assert.deepEqual(started, ["canvas 1", "text 1", "thumb 3"]);
+  // A page coming into the band still goes ahead of the rest.
+  queue.setNearViewport(pages[1]!, true);
+  queue.pump();
+  assert.equal(started.at(-1), "thumb 3", "both slots are busy");
+  await done("text 1");
+  assert.equal(started.at(-1), "canvas 2");
+  finishIdle.get("thumb 3")!();
+  for (let i = 0; i < 5; i++) {
+    await Promise.resolve();
+  }
+  assert.equal(started.at(-1), "canvas 2", "a page in the band waiting for paint holds thumbnails back");
+  await done("canvas 2");
+  await done("text 2");
+  assert.equal(started.at(-1), "thumb 1", "the stopped one never runs");
+});

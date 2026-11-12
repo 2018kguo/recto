@@ -36,6 +36,9 @@ export type ViewerLink = {
   target: { kind: "uri"; uri: string } | { kind: "page"; page: number; x: number | null; y: number | null };
 };
 
+/** A bookmark: the page it goes to (from 1; null if none in this file), or the web address it opens. */
+export type ViewerOutlineItem = { title: string; page: number | null; url: string | null; children: ViewerOutlineItem[] };
+
 /** One hit of a search: where it starts in the page's text, and its boxes, one a line, in points (y down). */
 export type ViewerFindHit = { index: number; boxes: PdfBox[] };
 
@@ -67,6 +70,7 @@ export type ViewerRequest =
       region?: PdfBox;
     }
   | { op: "text"; id: number; docId: number; page: number }
+  | { op: "outline"; id: number; docId: number }
   | { op: "find"; id: number; docId: number; page: number; query: string; caseSensitive: boolean }
   | { op: "cancel"; id: number }
   | { op: "close"; docId: number };
@@ -92,6 +96,7 @@ export type ViewerResult = {
   };
   text: { runs: ViewerTextRun[]; links: ViewerLink[] };
   find: ViewerFindHit[];
+  outline: ViewerOutlineItem[];
 };
 
 export type ViewerFailure = { code: string; message: string };
