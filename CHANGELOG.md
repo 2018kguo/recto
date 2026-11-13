@@ -27,7 +27,7 @@
 ### Fixed
 
 - A file past the viewer's whole-file cut was asked for whole first, then by range: 27.4 MB downloaded for a
-  13.2 MB file on an unthrottled link. Every request for it is a range now.
+  13.3 MB file on an unthrottled link. Every request for it is a range now.
 - A ranged read held each byte twice, once in the loader and once in the engine; the loader now drops what
   the engine has read. A document reopened on a fresh instance fetches it again.
 
