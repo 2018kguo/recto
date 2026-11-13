@@ -6,26 +6,28 @@
 
 - **The viewer's first page no longer waits for the whole file.** A URL is opened by range from its first
   request, which goes out while the engine's wasm is still downloading, so the first page needs only the
-  file's head, tail and its own objects; a file up to 8 MiB then downloads the rest in one background
-  request once that page is drawn (a search waits for it), and a larger one is read only by range, as
+  file's head, tail and its own objects; a file up to 8 MiB then downloads the rest in the background,
+  at low priority, once that page is drawn (a search waits for it), and a larger one is read only by range, as
   before. The viewer and its worker ship bundled, a file each, so the code is two round trips, not ten;
   the standard fonts a page names are fetched together before it's drawn, not one after another while it
-  is. On bench/compare's 200-page report, the first page at Slow 4G: FIRST_PAGE_TABLE.
+  is. On bench/compare's 200-page report, the first page at Slow 4G in 9.8 s, from 38.4 s
+  (pdf.js 30.6 s).
 - **A zoom past a whole page's pixel cap is sharp at once.** The part on screen is drawn at the screen's
   density first, with no margin, and the whole pages at the cap after it, where it was the other way
-  round, each behind a pause: 300% sharp in ZOOM_NUMBER.
+  round, each behind a pause: 300% sharp in 15 to 31 ms, from about 360 (pdf.js 31 to 40).
 
 ### Added
 
 - `startRangedRead(url)` starts a ranged read before there is an engine; `engine.openRanged(read)` opens
-  it. `doc.fetchRest()` downloads the rest of a ranged file in the background, in pieces that follow the reader and never fetch a byte twice, after which no read blocks.
+  it. `doc.fetchRest()` downloads the rest of a ranged file in the background, in pieces that follow the
+  reader and never fetch a byte twice, after which no read blocks.
   `engine.preload(names)` fetches fonts and other assets together, ahead of the call that needs them.
   `stats().heldBytes` is what a ranged read's loader still holds.
 
 ### Fixed
 
 - A file past the viewer's whole-file cut was asked for whole first, then by range: 27.4 MB downloaded for a
-  13.2 MB file at Slow 4G. Every request for it is a range now.
+  13.2 MB file on an unthrottled link. Every request for it is a range now.
 - A ranged read held each byte twice, once in the loader and once in the engine; the loader now drops what
   the engine has read. A document reopened on a fresh instance fetches it again.
 
