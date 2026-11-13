@@ -40,6 +40,11 @@ impl<'a> Type3Glyph<'a> {
         self.font.char_code_to_unicode(self.char_code)
     }
 
+    /// recto: the Unicode another code of this glyph's font maps to.
+    pub fn code_unicode(&self, code: u32) -> Option<BfString> {
+        self.font.char_code_to_unicode(code)
+    }
+
     /// Get the glyph ID within the font.
     pub fn glyph_id(&self) -> GlyphId {
         self.id

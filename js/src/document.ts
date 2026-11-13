@@ -51,6 +51,11 @@ export type PdfPageText = {
   fontSizes: Float32Array<ArrayBuffer>;
   /** The `Tf` operand each char was shown with, unscaled. */
   tfSizes: Float32Array<ArrayBuffer>;
+  /**
+   * The horizontal scale each char was shown with: `Tz` over 100, 1 where none was set. A generated
+   * char has the char before it's. The run's `matrices` has the whole text rendering matrix.
+   */
+  hScales: Float32Array<ArrayBuffer>;
   /** Radians, counter-clockwise. */
   angles: Float32Array<ArrayBuffer>;
   /** Fill colour as 0xRRGGBBAA. */
@@ -84,6 +89,13 @@ export type PdfTextRuns = {
   origins: Float32Array<ArrayBuffer>;
   /** The font size as drawn, in points (Tf scaled by the text and current matrices). */
   ems: Float32Array<ArrayBuffer>;
+  /**
+   * a, b, c, d, e, f per run: the text rendering matrix its first glyph was drawn with,
+   * `[Tf·Tz/100 0 0 Tf 0 Ts] × Tm × CTM`, into the viewer frame (y down, so upright text has a
+   * negative `d`). One unit of text space is `(a, b)` across and `(c, d)` up, so skew and rotation
+   * come from it; `e, f` is where that glyph is placed. Every glyph of a run shares `a` to `d`.
+   */
+  matrices: Float32Array<ArrayBuffer>;
 };
 
 export type PdfWords = {
@@ -117,6 +129,68 @@ export function charsText(
   }
   return out;
 }
+
+/** What a font's embedded program is, by its descriptor's key and that stream's `/Subtype`. */
+export type PdfFontKind = "type1" | "truetype" | "cff" | "cid-cff" | "opentype" | "type3";
+
+/**
+ * A font a page's text uses, as its dictionary describes it. `doc.fonts(i)[k]` is the font
+ * `doc.text(i).fonts[k]` is, the one chars with `fontIds` k are in.
+ */
+export type PdfFontInfo = {
+  /** Its index in `text(i).fonts`: what `fontIds` holds. */
+  id: number;
+  /** `BaseFont` without a subset prefix (a Type 3 font's `/Name`), as `PdfFont.name`. */
+  name: string;
+  /** `BaseFont` as written, prefix and all; "" if there is none. */
+  baseFont: string;
+  /** `BaseFont` starts with a subset tag (`ABCDEF+`): the program holds only some glyphs. */
+  subset: boolean;
+  /** The dictionary's `/Subtype`: "Type1", "MMType1", "TrueType", "Type0" or "Type3"; "" for the font text is read in when the content names none it can find. */
+  subtype: string;
+  /** A Type0 font's descendant: "CIDFontType0" or "CIDFontType2". */
+  cidSubtype: string | null;
+  /** `/Encoding` by name ("WinAnsiEncoding", "Identity-H"), or a differences dictionary's `/BaseEncoding`. */
+  encoding: string | null;
+  /** It has a program of its own: a descriptor with a font file, or a Type 3 font's procedures. */
+  embedded: boolean;
+  /**
+   * What the program is: "type1" (`/FontFile`), "truetype" (`/FontFile2`), and from `/FontFile3`'s
+   * subtype "cff" (`Type1C`), "cid-cff" (`CIDFontType0C`), "opentype" (`OpenType`); "type3" for a
+   * Type 3 font, which has no program. null when not embedded.
+   */
+  kind: PdfFontKind | null;
+  /** The embedded program: pass `id` to `fontProgram` for its bytes. null for Type 3 and fonts that embed none. */
+  program: {
+    /** The program's stream as `"object generation"`: the same on every page, thread and instance. */
+    id: string;
+    file: "FontFile" | "FontFile2" | "FontFile3";
+    /** The stream's `/Subtype`: "Type1C", "CIDFontType0C", "OpenType"; null if it has none. */
+    subtype: string | null;
+  } | null;
+  /** The descriptor's `/Flags`, `/ItalicAngle` and `/FontWeight`; null where it doesn't state them. */
+  flags: number | null;
+  italicAngle: number | null;
+  weight: number | null;
+  /** From the descriptor (the italic flag or a slanted angle), else the name ("Italic", "Oblique"). */
+  italic: boolean;
+  /** From the descriptor (`ForceBold` or a weight of 600 or more), else the name ("Bold", "Black", "Heavy"). */
+  bold: boolean;
+  /** The dictionary has a `/ToUnicode` CMap. */
+  toUnicode: boolean;
+  /**
+   * What its codes map to, entry `j` of each column, in code order: a simple font's codes that have
+   * Unicode or a glyph, a Type0 font's two-byte codes that have Unicode.
+   */
+  codes: {
+    count: number;
+    codes: Uint32Array<ArrayBuffer>;
+    /** The glyph id in the embedded program; -1 for none (not embedded, Type 3, or `.notdef`). */
+    glyphs: Int32Array<ArrayBuffer>;
+    /** The text it reads as, from `ToUnicode` or else the glyph names; "" for none. */
+    unicode: string[];
+  };
+};
 
 /** Segment kinds, in the low bits of `PdfPathSegments.kinds`. */
 export const SEGMENT_LINE = 0;
@@ -391,6 +465,16 @@ export interface PdfDocument {
    * part of the wasm, as `objects` does.
    */
   links(index: number): PdfLink[];
+  /**
+   * The fonts page `index`'s text uses, in `text(index).fonts` order, with what their dictionaries
+   * say and the program each embeds. Interprets the page again, as `text` does.
+   */
+  fonts(index: number): PdfFontInfo[];
+  /**
+   * The bytes of a font program `fonts` listed, by its `program.id`: the stream after its filters,
+   * as the file stores it, nothing re-encoded. null if the id names no stream that decodes.
+   */
+  fontProgram(id: string): Uint8Array<ArrayBuffer> | null;
   render(index: number, options: PdfRenderOptions & { region: PdfBox }): PdfRegionBitmap;
   render(index: number, options: PdfRenderOptions): PdfBitmap;
   /**
@@ -537,6 +621,7 @@ function toText(t: Glue.PageText): PdfPageText {
       boxes: t.boxes,
       fontSizes: t.fontSizes,
       tfSizes: t.tfSizes,
+      hScales: t.hScales,
       truncated: t.truncated,
       angles: t.angles,
       fills: t.fills,
@@ -550,7 +635,7 @@ function toText(t: Glue.PageText): PdfPageText {
         boxes: t.wordBoxes,
       },
       runIds: t.runIds,
-      runs: { count: runEms.length, origins: t.runOrigins, ems: runEms },
+      runs: { count: runEms.length, origins: t.runOrigins, ems: runEms, matrices: t.runMatrices },
     };
   });
 }
@@ -680,6 +765,37 @@ function toTarget([kind, text, dest, name, fileSystem, newWindow, path]: TargetE
     default:
       return { kind: "none" };
   }
+}
+
+/** One font as the engine lists it: see `fonts` in wasm.rs. */
+type FontEntry = [
+  string, string, boolean, string, string | null, string | null, boolean, PdfFontKind | null,
+  string | null, "FontFile" | "FontFile2" | "FontFile3" | null, string | null, number, number, number,
+  boolean, boolean, boolean, Uint32Array<ArrayBuffer>, Int32Array<ArrayBuffer>, string[],
+];
+
+function toFont(entry: FontEntry, id: number): PdfFontInfo {
+  const [name, baseFont, subset, subtype, cidSubtype, encoding, embedded, kind, programId, file, programSubtype,
+    flags, italicAngle, weight, italic, bold, toUnicode, codes, glyphs, unicode] = entry;
+  return {
+    id,
+    name,
+    baseFont,
+    subset,
+    subtype,
+    cidSubtype,
+    encoding,
+    embedded,
+    kind,
+    program: programId === null ? null : { id: programId, file: file!, subtype: programSubtype },
+    flags: orNull(flags),
+    italicAngle: orNull(italicAngle),
+    weight: orNull(weight),
+    italic,
+    bold,
+    toUnicode,
+    codes: { count: codes.length, codes, glyphs, unicode },
+  };
 }
 
 /** One link as the engine lists it: see `links` in wasm.rs. */
@@ -872,6 +988,23 @@ export class RectoDocument implements PdfDocument {
     // A viewer's call: its code is in drawing's part, so text alone downloads none of it.
     this.#needsRender();
     return this.#call(() => (this.#doc.links(index) as LinkEntry[]).map(toLink));
+  }
+
+  fonts(index: number): PdfFontInfo[] {
+    this.#check(index);
+    // Its code is in the part most files never run, and what it asks of a font program in drawing's.
+    this.#needsRender();
+    this.#call(() => this.#instance.loadPart("recto-more.wasm"));
+    return this.#call(() => (this.#doc.fonts(index) as FontEntry[]).map(toFont));
+  }
+
+  fontProgram(id: string): Uint8Array<ArrayBuffer> | null {
+    this.#check(null);
+    if (typeof id !== "string") {
+      throw new TypeError("fontProgram takes a program id, as fonts() gives it");
+    }
+    this.#call(() => this.#instance.loadPart("recto-more.wasm"));
+    return this.#call(() => (this.#doc.fontProgram(id) as Uint8Array<ArrayBuffer> | undefined) ?? null);
   }
 
   scan(index: number) {

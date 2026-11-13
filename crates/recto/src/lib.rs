@@ -12,6 +12,7 @@ pub mod outline;
 mod assets;
 mod ctext;
 mod device;
+mod fonts;
 mod forms;
 mod ranged;
 mod text;
@@ -32,6 +33,7 @@ pub use ctext::Text;
 pub use device::{
     PATH_FILL, PATH_STROKE, PageObjects, SEGMENT_BEZIER, SEGMENT_CLOSE, SEGMENT_LINE, SEGMENT_MOVE,
 };
+pub use fonts::{CodeMapping, FontInfo, FontProgram, ProgramFile, ProgramId};
 pub use links::{Destination, EmbeddedStep, Link, Target};
 pub use outline::OutlineItem;
 pub use text::{CHAR_GENERATED, CHAR_UNMAPPED, Char, Font, Run, TextPage, Word};
@@ -145,6 +147,14 @@ pub struct Region {
     pub y: f64,
     pub width: f64,
     pub height: f64,
+}
+
+/// What one interpretation of a page collected.
+struct PagePass<'a> {
+    device: device::PageDevice<'a>,
+    /// A budget or the limit on decoded bytes left something out.
+    tripped: bool,
+    budget_used: (u32, usize, u32),
 }
 
 /// Font, CMap and glyph caches shared by every page of one document, so a
@@ -373,6 +383,58 @@ impl Document {
         annotations: bool,
         boxes: Boxes,
     ) -> Result<Scan, EngineError> {
+        self.page_pass(index, objects, boxes, false, |page, caches, viewer, pass| {
+            let PagePass { mut device, tripped, budget_used } = pass;
+            let mut text = text::build_page(&device.glyphs, &device.fonts, &device.runs);
+            text.truncated = device.text_truncated || tripped;
+            if tripped && let Some(objects) = &mut device.objects {
+                objects.truncated = true;
+            }
+            device.glyphs.clear();
+            caches.glyphs.replace(device.glyphs);
+            Scan {
+                text,
+                budget_used,
+                objects: device.objects.unwrap_or_default(),
+                annotations: if annotations {
+                    annots::read(page, &caches.text, viewer)
+                } else {
+                    Vec::new()
+                },
+            }
+        })
+    }
+
+    /// The fonts page `index`'s text uses, entry `i` for what `text(index).fonts[i]` is (a char's
+    /// `font`), with what their dictionaries say and the programs they embed. Interprets the page as
+    /// `text` does, then reads each font's dictionary.
+    pub fn fonts(&self, index: usize) -> Result<Vec<FontInfo>, EngineError> {
+        self.page_pass(index, false, Boxes::Font, true, |page, caches, _, pass| {
+            let PagePass { mut device, .. } = pass;
+            let text = text::build_page(&device.glyphs, &device.fonts, &device.runs);
+            let kept = device.font_glyphs.take().unwrap_or_default();
+            device.glyphs.clear();
+            caches.glyphs.replace(device.glyphs);
+            fonts::describe(page, &text.fonts, &text.font_order, &kept)
+        })
+    }
+
+    /// The bytes of the font program `id` names, as its stream decodes: what `/FontFile`, `/FontFile2`
+    /// or `/FontFile3` holds after its filters, nothing re-encoded. `None` if `id` is no stream, or it
+    /// doesn't decode.
+    pub fn font_program(&self, id: ProgramId) -> Option<Vec<u8>> {
+        fonts::program_bytes(self.0.borrow_owner().xref(), id)
+    }
+
+    /// One interpretation of page `index` into a device, then `finish` on what it collected.
+    fn page_pass<R>(
+        &self,
+        index: usize,
+        objects: bool,
+        boxes: Boxes,
+        keep_fonts: bool,
+        finish: impl for<'q> FnOnce(&'q hayro::hayro_syntax::page::Page<'q>, &Caches<'q>, hayro::kurbo::Affine, PagePass<'q>) -> R,
+    ) -> Result<R, EngineError> {
         let cuts = hayro::hayro_syntax::decodes_cut();
         self.with_page(index, |_, page, caches| {
             let (w, h) = page.render_dimensions();
@@ -410,28 +472,15 @@ impl Document {
             let mut device = device::PageDevice::new(viewer, objects);
             device.tight = tight;
             device.glyphs = caches.glyphs.take();
+            if keep_fonts {
+                device.font_glyphs = Some(Vec::new());
+            }
             interpret_page(page, &mut ctx, &mut device);
-            let mut device = device.finish();
+            let device = device.finish();
             // A stream or image past the limit on decoded bytes is left out, as a budget leaves out.
             let tripped = ctx.budget_tripped() || hayro::hayro_syntax::decodes_cut() != cuts;
             let budget_used = ctx.budget_used();
-            let mut text = text::build_page(&device.glyphs, &device.fonts, &device.runs);
-            text.truncated = device.text_truncated || tripped;
-            if tripped && let Some(objects) = &mut device.objects {
-                objects.truncated = true;
-            }
-            device.glyphs.clear();
-            caches.glyphs.replace(device.glyphs);
-            Scan {
-                text,
-                budget_used,
-                objects: device.objects.unwrap_or_default(),
-                annotations: if annotations {
-                    annots::read(page, &caches.text, viewer)
-                } else {
-                    Vec::new()
-                },
-            }
+            finish(page, caches, viewer, PagePass { device, tripped, budget_used })
         })
     }
 
@@ -2192,6 +2241,197 @@ mod tests {
         let flat = unraised.text_with(0, Boxes::Tight).unwrap().chars[0].bbox;
         assert_eq!((raised[0], raised[2], raised[3]), (flat[0], flat[2], flat[3]));
         assert!((flat[1] - raised[1] - 25.0).abs() < 1e-3, "{flat:?} {raised:?}");
+    }
+
+    /// Each char carries the `Tz` it was shown with, over 100: set inside a text object, kept across
+    /// `BT`, saved and restored by `q` and `Q`. A run's matrix is the text rendering matrix, Tz and skew
+    /// included, in the viewer frame.
+    #[test]
+    fn chars_carry_their_horizontal_scale_and_runs_their_matrix() {
+        let doc = one_font_page(
+            b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            &[],
+            "BT /F1 10 Tf 10 90 Td (a) Tj ET \
+             BT 50 Tz 10 75 Td (b) Tj 200 Tz 30 0 Td (c) Tj ET \
+             BT 10 60 Td (d) Tj ET \
+             q 50 Tz BT 10 45 Td (e) Tj ET Q \
+             BT 10 30 Td (f) Tj ET \
+             100 Tz BT 1 0 0.5 1 10 15 Tm (g) Tj ET",
+        );
+        let t = doc.text(0).unwrap();
+        let scale = |s: &str| t.chars.iter().find(|c| &*c.text == s).map(|c| c.h_scale).unwrap();
+        let got: Vec<f32> = ["a", "b", "c", "d", "e", "f", "g"].iter().map(|s| scale(s)).collect();
+        assert_eq!(got, [1.0, 0.5, 2.0, 2.0, 0.5, 2.0, 1.0]);
+        // A space or break the engine adds takes the scale of the char before it.
+        for (i, c) in t.chars.iter().enumerate().skip(1) {
+            if c.flags & CHAR_GENERATED != 0 {
+                assert_eq!(c.h_scale, t.chars[i - 1].h_scale);
+            }
+        }
+        let matrix = |s: &str| {
+            let c = t.chars.iter().find(|c| &*c.text == s).unwrap();
+            t.runs[c.run as usize].matrix
+        };
+        // Tf 10 at Tz 50, on a page 100 high: y runs down.
+        assert_eq!(matrix("b"), [5.0, 0.0, 0.0, -10.0, 10.0, 25.0]);
+        assert_eq!(matrix("c"), [20.0, 0.0, 0.0, -10.0, 40.0, 25.0]);
+        // Skewed by the text matrix: the y axis leans right by half.
+        assert_eq!(matrix("g"), [10.0, 0.0, 5.0, -10.0, 10.0, 85.0]);
+    }
+
+    /// What `fonts` says of each font a page's text uses, entry for entry with `text().fonts`: one font
+    /// of each kind, a subset, one only a form uses, one written inline, and each program's bytes as
+    /// its stream decodes.
+    #[test]
+    fn fonts_list_each_font_and_its_program() {
+        use std::io::Write;
+        let flate = |data: &[u8]| {
+            let mut e = flate2::write::ZlibEncoder::new(Vec::new(), flate2::Compression::default());
+            e.write_all(data).unwrap();
+            e.finish().unwrap()
+        };
+        let ttf: &[u8] = include_bytes!("notdef.ttf");
+        let cff: &[u8] = include_bytes!("notdef.cff");
+        let cjk = std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../../assets/cjk-fallback.ttf")).unwrap();
+        let pfb = std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../../vendor/hayro-font/assets/FoxitSans.pfb")).unwrap();
+        let mut deflated = stream("/Filter /FlateDecode", &flate(ttf));
+        let content = stream(
+            "",
+            b"BT /TT 10 Tf 5 92 Td (Hi) Tj ET BT /CF 10 Tf 5 82 Td (A) Tj ET q /Fm Do Q \
+              BT /T0 10 Tf 5 62 Td <07D0> Tj ET BT /T3 10 Tf 5 52 Td (A) Tj ET BT /T1 10 Tf 5 42 Td (S) Tj ET \
+              BT /CC 10 Tf 5 32 Td <0001> Tj ET BT /DF 10 Tf 5 22 Td (C) Tj ET",
+        );
+        let to_unicode = stream(
+            "",
+            b"/CIDInit /ProcSet findresource begin 12 dict begin begincmap /CMapName /U def \
+              1 begincodespacerange <0000> <FFFF> endcodespacerange 1 beginbfchar <07D0> <4E2D> endbfchar \
+              endcmap CMapName currentdict /CMap defineresource pop end end",
+        );
+        let objects: Vec<Vec<u8>> = vec![
+            b"<< /Type /Catalog /Pages 2 0 R >>".to_vec(),
+            b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>".to_vec(),
+            b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R /Resources << /XObject << /Fm 26 0 R >> \
+              /Font << /TT 5 0 R /CF 8 0 R /T0 12 0 R /T3 17 0 R /T1 19 0 R /CC 22 0 R \
+              /DF << /Type /Font /Subtype /Type1 /BaseFont /Courier >> >> >> >>".to_vec(),
+            content,
+            // 5: a subset TrueType font, its program deflated.
+            format!("<< /Type /Font /Subtype /TrueType /BaseFont /ABCDEF+Probe /FirstChar 72 /LastChar 105 /Widths [{}] \
+                     /Encoding /WinAnsiEncoding /FontDescriptor 6 0 R >>", "600 ".repeat(34)).into_bytes(),
+            b"<< /Type /FontDescriptor /FontName /ABCDEF+Probe /Flags 32 /FontWeight 400 /ItalicAngle 0 /Ascent 800 /Descent -200 /FontFile2 7 0 R >>".to_vec(),
+            std::mem::take(&mut deflated),
+            // 8: a bare CFF program, bold and italic by its descriptor.
+            b"<< /Type /Font /Subtype /Type1 /BaseFont /CffProbe /FirstChar 65 /LastChar 65 /Widths [500] /FontDescriptor 9 0 R >>".to_vec(),
+            b"<< /Type /FontDescriptor /FontName /CffProbe /Flags 96 /ItalicAngle -12 /FontWeight 700 /FontFile3 10 0 R >>".to_vec(),
+            stream("/Subtype /Type1C", cff),
+            // 11: a standard font it doesn't embed, which only the form uses.
+            b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>".to_vec(),
+            // 12: a CID font of two-byte codes.
+            b"<< /Type /Font /Subtype /Type0 /BaseFont /QWERTY+CJK /Encoding /Identity-H /DescendantFonts [13 0 R] /ToUnicode 16 0 R >>".to_vec(),
+            b"<< /Type /Font /Subtype /CIDFontType2 /BaseFont /QWERTY+CJK /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) \
+              /Supplement 0 >> /FontDescriptor 14 0 R /DW 1000 /CIDToGIDMap /Identity >>".to_vec(),
+            b"<< /Type /FontDescriptor /FontName /QWERTY+CJK /Flags 4 /ItalicAngle 0 /Ascent 880 /Descent -120 /FontFile2 15 0 R >>".to_vec(),
+            stream("", &cjk),
+            to_unicode,
+            // 17: Type 3.
+            b"<< /Type /Font /Subtype /Type3 /Name /Stamp /FontBBox [0 0 1000 1000] /FontMatrix [0.001 0 0 0.001 0 0] \
+              /CharProcs << /A 18 0 R >> /Encoding << /Type /Encoding /Differences [65 /A] >> /FirstChar 65 /LastChar 65 \
+              /Widths [1000] /Resources << >> >>".to_vec(),
+            stream("", b"1000 0 0 0 1000 1000 d1 0 0 1000 1000 re f"),
+            // 19: a Type 1 program.
+            b"<< /Type /Font /Subtype /Type1 /BaseFont /SansProbe /FirstChar 83 /LastChar 83 /Widths [600] /FontDescriptor 20 0 R >>".to_vec(),
+            b"<< /Type /FontDescriptor /FontName /SansProbe /Flags 32 /ItalicAngle 0 /FontFile 21 0 R >>".to_vec(),
+            stream("", &pfb),
+            // 22: a CID font with a CFF program.
+            b"<< /Type /Font /Subtype /Type0 /BaseFont /CidCff /Encoding /Identity-H /DescendantFonts [23 0 R] >>".to_vec(),
+            b"<< /Type /Font /Subtype /CIDFontType0 /BaseFont /CidCff /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) \
+              /Supplement 0 >> /FontDescriptor 24 0 R >>".to_vec(),
+            b"<< /Type /FontDescriptor /FontName /CidCff /Flags 4 /ItalicAngle 0 /FontFile3 25 0 R >>".to_vec(),
+            stream("/Subtype /CIDFontType0C", cff),
+            // 26: a form with fonts of its own.
+            stream("/Type /XObject /Subtype /Form /BBox [0 0 100 100] /Resources << /Font << /HV 11 0 R >> >>",
+                   b"BT /HV 10 Tf 5 72 Td (Hel) Tj ET"),
+        ];
+        let refs: Vec<&[u8]> = objects.iter().map(Vec::as_slice).collect();
+        let doc = Document::open(pdf(&refs), "").unwrap();
+        let text = doc.text(0).unwrap();
+        let fonts = doc.fonts(0).unwrap();
+        assert_eq!(fonts.len(), 8, "{:?} {:?}", text.text(), fonts.iter().map(|f| &f.name).collect::<Vec<_>>());
+        // Entry for entry what the text's fonts are, the ids its chars hold.
+        assert_eq!(fonts.iter().map(|f| f.name.as_str()).collect::<Vec<_>>(), text.fonts.iter().map(|f| f.name.as_str()).collect::<Vec<_>>());
+        let font = |name: &str| fonts.iter().find(|f| f.name == name).unwrap_or_else(|| panic!("{name}: {fonts:#?}"));
+        let id = |object| ProgramId { object, generation: 0 };
+
+        let tt = font("Probe");
+        assert_eq!((tt.base_font.as_str(), tt.subset, tt.subtype.as_str(), tt.kind), ("ABCDEF+Probe", true, "TrueType", Some("truetype")));
+        assert_eq!(tt.program, Some(FontProgram { id: id(7), file: ProgramFile::FontFile2, subtype: None }));
+        assert_eq!((tt.encoding.as_deref(), tt.embedded, tt.italic, tt.bold, tt.weight), (Some("WinAnsiEncoding"), true, false, false, Some(400)));
+        assert!(tt.codes.iter().any(|c| c.code == 72 && c.unicode == "H"));
+
+        let cf = font("CffProbe");
+        assert_eq!((cf.kind, cf.flags, cf.italic_angle, cf.weight, cf.italic, cf.bold), (Some("cff"), Some(96), Some(-12.0), Some(700), true, true));
+        assert_eq!(cf.program.as_ref().map(|p| (p.file, p.subtype.as_deref())), Some((ProgramFile::FontFile3, Some("Type1C"))));
+
+        let hv = font("Helvetica");
+        assert_eq!((hv.embedded, hv.kind, &hv.program, hv.subset, hv.subtype.as_str()), (false, None, &None, false, "Type1"));
+        let h = hv.codes.iter().find(|c| c.code == 72).unwrap();
+        assert_eq!((h.glyph, h.unicode.as_str()), (None, "H"));
+
+        let cjk_font = font("CJK");
+        assert_eq!((cjk_font.subtype.as_str(), cjk_font.cid_subtype.as_deref(), cjk_font.encoding.as_deref()), ("Type0", Some("CIDFontType2"), Some("Identity-H")));
+        assert_eq!((cjk_font.subset, cjk_font.to_unicode, cjk_font.kind), (true, true, Some("truetype")));
+        assert_eq!(cjk_font.codes, [CodeMapping { code: 0x07d0, glyph: Some(2000), unicode: "中".into() }]);
+
+        let t3 = font("Stamp");
+        assert_eq!((t3.subtype.as_str(), t3.kind, &t3.program, t3.embedded), ("Type3", Some("type3"), &None, true));
+        assert_eq!(t3.codes, [CodeMapping { code: 65, glyph: None, unicode: "A".into() }]);
+
+        assert_eq!((font("SansProbe").kind, font("SansProbe").program.as_ref().map(|p| p.file)), (Some("type1"), Some(ProgramFile::FontFile)));
+        let cc = font("CidCff");
+        assert_eq!((cc.kind, cc.cid_subtype.as_deref()), (Some("cid-cff"), Some("CIDFontType0")));
+        // A font dictionary written inline in the resources is found too.
+        assert_eq!((font("Courier").subtype.as_str(), font("Courier").embedded), ("Type1", false));
+
+        // Each program's bytes are its stream's, decoded: the deflated one inflated, none re-encoded.
+        let hash = |b: &[u8]| hayro::hayro_syntax::sha256(b);
+        for (object, bytes) in [(7, ttf), (10, cff), (15, &cjk[..]), (21, &pfb[..]), (25, cff)] {
+            assert_eq!(doc.font_program(id(object)).map(|b| hash(&b)), Some(hash(bytes)), "object {object}");
+        }
+        assert_eq!(doc.font_program(id(99)), None);
+        assert_eq!("7 0".parse::<ProgramId>(), Ok(id(7)));
+        assert_eq!(id(7).to_string(), "7 0");
+        // Listing the fonts changes nothing the text reads.
+        let again = doc.text(0).unwrap();
+        assert_eq!(again.text(), text.text());
+    }
+
+    /// Type 3 fonts whose resources each name the next one twice are walked once each: each level
+    /// down doubled the walk before, 2^30 visits for 30 of them.
+    #[test]
+    fn type3_fonts_naming_each_other_are_walked_once() {
+        let type3 = |next: String| {
+            format!(
+                "<< /Type /Font /Subtype /Type3 /FontBBox [0 0 1000 1000] /FontMatrix [0.001 0 0 0.001 0 0] \
+                 /CharProcs << /A 5 0 R >> /Encoding << /Type /Encoding /Differences [65 /A] >> /FirstChar 65 \
+                 /LastChar 65 /Widths [1000] /Resources << /Font << {next} >> >> >>"
+            )
+            .into_bytes()
+        };
+        let mut objects: Vec<Vec<u8>> = vec![
+            b"<< /Type /Catalog /Pages 2 0 R >>".to_vec(),
+            b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>".to_vec(),
+            b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R /Resources << /Font << /T3 6 0 R >> >> >>".to_vec(),
+            // `/ZZ` is no font here: text is read in a standard one, which no walk finds, so it never
+            // ends early.
+            stream("", b"BT /T3 10 Tf 5 50 Td (A) Tj ET BT /ZZ 10 Tf 5 20 Td (B) Tj ET"),
+            stream("", b"1000 0 0 0 1000 1000 d1 0 0 1000 1000 re f"),
+        ];
+        for n in 6..36 {
+            objects.push(type3(if n < 35 { format!("/X {0} 0 R /Y {0} 0 R", n + 1) } else { String::new() }));
+        }
+        let refs: Vec<&[u8]> = objects.iter().map(Vec::as_slice).collect();
+        let doc = Document::open(pdf(&refs), "").unwrap();
+        let fonts = doc.fonts(0).unwrap();
+        assert_eq!(fonts.iter().map(|f| f.subtype.as_str()).collect::<Vec<_>>(), ["Type3", ""]);
     }
 
     /// Words are the union of their chars' boxes, tight or not, and a space the engine adds keeps the

@@ -18,6 +18,8 @@ export {
   type PdfEmbeddedStep,
   type PdfDocument,
   type PdfFont,
+  type PdfFontInfo,
+  type PdfFontKind,
   type PdfLink,
   type PdfLinkTarget,
   type PdfOutlineItem,

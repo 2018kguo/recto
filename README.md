@@ -185,6 +185,10 @@ page and the exact place and view on it, in that page's frame and as the file wr
 another file. Bookmarks and the open action resolve the same way. See [the reference](docs/reference.md#part-of-a-page)
 and [destinations](docs/reference.md#destinations).
 
+`fonts(i)` lists the fonts a page's text uses, each with its subset prefix, subtype, style, code-to-Unicode
+map and the program it embeds, whose bytes `fontProgram(id)` returns as the file stores them; each char
+carries its horizontal scale (`Tz`) and each run its text rendering matrix. See [fonts](docs/reference.md#fonts).
+
 ## How fast
 
 <picture>

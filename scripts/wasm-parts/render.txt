@@ -52,7 +52,7 @@
 <alloc::vec::Vec<vello_common::flatten_simd::Point32>>::resize
 <alloc::vec::Vec<vello_cpu::coarse::bucketer::RowState>>::resize_with::<&mut <vello_cpu::coarse::bucketer::RowState>::new>
 <color::dynamic::DynamicColor>::convert
-<core::cell::once::OnceCell<hayro_interpret::context::InterpreterCache>>::try_init::<<core::cell::once::OnceCell<hayro_interpret::context::InterpreterCache>>::get_or_init<<recto::Document>::scan_with::{closure#0}::{closure#0}>::{closure#0}, !>
+<core::cell::once::OnceCell<hayro_interpret::context::InterpreterCache>>::try_init::<<core::cell::once::OnceCell<hayro_interpret::context::InterpreterCache>>::get_or_init<<recto::Document>::page_pass<recto::Scan, <recto::Document>::scan_with::{closure#0}>::{closure#0}::{closure#0}>::{closure#0}, !>
 <core::cell::once::OnceCell<vello_common::encode::GradientLut<u8>>>::try_init::<<core::cell::once::OnceCell<vello_common::encode::GradientLut<u8>>>::get_or_init<<vello_common::encode::EncodedGradient>::u8_lut<fearless_simd::generated::wasm::WasmSimd128>::{closure#0}>::{closure#0}, !>
 <core::fmt::Formatter>::pad_formatted_parts
 <core::fmt::Formatter>::pad_integral

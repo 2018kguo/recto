@@ -64,6 +64,7 @@ pub(crate) fn append_text_string<'a>(
                 char_space,
                 font_size: state.font_size,
                 stretch: metrics.stretch as f32,
+                h_scale: state.horizontal_scaling / 100.0,
             });
         }
 

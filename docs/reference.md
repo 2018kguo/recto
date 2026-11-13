@@ -54,7 +54,9 @@ together before drawing it, where the engine would otherwise wait a round trip f
 | `structureTruncated()` | `{ pages, pageLabels, outline }`: whether each was cut short. `pages` means `pageCount` may be short: a limit, or a damaged tree that left no pages, which an honestly empty document doesn't say. Walks the outline and labels again |
 | `pageLabels()` | What each page is called, one string per page: `"iv"`, `"A-5"`. `null` if the file doesn't say |
 | `pageInfo(i)` | `{ width, height, rotation }`, in the page's own units: `/UserUnit` doesn't scale them. Rendering by `width` doesn't depend on it |
-| `text(i, { boxes? })` | `PdfPageText`: the page's `text`, and columns per char: `codepoints`, `boxes`, `fontSizes`, `tfSizes`, `angles`, `fills`, `fontIds`, `flags`, `runIds`; plus `fonts`, `words`, `runs`, `truncated`. `boxes: "tight"` for glyph bounds, below |
+| `text(i, { boxes? })` | `PdfPageText`: the page's `text`, and columns per char: `codepoints`, `boxes`, `fontSizes`, `tfSizes`, `hScales`, `angles`, `fills`, `fontIds`, `flags`, `runIds`; plus `fonts`, `words`, `runs`, `truncated`. `boxes: "tight"` for glyph bounds, below |
+| `fonts(i)` | `PdfFontInfo[]`: the fonts page `i`'s text uses, in `text(i).fonts` order, with what their dictionaries say and the program each embeds. [Fonts](#fonts) |
+| `fontProgram(id)` | The bytes of an embedded font program `fonts` listed, as its stream decodes; `null` for an id that names none. [Fonts](#fonts) |
 | `objects(i)` | `PdfPageObjects`: image boxes and pixel sizes, path boxes and flags, path segments, `truncated` |
 | `annotations(i)` | `PdfAnnotation[]`: subtype, box, contents, form field, appearance text |
 | `links(i)` | `PdfLink[]`: each `/Link` annotation's index in `annotations(i)`, its box, and its `target`. [Links](#links) |
@@ -86,6 +88,14 @@ What the columns mean:
   embed (and the CJK fallback, for a CJK font it doesn't embed), and drawing's part of the wasm.
 - **`fontSizes`** is the size a char is drawn at, in points: `Tf` scaled by the text and page
   matrices. **`tfSizes`** is the `Tf` operand itself.
+- **`hScales`** is the horizontal scale a char was shown with: `Tz` over 100, 1 where no `Tz` was set. It's
+  text state, so it holds across `BT` and `ET` and `q` and `Q` save and restore it. A space or line break
+  the engine adds has the char before it's.
+- **`runs.matrices`** is six numbers a run, `a, b, c, d, e, f`: the text rendering matrix its first glyph
+  was drawn with, `[Tf·Tz/100 0 0 Tf 0 Ts] × Tm × CTM`, then the page's flip into the viewer frame, so upright
+  text has `d` negative (12 pt at `Tz 50` is `6, 0, 0, -12`). One unit of text space is `(a, b)` across and
+  `(c, d)` up: rotation is `atan2(b, a)`, and a skew shows as `(c, d)` not at a right angle to `(a, b)`. `e, f`
+  is where that glyph is placed. The run's glyphs share `a` to `d`; their positions are in `boxes`.
 - **`fonts`** has one entry per font dictionary: `{ name, flags, weight, embedded, ascent, descent }`.
   `name` is `BaseFont` without a subset prefix; `weight` is the descriptor's `FontWeight`, or the
   program's, or what the name says (bold 700, otherwise 400); 0 for a Type 3 font.
@@ -193,7 +203,7 @@ pool.close()      // or `using`: stops every thread; what's unfinished fails wit
 doc.pageCount
 doc.text(i)  doc.render(i, { width, maxHeight?, region? })  doc.objects(i)
 doc.annotations(i)  doc.links(i)  doc.pageInfo(i)  doc.outline()     // each a promise
-doc.openAction()  doc.destination(nameOrDest)
+doc.openAction()  doc.destination(nameOrDest)  doc.fonts(i)  doc.fontProgram(id)
 doc.close()       // or `await using`: frees it on every thread
 ```
 
@@ -310,6 +320,61 @@ type PdfDestination = {
   link's action is.
 
 `openAction` and `destination` load `recto-render.wasm` too, as `links` does.
+
+## Fonts
+
+`doc.fonts(i)` lists the fonts page `i`'s text uses, one per font dictionary, entry `k` for
+`text(i).fonts[k]`: a char's `fontIds` entry indexes both. `doc.fontProgram(program.id)` gives a program's bytes.
+
+```ts
+type PdfFontInfo = {
+  id: number;                  // its index in text(i).fonts, what fontIds holds
+  name: string;                // BaseFont without a subset prefix (Type 3: /Name), as PdfFont's
+  baseFont: string;            // BaseFont as written; "" if none
+  subset: boolean;             // BaseFont starts with a tag of six capitals and a "+"
+  subtype: string;             // "Type1", "MMType1", "TrueType", "Type0", "Type3"
+  cidSubtype: string | null;   // a Type0 font's descendant: "CIDFontType0", "CIDFontType2"
+  encoding: string | null;     // /Encoding by name, or a differences dictionary's /BaseEncoding
+  embedded: boolean;           // a font file in its descriptor, or a Type 3 font
+  kind: "type1" | "truetype" | "cff" | "cid-cff" | "opentype" | "type3" | null;
+  program: { id: string; file: "FontFile" | "FontFile2" | "FontFile3"; subtype: string | null } | null;
+  flags: number | null;        // the descriptor's /Flags, /ItalicAngle, /FontWeight
+  italicAngle: number | null;
+  weight: number | null;
+  italic: boolean;
+  bold: boolean;
+  toUnicode: boolean;          // the dictionary has a /ToUnicode CMap
+  codes: { count: number; codes: Uint32Array; glyphs: Int32Array; unicode: string[] };
+};
+```
+
+- **`kind`** is what the program is, from the descriptor's key and the stream's `/Subtype`: `/FontFile` is
+  `"type1"`, `/FontFile2` `"truetype"`, `/FontFile3` with `Type1C` `"cff"`, `CIDFontType0C` `"cid-cff"`,
+  `OpenType` `"opentype"`. A Type 3 font is `"type3"`, with `program` null: its glyphs are content streams.
+  A font that embeds nothing has `kind` and `program` null and `embedded` false; text and drawing use a
+  standard font for it.
+- **`program.id`** is the program stream's object number and generation, `"12 0"`: the same on every page that
+  uses it, in every instance and on every thread of a pool, so it's also what to key a set of programs by.
+- **`fontProgram(id)`** returns the stream's data after its filters, exactly as the file stores the program:
+  nothing is parsed, repaired or re-encoded, so a Type 1 program keeps its encrypted portion and its
+  `Length1`, `Length2` and `Length3` parts, and a CFF is bare CFF. It's a new copy at each call.
+- **`italic` and `bold`** come from the descriptor where it says (the italic flag or a nonzero `/ItalicAngle`;
+  `ForceBold` or a `/FontWeight` of 600 or more), and otherwise from the name: "Italic" or "Oblique", "Bold",
+  "Black" or "Heavy". `flags`, `italicAngle` and `weight` are the descriptor's alone, null where it doesn't state
+  them.
+- **`codes`** is what the font's codes map to, entry `j` of each column, in code order: `unicode` is the text
+  a code reads as, from `/ToUnicode`, or else the encoding's glyph names, as `text` reads it before
+  normalising; `glyphs` the glyph id in the embedded program, -1 where there's none (not embedded, Type 3, or a
+  code that maps to `.notdef`). A simple font lists those of its 256 codes that have either. A Type0 font
+  lists its codes up to `0xFFFF` that have Unicode, so one without `/ToUnicode` or a predefined Unicode CMap
+  lists none, and codes of three or four bytes aren't listed.
+- **The fonts** are found by walking the page's resources, those of the forms and tiling patterns it draws,
+  and Type 3 fonts' own, down 32 levels and through 4,096 forms. A font the content names but the walk
+  doesn't reach (past those limits), and the font text is read in when the content names one it doesn't
+  define, are listed with `subtype` "" and what `text(i).fonts` says of them.
+
+`fonts` interprets the page again, as `text` does, and loads `recto-render.wasm` and `recto-more.wasm`;
+`fontProgram` loads `recto-more.wasm`. Reading text alone never runs either.
 
 ## Errors
 
@@ -496,5 +561,6 @@ as blank text.
 ## The Rust crate
 
 `crates/recto` is the engine without JavaScript: `recto::Document::open(bytes, password)`, then
-`text`, `scan`, `annotations`, `render`. It is not on crates.io, because it depends on the
+`text`, `scan`, `annotations`, `render`, and `fonts(i)` (`Vec<FontInfo>`) and `font_program(ProgramId)`
+(`Option<Vec<u8>>`). A char's `h_scale` and a run's `matrix` are `hScales` and `runs.matrices`. It is not on crates.io, because it depends on the
 vendored hayro crates through `[patch]`, which crates.io does not honour.

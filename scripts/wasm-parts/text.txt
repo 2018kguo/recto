@@ -239,6 +239,7 @@
 <hayro_font::type1::Type1Font>::glyph_width
 <hayro_font::type1::Type1Font>::map_code
 <hayro_font::type1::Type1Font>::new
+<hayro_font::type3::Type3Font>::char_code_to_unicode
 <hayro_interpret::cache::Cache>::get_or_insert_with::<hayro_interpret::color::ColorSpaceType, <hayro_interpret::color::ColorSpaceType>::new_inner::{closure#0}>
 <hayro_interpret::color::Color>::same_as
 <hayro_interpret::color::ColorSpace as core::any::Any>::type_id
@@ -622,7 +623,6 @@
 <recto::Document>::open_data
 <recto::Document>::open_ranged
 <recto::Document>::scan_with
-<recto::Document>::scan_with::{closure#0}
 <recto::Document>::structure_truncated
 <recto::Inner as core::ops::drop::Drop>::drop
 <recto::assets::host::set_loader::{closure#2} as core::ops::function::FnOnce<()>>::call_once
@@ -889,6 +889,7 @@ hayro_interpret::context::path_as_rect
 hayro_interpret::function::read_intervals
 hayro_interpret::function::type4::parse_procedure_inner
 hayro_interpret::interpret::interpret::<recto::device::PageDevice>
+hayro_interpret::interpret::interpret_page::<recto::device::PageDevice>
 hayro_interpret::interpret::lex::number
 hayro_interpret::interpret::lex::readable
 hayro_interpret::interpret::lex::skip_nested
@@ -1000,10 +1001,14 @@ pagetext_fontSizes
 pagetext_fontSizes multivalue shim
 pagetext_fontWeights
 pagetext_fontWeights multivalue shim
+pagetext_hScales
+pagetext_hScales multivalue shim
 pagetext_runEms
 pagetext_runEms multivalue shim
 pagetext_runIds
 pagetext_runIds multivalue shim
+pagetext_runMatrices
+pagetext_runMatrices multivalue shim
 pagetext_runOrigins
 pagetext_runOrigins multivalue shim
 pagetext_text
@@ -1045,6 +1050,7 @@ recto::labels::read_walked
 recto::outline::read_walked
 recto::outline::walked
 recto::ranged::data::{closure#0}
+recto::text::build_page
 recto::text::classify
 recto::text::mirrored
 recto::text::rtl_segment
@@ -1052,7 +1058,7 @@ recto::wasm::js_error
 recto::wasm::js_set_raw::__wbg_set externref shim
 recto::wasm::js_sys_error::__wbg_Error externref shim
 recto::wasm::page_text
-recto::wasm::page_text::{closure#8}
+recto::wasm::page_text::{closure#9}
 roundf
 setAssetLoader
 setAssetLoader externref shim
