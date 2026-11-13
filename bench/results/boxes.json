@@ -1,5 +1,5 @@
 {
- "date": "2026-11-12T19:34:36.318Z",
+ "date": "2026-11-13T08:16:52.861Z",
  "documents": 226,
  "of": 400,
  "pagesEach": 5,
@@ -13,7 +13,7 @@
   "mupdf": "1.28.1"
  },
  "reference": "pdfium FPDFText_GetCharBox (@embedpdf/pdfium 2.15.1); ink: pdfium's rendering at 4 px a point, chars whose surroundings are clear",
- "seconds": 22,
+ "seconds": 24,
  "summary": {
   "chars: mupdf": {
    "median": 0.411,
