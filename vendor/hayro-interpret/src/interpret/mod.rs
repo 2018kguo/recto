@@ -133,6 +133,9 @@ bitflags! {
         /// recto: interpret only what can draw text (`text_only`): for a device
         /// that reads glyph runs alone.
         const TEXT_ONLY = 1 << 2;
+        /// recto: draw no text. `Tf`, an ExtGState's `/Font` and the text-showing operators are
+        /// skipped, so no font is loaded, no glyph (Type 3 included) is drawn and a clipping mode adds no clip.
+        const NO_TEXT = 1 << 3;
     }
 }
 
@@ -416,6 +419,7 @@ pub(crate) fn run_ops<'a>(
     // stream naming one of n bytes m times cost m×n: 8,000 `gs`, `Do`, `cs` or `BDC` naming a 16 KB
     // object took 0.6 s.
     let mut named = Named::default();
+    let no_text = context.settings.render_content.contains(RenderContent::NO_TEXT);
 
     loop {
         if let Some(slice) = slice.as_mut()
@@ -427,6 +431,13 @@ pub(crate) fn run_ops<'a>(
             return page_run::Step::Done;
         };
         match op {
+            // recto: without text, what only text uses goes unread.
+            TypedInstruction::TextFont(_)
+            | TypedInstruction::ShowText(_)
+            | TypedInstruction::ShowTexts(_)
+            | TypedInstruction::NextLineAndShowText(_)
+            | TypedInstruction::ShowTextWithParameters(_)
+                if no_text => {}
             TypedInstruction::SaveState(_) => context.save_state(),
             TypedInstruction::StrokeColorDeviceRgb(s) => {
                 context.stroke_paint_mut().color_space = ColorSpace::device_rgb();

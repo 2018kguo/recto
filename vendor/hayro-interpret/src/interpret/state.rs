@@ -355,7 +355,8 @@ pub(crate) fn handle_gs_single<'a>(
 
             context.compositing_mut().blend_mode = BlendMode::Normal;
         }
-        "Font" => {
+        // recto: without text, a font is for nothing.
+        "Font" if !context.settings.render_content.contains(crate::RenderContent::NO_TEXT) => {
             let arr = dict.get::<Array<'_>>(FONT)?;
             let mut iter = arr.iter::<Object<'_>>();
             let font_dict = iter.next()?.into_dict()?;

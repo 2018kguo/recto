@@ -313,8 +313,8 @@
 <read_fonts::tables::name::MacRomanMapping>::encode
 <recto::Document>::links
 <recto::Document>::pixmap_settings
-<recto::Document>::render_region
-<recto::RenderTask>::new
+<recto::Document>::render_with
+<recto::RenderTask>::with_options
 <recto::assets::resolve as core::ops::function::Fn<(&hayro_font::FontQuery,)>>::call
 <recto::device::PageDevice as hayro_interpret::device::Device>::draw_image
 <recto::outline::Destinations>::explicit

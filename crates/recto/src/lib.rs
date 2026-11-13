@@ -149,6 +149,30 @@ pub struct Region {
     pub height: f64,
 }
 
+/// How a page is drawn, beyond its size and region.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct RenderOptions {
+    /// Whether text is drawn: true by default. Without it the text-showing operators draw nothing
+    /// in any rendering mode (a Type 3 glyph's procedure included), a clipping mode adds no clip,
+    /// and the fonts only text uses aren't loaded. Everything else draws as it would.
+    pub text: bool,
+}
+
+impl Default for RenderOptions {
+    fn default() -> Self {
+        Self { text: true }
+    }
+}
+
+/// Interpreter settings for a render with these options.
+fn render_settings(options: RenderOptions) -> InterpreterSettings {
+    let mut settings = crate::assets::settings();
+    if !options.text {
+        settings.render_content |= RenderContent::NO_TEXT;
+    }
+    settings
+}
+
 /// What one interpretation of a page collected.
 struct PagePass<'a> {
     device: device::PageDevice<'a>,
@@ -637,13 +661,14 @@ impl Document {
         &self,
         index: usize,
         settings: &PixmapSettings,
+        options: RenderOptions,
     ) -> Result<(hayro::vello_cpu::Pixmap, bool), EngineError> {
         let cuts = hayro::hayro_syntax::decodes_cut();
         self.with_page(index, |_, page, caches| {
             let pixmap = render(
                 page,
                 &caches.render,
-                &crate::assets::settings(),
+                &render_settings(options),
                 &RenderSettings::default(),
                 settings,
             );
@@ -660,8 +685,20 @@ impl Document {
     /// but without a whole page's size limits: those are on the region. The page's bitmap at that
     /// scale may be up to `MAX_REGION_PAGE_SIDE` a side.
     pub fn render_region(&self, index: usize, width: f32, max_height: f32, region: Option<Region>) -> Result<Bitmap, EngineError> {
+        self.render_with(index, width, max_height, region, RenderOptions::default())
+    }
+
+    /// `render_region`, drawn as `options` say.
+    pub fn render_with(
+        &self,
+        index: usize,
+        width: f32,
+        max_height: f32,
+        region: Option<Region>,
+        options: RenderOptions,
+    ) -> Result<Bitmap, EngineError> {
         let (settings, page) = self.pixmap_settings(index, width, max_height, region)?;
-        let (pixmap, truncated) = self.pixmap(index, &settings)?;
+        let (pixmap, truncated) = self.pixmap(index, &settings, options)?;
         Ok(bitmap_of(pixmap, truncated, &settings, page))
     }
 }
@@ -685,13 +722,25 @@ impl RenderTask {
         max_height: f32,
         region: Option<Region>,
     ) -> Result<Self, EngineError> {
+        Self::with_options(document, index, width, max_height, region, RenderOptions::default())
+    }
+
+    /// `new`, drawn as `options` say.
+    pub fn with_options(
+        document: std::rc::Rc<Document>,
+        index: usize,
+        width: f32,
+        max_height: f32,
+        region: Option<Region>,
+        options: RenderOptions,
+    ) -> Result<Self, EngineError> {
         let (settings, page) = document.pixmap_settings(index, width, max_height, region)?;
         let cuts = hayro::hayro_syntax::decodes_cut();
         let job = document.with_page(index, |_, page, caches| {
             let job = hayro::PageJob::new(
                 page,
                 &caches.render,
-                &crate::assets::settings(),
+                &render_settings(options),
                 &RenderSettings::default(),
                 &settings,
             );

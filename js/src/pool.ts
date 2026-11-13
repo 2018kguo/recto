@@ -361,8 +361,8 @@ class Pool implements PdfPool {
             new TypeError("a pool's render takes no signal: a call that's running can't be stopped. pool.close() ends all of them.")
           );
         }
-        const { width, maxHeight, region } = renderOptions ?? {};
-        return call("render", index, region === undefined ? { width, maxHeight } : { width, maxHeight, region }) as Promise<PdfBitmap>;
+        const { width, maxHeight, region, text } = renderOptions ?? {};
+        return call("render", index, region === undefined ? { width, maxHeight, text } : { width, maxHeight, region, text }) as Promise<PdfBitmap>;
       }) as PdfPoolDocument["render"],
       close,
       [Symbol.asyncDispose]: close,

@@ -62,8 +62,8 @@ together before drawing it, where the engine would otherwise wait a round trip f
 | `links(i)` | `PdfLink[]`: each `/Link` annotation's index in `annotations(i)`, its box, and its `target`. [Links](#links) |
 | `scan(i)` | `text`, `objects` and `annotations` from one interpretation of the page |
 | `textAndAnnotations(i)` | `text` and `annotations` from one interpretation of the page |
-| `render(i, { width, maxHeight?, region? })` | `{ width, height, rgba, truncated }`: opaque RGBA, four bytes a pixel, on white. With a `region`, only that part, and where it is: [part of a page](#part-of-a-page) |
-| `renderAsync(i, { width, maxHeight?, signal?, sliceMs? })` | A promise of the same bitmap, the same pixels, with the thread given back every `sliceMs` (8 by default). A `signal` stops it at the next pause, with `aborted` |
+| `render(i, { width, maxHeight?, region?, text? })` | `{ width, height, rgba, truncated }`: opaque RGBA, four bytes a pixel, on white. With a `region`, only that part, and where it is: [part of a page](#part-of-a-page). `text: false` draws it [without its text](#without-text) |
+| `renderAsync(i, { width, maxHeight?, region?, text?, signal?, sliceMs? })` | A promise of the same bitmap, the same pixels, with the thread given back every `sliceMs` (8 by default). A `signal` stops it at the next pause, with `aborted` |
 | `close()`, `[Symbol.dispose]()` | Frees the document. Closing twice does nothing |
 
 Columns are typed arrays, so a page crosses a thread boundary by transfer. Char `i` is entry
@@ -179,6 +179,27 @@ draws only the pixels of the whole page's bitmap that the region covers, for a t
 
 `truncated` means what it does for a whole render.
 
+### Without text
+
+`render(i, { width, text: false })`, and `renderAsync` and a pool's `render` with the same, with or without a
+`region`, draws the page without its text: what the text-showing operators (`Tj`, `TJ`, `'`, `"`) would
+paint is left out, wherever they are, and all else draws as it would, pixel for pixel the page with its text
+taken out of the content. `text` is true by default, which draws as before.
+
+| Text rendering mode (`Tr`) | Drawn by default | With `text: false` |
+|---|---|---|
+| 0, 1, 2: fill, stroke, both | The glyphs | Nothing |
+| 3: invisible | Nothing | Nothing |
+| 4, 5, 6: fill, stroke or both, and clip | The glyphs, then their clip from `ET` | Nothing, and no clip: what follows draws unclipped |
+| 7: clip | Their clip from `ET` | No clip: what follows draws unclipped |
+
+- **Type 3 glyphs are text,** so their procedures don't run, whatever they draw.
+- **Everything else draws:** paths, shadings, images and inline images, patterns, transparency groups and
+  soft masks, forms (a form's text is left out and the rest of it drawn), and annotation appearances, whose
+  text is left out too, as is the text of a free text annotation drawn without one.
+- **Fonts aren't loaded:** `Tf` is skipped with the text, so a page's fonts aren't read, nor their programs,
+  nor the standard fonts' files fetched. Pages heavy with text draw faster.
+
 **`renderAsync`** pauses between a page's drawing operators, including inside forms. Three things
 run whole: the final rasterizing (about a quarter of a render, the longest hold on a heavy page),
 and a pattern, soft mask or Type 3 glyph, or a knockout or backdrop group. Other calls may run
@@ -201,7 +222,7 @@ pool.stats(): { threads: number; queued: number }
 pool.close()      // or `using`: stops every thread; what's unfinished fails with `closed`
 
 doc.pageCount
-doc.text(i)  doc.render(i, { width, maxHeight?, region? })  doc.objects(i)
+doc.text(i)  doc.render(i, { width, maxHeight?, region?, text? })  doc.objects(i)
 doc.annotations(i)  doc.links(i)  doc.pageInfo(i)  doc.outline()     // each a promise
 doc.openAction()  doc.destination(nameOrDest)  doc.fonts(i)  doc.fontProgram(id)
 doc.close()       // or `await using`: frees it on every thread
@@ -223,7 +244,7 @@ the CDN must send CORS headers for `dist/` as it does for the wasm, and a Conten
 A thread that can't start fails what's waiting with its reason, usually `missing-asset`, and the next call tries again; one
 that says nothing for 90 seconds counts as stopped. A thread that stops fails its call with `crash`, and another takes its
 place. An argument or result that can't cross between threads fails that call alone. `render` takes `width`,
-`maxHeight` and `region`, and refuses `signal` with a `TypeError`: a call can't be stopped once it runs, only `pool.close()` ends all of them.
+`maxHeight`, `region` and `text`, and refuses `signal` with a `TypeError`: a call can't be stopped once it runs, only `pool.close()` ends all of them.
 The synchronous API doesn't change, and the pool's code loads only when `createPdfPool` is called.
 
 ## Links

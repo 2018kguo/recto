@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **A page drawn without its text.** `render(i, { width, text: false })` leaves out what the text-showing
+  operators paint, in every rendering mode, Type 3 glyphs included, and adds no clip for a clipping mode; paths,
+  images, shadings, forms, groups, masks, patterns and annotations draw as they do, less any text in them. With
+  a `region`, in `renderAsync` and in a pool's `render` too, and `Document::render_with` and
+  `RenderTask::with_options` with `RenderOptions { text: false }` in Rust. Its fonts aren't loaded. `text` is
+  true by default, which draws as before. [Without text](docs/reference.md#without-text)
+
 ## 0.8.1
 
 ### Added
