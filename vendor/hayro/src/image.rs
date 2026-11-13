@@ -124,16 +124,21 @@ impl Renderer<'_> {
     fn draw_image(&mut self, image_data: impl Into<RenderImageData>, alpha_data: Option<LumaData>) {
         let image_data = image_data.into();
         if let Some(a) = &alpha_data
-            && (a.width != image_data.width()
-                || a.height != image_data.height()
-                || (a.interpolate || self.global.force_image_interpolation)
-                    != (image_data.interpolate() || self.global.force_image_interpolation))
+            && !self.alpha_fits(&image_data, a)
         {
             return self.draw_image_with_alpha_mask(image_data, alpha_data.unwrap());
         }
         let cur_transform = *self.ctx.transform();
         let drawn = self.image_pixmap(image_data, alpha_data);
         self.draw_pixmap(drawn.pixmap, drawn.quality, cur_transform * drawn.transform);
+    }
+
+    /// recto: whether `image_pixmap` takes this alpha with this image: the same size and smoothing.
+    fn alpha_fits(&self, image_data: &RenderImageData, a: &LumaData) -> bool {
+        a.width == image_data.width()
+            && a.height == image_data.height()
+            && (a.interpolate || self.global.force_image_interpolation)
+                == (image_data.interpolate() || self.global.force_image_interpolation)
     }
 
     /// recto: what `draw_image` draws, for an image whose alpha, if any, is its own size: the pixmap,
@@ -590,8 +595,11 @@ impl Renderer<'_> {
                                 let (sx, sy) = image.scale_factors();
                                 transform *= Affine::scale_non_uniform(sx as f64, sy as f64);
                                 self.ctx.set_transform(transform);
-                                if key.is_some() && alpha.is_none() {
-                                    let mut image = self.image_pixmap(image.into(), None);
+                                let image = RenderImageData::from(image);
+                                // recto: with an alpha of the image's own size, as `draw_image`
+                                // draws it, the pixmap holds both.
+                                if key.is_some() && alpha.as_ref().is_none_or(|a| self.alpha_fits(&image, a)) {
+                                    let mut image = self.image_pixmap(image, alpha);
                                     image.transform = Affine::scale_non_uniform(sx as f64, sy as f64) * image.transform;
                                     drawn = Some(image);
                                 } else {

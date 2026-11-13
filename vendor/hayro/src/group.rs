@@ -8,6 +8,13 @@
 //! for alpha. The group colour is then worked out with the formula that removes the backdrop's
 //! contribution (ISO 32000-2, 11.4.8), and the result painted as an image in the group's place.
 //!
+//! A group's result is kept for the rest of the page's drawing, cut to where it paints, with its
+//! mask and how many group events its contents took. A later group's backdrop draws the page again,
+//! and the groups before it in that drawing paint what was kept rather than drawing their contents
+//! twice and their backdrops again; that is the same pixels, as each one's result depends only on
+//! its backdrop and contents. Without it, a page of n groups drew n^2 / 2 of them and held a
+//! page-sized pixmap or more for each (16 small drop shadows came to 280 MB).
+//!
 //! Elements of a knockout group replace what the group holds where they paint: a layer in `Copy`
 //! mode clipped to the element's shape. Images and groups have no shape to hand, so they are painted
 //! once to erase and then again for real.
@@ -47,12 +54,27 @@ pub(crate) struct Capture {
     opacity: f32,
     mask: Option<Mask>,
     blend_mode: BlendMode,
+    /// The group's result from an earlier drawing of the page, when this drawing paints that
+    /// instead of drawing the contents.
+    drawn: Option<DrawnGroup>,
+}
+
+/// A finished group's result: its pixels where it paints (`at`, in the context's pixels; None
+/// where it paints nothing), its mask, and the event count once its contents were drawn.
+#[derive(Clone)]
+pub(crate) struct DrawnGroup {
+    pixels: Option<(Arc<Pixmap>, (u16, u16))>,
+    mask: Option<Mask>,
+    events_after: u32,
 }
 
 pub(crate) trait Backdrop {
     /// The page as it stands at group event `to`, with only what was drawn since event `from` when
     /// `from` isn't zero.
     fn snapshot(&self, from: u32, to: u32) -> Arc<Pixmap>;
+    /// recto: the result of the group at `event`, once one drawing of the page finished it.
+    fn drawn_group(&self, event: u32) -> Option<DrawnGroup>;
+    fn keep_group(&self, event: u32, group: DrawnGroup);
 }
 
 pub(crate) struct PageReplay<'a, 'c> {
@@ -64,7 +86,9 @@ pub(crate) struct PageReplay<'a, 'c> {
     width: u16,
     height: u16,
     render_settings: vello_cpu::RenderSettings,
-    memo: RefCell<FxHashMap<(u32, u32), Arc<Pixmap>>>,
+    /// Each finished group's result, by its event. A backdrop isn't kept: each is drawn once, as
+    /// a drawing for a later one paints the groups before it from here.
+    groups: RefCell<FxHashMap<u32, DrawnGroup>>,
 }
 
 impl<'a, 'c> PageReplay<'a, 'c> {
@@ -85,16 +109,21 @@ impl<'a, 'c> PageReplay<'a, 'c> {
             width: ctx.width(),
             height: ctx.height(),
             render_settings: *ctx.render_settings(),
-            memo: RefCell::default(),
+            groups: RefCell::default(),
         }
     }
 }
 
 impl Backdrop for PageReplay<'_, '_> {
+    fn drawn_group(&self, event: u32) -> Option<DrawnGroup> {
+        self.groups.borrow().get(&event).cloned()
+    }
+
+    fn keep_group(&self, event: u32, group: DrawnGroup) {
+        self.groups.borrow_mut().entry(event).or_insert(group);
+    }
+
     fn snapshot(&self, from: u32, to: u32) -> Arc<Pixmap> {
-        if let Some(found) = self.memo.borrow().get(&(from, to)) {
-            return found.clone();
-        }
         let mut ctx = RenderContext::new_with(self.width, self.height, self.render_settings);
         draw_page(
             self.page,
@@ -121,9 +150,7 @@ impl Backdrop for PageReplay<'_, '_> {
                 ..Default::default()
             },
         );
-        let pixmap = Arc::new(pixmap);
-        self.memo.borrow_mut().insert((from, to), pixmap.clone());
-        pixmap
+        Arc::new(pixmap)
     }
 }
 
@@ -245,6 +272,24 @@ impl Renderer<'_> {
         let from = self.groups.last().map_or(0, |g| g.event);
         let event = self.next_event();
         let drawn = self.pushes_layer(event);
+        if let Some(group) = drawn.then(|| self.replay.unwrap().drawn_group(event)).flatten() {
+            self.groups.push(GroupFrame {
+                real: false,
+                knockout,
+                backdrop: None,
+                event,
+            });
+            self.captures.push(Capture {
+                parent: None,
+                backdrop: None,
+                over_backdrop: None,
+                opacity,
+                mask: None,
+                blend_mode,
+                drawn: Some(group),
+            });
+            return true;
+        }
         let backdrop = drawn.then(|| self.replay.unwrap().snapshot(from, event));
         let mask = if drawn { mask.map(|m| self.resolve_mask(m)) } else { None };
         let parent = drawn.then(|| {
@@ -268,8 +313,46 @@ impl Renderer<'_> {
             opacity,
             mask,
             blend_mode,
+            drawn: None,
         });
         true
+    }
+
+    /// recto: whether the capture just begun paints a result kept from an earlier drawing, so its
+    /// contents needn't be drawn.
+    pub(crate) fn capture_known(&self) -> bool {
+        self.captures.last().is_some_and(|c| c.drawn.is_some())
+    }
+
+    fn paint_group(&mut self, group: &DrawnGroup, opacity: f32, blend_mode: BlendMode) {
+        let Some((pixels, (x, y))) = &group.pixels else {
+            return;
+        };
+        self.ctx.push_layer(
+            None,
+            Some(convert_blend_mode(blend_mode)),
+            Some(opacity),
+            group.mask.clone(),
+            None,
+        );
+        self.ctx.set_transform(VelloAffine::IDENTITY);
+        self.ctx.reset_mask();
+        self.ctx.set_blend_mode(peniko::BlendMode::default());
+        let (x, y) = (f64::from(*x), f64::from(*y));
+        self.ctx.set_paint(Image {
+            image: ImageSource::Pixmap(pixels.clone()),
+            sampler: ImageSampler {
+                x_extend: Extend::Pad,
+                y_extend: Extend::Pad,
+                quality: ImageQuality::Low,
+                alpha: 1.0,
+            },
+        });
+        self.ctx.set_paint_transform(VelloAffine::translate((x, y)));
+        let (w, h) = (f64::from(pixels.width()), f64::from(pixels.height()));
+        self.ctx.fill_rect(&Rect::new(x, y, x + w, y + h));
+        self.ctx.reset_paint_transform();
+        self.ctx.pop_layer();
     }
 
     fn finish_child(&mut self) -> Pixmap {
@@ -295,10 +378,17 @@ impl Renderer<'_> {
     }
 
     pub(crate) fn end_capture(&mut self) {
-        self.groups.pop();
+        let Some(frame) = self.groups.pop() else {
+            return;
+        };
         let Some(capture) = self.captures.pop() else {
             return;
         };
+        if let Some(group) = capture.drawn {
+            self.events = group.events_after;
+            self.paint_group(&group, capture.opacity, capture.blend_mode);
+            return;
+        }
         let Capture {
             parent: Some(mut parent),
             backdrop: Some(backdrop),
@@ -306,49 +396,73 @@ impl Renderer<'_> {
             opacity,
             mask,
             blend_mode,
+            drawn: None,
         } = capture
         else {
             return;
         };
         let on_nothing = self.finish_child();
         std::mem::swap(self.ctx, &mut parent);
-        let group = remove_backdrop(&backdrop, &over_backdrop, &on_nothing);
-        self.ctx.push_layer(
-            None,
-            Some(convert_blend_mode(blend_mode)),
-            Some(opacity),
+        // The backdrop and the two drawings go before the result is painted.
+        let pixels = remove_backdrop(&backdrop, &over_backdrop, &on_nothing).map(|(p, at)| (Arc::new(p), at));
+        drop((parent, backdrop, over_backdrop, on_nothing));
+        let group = DrawnGroup {
+            pixels,
             mask,
-            None,
-        );
-        self.paint_pixmap(Arc::new(group));
-        self.ctx.pop_layer();
+            events_after: self.events,
+        };
+        self.paint_group(&group, opacity, blend_mode);
+        if let Some(replay) = self.replay {
+            replay.keep_group(frame.event, group);
+        }
     }
 }
 
 /// ISO 32000-2, 11.4.8: C = Cn + (Cn - C0) x (a0 / ag - a0), with the group's own alpha ag.
-fn remove_backdrop(backdrop: &Pixmap, over_backdrop: &Pixmap, on_nothing: &Pixmap) -> Pixmap {
-    let mut out = Pixmap::new(on_nothing.width(), on_nothing.height());
-    let pixels = out.data_mut().iter_mut();
-    let sources = backdrop.data().iter().zip(over_backdrop.data()).zip(on_nothing.data());
-    for (pixel, ((b, n), g)) in pixels.zip(sources) {
-        if g.a == 0 {
+/// recto: only over the pixels the group paints (where `on_nothing` isn't transparent), with
+/// where they start; None where it paints nothing.
+fn remove_backdrop(backdrop: &Pixmap, over_backdrop: &Pixmap, on_nothing: &Pixmap) -> Option<(Pixmap, (u16, u16))> {
+    let width = usize::from(on_nothing.width());
+    let (mut x0, mut y0, mut x1, mut y1) = (usize::MAX, usize::MAX, 0, 0);
+    for (y, row) in on_nothing.data().chunks_exact(width.max(1)).enumerate() {
+        let Some(first) = row.iter().position(|p| p.a != 0) else {
             continue;
-        }
-        let a0 = b.a as f32 / 255.0;
-        let ag = g.a as f32 / 255.0;
-        let straight = |premultiplied: u8, alpha: u8| {
-            if alpha == 0 { 0.0 } else { premultiplied as f32 / alpha as f32 }
         };
-        let channel = |c0: u8, cn: u8| {
-            let c0 = straight(c0, b.a);
-            let cn = straight(cn, n.a);
-            let color = (cn + (cn - c0) * (a0 / ag - a0)).clamp(0.0, 1.0);
-            (color * ag * 255.0 + 0.5) as u8
-        };
-        pixel.r = channel(b.r, n.r);
-        pixel.g = channel(b.g, n.g);
-        pixel.b = channel(b.b, n.b);
-        pixel.a = g.a;
+        let last = row.iter().rposition(|p| p.a != 0).unwrap_or(first);
+        (x0, x1) = (x0.min(first), x1.max(last + 1));
+        (y0, y1) = (y0.min(y), y + 1);
     }
-    out
+    if x0 >= x1 {
+        return None;
+    }
+    let mut out = Pixmap::new((x1 - x0) as u16, (y1 - y0) as u16);
+    let rows = out.data_mut().chunks_exact_mut(x1 - x0);
+    for (y, out_row) in (y0..y1).zip(rows) {
+        let at = y * width;
+        let sources = backdrop.data()[at + x0..at + x1]
+            .iter()
+            .zip(&over_backdrop.data()[at + x0..at + x1])
+            .zip(&on_nothing.data()[at + x0..at + x1]);
+        for (pixel, ((b, n), g)) in out_row.iter_mut().zip(sources) {
+            if g.a == 0 {
+                continue;
+            }
+            let a0 = b.a as f32 / 255.0;
+            let ag = g.a as f32 / 255.0;
+            let straight = |premultiplied: u8, alpha: u8| {
+                if alpha == 0 { 0.0 } else { premultiplied as f32 / alpha as f32 }
+            };
+            let channel = |c0: u8, cn: u8| {
+                let c0 = straight(c0, b.a);
+                let cn = straight(cn, n.a);
+                let color = (cn + (cn - c0) * (a0 / ag - a0)).clamp(0.0, 1.0);
+                (color * ag * 255.0 + 0.5) as u8
+            };
+            pixel.r = channel(b.r, n.r);
+            pixel.g = channel(b.g, n.g);
+            pixel.b = channel(b.b, n.b);
+            pixel.a = g.a;
+        }
+    }
+    Some((out, (x0 as u16, y0 as u16)))
 }

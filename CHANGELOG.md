@@ -17,6 +17,20 @@
   stream decodes, nothing re-encoded. Both are on a pool's documents too, and are `Document::fonts` and
   `Document::font_program` in Rust. Neither runs while reading text: their code loads with `recto-more.wasm`.
 
+### Fixed
+
+- **A page of many groups that need their backdrop draws in a fraction of the memory and time.** A
+  non-isolated group with a blend mode inside and a mask or opacity of its own (a drop shadow, often)
+  draws the page again up to itself for its backdrop. Each group before it in that drawing drew its
+  contents and its own backdrop again, and held page-sized pixmaps for all of them until the page was
+  done: work that grew with the square of their number, and 14 MB a group at 1000 px wide. Now a group's
+  result is kept once it's drawn, cut to where it paints, and the drawings after it paint that. A page of
+  16 such shadows over a background photo went from 310 MB of WebAssembly memory to 71 MB and from 1.5 s
+  to 0.1 s a render; the pixels are the same.
+- **An image with a soft mask its own size is kept as drawn,** as one without a mask already was, so a
+  page drawn again, a page drawn as tiles, or a background on every page doesn't decode it again. A
+  region of a page that draws one now costs what the region does after the first.
+
 ## 0.8.0
 
 ### Added

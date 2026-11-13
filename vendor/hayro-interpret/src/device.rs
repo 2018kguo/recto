@@ -67,6 +67,12 @@ pub trait Device<'a> {
     ) -> bool {
         false
     }
+    /// recto: after `begin_backdrop_group` returned true, whether the device has the group's result
+    /// from an earlier drawing of the page: then `end_backdrop_group` follows at once, without the
+    /// contents.
+    fn backdrop_group_known(&self) -> bool {
+        false
+    }
     /// recto: see `begin_backdrop_group`.
     fn next_backdrop_pass(&mut self) {}
     /// recto: see `begin_backdrop_group`.
