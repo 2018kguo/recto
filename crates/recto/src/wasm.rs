@@ -72,6 +72,7 @@ pub struct PageText {
     boxes: Vec<f32>,
     font_sizes: Vec<f32>,
     tf_sizes: Vec<f32>,
+    h_scales: Vec<f32>,
     font_ascents: Vec<f32>,
     font_descents: Vec<f32>,
     truncated: bool,
@@ -91,6 +92,7 @@ pub struct PageText {
     run_ids: Vec<i32>,
     run_origins: Vec<f32>,
     run_ems: Vec<f32>,
+    run_matrices: Vec<f32>,
 }
 
 getters!(PageText {
@@ -100,6 +102,7 @@ getters!(PageText {
     boxes: Vec<f32> => "boxes",
     font_sizes: Vec<f32> => "fontSizes",
     tf_sizes: Vec<f32> => "tfSizes",
+    h_scales: Vec<f32> => "hScales",
     font_ascents: Vec<f32> => "fontAscents",
     font_descents: Vec<f32> => "fontDescents",
     truncated: bool => "truncated",
@@ -117,6 +120,7 @@ getters!(PageText {
     run_ids: Vec<i32> => "runIds",
     run_origins: Vec<f32> => "runOrigins",
     run_ems: Vec<f32> => "runEms",
+    run_matrices: Vec<f32> => "runMatrices",
 });
 
 fn ligature(c: char) -> Option<&'static str> {
@@ -141,6 +145,7 @@ fn page_text(page: &crate::TextPage) -> PageText {
         boxes: Vec::with_capacity(n * 4),
         font_sizes: Vec::with_capacity(n),
         tf_sizes: Vec::with_capacity(n),
+        h_scales: Vec::with_capacity(n),
         font_ascents: page.fonts.iter().map(|f| f.ascent).collect(),
         font_descents: page.fonts.iter().map(|f| f.descent).collect(),
         truncated: page.truncated,
@@ -158,6 +163,7 @@ fn page_text(page: &crate::TextPage) -> PageText {
         run_ids: Vec::with_capacity(n),
         run_origins: page.runs.iter().flat_map(|r| r.origin).collect(),
         run_ems: page.runs.iter().map(|r| r.em).collect(),
+        run_matrices: page.runs.iter().flat_map(|r| r.matrix).collect(),
     };
     // Where each char's code points start, plus the end.
     let mut first = Vec::with_capacity(n + 1);
@@ -168,6 +174,7 @@ fn page_text(page: &crate::TextPage) -> PageText {
             t.boxes.extend_from_slice(&c.bbox);
             t.font_sizes.push(c.em);
             t.tf_sizes.push(c.tf);
+            t.h_scales.push(c.h_scale);
             t.angles.push(c.angle);
             t.fills.push(c.fill);
             t.font_ids.push(c.font);
@@ -536,6 +543,50 @@ impl Document {
                 JsValue::from(entry)
             })
             .collect())
+    }
+
+    /// Per font of the page's text, in `PageText`'s font order: `[name, baseFont, subset, subtype,
+    /// cidSubtype, encoding, embedded, kind, programId, programFile, programSubtype, flags, italicAngle,
+    /// weight, italic, bold, toUnicode, codes, glyphs, unicode]`, null (NaN for a number) where there's
+    /// none; `glyphs` -1 for none.
+    pub fn fonts(&self, index: usize) -> Result<js_sys::Array, JsValue> {
+        let fonts = self.0.fonts(index).map_err(js_error)?;
+        Ok(fonts
+            .into_iter()
+            .map(|f| {
+                let e = js_sys::Array::new();
+                let program = f.program.as_ref();
+                e.push(&JsValue::from_str(&f.name));
+                e.push(&JsValue::from_str(&f.base_font));
+                e.push(&JsValue::from_bool(f.subset));
+                e.push(&JsValue::from_str(&f.subtype));
+                e.push(&optional_string(f.cid_subtype.as_deref()));
+                e.push(&optional_string(f.encoding.as_deref()));
+                e.push(&JsValue::from_bool(f.embedded));
+                e.push(&optional_string(f.kind));
+                e.push(&program.map_or(JsValue::NULL, |p| JsValue::from_str(&p.id.to_string())));
+                e.push(&optional_string(program.map(|p| p.file.key())));
+                e.push(&optional_string(program.and_then(|p| p.subtype.as_deref())));
+                e.push(&JsValue::from(f.flags.map_or(f64::NAN, f64::from)));
+                e.push(&optional_number(f.italic_angle));
+                e.push(&JsValue::from(f.weight.map_or(f64::NAN, f64::from)));
+                e.push(&JsValue::from_bool(f.italic));
+                e.push(&JsValue::from_bool(f.bold));
+                e.push(&JsValue::from_bool(f.to_unicode));
+                let codes: Vec<u32> = f.codes.iter().map(|c| c.code).collect();
+                let glyphs: Vec<i32> = f.codes.iter().map(|c| c.glyph.map_or(-1, |g| g as i32)).collect();
+                e.push(&js_sys::Uint32Array::from(&codes[..]));
+                e.push(&js_sys::Int32Array::from(&glyphs[..]));
+                e.push(&f.codes.iter().map(|c| JsValue::from_str(&c.unicode)).collect::<js_sys::Array>());
+                JsValue::from(e)
+            })
+            .collect())
+    }
+
+    /// The decoded bytes of the font program `id` (`"12 0"`, as `fonts` gives it), or undefined.
+    #[wasm_bindgen(js_name = fontProgram)]
+    pub fn font_program(&self, id: &str) -> Option<Vec<u8>> {
+        self.0.font_program(id.parse().ok()?)
     }
 
     /// The catalog's `/OpenAction`, as `links` gives a target.

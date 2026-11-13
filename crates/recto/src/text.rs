@@ -36,6 +36,8 @@ pub(crate) struct Glyph {
     pub(crate) em: f64,
     /// The `Tf` operand.
     pub(crate) tf: f32,
+    /// `Tz` over 100.
+    pub(crate) h_scale: f32,
     /// Advance along `dir`, in viewer points.
     advance: f64,
     /// `Tc` along `dir`, in viewer points: letter spacing inside a text run.
@@ -114,6 +116,7 @@ pub(crate) fn glyph_from(
         up,
         em,
         tf: 0.0,
+        h_scale: 1.0,
         advance,
         char_space: 0.0,
         bbox,
@@ -137,6 +140,9 @@ pub struct Char {
     pub em: f32,
     /// The `Tf` operand itself. The two agree wherever Tm and the CTM don't scale.
     pub tf: f32,
+    /// The horizontal scale it was shown with: `Tz` over 100, 1 where none was set. A generated char
+    /// takes the char before it's.
+    pub h_scale: f32,
     /// `atan2(c, a)` of the char's page-space matrix, in [0, 2π). Its `c` is
     /// the y axis's x part, so a skewed italic
     /// reads about 0.18 and text turned θ counter-clockwise reads 2π - θ.
@@ -170,6 +176,11 @@ pub struct Font {
 pub struct Run {
     pub origin: [f32; 2],
     pub em: f32,
+    /// The text rendering matrix its first glyph was drawn with, `[a, b, c, d, e, f]` into the
+    /// viewer frame: `[Tf·Tz/100 0 0 Tf 0 Ts] × Tm × CTM`, then the page's flip to a top-left origin,
+    /// so one unit of text space (Tf 1) is `(a, b)` across and `(c, d)` up. `e, f` is where the glyph
+    /// is placed. All of the run's glyphs share `a..d`.
+    pub matrix: [f32; 6],
 }
 
 pub struct Word {
@@ -188,6 +199,8 @@ pub struct TextPage {
     pub runs: Vec<Run>,
     /// The page held more glyphs than one page may collect; the rest aren't here.
     pub truncated: bool,
+    /// Which of the device's fonts each of `fonts` is.
+    pub(crate) font_order: Vec<u32>,
 }
 
 impl TextPage {
@@ -216,6 +229,7 @@ fn generated(text: &str, at: &Glyph) -> Char {
         // A generated char takes the size and angle of the char before it.
         em: at.em as f32,
         tf: 0.0,
+        h_scale: at.h_scale,
         angle: at.angle,
         fill: 0,
         font: -1,
@@ -497,6 +511,7 @@ pub(crate) fn build_page(glyphs: &[Glyph], fonts: &[Font], runs: &[Run]) -> Text
             flags,
             em: g.em as f32,
             tf: g.tf,
+            h_scale: g.h_scale,
             angle: g.angle,
             fill: g.fill,
             font: g.font as i32,
@@ -510,7 +525,7 @@ pub(crate) fn build_page(glyphs: &[Glyph], fonts: &[Font], runs: &[Run]) -> Text
     for line in chars.split_mut(|c| c.text == "\n") {
         logical_order(line);
     }
-    let (fonts, runs) = (
+    let ((fonts, font_order), (runs, _)) = (
         renumber(&mut chars, fonts, |c| &mut c.font),
         renumber(&mut chars, runs, |c| &mut c.run),
     );
@@ -551,6 +566,7 @@ pub(crate) fn build_page(glyphs: &[Glyph], fonts: &[Font], runs: &[Run]) -> Text
         words,
         fonts,
         runs,
+        font_order,
     }
 }
 
@@ -627,9 +643,10 @@ fn renumber<T: Clone>(
     chars: &mut [Char],
     table: &[T],
     id: impl Fn(&mut Char) -> &mut i32,
-) -> Vec<T> {
+) -> (Vec<T>, Vec<u32>) {
     let mut new_id = vec![-1i32; table.len()];
     let mut out = Vec::new();
+    let mut from = Vec::new();
     for c in chars {
         let slot = id(c);
         if *slot < 0 {
@@ -640,12 +657,13 @@ fn renumber<T: Clone>(
             Some(n) => {
                 *n = out.len() as i32;
                 out.push(table[*slot as usize].clone());
+                from.push(*slot as u32);
                 *n
             }
             None => -1,
         };
     }
-    out
+    (out, from)
 }
 
 #[derive(Clone, Copy, PartialEq)]

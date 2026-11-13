@@ -17,12 +17,13 @@ They are patched for what upstream does not have:
   2 GiB. Repairing an encrypted file whose trailer is gone.
 - **hayro-interpret**: a text-only interpreter (`RenderContent::TEXT_ONLY`) that skips paths,
   images and shadings and lexes content streams in place, plus what a device needs to tell
-  `re` rectangles from other paths, the `Tf` operand and a substitute's stretch per glyph, and
-  the two flags of `/Group`.
+  `re` rectangles from other paths, the `Tf` operand, the `Tz` scale (`PositionedGlyph::h_scale`) and a
+  substitute's stretch per glyph, and the two flags of `/Group`.
 - **hayro-font**: one table per font for what each character code does (glyph, stretch,
   advance), instead of per-glyph lookups and an atomic refcount per glyph; generated tables as sorted
   bytes rather than `phf` maps, which leaves `phf` out of the build; how a substituted
-  font's glyphs fit the PDF's widths; what a font's dictionary says about it.
+  font's glyphs fit the PDF's widths; what a font's dictionary says about it; and what any other code of a
+  glyph's font maps to, its glyph and Unicode (`OutlineGlyph::code_mapping`, `code_unicode` on both kinds of glyph).
 - **hayro-syntax**: pages built on first use, from a walk that counts repeated kids and skips cycles
   (for a ranged file, from a descent by `/Count` until something doesn't add up), and reading through
   a ranged buffer; **hayro-interpret** and **hayro**: a page drawn a slice at a time (`PageRun`,

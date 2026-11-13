@@ -12,6 +12,7 @@ import type {
   PdfBitmap,
   PdfBox,
   PdfDestination,
+  PdfFontInfo,
   PdfLink,
   PdfLinkTarget,
   PdfOutlineItem,
@@ -45,6 +46,8 @@ export interface PdfPoolDocument {
   objects(index: number): Promise<PdfPageObjects>;
   annotations(index: number): Promise<PdfAnnotation[]>;
   links(index: number): Promise<PdfLink[]>;
+  fonts(index: number): Promise<PdfFontInfo[]>;
+  fontProgram(id: string): Promise<Uint8Array<ArrayBuffer> | null>;
   outline(): Promise<PdfOutlineItem[]>;
   openAction(): Promise<PdfLinkTarget>;
   destination(target: string | PdfDestination): Promise<PdfDestination>;
@@ -347,6 +350,8 @@ class Pool implements PdfPool {
       objects: (index) => call("objects", index) as Promise<PdfPageObjects>,
       annotations: (index) => call("annotations", index) as Promise<PdfAnnotation[]>,
       links: (index) => call("links", index) as Promise<PdfLink[]>,
+      fonts: (index) => call("fonts", index) as Promise<PdfFontInfo[]>,
+      fontProgram: (id) => call("fontProgram", id) as Promise<Uint8Array<ArrayBuffer> | null>,
       outline: () => call("outline") as Promise<PdfOutlineItem[]>,
       openAction: () => call("openAction") as Promise<PdfLinkTarget>,
       destination: (target) => call("destination", target) as Promise<PdfDestination>,

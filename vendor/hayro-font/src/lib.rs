@@ -593,6 +593,17 @@ impl<'a> OutlineGlyph<'a> {
             .unwrap_or_else(|| font.char_code_to_unicode(code))
     }
 
+    /// recto: what another code of this glyph's font maps to, its glyph and its Unicode, for a
+    /// listing of the font's codes.
+    pub fn code_mapping(&self, code: u32) -> (GlyphId, Option<BfString>) {
+        (self.font.map_code(code), self.font.char_code_to_unicode(code))
+    }
+
+    /// recto: the Unicode another code of this glyph's font maps to, without its glyph.
+    pub fn code_unicode(&self, code: u32) -> Option<BfString> {
+        self.font.char_code_to_unicode(code)
+    }
+
     /// Get raw font bytes and metadata for downstream use.
     ///
     /// Returns `None` for Type1 fonts.

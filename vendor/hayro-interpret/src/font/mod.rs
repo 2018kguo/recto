@@ -82,6 +82,8 @@ pub struct PositionedGlyph<'a> {
     /// recto: how much the transform widens this glyph to fit the PDF's width, when its font was
     /// substituted. 1 otherwise.
     pub(crate) stretch: f32,
+    /// recto: the horizontal scale it was shown with, `Tz` over 100.
+    pub(crate) h_scale: f32,
 }
 
 impl PositionedGlyph<'_> {
@@ -93,6 +95,11 @@ impl PositionedGlyph<'_> {
     /// recto: see the field.
     pub fn stretch(&self) -> f32 {
         self.stretch
+    }
+
+    /// recto: the horizontal scale it was shown with, `Tz` over 100 (1 where none was set).
+    pub fn h_scale(&self) -> f32 {
+        self.h_scale
     }
 
     /// recto: `Tc` in glyph units (1000 to the em).
@@ -188,6 +195,11 @@ impl<'a> Type3Glyph<'a> {
     /// recto: what the font's dictionary says about it.
     pub fn font_facts(&self) -> &FontFacts {
         self.glyph.font_facts()
+    }
+
+    /// recto: the Unicode another code of this glyph's font maps to.
+    pub fn code_unicode(&self, code: u32) -> Option<BfString> {
+        self.glyph.code_unicode(code)
     }
 
 

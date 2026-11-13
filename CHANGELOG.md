@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **A char's horizontal scale.** `text(i).hScales` is the `Tz` each char was shown with, over 100 (1 where
+  none was set), and `text(i).runs.matrices` each run's text rendering matrix in the viewer frame, six numbers a
+  run, for its skew and rotation. In Rust, `Char::h_scale` and `Run::matrix`. The text and its other columns
+  are as they were.
+- **The fonts a page uses, and their programs.** `doc.fonts(i)` lists the fonts page `i`'s text uses, in
+  `text(i).fonts` order, so a char's `fontIds` entry finds its font: the name with and without its subset
+  prefix, `subset`, the dictionary's subtype and a Type0 font's descendant's, the encoding, the descriptor's
+  flags, italic angle and weight, `italic` and `bold`, whether it has `/ToUnicode`, what its codes map to (glyph
+  id and Unicode), and the program it embeds: `kind` (`"type1"`, `"truetype"`, `"cff"`, `"cid-cff"`,
+  `"opentype"`, or `"type3"` with none) and an id. `doc.fontProgram(id)` gives that program's bytes as its
+  stream decodes, nothing re-encoded. Both are on a pool's documents too, and are `Document::fonts` and
+  `Document::font_program` in Rust. Neither runs while reading text: their code loads with `recto-more.wasm`.
+
 ## 0.8.0
 
 ### Added

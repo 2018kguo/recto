@@ -1,7 +1,7 @@
 //! One interpretation pass per page: glyphs for the text layer, plus (when
 //! asked) the page's paths, images and text-object count.
 
-use hayro::hayro_interpret::font::{Glyph as HayroGlyph, GlyphRun, OutlineGlyph};
+use hayro::hayro_interpret::font::{Glyph as HayroGlyph, GlyphRun, OutlineGlyph, Type3Glyph};
 use hayro::hayro_interpret::hayro_cmap::{BfString, WritingMode};
 use hayro::hayro_interpret::{
     BlendMode, CacheKey, ClipPath, Device, DrawMode, DrawProps, Image, ImageDrawProps, Paint,
@@ -55,6 +55,12 @@ impl PageObjects {
     }
 }
 
+/// A glyph of a font, kept to ask the font about its other codes (`Document::fonts`).
+pub(crate) enum FontGlyph<'a> {
+    Outline(OutlineGlyph<'a>),
+    Type3(Box<Type3Glyph<'a>>),
+}
+
 /// The last drawing call, so the second half of a fill-and-stroke path (hayro
 /// draws `B` as a fill then a stroke) is folded into the first. A glyph run
 /// says so itself (`GlyphRun::repeats_fill`).
@@ -98,6 +104,8 @@ pub(crate) struct PageDevice<'a> {
     /// by its font's identity and glyph id, a Type 3 glyph's by its cache key. `None`: nothing drawn.
     outline_bounds: rustc_hash::FxHashMap<(usize, u32), Option<Rect>>,
     type3_bounds: rustc_hash::FxHashMap<u128, Option<Rect>>,
+    /// With `Document::fonts`: per font, its dictionary's key and a glyph of it.
+    pub font_glyphs: Option<Vec<(u128, FontGlyph<'a>)>>,
 }
 
 #[cfg(test)]
@@ -127,6 +135,7 @@ impl<'a> PageDevice<'a> {
             tight: false,
             outline_bounds: Default::default(),
             type3_bounds: Default::default(),
+            font_glyphs: None,
         }
     }
 
@@ -186,7 +195,7 @@ impl<'a> PageDevice<'a> {
     }
 
     /// One id per font dictionary, as the file has them.
-    fn font_id(&mut self, glyph: &HayroGlyph<'_>) -> u32 {
+    fn font_id(&mut self, glyph: &HayroGlyph<'a>) -> u32 {
         let key = match glyph {
             HayroGlyph::Outline(g) => g.font_facts().key,
             HayroGlyph::Type3(g) => g.font_facts().key,
@@ -247,6 +256,12 @@ impl<'a> PageDevice<'a> {
         let id = self.fonts.len() as u32;
         self.fonts.push(font);
         self.font_ids.insert(key, id);
+        if let Some(kept) = &mut self.font_glyphs {
+            kept.push((key, match glyph {
+                HayroGlyph::Outline(g) => FontGlyph::Outline(g.clone()),
+                HayroGlyph::Type3(g) => FontGlyph::Type3(g.clone()),
+            }));
+        }
         id
     }
 }
@@ -532,6 +547,7 @@ impl<'a> Device<'a> for PageDevice<'a> {
         let vertical = run.writing_mode() == WritingMode::Vertical;
         let mut run_text = self.run_texts.as_ref().map(|_| String::new());
         let mut origin = None;
+        let mut matrix = [0.0f32; 6];
         let mut angle_of = ((f64::NAN, f64::NAN), 0.0_f32);
         for glyph in glyphs {
             // Built in place: one scalar (nearly every glyph) never allocates.
@@ -584,9 +600,16 @@ impl<'a> Device<'a> for PageDevice<'a> {
                         .map(|r| box_of(transform, r))
                         .filter(|b| b.iter().all(|v| v.is_finite()));
                 }
-                origin.get_or_insert((g.origin, g.em));
+                if origin.is_none() {
+                    // The text rendering matrix: glyph space is 1000 units an em, and the
+                    // substitute's widening is the font's, not the text state's.
+                    let [a, b, c, d, e, f] = unstretched.as_coeffs();
+                    matrix = [a * 1000.0, b * 1000.0, c * 1000.0, d * 1000.0, e, f].map(|v| v as f32);
+                    origin = Some((g.origin, g.em));
+                }
                 g.code = code;
                 g.tf = glyph.font_size();
+                g.h_scale = glyph.h_scale();
                 if !vertical {
                     let [a, b, ..] = transform.as_coeffs();
                     g.char_space = a.hypot(b) * f64::from(glyph.char_space());
@@ -615,6 +638,7 @@ impl<'a> Device<'a> for PageDevice<'a> {
         self.runs.push(Run {
             origin: [o.x as f32, o.y as f32],
             em: em as f32,
+            matrix,
         });
         if let (Some(texts), Some(t)) = (&mut self.run_texts, run_text) {
             texts.push(t);
