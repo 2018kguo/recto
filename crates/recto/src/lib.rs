@@ -32,7 +32,7 @@ pub use ctext::Text;
 pub use device::{
     PATH_FILL, PATH_STROKE, PageObjects, SEGMENT_BEZIER, SEGMENT_CLOSE, SEGMENT_LINE, SEGMENT_MOVE,
 };
-pub use links::{Destination, Link, Target};
+pub use links::{Destination, EmbeddedStep, Link, Target};
 pub use outline::OutlineItem;
 pub use text::{CHAR_GENERATED, CHAR_UNMAPPED, Char, Font, Run, TextPage, Word};
 
@@ -499,6 +499,25 @@ impl Document {
     /// The document's outline, in order; each item's children follow it, one level deeper.
     pub fn outline(&self) -> Vec<outline::OutlineItem> {
         self.0.with_dependent(|pdf, _| outline::read(pdf))
+    }
+
+    /// Where the document opens, its catalog's `/OpenAction`: a destination, an action, or
+    /// `Target::None`.
+    pub fn open_action(&self) -> Target {
+        self.0.with_dependent(|pdf, _| links::open_action(pdf))
+    }
+
+    /// A named destination, from the catalog's `/Dests` or its `/Names` tree: for a link from
+    /// another file that names one here. One the file doesn't define has `page` -1 and the name.
+    pub fn destination(&self, name: &str) -> Destination {
+        self.0.with_dependent(|pdf, _| links::named(pdf, name))
+    }
+
+    /// A destination another file's link gives for a page of this one (`Target::Remote`'s), placed
+    /// on that page: its viewer frame coordinates from its user space ones. `page` -1 if this file
+    /// has no such page.
+    pub fn place_destination(&self, destination: &Destination) -> Destination {
+        self.0.with_dependent(|pdf, _| links::placed(pdf, destination))
     }
 
     /// The page's annotations alone, without interpreting its content.

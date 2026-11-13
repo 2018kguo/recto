@@ -23,6 +23,7 @@
 <alloc::raw_vec::RawVec<hayro::image_cache::Entry>>::grow_one
 <alloc::raw_vec::RawVec<hayro_interpret::gradient::SvgGradientStop>>::grow_one
 <alloc::raw_vec::RawVec<hayro_interpret::interpret::page_run::Frame>>::grow_one
+<alloc::raw_vec::RawVec<recto::links::EmbeddedStep>>::grow_one
 <alloc::raw_vec::RawVec<usize>>::grow_one
 <alloc::raw_vec::RawVec<vello_common::clip::ClipData>>::grow_one
 <alloc::raw_vec::RawVec<vello_common::clip::RawClip>>::grow_one
@@ -66,6 +67,7 @@
 <core::iter::adapters::flatten::FlattenCompat<_, _> as core::iter::traits::iterator::Iterator>::try_fold::flatten::<core::iter::adapters::flatten::FlatMap<core::option::IntoIter<&read_fonts::tables::cmap::CmapSubtable>, read_fonts::tables::cmap::CmapSubtableIter, <read_fonts::model::charmap::UnicodeSubtables>::iter::{closure#1}::{closure#0}>, (), core::ops::control_flow::ControlFlow<(u32, font_types::glyph_id::GlyphId)>, core::iter::adapters::filter::filter_try_fold<(u32, font_types::glyph_id::GlyphId), (), core::ops::control_flow::ControlFlow<(u32, font_types::glyph_id::GlyphId)>, <read_fonts::model::charmap::SfntUnicodeCharmap>::iter::{closure#1}, &mut core::iter::traits::iterator::Iterator::find::check<(u32, font_types::glyph_id::GlyphId), &mut <read_fonts::model::charmap::Charmap>::unicodes::{closure#1}>::{closure#0}>::{closure#0}>::{closure#0}
 <core::iter::adapters::map::Map<core::iter::adapters::filter::Filter<core::iter::adapters::enumerate::Enumerate<alloc::vec::into_iter::IntoIter<hayro_syntax::object::dict::Dict>>, recto::links::read::{closure#0}>, recto::links::read::{closure#1}> as core::iter::traits::iterator::Iterator>::next
 <core::iter::adapters::map::Map<core::iter::adapters::take::Take<core::iter::adapters::map::Map<core::iter::adapters::skip::Skip<hayro_syntax::object::array::ArrayIter>, recto::links::destination::{closure#0}>>, recto::links::destination::{closure#2}> as core::iter::traits::iterator::Iterator>::next
+<core::iter::adapters::map::Map<core::iter::adapters::take::Take<core::iter::adapters::skip::Skip<core::iter::adapters::map::Map<hayro_syntax::object::array::ArrayIter, recto::links::entries::{closure#0}>>>, recto::links::view_of::{closure#1}> as core::iter::traits::iterator::Iterator>::next
 <core::iter::adapters::take::Take<core::iter::adapters::enumerate::Enumerate<core::slice::iter::Iter<u32>>> as core::iter::traits::iterator::Iterator>::nth
 <core::str::iter::SplitInternal<char>>::next
 <f64 as core::fmt::Display>::fmt
@@ -157,6 +159,8 @@
 <hayro_interpret::x_object::image::ImageXObject>::new_mask
 <hayro_syntax::object::dict::Dict>::get::<[f32; 6usize], &[u8]>
 <hayro_syntax::object::dict::Dict>::get::<hayro_syntax::object::Object, &[u8; 1usize]>
+<hayro_syntax::object::dict::Dict>::get::<hayro_syntax::object::Object, &[u8; 9usize]>
+<hayro_syntax::object::dict::Dict>::get::<hayro_syntax::object::dict::Dict, &[u8; 1usize]>
 <hayro_syntax::object::dict::Dict>::get::<hayro_syntax::object::stream::Stream, hayro_syntax::object::name::Name>
 <hayro_syntax::object::dict::Dict>::get::<hayro_syntax::object::string::String, &[u8; 3usize]>
 <hayro_syntax::object::name::Name as core::cmp::PartialEq>::eq
@@ -665,13 +669,21 @@ read_fonts::tables::glyf::outline::scale::read_points_and_phantom::<i32>
 recto::assets::resolve
 recto::bitmap_of
 recto::device::path_box
+recto::links::action_target
 recto::links::destination
 recto::links::destination::{closure#5}
+recto::links::elsewhere
 recto::links::file_spec
+recto::links::file_system
+recto::links::place
+recto::links::target
 recto::links::target::{closure#1}
+recto::links::view_of
 recto::links::whole_number
 recto::outline::name_tree
 recto::unlimited_scale
+recto::wasm::destination
+recto::wasm::target
 renderedpage_takeRgba
 renderedpage_takeRgba multivalue shim
 rendertask_finish

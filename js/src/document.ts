@@ -243,9 +243,15 @@ export type PdfBitmap = {
   truncated: boolean;
 };
 
-/** Where a link in this file goes: a page, and the place on it in that page's viewer frame. */
+/**
+ * Where a destination goes: a page, and the place on it, both as the file writes it (in the page's
+ * user space) and in that page's viewer frame.
+ */
 export type PdfDestination = {
-  /** The page's index, or -1 if it goes nowhere in this file. */
+  /**
+   * The page's index, or -1 if it goes nowhere in this file. In another file's destination (`remote`,
+   * `embedded`), the index that file's page has there, or -1 for a destination by name.
+   */
   page: number;
   /**
    * How to show the page, as the file names it: "XYZ", "Fit", "FitH", "FitV", "FitR", "FitB", "FitBH",
@@ -263,15 +269,47 @@ export type PdfDestination = {
   zoom: number | null;
   /** "FitR"'s rectangle, in the target page's viewer frame; null for any other view. */
   box: PdfBox | null;
+  /**
+   * The view's numbers as the file writes them, in the target page's user space (y up, before
+   * `/Rotate` and the crop box): "XYZ"'s left and top, "FitH"'s and "FitBH"'s top, "FitV"'s and
+   * "FitBV"'s left, "FitR"'s four. null where it gives none.
+   */
+  left: number | null;
+  bottom: number | null;
+  right: number | null;
+  top: number | null;
+  /** The named destination it was reached by; with `page` -1, a name the file doesn't define. */
+  name: string | null;
 };
+
+/** One step of an embedded file's path from the file a link is in: to its parent, or to a child by name. */
+export type PdfEmbeddedStep = { relation: "parent" | "child"; name: string | null };
 
 /** What a link does. Another file or a program is reported, never followed. */
 export type PdfLinkTarget =
   | { kind: "uri"; uri: string }
   /** A `GoTo` action or the link's `/Dest`, named destinations resolved. */
   | { kind: "page"; destination: PdfDestination }
-  /** `GoToR`: a destination in another file, by name or by page number there. */
-  | { kind: "remote"; file: string; name: string | null; page: number | null }
+  /**
+   * `GoToR`: a destination in another file. `file` as written (a relative path stays relative), and
+   * `fileSystem` its specification's `/FS` ("URL") if it names one. `destination.page` is the page's
+   * index there and `destination.name` a name there; `name` and `page` repeat them (page null for
+   * none). Open that file and pass `destination` to its `destination()` to place it.
+   */
+  | {
+      kind: "remote";
+      file: string;
+      fileSystem: string | null;
+      destination: PdfDestination;
+      newWindow: boolean | null;
+      name: string | null;
+      page: number | null;
+    }
+  /**
+   * `GoToE`: a destination in an embedded file, reached by `path` from this file (or from `file`, if
+   * set). `destination` as `remote`'s.
+   */
+  | { kind: "embedded"; file: string | null; path: PdfEmbeddedStep[]; destination: PdfDestination; newWindow: boolean | null }
   /** `Launch`: a file or program. */
   | { kind: "launch"; file: string }
   /** Any other action by its `/S` ("JavaScript", "SubmitForm", ...); a `Named` action's `/N` ("NextPage", ...) is `name`. */
@@ -296,11 +334,15 @@ export const ANNOT_SUBTYPE = {
   widget: 20,
 } as const;
 
-/** A bookmark. `page` is -1 if it goes nowhere in this file; `url` is set if it links out. */
+/**
+ * A bookmark. `page` is -1 if it goes nowhere in this file; `url` is set if it links out. `target` is
+ * where it goes in full, as a link's: its `/Dest`, or else its action.
+ */
 export type PdfOutlineItem = {
   title: string;
   page: number;
   url: string | null;
+  target: PdfLinkTarget;
   children: PdfOutlineItem[];
 };
 
@@ -312,6 +354,15 @@ export interface PdfDocument {
   readonly pageCount: number;
   /** The document's bookmarks; empty if it has none. */
   outline(): PdfOutlineItem[];
+  /** Where the document opens, its catalog's `/OpenAction`; `{ kind: "none" }` if it names none. */
+  openAction(): PdfLinkTarget;
+  /**
+   * A named destination of this document (the catalog's `/Dests` or its `/Names` tree), for a link
+   * from another file that names one here; `page` -1 with the name if none is called that. Or another
+   * file's destination for a page of this one (a `remote` target's), placed on it: `x`, `y` and `box`
+   * in this page's viewer frame, from its user space numbers.
+   */
+  destination(target: string | PdfDestination): PdfDestination;
   /** What each page is called, one string per page ("iv", "A-5"), or null if the file doesn't say. */
   pageLabels(): string[] | null;
   /**
@@ -562,39 +613,80 @@ function toAnnotations(a: Glue.Annotations): PdfAnnotation[] {
   });
 }
 
-/** One link as the engine lists it: see `links` in wasm.rs. */
-type LinkEntry = [
-  number, number, number, number, number,
-  "none" | "uri" | "page" | "remote" | "launch" | "action", string,
+/** A destination as the engine gives one: see `destination` in wasm.rs. */
+type DestinationEntry = [
   number, string | null, number, number, number, number, number, number, number,
-  string | null,
+  number, number, number, number, string | null,
 ];
 
-function toLink([annotation, x, y, width, height, kind, text, page, view, destX, destY, zoom, rx, ry, rw, rh, name]: LinkEntry): PdfLink {
-  const number = (v: number) => (Number.isNaN(v) ? null : v);
-  const target: PdfLinkTarget =
-    kind === "uri"
-      ? { kind, uri: text }
-      : kind === "page"
-        ? {
-            kind,
-            destination: {
-              page,
-              view,
-              x: number(destX),
-              y: number(destY),
-              zoom: number(zoom),
-              box: Number.isNaN(rx) ? null : { x: rx, y: ry, width: rw, height: rh },
-            },
-          }
-        : kind === "remote"
-          ? { kind, file: text, name, page: page < 0 ? null : page }
-          : kind === "launch"
-            ? { kind, file: text }
-            : kind === "action"
-              ? { kind, action: text, name }
-              : { kind: "none" };
-  return { annotation, box: { x, y, width, height }, target };
+/** A target as the engine gives one: see `target` in wasm.rs. */
+type TargetEntry = [
+  "none" | "uri" | "page" | "remote" | "embedded" | "launch" | "action",
+  string | null,
+  DestinationEntry | null,
+  string | null,
+  string | null,
+  boolean | null,
+  [boolean, string | null][] | null,
+];
+
+const orNull = (v: number) => (Number.isNaN(v) ? null : v);
+
+function toDestination([page, view, x, y, zoom, rx, ry, rw, rh, left, bottom, right, top, name]: DestinationEntry): PdfDestination {
+  return {
+    page,
+    view,
+    x: orNull(x),
+    y: orNull(y),
+    zoom: orNull(zoom),
+    box: Number.isNaN(rx) ? null : { x: rx, y: ry, width: rw, height: rh },
+    left: orNull(left),
+    bottom: orNull(bottom),
+    right: orNull(right),
+    top: orNull(top),
+    name,
+  };
+}
+
+function toTarget([kind, text, dest, name, fileSystem, newWindow, path]: TargetEntry): PdfLinkTarget {
+  const destination = dest ? toDestination(dest) : null;
+  switch (kind) {
+    case "uri":
+      return { kind, uri: text ?? "" };
+    case "page":
+      return { kind, destination: destination! };
+    case "remote":
+      return {
+        kind,
+        file: text ?? "",
+        fileSystem,
+        destination: destination!,
+        newWindow,
+        name: destination!.name,
+        page: destination!.page < 0 ? null : destination!.page,
+      };
+    case "embedded":
+      return {
+        kind,
+        file: text,
+        path: (path ?? []).map(([parent, step]) => ({ relation: parent ? "parent" : "child", name: step })),
+        destination: destination!,
+        newWindow,
+      };
+    case "launch":
+      return { kind, file: text ?? "" };
+    case "action":
+      return { kind, action: text ?? "", name };
+    default:
+      return { kind: "none" };
+  }
+}
+
+/** One link as the engine lists it: see `links` in wasm.rs. */
+type LinkEntry = [number, number, number, number, number, TargetEntry];
+
+function toLink([annotation, x, y, width, height, target]: LinkEntry): PdfLink {
+  return { annotation, box: { x, y, width, height }, target: toTarget(target) };
 }
 
 const DEFAULT_SLICE_MS = 8;
@@ -739,13 +831,35 @@ export class RectoDocument implements PdfDocument {
       const top: PdfOutlineItem[] = [];
       // The open item at each level; an item's parent is the last one a level up.
       const open: PdfOutlineItem[] = [];
-      for (const [title, url, level, page] of this.#doc.outline() as [string, string, number, number][]) {
-        const item: PdfOutlineItem = { title, page, url: url || null, children: [] };
+      for (const [title, url, level, page, target] of this.#doc.outline() as [string, string, number, number, TargetEntry][]) {
+        const item: PdfOutlineItem = { title, page, url: url || null, target: toTarget(target), children: [] };
         (level === 0 ? top : (open[level - 1]?.children ?? top)).push(item);
         open[level] = item;
       }
       return top;
     });
+  }
+
+  openAction(): PdfLinkTarget {
+    this.#check(null);
+    return this.#call(() => toTarget(this.#doc.openAction() as TargetEntry));
+  }
+
+  destination(target: string | PdfDestination): PdfDestination {
+    this.#check(null);
+    if (typeof target === "string") {
+      return this.#call(() => toDestination(this.#doc.destination(target) as DestinationEntry));
+    }
+    if (typeof target !== "object" || target === null || !Number.isInteger(target.page)) {
+      throw new TypeError("destination takes a name or a PdfDestination");
+    }
+    const n = (v: number | null | undefined) => (typeof v === "number" ? v : Number.NaN);
+    const { page, view, left, bottom, right, top, zoom, name } = target;
+    return this.#call(() =>
+      toDestination(
+        this.#doc.placeDestination(page, view ?? undefined, n(left), n(bottom), n(right), n(top), n(zoom), name ?? undefined) as DestinationEntry
+      )
+    );
   }
 
   annotations(index: number): PdfAnnotation[] {

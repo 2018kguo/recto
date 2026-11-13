@@ -619,3 +619,116 @@ test("past a whole page's pixel cap, the part on screen is drawn sharp over it, 
     viewer.destroy();
   }
 });
+
+/**
+ * Four 612 x 792 pages, the last so a place low on page 3 can still reach the top. Page 1 links to a FitR on page 2, an XYZ with a zoom on page 3, a named
+ * destination, and a page of another file; page 3 has a named destination, FitH 500, in the name tree.
+ */
+function destinationsPdf(): Uint8Array {
+  const link = (y: number, rest: string) => `<< /Type /Annot /Subtype /Link /Rect [72 ${y} 272 ${y + 20}] ${rest} >>`;
+  const objects = [
+    "<< /Type /Catalog /Pages 2 0 R /Names << /Dests << /Names [(chapter) [5 0 R /FitH 500]] >> >> >>",
+    "<< /Type /Pages /Kids [3 0 R 4 0 R 5 0 R 6 0 R] /Count 4 >>",
+    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Annots [${[
+      link(700, "/Dest [4 0 R /FitR 100 200 300 400]"),
+      link(660, "/Dest [5 0 R /XYZ 36 400 2]"),
+      link(620, "/Dest (chapter)"),
+      link(580, "/A << /S /GoToR /F (other.pdf) /D [3 /XYZ 0 500 null] >>"),
+    ].join(" ")}] >>`,
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>",
+  ];
+  let out = "%PDF-1.7\n";
+  const offsets = objects.map((body, i) => {
+    const at = out.length;
+    out += `${i + 1} 0 obj\n${body}\nendobj\n`;
+    return at;
+  });
+  const xref = out.length;
+  out += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${offsets.map((at) => `${String(at).padStart(10, "0")} 00000 n \n`).join("")}`;
+  out += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+  return new TextEncoder().encode(out);
+}
+
+test("a link goes to the exact place it names, Fit views fit, and a link to another file is the host's to follow", async () => {
+  const layout = fakeLayout();
+  const { engine } = realEngine();
+  const external: unknown[] = [];
+  const viewer = createViewer({ container: layout.container, engine, onExternalDestination: (detail) => external.push(detail), source: destinationsPdf() });
+  const events: unknown[] = [];
+  viewer.addEventListener("externaldestination", (event) => events.push(event.detail));
+  try {
+    await viewer.ready;
+    await layout.until(() => viewer.pageElement(1)!.querySelectorAll("a").length === 4, "page 1's links");
+    const [fitR, xyz, named, remote] = [...viewer.pageElement(1)!.querySelectorAll("a")];
+    const click = (anchor: Element) => {
+      const event = new layout.window.MouseEvent("click", { bubbles: true, cancelable: true });
+      anchor.dispatchEvent(event);
+      assert.ok(event.defaultPrevented);
+    };
+    const fitWidth = 776 / 612;
+    const near = (a: number, b: number, what: string) => assert.ok(Math.abs(a - b) < 1, `${what}: ${a} for ${b}`);
+
+    // FitR 100 200 300 400: its 200-point square fills the 576 px the screen has down, its corner at the top-left.
+    click(fitR!);
+    await layout.until(() => viewer.page === 2, "the FitR's page");
+    near(viewer.scale, 576 / 200, "scale");
+    const page2 = viewer.pageElement(2)!.getBoundingClientRect();
+    near(page2.top + 392 * viewer.scale, 0, "the square's top");
+    near(page2.left + 100 * viewer.scale, 0, "the square's left");
+
+    // XYZ 36 400 2: the point at the top-left, at the zoom the reader has, since destinationZoom is off.
+    viewer.fitWidth();
+    click(xyz!);
+    await layout.until(() => viewer.page === 3, "the XYZ's page");
+    near(viewer.scale, fitWidth, "scale kept");
+    near(viewer.pageElement(3)!.getBoundingClientRect().top + 392 * viewer.scale, 0, "the point's top");
+
+    // By name, FitH 500: the page's width fits, 292 points down at the top.
+    viewer.setZoom(2);
+    click(named!);
+    await layout.until(() => Math.abs(viewer.scale - fitWidth) < 1e-6, "FitH to fit the width");
+    near(viewer.pageElement(3)!.getBoundingClientRect().top + 292 * viewer.scale, 0, "the named top");
+
+    // Another file: handed to the host, by the hook and the event, and the viewer stays.
+    await viewer.goToPage(1);
+    click(remote!);
+    assert.equal(viewer.page, 1);
+    assert.equal(external.length, 1);
+    assert.deepEqual(events, external);
+    const [detail] = external as { page: number; target: { kind: string; file: string; destination: { page: number; top: number } } }[];
+    assert.equal(detail!.page, 1);
+    assert.equal(detail!.target.kind, "remote");
+    assert.equal(detail!.target.file, "other.pdf");
+    assert.equal(detail!.target.destination.page, 3);
+    assert.equal(detail!.target.destination.top, 500);
+
+    // A name looked up in the worker; one the file doesn't have goes nowhere.
+    await viewer.goToPage(1);
+    assert.equal(await viewer.goToDestination("chapter"), true);
+    assert.equal(viewer.page, 3);
+    assert.equal(await viewer.goToDestination("no such name"), false);
+    assert.equal(viewer.page, 3);
+  } finally {
+    viewer.destroy();
+    engine.close();
+  }
+});
+
+test("with destinationZoom, an XYZ's zoom sets the viewer's: 1 is 100%, a point at 96/72 CSS pixels", async () => {
+  const layout = fakeLayout();
+  const { engine } = realEngine();
+  const viewer = createViewer({ container: layout.container, destinationZoom: true, engine, source: destinationsPdf() });
+  try {
+    await viewer.ready;
+    const outcome = await viewer.goToDestination({ box: null, page: 3, view: "XYZ", x: 36, y: 392, zoom: 2 });
+    assert.equal(outcome, true);
+    assert.ok(Math.abs(viewer.scale - (2 * 96) / 72) < 1e-6, `scale ${viewer.scale}`);
+    const page = viewer.pageElement(3)!.getBoundingClientRect();
+    assert.ok(Math.abs(page.top + 392 * viewer.scale) < 1 && Math.abs(page.left + 36 * viewer.scale) < 1, `page at ${page.left}, ${page.top}`);
+  } finally {
+    viewer.destroy();
+    engine.close();
+  }
+});

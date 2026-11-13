@@ -30,8 +30,8 @@ import { installViewerCss } from "./css.ts";
 import { attachZoomGestures, type PinchMove } from "./gestures.ts";
 import { clampZoom, exceedsCanvasBudget, fitScale, outputScale, pageAt, pixelCost, stepZoom } from "./layout.ts";
 import { createPaintQueue, type PaintQueueRecord } from "./paint-queue.ts";
-import type { ViewerOpenTiming, ViewerOutlineItem, ViewerSource } from "./protocol.ts";
-import { buildTextLayer } from "./text-layer.ts";
+import type { ViewerDestination, ViewerExternalTarget, ViewerOpenTiming, ViewerOutlineItem, ViewerSource, ViewerTarget } from "./protocol.ts";
+import { buildTextLayer, safeLinkHref } from "./text-layer.ts";
 
 /** A URL (relative to the page), the file's bytes, or a Blob such as a dropped File. */
 export type ViewerInput = string | URL | ArrayBuffer | Uint8Array | Blob;
@@ -55,6 +55,9 @@ export type ViewerRenderInfo = {
   height: number;
 };
 
+/** A destination in another file that a link or bookmark goes to; `page` is the page the link is on (from 1), null for a bookmark. */
+export type ViewerExternalDestination = { target: ViewerExternalTarget; page: number | null };
+
 export type ViewerErrorInfo = { stage: "open" | "render" | "text" | "find"; page?: number };
 
 export type ViewerOptions = {
@@ -77,6 +80,17 @@ export type ViewerOptions = {
   textLayer?: boolean;
   /** Clickable links over each page (needs the text layer). Default true. */
   links?: boolean;
+  /**
+   * Let a link's or bookmark's "XYZ" zoom set the viewer's zoom. Default false: the point is brought
+   * to the top-left at the zoom the reader chose. The Fit views ("Fit", "FitH", "FitR", ...) always fit.
+   */
+  destinationZoom?: boolean;
+  /**
+   * A link or bookmark to another file (or one embedded in this file) was followed. The viewer goes
+   * nowhere: open the file, then `goToDestination(target.destination.name ?? destination)` on its
+   * viewer, `destination` placed by its document's `destination()`. Also the `externaldestination` event.
+   */
+  onExternalDestination?: (detail: ViewerExternalDestination) => void;
   /** A pinch (touch or trackpad), ctrl + wheel and ⌘/Ctrl + plus, minus, 0 zoom the document. Default true. */
   gestures?: boolean;
   /** The scrolling element's accessible name. Default "PDF document". */
@@ -109,6 +123,8 @@ export interface ViewerEventMap {
   zoomchange: CustomEvent<{ zoom: number; scale: number }>;
   /** `detail.error`, and the stage and page it happened at. */
   error: CustomEvent<ViewerErrorInfo & { error: unknown }>;
+  /** A link or bookmark to another file was followed; the viewer stays where it is. */
+  externaldestination: CustomEvent<ViewerExternalDestination>;
 }
 
 export interface Viewer extends EventTarget {
@@ -128,6 +144,18 @@ export interface Viewer extends EventTarget {
   /** The open document, for calls the viewer doesn't make itself; null until open. */
   readonly document: ViewerDocument | null;
   goToPage(page: number, options?: { x?: number | null; y?: number | null; behavior?: ScrollBehavior }): Promise<void>;
+  /**
+   * To a destination: its point at the top-left, its Fit view applied (and "XYZ"'s zoom, with
+   * `destinationZoom`). A string is a named destination of this document. Resolves false if it goes
+   * nowhere here.
+   */
+  goToDestination(destination: ViewerDestination | string, options?: { behavior?: ScrollBehavior }): Promise<boolean>;
+  /**
+   * Follows a link's or bookmark's target: a page here as `goToDestination`, a web or mail address in a
+   * new tab (other schemes are dropped), another file by `onExternalDestination` and the
+   * `externaldestination` event.
+   */
+  follow(target: ViewerTarget, options?: { behavior?: ScrollBehavior }): Promise<boolean>;
   next(): Promise<void>;
   previous(): Promise<void>;
   /** Zooms, keeping the point under `anchor` (client coordinates) still; the screen's middle by default. */
@@ -1152,13 +1180,84 @@ class PdfViewer extends EventTarget implements Viewer {
 
   #followLink(event: MouseEvent) {
     const target = event.target as Element | null;
-    const link = target?.closest?.<HTMLElement>("a[data-dest-page]");
+    const link = target?.closest?.<HTMLElement>("a[data-target]");
     if (!link) {
       return;
     }
     event.preventDefault();
-    const point = (value: string | undefined) => (value === undefined ? null : Number(value));
-    void this.goToPage(Number(link.dataset.destPage), { x: point(link.dataset.destX), y: point(link.dataset.destY) });
+    const from = this.#records.find((record) => record.element.contains(link))?.pageNumber ?? null;
+    void this.#follow(JSON.parse(link.dataset.target!) as ViewerTarget, {}, from);
+  }
+
+  follow(target: ViewerTarget, options: { behavior?: ScrollBehavior } = {}): Promise<boolean> {
+    return this.#follow(target, options, null);
+  }
+
+  async #follow(target: ViewerTarget, options: { behavior?: ScrollBehavior }, from: number | null): Promise<boolean> {
+    switch (target.kind) {
+      case "page": {
+        const { kind: _, ...destination } = target;
+        return this.goToDestination(destination, options);
+      }
+      case "uri": {
+        const href = safeLinkHref(target.uri);
+        if (href) {
+          this.element.ownerDocument.defaultView?.open(href, "_blank", "noopener,noreferrer");
+        }
+        return href !== null;
+      }
+      case "external": {
+        const detail: ViewerExternalDestination = { page: from, target: target.target };
+        this.#options.onExternalDestination?.(detail);
+        this.dispatchEvent(new CustomEvent("externaldestination", { detail }));
+        return true;
+      }
+    }
+  }
+
+  async goToDestination(destination: ViewerDestination | string, options: { behavior?: ScrollBehavior } = {}): Promise<boolean> {
+    await this.ready.catch(() => {});
+    const doc = this.#doc;
+    const place = typeof destination === "string" ? await doc?.destination(destination).catch(() => null) : destination;
+    const record = place ? this.#records[place.page - 1] : undefined;
+    if (!place || !record || this.#destroyed) {
+      return false;
+    }
+    await this.#ensureSized(record).catch(() => {});
+    if (this.#destroyed) {
+      return false;
+    }
+    const scale = this.#destinationScale(place, record);
+    if (scale !== null) {
+      this.setZoom(scale / this.#fit);
+    }
+    await this.#goTo(place.page, { ...options, x: place.x, y: place.y });
+    return true;
+  }
+
+  /** The scale a destination's view asks for, in CSS pixels per point; null to keep the zoom. */
+  #destinationScale({ view, zoom, box }: ViewerDestination, record: PageRecord): number | null {
+    const width = Math.max(1, (this.#contentWidth ?? this.element.clientWidth) - 2 * this.#gap);
+    const height = Math.max(1, this.element.clientHeight - 2 * this.#gap);
+    switch (view) {
+      case "XYZ":
+        // 100% is a point at 96/72 CSS pixels, as a browser's own PDF viewer shows it.
+        return this.#options.destinationZoom && zoom !== null && zoom > 0 ? (zoom * 96) / 72 : null;
+      // The bounding box of what's drawn isn't known here: FitB and its kin fit the page.
+      case "Fit":
+      case "FitB":
+        return Math.min(width / record.width, height / record.height);
+      case "FitH":
+      case "FitBH":
+        return width / record.width;
+      case "FitV":
+      case "FitBV":
+        return height / record.height;
+      case "FitR":
+        return box && box.width > 0 && box.height > 0 ? Math.min(width / box.width, height / box.height) : null;
+      default:
+        return null;
+    }
   }
 
   #onKey(event: KeyboardEvent) {

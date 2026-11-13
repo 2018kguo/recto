@@ -17,8 +17,9 @@
 // Documents opened by URL are kept in a small cache after their last reader lets go, so opening the
 // same file again (close, open again; a thumbnail and a viewer) is free.
 
-import type { PdfBox } from "../document.ts";
+import type { PdfBox, PdfDestination } from "../document.ts";
 import type {
+  ViewerDestination,
   ViewerFailure,
   ViewerFindHit,
   ViewerOpenTiming,
@@ -95,6 +96,11 @@ export interface ViewerDocument {
   find(page: number, query: string, options?: { caseSensitive?: boolean }): Promise<ViewerFindHit[]>;
   /** The document's bookmarks; empty if it has none. */
   outline(): Promise<ViewerOutlineItem[]>;
+  /**
+   * A named destination of this document, or another file's destination for a page of this one (a
+   * `remote` target's), placed on its page; null if it goes nowhere here.
+   */
+  destination(target: string | PdfDestination): Promise<ViewerDestination | null>;
 }
 
 export type DocumentLease = {
@@ -163,7 +169,7 @@ type OpenDocument = {
 
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 type Call = DistributiveOmit<Exclude<ViewerRequest, { op: "cancel" | "close" }>, "id">;
-type DocumentOp = "pageInfo" | "render" | "text" | "find" | "outline";
+type DocumentOp = "pageInfo" | "render" | "text" | "find" | "outline" | "destination";
 
 function defaultWorker(): WorkerPort {
   if (typeof Worker === "undefined") {
@@ -435,6 +441,9 @@ export function createViewerEngine(options: ViewerEngineOptions = {}): ViewerEng
           }
         });
         return asked;
+      },
+      destination(target) {
+        return callDocument(doc, (docId) => ({ docId, op: "destination", target }));
       },
       pageInfo(page) {
         checkPage(page);

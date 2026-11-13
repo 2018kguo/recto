@@ -65,7 +65,7 @@ test("open, page size, text runs, links and a bitmap of the asked width", async 
       { kind: "uri", uri: "https://example.com/a?b=1" },
       { kind: "uri", uri: "javascript:alert(1)" },
       { kind: "uri", uri: "mailto:someone@example.com" },
-      { kind: "page", page: 2, x: 36, y: 392 },
+      { box: null, kind: "page", page: 2, view: "XYZ", x: 36, y: 392, zoom: null },
     ]
   );
   const bitmap = await call<"render">({ docId: 1, op: "render", page: 1, width: 306 });
@@ -79,12 +79,14 @@ test("open, page size, text runs, links and a bitmap of the asked width", async 
 });
 
 test("the outline, nested, with pages from 1", async () => {
+  // Each bookmark goes to the top of its page, as the generator writes it.
+  const at = (page: number) => ({ box: null, kind: "page", page, view: "XYZ", x: 0, y: 100, zoom: null });
   const { call } = worker();
   const pdf = textPdf({ outline: [{ page: 1, title: "Start" }, { children: [{ page: 3, title: "Deeper" }], page: 2, title: "Middle" }], pages: 3 });
   await call<"open">({ docId: 1, op: "open", source: { kind: "bytes", bytes: pdf.slice().buffer } });
   assert.deepEqual(await call<"outline">({ docId: 1, op: "outline" }), [
-    { children: [], page: 1, title: "Start", url: null },
-    { children: [{ children: [], page: 3, title: "Deeper", url: null }], page: 2, title: "Middle", url: null },
+    { children: [], page: 1, target: at(1), title: "Start", url: null },
+    { children: [{ children: [], page: 3, target: at(3), title: "Deeper", url: null }], page: 2, target: at(2), title: "Middle", url: null },
   ]);
   await call<"open">({ docId: 2, op: "open", source: { kind: "bytes", bytes: small.slice().buffer } });
   assert.deepEqual(await call<"outline">({ docId: 2, op: "outline" }), []);

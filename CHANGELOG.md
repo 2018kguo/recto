@@ -1,5 +1,34 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Exact destinations, everywhere they appear.** A destination (a link's `/Dest` or `GoTo`, a bookmark's,
+  the catalog's `/OpenAction`) gives its view's numbers as the file writes them, in the page's user space
+  (`left`, `bottom`, `right`, `top`, `zoom`), beside the point and `FitR` rectangle on the page as shown,
+  and the name it came by. A name the file doesn't define is reported as `{ page: -1, name }`. Bookmarks
+  carry a full `target`, as links do; `doc.openAction()` is where a document opens.
+- **Destinations in other files.** `GoToR` gives the file as written, its `/FS`, `/NewWindow` and a
+  `destination`: the page index there and the view in its user space, or a name. `GoToE` is
+  `{ kind: "embedded", file, path, destination, newWindow }`. `doc.destination(name)` looks a named
+  destination up, and `doc.destination(dest)` places another file's on a page of this one, so a link can
+  be followed once its file is open. Also on a pool's documents, and as `Document::open_action`,
+  `Document::destination` and `Document::place_destination` in Rust.
+- **The viewer goes to the exact place.** Links and bookmarks bring their point to the top-left; `Fit`,
+  `FitH`, `FitV` and `FitR` (and the `FitB` views) fit the page, its width, its height or the rectangle;
+  `XYZ`'s zoom applies with `destinationZoom`. A link or bookmark to another file calls
+  `onExternalDestination` and fires `externaldestination`, and the viewer stays. `goToDestination(dest
+  or name)` and `follow(target)` do the same from code.
+
+### Changed
+
+- `PdfLinkTarget`'s `remote` gains `fileSystem`, `destination` and `newWindow` beside `name` and `page`;
+  `PdfDestination` gains `left`, `bottom`, `right`, `top` and `name`; `PdfOutlineItem` gains `target`. In
+  Rust, `Target::Remote` is `{ file, file_system, destination, new_window }`, and `Target::Embedded` is new.
+  The viewer's `ViewerLink` page target gains `view`, `zoom` and `box`, and its links and bookmarks can be
+  `{ kind: "external", target }`.
+
 ## 0.7.1
 
 ### Changed

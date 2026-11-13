@@ -3,7 +3,7 @@
 // viewer has no side effects and works where there is no DOM.
 
 import type { ViewerEngine } from "./client.ts";
-import type { ViewerOutlineItem } from "./protocol.ts";
+import type { ViewerOutlineItem, ViewerTarget } from "./protocol.ts";
 import { safeLinkHref } from "./text-layer.ts";
 import type { FindMatch, Viewer, ViewerInput } from "./viewer.ts";
 import { createViewer } from "./viewer.ts";
@@ -313,6 +313,8 @@ export function defineViewerElement(name = "recto-viewer", registry: CustomEleme
     #thumbObserver: IntersectionObserver | null = null;
     readonly #thumbJobs = new Map<HTMLElement, AbortController>();
     #roving: { thumbs: HTMLElement | null; outline: HTMLElement | null } = { outline: null, thumbs: null };
+    /** Where each outline entry goes in full: a place on its page, or another file. */
+    #outlineTargets = new WeakMap<HTMLElement, ViewerTarget>();
 
     constructor() {
       super();
@@ -634,11 +636,14 @@ export function defineViewerElement(name = "recto-viewer", registry: CustomEleme
         button.textContent = entry.title;
         button.title = entry.title;
         const href = entry.url ? safeLinkHref(entry.url) : null;
+        if (entry.target?.kind === "page" || entry.target?.kind === "external") {
+          this.#outlineTargets.set(button, entry.target);
+        }
         if (entry.page !== null) {
           button.dataset.page = String(entry.page);
         } else if (href) {
           button.dataset.href = href;
-        } else {
+        } else if (entry.target?.kind !== "external") {
           button.disabled = true;
         }
         if (entry.children.length > 0) {
@@ -792,8 +797,14 @@ export function defineViewerElement(name = "recto-viewer", registry: CustomEleme
         return;
       }
       const page = Number(target.dataset.page);
+      const destination = target.classList.contains("item") ? this.#outlineTargets.get(target) : undefined;
+      if (destination?.kind === "external") {
+        void viewer.follow(destination);
+        return;
+      }
       if (page > 0) {
-        void viewer.goToPage(page);
+        // A bookmark goes to the place on the page it names, a thumbnail to the page.
+        void (destination ? viewer.follow(destination) : viewer.goToPage(page));
         if (this.#overlaid()) {
           this.toggleSidebar(false);
           viewer.element.focus({ preventScroll: true });

@@ -504,7 +504,7 @@ impl Document {
         vec![cut.pages as u8, cut.page_labels as u8, cut.outline as u8]
     }
 
-    /// Flat, in order: `[title, url or "", level, page]` per item.
+    /// Flat, in order: `[title, url or "", level, page, target]` per item, `target` as `links` gives one.
     pub fn outline(&self) -> js_sys::Array {
         self.0
             .outline()
@@ -515,19 +515,15 @@ impl Document {
                 entry.push(&JsValue::from_str(item.url.as_deref().unwrap_or("")));
                 entry.push(&JsValue::from(item.level));
                 entry.push(&JsValue::from(item.page));
+                entry.push(&target(item.target));
                 JsValue::from(entry)
             })
             .collect()
     }
 
-    /// Flat, per link: `[annotation, x, y, width, height, kind, text, page, view, destX, destY,
-    /// zoom, rectX, rectY, rectWidth, rectHeight, name]`, NaN for a number that isn't there.
-    /// `kind` is "none", "uri", "page", "remote", "launch" or "action"; `text` is the URI, the
-    /// file, or the action's `/S`; `name` a remote destination's name or a `Named` action's `/N`.
+    /// Per link: `[annotation, x, y, width, height, target]`, `target` as `target` below makes it.
     pub fn links(&self, index: usize) -> Result<js_sys::Array, JsValue> {
-        use crate::links::Target;
         let links = self.0.links(index).map_err(js_error)?;
-        let number = |v: Option<f32>| JsValue::from(v.map_or(f64::NAN, f64::from));
         Ok(links
             .into_iter()
             .map(|link| {
@@ -536,32 +532,51 @@ impl Document {
                 for v in link.bbox {
                     entry.push(&JsValue::from(v));
                 }
-                let none = crate::Destination { page: -1, view: None, x: None, y: None, zoom: None, rect: None };
-                let (kind, text, dest, name) = match link.target {
-                    Target::None => ("none", String::new(), none, None),
-                    Target::Uri(uri) => ("uri", uri, none, None),
-                    Target::Page(dest) => ("page", String::new(), dest, None),
-                    Target::Remote { file, page, name } => {
-                        ("remote", file, crate::Destination { page: page.unwrap_or(-1), ..none }, name)
-                    }
-                    Target::Launch { file } => ("launch", file, none, None),
-                    Target::Action { action, name } => ("action", action, none, name),
-                };
-                entry.push(&JsValue::from_str(kind));
-                entry.push(&JsValue::from_str(&text));
-                entry.push(&JsValue::from(dest.page));
-                entry.push(&dest.view.as_deref().map_or(JsValue::NULL, JsValue::from_str));
-                entry.push(&number(dest.x));
-                entry.push(&number(dest.y));
-                entry.push(&number(dest.zoom));
-                let rect = dest.rect.map_or([None; 4], |r| r.map(Some));
-                for v in rect {
-                    entry.push(&number(v));
-                }
-                entry.push(&name.as_deref().map_or(JsValue::NULL, JsValue::from_str));
+                entry.push(&target(link.target));
                 JsValue::from(entry)
             })
             .collect())
+    }
+
+    /// The catalog's `/OpenAction`, as `links` gives a target.
+    #[wasm_bindgen(js_name = openAction)]
+    pub fn open_action(&self) -> JsValue {
+        target(self.0.open_action())
+    }
+
+    /// A named destination, flat as `destination` below makes one.
+    pub fn destination(&self, name: &str) -> JsValue {
+        destination(self.0.destination(name))
+    }
+
+    /// Another file's destination for a page here, placed on it: the user space numbers given
+    /// (NaN for none), back as `destination` makes one.
+    #[wasm_bindgen(js_name = placeDestination)]
+    #[allow(clippy::too_many_arguments)]
+    pub fn place_destination(
+        &self,
+        page: i32,
+        view: Option<String>,
+        left: f32,
+        bottom: f32,
+        right: f32,
+        top: f32,
+        zoom: f32,
+        name: Option<String>,
+    ) -> JsValue {
+        let n = |v: f32| (!v.is_nan()).then_some(v);
+        let given = crate::Destination {
+            page,
+            view,
+            left: n(left),
+            bottom: n(bottom),
+            right: n(right),
+            top: n(top),
+            zoom: n(zoom),
+            name,
+            ..Default::default()
+        };
+        destination(self.0.place_destination(&given))
     }
 
     pub fn annotations(&self, index: usize) -> Result<Annotations, JsValue> {
@@ -623,4 +638,73 @@ impl RenderTask {
     pub fn finish(&mut self) -> RenderedPage {
         self.0.finish().into()
     }
+}
+
+fn optional_number(v: Option<f32>) -> JsValue {
+    JsValue::from(v.map_or(f64::NAN, f64::from))
+}
+
+fn optional_string(v: Option<&str>) -> JsValue {
+    v.map_or(JsValue::NULL, JsValue::from_str)
+}
+
+/// `[page, view, x, y, zoom, rectX, rectY, rectWidth, rectHeight, left, bottom, right, top, name]`,
+/// NaN for a number that isn't there.
+fn destination(dest: crate::Destination) -> JsValue {
+    let entry = js_sys::Array::new();
+    entry.push(&JsValue::from(dest.page));
+    entry.push(&optional_string(dest.view.as_deref()));
+    for v in [dest.x, dest.y, dest.zoom] {
+        entry.push(&optional_number(v));
+    }
+    for v in dest.rect.map_or([None; 4], |r| r.map(Some)) {
+        entry.push(&optional_number(v));
+    }
+    for v in [dest.left, dest.bottom, dest.right, dest.top] {
+        entry.push(&optional_number(v));
+    }
+    entry.push(&optional_string(dest.name.as_deref()));
+    JsValue::from(entry)
+}
+
+/// `[kind, text, destination, name, fileSystem, newWindow, path]`. `kind` is "none", "uri", "page",
+/// "remote", "embedded", "launch" or "action"; `text` the URI, the file (null for an embedded file in
+/// this one), or the action's `/S`; `name` a `Named` action's `/N`; `path` an embedded file's steps,
+/// `[parent, name]` each.
+fn target(target: crate::Target) -> JsValue {
+    use crate::Target;
+    let entry = js_sys::Array::new();
+    let (kind, text, dest, name, file_system, new_window, path) = match target {
+        Target::None => ("none", None, None, None, None, None, None),
+        Target::Uri(uri) => ("uri", Some(uri), None, None, None, None, None),
+        Target::Page(dest) => ("page", None, Some(dest), None, None, None, None),
+        Target::Remote { file, file_system, destination, new_window } => {
+            ("remote", Some(file), Some(destination), None, file_system, new_window, None)
+        }
+        Target::Embedded { file, path, destination, new_window } => {
+            ("embedded", file, Some(destination), None, None, new_window, Some(path))
+        }
+        Target::Launch { file } => ("launch", Some(file), None, None, None, None, None),
+        Target::Action { action, name } => ("action", Some(action), None, name, None, None, None),
+    };
+    entry.push(&JsValue::from_str(kind));
+    entry.push(&optional_string(text.as_deref()));
+    entry.push(&dest.map_or(JsValue::NULL, destination));
+    entry.push(&optional_string(name.as_deref()));
+    entry.push(&optional_string(file_system.as_deref()));
+    entry.push(&new_window.map_or(JsValue::NULL, JsValue::from_bool));
+    entry.push(&path.map_or(JsValue::NULL, |steps| {
+        JsValue::from(
+            steps
+                .into_iter()
+                .map(|step| {
+                    let pair = js_sys::Array::new();
+                    pair.push(&JsValue::from_bool(step.parent));
+                    pair.push(&optional_string(step.name.as_deref()));
+                    JsValue::from(pair)
+                })
+                .collect::<js_sys::Array>(),
+        )
+    }));
+    JsValue::from(entry)
 }
