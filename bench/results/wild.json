@@ -1,7 +1,19 @@
 {
- "date": "2026-11-12T18:01:11.240Z",
+ "date": "2026-11-13T08:15:32.547Z",
  "node": "v25.9.0",
- "rectoBuild": "dd611bd9f2f1",
+ "machine": "Apple M5 Pro, 18 cores, 64 GB",
+ "loadAverage": [
+  52.169921875,
+  37.67822265625,
+  26.802734375
+ ],
+ "jobs": 6,
+ "versions": {
+  "pdfjs-dist": "6.5.438",
+  "@embedpdf/pdfium": "2.15.1",
+  "mupdf": "1.28.1"
+ },
+ "rectoBuild": "86c4157e918e",
  "files": 7000,
  "bytes": 10609999466,
  "engines": {
@@ -19,28 +31,28 @@
     "open-error password-required": 8
    },
    "ms": {
-    "p50": 137,
-    "p90": 342,
-    "p99": 1983,
-    "total": 1610347
+    "p50": 124,
+    "p90": 248,
+    "p99": 693,
+    "total": 1131039
    },
    "peakRssMb": {
-    "p50": 120,
-    "p99": 236,
-    "max": 729
+    "p50": 121,
+    "p99": 237,
+    "max": 728
    },
-   "blankWhereOthersDraw": 4,
-   "noTextWhereOthersHave": 10,
-   "softDisagreements": 15,
-   "worseThanAnother": 2
+   "blankWhereOthersDraw": 0,
+   "noTextWhereOthersHave": 0,
+   "softDisagreements": 8,
+   "worseThanAnother": 0
   },
   "pdf.js": {
    "outcomes": {
-    "ok": 6964,
+    "ok": 6963,
     "page-error": 0,
     "open-error": 31,
     "timeout": 0,
-    "memory": 5,
+    "memory": 6,
     "crash": 0
    },
    "codes": {
@@ -48,20 +60,20 @@
     "open-error PasswordException": 8
    },
    "ms": {
-    "p50": 398,
-    "p90": 993,
-    "p99": 5007,
-    "total": 4346209
+    "p50": 293,
+    "p90": 740,
+    "p99": 1970,
+    "total": 2880595
    },
    "peakRssMb": {
     "p50": 221,
-    "p99": 653,
-    "max": 2640
+    "p99": 662,
+    "max": 2195
    },
    "blankWhereOthersDraw": 0,
    "noTextWhereOthersHave": 2,
-   "softDisagreements": 60,
-   "worseThanAnother": 12
+   "softDisagreements": 27,
+   "worseThanAnother": 13
   },
   "pdfium": {
    "outcomes": {
@@ -77,50 +89,52 @@
     "open-error pdfium-4": 8
    },
    "ms": {
-    "p50": 131,
-    "p90": 400,
-    "p99": 1979,
-    "total": 1649280
+    "p50": 97,
+    "p90": 290,
+    "p99": 896,
+    "total": 1062855
    },
    "peakRssMb": {
     "p50": 116,
-    "p99": 218,
-    "max": 1070
+    "p99": 216,
+    "max": 1072
    },
    "blankWhereOthersDraw": 0,
    "noTextWhereOthersHave": 0,
-   "softDisagreements": 9,
+   "softDisagreements": 7,
    "worseThanAnother": 6
+  },
+  "mupdf": {
+   "outcomes": {
+    "ok": 6975,
+    "page-error": 0,
+    "open-error": 24,
+    "timeout": 1,
+    "memory": 0,
+    "crash": 0
+   },
+   "codes": {
+    "open-error not a PDF document": 12,
+    "open-error mupdf could not open it: needs a password": 8,
+    "open-error no objects found": 2,
+    "open-error Invalid number of pages": 2
+   },
+   "ms": {
+    "p50": 88,
+    "p90": 224,
+    "p99": 757,
+    "total": 896454
+   },
+   "peakRssMb": {
+    "p50": 134,
+    "p99": 253,
+    "max": 758
+   },
+   "blankWhereOthersDraw": 0,
+   "noTextWhereOthersHave": 3,
+   "softDisagreements": 42,
+   "worseThanAnother": 7
   }
  },
- "rectoWorse": [
-  {
-   "engine": "recto",
-   "file": "67408469f4fec63b",
-   "problems": [
-    "render 0 blank",
-    "render 1 blank",
-    "text 0 empty",
-    "text 1 empty",
-    "text 2 empty",
-    "text 3 empty",
-    "text 4 empty"
-   ],
-   "soft": []
-  },
-  {
-   "engine": "recto",
-   "file": "e6e7d13d91df4a32",
-   "problems": [
-    "render 0 blank",
-    "render 1 blank",
-    "text 0 empty",
-    "text 1 empty",
-    "text 2 empty",
-    "text 3 empty",
-    "text 4 empty"
-   ],
-   "soft": []
-  }
- ]
+ "rectoWorse": []
 }

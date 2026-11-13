@@ -122,3 +122,46 @@ export function pdfiumEngine(pdfium, { forms = false } = {}) {
     yieldToLoop,
   };
 }
+
+/**
+ * MuPDF from Artifex's own WebAssembly package, `mupdf` (AGPL-3.0), by its documented calls.
+ * `mupdf` is the imported module. A render is RGBA with the paper left transparent, which is what
+ * `toPixmap` gives with alpha; everything that reads one here composites it over white.
+ */
+export function mupdfEngine(mupdf) {
+  return {
+    name: "mupdf",
+    async open(bytes) {
+      // `PDFDocument`, not `Document.openDocument`: the latter sniffs the bytes and opens HTML or an
+      // image as a document of its own, which is not reading a PDF.
+      const doc = new mupdf.PDFDocument(bytes);
+      if (doc.needsPassword()) {
+        doc.destroy();
+        throw new Error("mupdf could not open it: needs a password");
+      }
+      return {
+        pageCount: doc.countPages(),
+        async text(i) {
+          const page = doc.loadPage(i);
+          const stext = page.toStructuredText("preserve-whitespace");
+          const text = stext.asText();
+          stext.destroy();
+          page.destroy();
+          return text;
+        },
+        async render(i, width) {
+          const page = doc.loadPage(i);
+          const [x0, , x1] = page.getBounds();
+          const scale = width / (x1 - x0);
+          const pixmap = page.toPixmap(mupdf.Matrix.scale(scale, scale), mupdf.ColorSpace.DeviceRGB, true, true);
+          const out = { width: pixmap.getWidth(), height: pixmap.getHeight(), rgba: pixmap.getPixels().slice() };
+          pixmap.destroy();
+          page.destroy();
+          return out;
+        },
+        close: () => doc.destroy(),
+      };
+    },
+    yieldToLoop,
+  };
+}

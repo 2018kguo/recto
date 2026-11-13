@@ -1,11 +1,12 @@
 #!/usr/bin/env node
-// The same three engines in Chromium: what a page downloads, how long it takes, what the main
+// The same four engines in Chromium: what a page downloads, how long it takes, what the main
 // thread feels, and what memory is left. docs/benchmarks.md says what each number means.
 //
 //   npm run build
-//   npm run bench:browser -- <directory of PDFs> [--docs 8] [--runs 5] [--slowdown 4] [--out bench/results/browser.json]
+//   npm run bench:browser -- <directory of PDFs> [--docs 8] [--runs 5] [--slowdown 4] [--max-load 8 --min-idle 55] [--out bench/results/browser.json]
 //
 // The slowdown stops and resumes the whole browser (see cdp.mjs); --slowdown 1 runs at full speed.
+// `--max-load` and `--min-idle` hold each engine's run for a quiet machine, as in bench.mjs.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -13,10 +14,11 @@ import { parseArgs } from "node:util";
 
 import { launch, newPage } from "./cdp.mjs";
 import { cjkPdf, heavyPagePdf, reportPdf } from "./generate.mjs";
+import { quietGate } from "./quiet.mjs";
 import { serve } from "./serve.mjs";
 
 const here = import.meta.dirname;
-const ENGINES = ["recto", "pdf.js", "pdfium"];
+const ENGINES = ["recto", "pdf.js", "pdfium", "mupdf"];
 const WIDTH = 800;
 
 const { values, positionals } = parseArgs({
@@ -26,6 +28,8 @@ const { values, positionals } = parseArgs({
     runs: { type: "string", default: "5" },
     slowdown: { type: "string", default: "4" },
     out: { type: "string", default: path.join(here, "results/browser.json") },
+    "max-load": { type: "string" },
+    "min-idle": { type: "string" },
   },
 });
 const directory = positionals[0];
@@ -36,10 +40,25 @@ if (!directory) {
 
 const server = await serve();
 const { origin, docs } = server;
-const deadline = setTimeout(() => {
-  console.error("browser bench: gave up after 40 minutes");
-  process.exit(1);
-}, 40 * 60_000);
+// A stuck page ends the run; the clock restarts with each engine's run, so waiting for a quiet
+// machine doesn't count.
+let deadline;
+const arm = () => {
+  clearTimeout(deadline);
+  deadline = setTimeout(() => {
+    console.error("browser bench: a run took over 30 minutes");
+    process.exit(1);
+  }, 30 * 60_000);
+};
+arm();
+const gate = quietGate({
+  maxLoad: values["max-load"] ? Number(values["max-load"]) : undefined,
+  minIdle: values["min-idle"] ? Number(values["min-idle"]) / 100 : undefined,
+});
+const quiet = async () => {
+  await gate.wait();
+  arm();
+};
 
 docs.set("report.pdf", reportPdf({ pages: 40, imageSize: 240 }));
 docs.set("cjk.pdf", cjkPdf());
@@ -119,6 +138,7 @@ for (const engine of ENGINES) {
   }
 }
 const spin = async (browser) => {
+  await quiet();
   const page = await openPage(browser, "recto", "/doc/report.pdf");
   const list = [];
   for (let i = 0; i < 3; i++) list.push((await page.evaluate("window.bench.spin()")).ms);
@@ -129,6 +149,7 @@ const fastSpin = await spin(fast);
 await fast.close();
 
 const browser = await launch({ slowdown: Number(values.slowdown) });
+const browserVersion = (await browser.send("Browser.getVersion", {})).product;
 const slowSpin = await spin(browser);
 console.error(`slowdown: ${(slowSpin / fastSpin).toFixed(1)}x (${Math.round(fastSpin)} ms to ${Math.round(slowSpin)} ms)`);
 
@@ -137,6 +158,7 @@ const runs = Number(values.runs);
 for (let run = 0; run < runs; run++) {
   for (let k = 0; k < ENGINES.length; k++) {
     const engine = ENGINES[(run + k) % ENGINES.length];
+    await quiet();
     const started = Date.now();
     const page = await openPage(browser, engine, "/doc/report.pdf");
     const cold = await page.evaluate("window.bench.cold");
@@ -217,6 +239,9 @@ const results = {
   date: new Date().toISOString(),
   machine: `${os.cpus()[0].model}, ${os.cpus().length} cores`,
   loadAverage: os.loadavg()[0],
+  // The 1-minute load average and the CPUs' idle share as each engine's run started.
+  quiet: gate.summary(),
+  browser: browserVersion,
   slowdown: { how: "the browser's processes stopped and resumed", asked: Number(values.slowdown), factor: Math.round((slowSpin / fastSpin) * 10) / 10 },
   width: WIDTH,
   documents: corpus.length,

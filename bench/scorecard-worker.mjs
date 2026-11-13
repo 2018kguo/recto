@@ -8,7 +8,7 @@ import fs from "node:fs";
 import path from "node:path";
 import zlib from "node:zlib";
 
-import { pdfiumEngine, pdfjsEngine, rectoEngine } from "./engines.mjs";
+import { mupdfEngine, pdfiumEngine, pdfjsEngine, rectoEngine } from "./engines.mjs";
 
 const here = import.meta.dirname;
 const [engineName, file, directory, widthArgument, firstArgument, limitArgument] = process.argv.slice(2);
@@ -115,6 +115,9 @@ try {
   } else if (engineName === "pdfium") {
     const { init } = await import(path.join(here, "node_modules/@embedpdf/pdfium/dist/index.js"));
     const engine = pdfiumEngine(await init({ wasmBinary: fs.readFileSync(path.join(here, "node_modules/@embedpdf/pdfium/dist/pdfium.wasm")) }), { forms: true });
+    await canvasEngine((bytes) => engine.open(bytes));
+  } else if (engineName === "mupdf") {
+    const engine = mupdfEngine(await import(path.join(here, "node_modules/mupdf/dist/mupdf.js")));
     await canvasEngine((bytes) => engine.open(bytes));
   } else {
     throw new Error(`no engine called ${engineName}`);

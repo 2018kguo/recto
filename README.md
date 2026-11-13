@@ -189,28 +189,30 @@ and [destinations](docs/reference.md#destinations).
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/benchmarks-dark.svg">
-  <img src="docs/benchmarks-light.svg" alt="Bar charts. Read text in Node: recto 306 ms, pdf.js 1.2 s, pdfium 722 ms. Render in Node: recto 234 ms, pdf.js 1.2 s, pdfium 980 ms. A 40-page report in Chromium slowed 4.6×: recto 456 ms, pdf.js 1.2 s, pdfium 622 ms. Peak memory in Node: recto 300 MB, pdf.js 699 MB, pdfium 312 MB.">
+  <img src="docs/benchmarks-light.svg" alt="Bar charts. Read text in Node: recto 213 ms, pdf.js 977 ms, pdfium 532 ms, MuPDF 622 ms. Render in Node: recto 139 ms, pdf.js 1.0 s, pdfium 849 ms, MuPDF 844 ms. A 40-page report in Chromium slowed 3.8×: recto 402 ms, pdf.js 1.2 s, pdfium 630 ms, MuPDF 493 ms. Peak memory in Node: recto 298 MB, pdf.js 684 MB, pdfium 280 MB, MuPDF 542 MB.">
 </picture>
 
-Medians of 5 alternating runs on an Apple M5 Pro, with 37 public and generated PDFs in Node and 8 of them in Chromium, against
-pdf.js 6.5.438 and stock pdfium. How much faster recto is than each:
+Medians of 7 alternating rounds on an Apple M5 Pro, with 29 public and generated PDFs in Node and 8 of them in Chromium,
+against pdf.js 6.5.438, stock pdfium and MuPDF 1.28.1 (its own WebAssembly package, AGPL-3.0). How much faster recto
+is than each:
 
-| | pdf.js | pdfium |
-|---|---:|---:|
-| Text in Node | 4.1× | 2.4× |
-| Render in Node | 5.2× | 4.2× |
-| Text in Chromium | 3.3× | 2.7× |
-| Render in Chromium | 3.5× | 1.4× |
+| | pdf.js | pdfium | MuPDF |
+|---|---:|---:|---:|
+| Text in Node | 4.6× | 2.5× | 2.9× |
+| Render in Node | 7.3× | 6.1× | 6.1× |
+| Text in Chromium | 3.3× | 2.7× | 2.9× |
+| Render in Chromium | 4.9× | 1.3× | 1.5× |
 
-It isn't ahead everywhere. pdf.js downloads less to draw: 0.42 MB with brotli for everything, against recto's 0.70 MB
-for text and pixels, though for text alone recto's 0.41 MB is now the smaller. In a browser pdfium ties a fresh page's
-first pixels (52 and 51 ms), though recto is first to text (34 ms against 53 ms and 40 ms). pdfium opens a large file
-faster: 2.8 ms against 4.1 ms for 2,000 pages, where recto took 4.8 ms. pdf.js holds less memory while a page is open
-(5.6 MB of JS heap, against recto's 1.7 MB and 11.9 MB of WebAssembly memory), and recto now gives all of it back a
-second after the close. On text
-quality against poppler recto leads narrowly (F1 98.7%, pdf.js 97.8%, pdfium 97.0%, on 87 documents), and it
-agrees with the other engines' pixels on 97.6% of the pages two of them agree on (small, mostly adversarial files, and the threshold can hide a missing line). [benchmarks.md](docs/benchmarks.md) has all of it, what each
-number means and how it's measured. To rerun it on PDFs of your own (it commits none):
+It isn't ahead everywhere. pdf.js downloads less to draw: 0.42 MB with brotli for everything, against recto's 0.72 MB
+for text and pixels; for text alone the two are level at 0.42 MB. A fresh process or page reaches its first text level
+with pdfium and MuPDF, and its first pixels in a fresh browser page, slowed, 7% behind pdfium and 15% behind MuPDF.
+MuPDF draws a generated report's pages 26% faster (21 against 28 ms for 5), and pdfium's process peaks 6% lower.
+pdf.js holds no WebAssembly memory while a page is open, against recto's 12.6 MB. Of 7,000 PDFs from the web, recto
+did worse than another engine on none (pdf.js 13, pdfium 6, MuPDF 7). On text quality against poppler recto leads
+narrowly (F1 98.5%; pdf.js 97.8%, pdfium 98.3%, MuPDF 97.4%, on 84 documents; on the public ones alone all four are
+level), and it agrees with the other engines' pixels on 95.6% of the pages two of them agree on (small, mostly
+adversarial files, and the threshold can hide a missing line). [benchmarks.md](docs/benchmarks.md#at-a-glance) has
+all of it, what each number means and how it's measured. To rerun it on PDFs of your own (it commits none):
 
 ```sh
 npm run build
@@ -278,7 +280,7 @@ anything a user might upload, use one of those two.
   non-isolated group that needs its backdrop inside another such group stays isolated, and so does any
   past the 32nd on a page (`truncated` says so), and a subgroup inside a non-isolated blended knockout
   group is close but not exact. [The scorecard](docs/benchmarks.md#the-scorecard) compares pixels with pdfium,
-  pdf.js and poppler on 539 small, mostly adversarial files, not at scale, and its threshold can hide a missing line. A blend mode against bare paper blends with the white (pdfium
+  pdf.js, poppler and MuPDF on 531 small, mostly adversarial files, not at scale, and its threshold can hide a missing line. A blend mode against bare paper blends with the white (pdfium
   does too; the spec says the paper isn't there yet). Lab's dark colours and some mask edges differ a little. An annotation with no
   appearance is drawn from its dictionary, with free text and field values in Helvetica, one line each, unwrapped, if a widget's in the form;
   a stale appearance isn't redrawn under `NeedAppearances`.

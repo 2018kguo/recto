@@ -1,5 +1,5 @@
 // The same calls whichever engine it is. pdf.js as its docs arrange it: parser in its worker,
-// drawing on the page's main thread. recto and pdfium do both in a worker and post the bitmap.
+// drawing on the page's main thread. recto, pdfium and MuPDF do both in a worker and post the bitmap.
 import { pdfjsEngine } from "/app/engines.mjs";
 
 export async function connect(name) {

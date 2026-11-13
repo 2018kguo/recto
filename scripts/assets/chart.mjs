@@ -11,22 +11,22 @@ const node = JSON.parse(fs.readFileSync(path.join(root, "bench/results/node.json
 const browser = JSON.parse(fs.readFileSync(path.join(root, "bench/results/browser.json"), "utf8"));
 const ms = (v) => (v >= 1000 ? `${(v / 1000).toFixed(1)} s` : `${Math.round(v)} ms`);
 const mb = (v) => `${Math.round(v / 1e6)} MB`;
-const pick = (group, key) => ["recto", "pdf.js", "pdfium"].map((e) => group.summary[key][e].median);
+const NAMES = ["recto", "pdf.js", "pdfium", "mupdf"];
+const pick = (group, key) => NAMES.map((e) => group.summary[key][e].median);
 const PANELS = [
   { title: "Read text", note: `Node, ${node.documents.used} PDFs`, values: pick(node, "text"), format: ms },
   { title: "Render", note: `Node, ${node.documents.used} PDFs`, values: pick(node, "render"), format: ms },
   { title: "Open a report in a page", note: `Chromium slowed ${browser.slowdown.factor}×, 40 pages, all drawn`, values: pick(browser, "loadDone"), format: ms },
   { title: "Peak memory", note: `Node, the process, same ${node.documents.used} PDFs`, values: pick(node, "rss"), format: mb },
 ];
-const NAMES = ["recto", "pdf.js", "pdfium"];
 const WIDTH = 880;
 const PANEL_W = 420;
-const PANEL_H = 164;
+const PANEL_H = 46 + NAMES.length * 36 + 10;
 const GAP_X = 40;
 const TOP = 54;
 
 function svg(theme) {
-  const hues = [theme.recto, theme.pdfjs, theme.pdfium];
+  const hues = [theme.recto, theme.pdfjs, theme.pdfium, theme.mupdf];
   let body = "";
   // Legend, with every bar also labelled by name.
   let lx = 0;

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Real-world files: a deterministic sample of the SafeDocs CC-MAIN-2021-31-PDF-UNTRUNCATED corpus
-// (PDFs from Common Crawl's July/August 2021 crawl, refetched untruncated), opened by recto, pdf.js
-// and pdfium, each file and engine in a fresh process with a time and a memory limit. Each run:
+// (PDFs from Common Crawl's July/August 2021 crawl, refetched untruncated), opened by recto, pdf.js,
+// pdfium and MuPDF, each file and engine in a fresh process with a time and a memory limit. Each run:
 // the page count, the text of up to 5 pages, and the first 2 pages drawn at 1024 px.
 //
 // `fetch` downloads whole zips, chosen by a seed: zip n is the first 4 bytes of
@@ -11,7 +11,7 @@
 //   node bench/wild.mjs fetch [--zips 7] [--dir ~/.cache/recto-corpus/wild]
 //   npm run build
 //   node bench/wild.mjs run [--dir ...] [--results bench/results/wild.json] [--timeout 20] [--max-rss 2048]
-//        [--jobs 8] [--engines recto,pdf.js,pdfium] [--limit n] [--cache file.jsonl] [--only file-of-hashes]
+//        [--jobs 8] [--engines recto,pdf.js,pdfium,mupdf] [--limit n] [--cache file.jsonl] [--only file-of-hashes]
 //
 // The cache holds one line per file and engine; recto's lines are keyed by its wasm's hash, so after a
 // fix a rerun reruns recto alone.
@@ -23,7 +23,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 
-import { pdfiumEngine, pdfjsEngine, rectoEngine } from "./engines.mjs";
+import { mupdfEngine, pdfiumEngine, pdfjsEngine, rectoEngine } from "./engines.mjs";
 
 const here = import.meta.dirname;
 const self = fileURLToPath(import.meta.url);
@@ -52,6 +52,8 @@ async function child(engineName, file) {
     const pdfjs = await import(path.join(here, "node_modules/pdfjs-dist/legacy/build/pdf.mjs"));
     const root = path.join(here, "node_modules/pdfjs-dist");
     engine = pdfjsEngine(pdfjs, { isEvalSupported: false, verbosity: 0, standardFontDataUrl: `${root}/standard_fonts/`, cMapUrl: `${root}/cmaps/`, cMapPacked: true, wasmUrl: `${root}/wasm/` });
+  } else if (engineName === "mupdf") {
+    engine = mupdfEngine(await import(path.join(here, "node_modules/mupdf/dist/mupdf.js")));
   } else {
     const { init } = await import(path.join(here, "node_modules/@embedpdf/pdfium/dist/index.js"));
     engine = pdfiumEngine(await init({ wasmBinary: fs.readFileSync(path.join(here, "node_modules/@embedpdf/pdfium/dist/pdfium.wasm")) }), { forms: true });
@@ -281,7 +283,9 @@ async function run(values) {
   // ---- The summary
   const rows = files.map((file) => Object.fromEntries(engines.map((engine) => [engine, cache.get(keyOf(engine, file))])));
   const OUTCOMES = ["ok", "page-error", "open-error", "timeout", "memory", "crash"];
-  const summary = { date: new Date().toISOString(), node: process.version, rectoBuild: wasmHash, files: files.length, bytes: files.reduce((n, f) => n + fs.statSync(f).size, 0), engines: {} };
+  const versions = Object.fromEntries(["pdfjs-dist", "@embedpdf/pdfium", "mupdf"].map((name) => [name, JSON.parse(fs.readFileSync(path.join(here, "node_modules", name, "package.json"))).version]));
+  const machine = `${os.cpus()[0].model}, ${os.cpus().length} cores, ${Math.round(os.totalmem() / 2 ** 30)} GB`;
+  const summary = { date: new Date().toISOString(), node: process.version, machine, loadAverage: os.loadavg(), jobs: Number(values.jobs), versions, rectoBuild: wasmHash, files: files.length, bytes: files.reduce((n, f) => n + fs.statSync(f).size, 0), engines: {} };
   for (const engine of engines) {
     const mine = rows.map((row) => row[engine]);
     const outcomes = Object.fromEntries(OUTCOMES.map((o) => [o, mine.filter((r) => r.outcome === o).length]));
@@ -308,13 +312,14 @@ async function run(values) {
     for (const engine of engines) {
       const mine = row[engine];
       const others = engines.filter((e) => e !== engine).map((e) => row[e]);
-      const whatOthersDid = others.filter((r) => r.outcome === "ok" || r.outcome === "page-error");
+      // A file opened with no pages hasn't been read: it doesn't count as another engine doing better.
+      const whatOthersDid = others.filter((r) => (r.outcome === "ok" || r.outcome === "page-error") && r.pageCount > 0);
       if (whatOthersDid.length === 0) continue;
       const problems = [];
       const soft = [];
       if (!["ok", "page-error"].includes(mine.outcome)) problems.push(`${mine.outcome}${mine.code ? ` ${mine.code}` : ""}${mine.step && mine.outcome !== "open-error" ? ` at ${mine.step}` : ""}`);
       else {
-        const counts = others.filter((r) => r.pageCount !== null).map((r) => r.pageCount);
+        const counts = whatOthersDid.map((r) => r.pageCount);
         if (counts.length && !counts.includes(mine.pageCount)) problems.push(`page count ${mine.pageCount} where others say ${counts.join("/")}`);
         for (const p of mine.text.concat(mine.render).filter((p) => p.failed)) {
           const kind = "words" in p || mine.text.includes(p) ? "text" : "render";
@@ -370,7 +375,7 @@ if (process.argv[2] === "--child") {
       timeout: { type: "string", default: "20" },
       "max-rss": { type: "string", default: "2048" },
       jobs: { type: "string", default: String(Math.max(1, Math.floor(os.availableParallelism() / 2))) },
-      engines: { type: "string", default: "recto,pdf.js,pdfium" },
+      engines: { type: "string", default: "recto,pdf.js,pdfium,mupdf" },
       limit: { type: "string" },
       only: { type: "string" },
     },
@@ -378,7 +383,7 @@ if (process.argv[2] === "--child") {
   if (positionals[0] === "fetch") fetchCorpus(values.dir, Number(values.zips));
   else if (positionals[0] === "run") await run(values);
   else {
-    console.error("usage: wild.mjs fetch [--zips 7] [--dir d] | run [--dir d] [--results file.json] [--timeout 20] [--max-rss 2048] [--jobs n] [--engines recto,pdf.js,pdfium]");
+    console.error("usage: wild.mjs fetch [--zips 7] [--dir d] | run [--dir d] [--results file.json] [--timeout 20] [--max-rss 2048] [--jobs n] [--engines recto,pdf.js,pdfium,mupdf]");
     process.exit(2);
   }
 }
