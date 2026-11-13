@@ -4,10 +4,11 @@
 // not commit them. docs/benchmarks.md says what each number means.
 //
 //   npm run build
-//   npm run bench -- <directory of PDFs> [--docs 60] [--runs 5] [--max-load 4] [--out bench/results/node.json]
+//   npm run bench -- <directory of PDFs> [--docs 60] [--runs 5] [--max-load 8 --min-idle 55] [--out bench/results/node.json]
 //
-// `--max-load` holds each measured process until the 1-minute load average is under it, so a busy
-// machine delays the numbers instead of moving them; the loads each started at are in the results.
+// `--max-load` and `--min-idle` hold each measured process until the 1-minute load average is under
+// the one or the CPUs are at least that % idle (see quiet.mjs), so a busy machine delays the numbers
+// instead of moving them; what each started at is in the results.
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -18,6 +19,7 @@ import { Worker, isMainThread, parentPort, workerData } from "node:worker_thread
 
 import { mupdfEngine, pdfiumEngine, pdfjsEngine, rectoEngine } from "./engines.mjs";
 import { heavyPagePdf, reportPdf } from "./generate.mjs";
+import { quietGate } from "./quiet.mjs";
 
 const here = import.meta.dirname;
 const TEXT_PAGES = 20;
@@ -305,6 +307,7 @@ async function main() {
       runs: { type: "string", default: "5" },
       out: { type: "string" },
       "max-load": { type: "string" },
+      "min-idle": { type: "string" },
     },
   });
   const directory = positionals[0];
@@ -338,15 +341,11 @@ async function main() {
 
   const samples = Object.fromEntries(ENGINES.map((engine) => [engine, []]));
   const shared = { files, report, large, heavy };
-  const loads = [];
-  const maxLoad = values["max-load"] ? Number(values["max-load"]) : Infinity;
-  const quiet = async () => {
-    for (let waited = 0; os.loadavg()[0] > maxLoad; waited += 5) {
-      if (waited % 300 === 0) console.error(`load ${os.loadavg()[0].toFixed(1)}, waiting for under ${maxLoad}`);
-      await new Promise((resolve) => setTimeout(resolve, 5000));
-    }
-    loads.push(os.loadavg()[0]);
-  };
+  const gate = quietGate({
+    maxLoad: values["max-load"] ? Number(values["max-load"]) : undefined,
+    minIdle: values["min-idle"] ? Number(values["min-idle"]) / 100 : undefined,
+  });
+  const quiet = gate.wait;
   for (let run = 0; run < runs; run++) {
     for (let k = 0; k < ENGINES.length; k++) {
       const engine = ENGINES[(run + k) % ENGINES.length];
@@ -398,8 +397,8 @@ async function main() {
     node: process.version,
     machine: `${os.cpus()[0].model}, ${os.cpus().length} cores, ${Math.round(os.totalmem() / 2 ** 30)} GB`,
     loadAverage: os.loadavg()[0],
-    // The 1-minute load average as each measured process started.
-    loads: { maxAllowed: Number.isFinite(maxLoad) ? maxLoad : null, median: ms(median(loads)), max: ms(Math.max(...loads)) },
+    // The 1-minute load average and the CPUs' idle share as each measured process started.
+    quiet: gate.summary(),
     versions: Object.fromEntries(
       ["pdfjs-dist", "@embedpdf/pdfium", "mupdf"].map((name) => [name, JSON.parse(fs.readFileSync(path.join(here, "node_modules", name, "package.json"))).version]),
     ),

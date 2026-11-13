@@ -3,10 +3,10 @@
 // thread feels, and what memory is left. docs/benchmarks.md says what each number means.
 //
 //   npm run build
-//   npm run bench:browser -- <directory of PDFs> [--docs 8] [--runs 5] [--slowdown 4] [--max-load 4] [--out bench/results/browser.json]
+//   npm run bench:browser -- <directory of PDFs> [--docs 8] [--runs 5] [--slowdown 4] [--max-load 8 --min-idle 55] [--out bench/results/browser.json]
 //
 // The slowdown stops and resumes the whole browser (see cdp.mjs); --slowdown 1 runs at full speed.
-// `--max-load` holds each engine's run until the 1-minute load average is under it.
+// `--max-load` and `--min-idle` hold each engine's run for a quiet machine, as in bench.mjs.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -14,6 +14,7 @@ import { parseArgs } from "node:util";
 
 import { launch, newPage } from "./cdp.mjs";
 import { cjkPdf, heavyPagePdf, reportPdf } from "./generate.mjs";
+import { quietGate } from "./quiet.mjs";
 import { serve } from "./serve.mjs";
 
 const here = import.meta.dirname;
@@ -28,6 +29,7 @@ const { values, positionals } = parseArgs({
     slowdown: { type: "string", default: "4" },
     out: { type: "string", default: path.join(here, "results/browser.json") },
     "max-load": { type: "string" },
+    "min-idle": { type: "string" },
   },
 });
 const directory = positionals[0];
@@ -49,15 +51,13 @@ const arm = () => {
   }, 30 * 60_000);
 };
 arm();
-const loads = [];
-const maxLoad = values["max-load"] ? Number(values["max-load"]) : Infinity;
+const gate = quietGate({
+  maxLoad: values["max-load"] ? Number(values["max-load"]) : undefined,
+  minIdle: values["min-idle"] ? Number(values["min-idle"]) / 100 : undefined,
+});
 const quiet = async () => {
-  for (let waited = 0; os.loadavg()[0] > maxLoad; waited += 5) {
-    if (waited % 300 === 0) console.error(`load ${os.loadavg()[0].toFixed(1)}, waiting for under ${maxLoad}`);
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-  }
+  await gate.wait();
   arm();
-  loads.push(os.loadavg()[0]);
 };
 
 docs.set("report.pdf", reportPdf({ pages: 40, imageSize: 240 }));
@@ -239,8 +239,8 @@ const results = {
   date: new Date().toISOString(),
   machine: `${os.cpus()[0].model}, ${os.cpus().length} cores`,
   loadAverage: os.loadavg()[0],
-  // The 1-minute load average as each engine's run started.
-  loads: { maxAllowed: Number.isFinite(maxLoad) ? maxLoad : null, median: Math.round(median(loads) * 10) / 10, max: Math.round(Math.max(...loads) * 10) / 10 },
+  // The 1-minute load average and the CPUs' idle share as each engine's run started.
+  quiet: gate.summary(),
   browser: browserVersion,
   slowdown: { how: "the browser's processes stopped and resumed", asked: Number(values.slowdown), factor: Math.round((slowSpin / fastSpin) * 10) / 10 },
   width: WIDTH,
