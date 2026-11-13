@@ -638,6 +638,7 @@
 <recto::wasm::Document>::outline
 <recto::wasm::Document>::page_info
 <recto::wasm::Document>::page_labels
+<recto::wasm::Document>::page_string
 <recto::wasm::Document>::page_text
 <recto::wasm::Document>::scan_parts
 <rustc_hash::FxBuildHasher as core::hash::BuildHasher>::hash_one::<&&[u8]>
@@ -852,6 +853,8 @@ document_pageInfo
 document_pageInfo multivalue shim
 document_pageLabels
 document_pageLabels externref shim
+document_pageString
+document_pageString multivalue shim
 document_pageText
 document_pageText multivalue shim
 document_structureTruncated

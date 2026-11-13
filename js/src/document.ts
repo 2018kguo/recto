@@ -453,6 +453,11 @@ export interface PdfDocument {
   structureTruncated(): { pages: boolean; pageLabels: boolean; outline: boolean };
   pageInfo(index: number): PdfPageInfo;
   text(index: number, options?: PdfTextOptions): PdfPageText;
+  /**
+   * `text(index).text` and nothing else: the same string, without building or copying out the
+   * per-char columns. For search indexing and other reads that want only the words.
+   */
+  plainText(index: number): string;
   /** `text`, `objects` and `annotations` from one interpretation of the page. */
   scan(index: number): {
     text: PdfPageText;
@@ -931,6 +936,11 @@ export class RectoDocument implements PdfDocument {
       this.#needsRender();
     }
     return this.#call(() => toText(this.#doc.pageText(index, tight)));
+  }
+
+  plainText(index: number): string {
+    this.#check(index);
+    return this.#call(() => this.#doc.pageString(index));
   }
 
   objects(index: number): PdfPageObjects {

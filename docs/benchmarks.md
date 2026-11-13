@@ -97,9 +97,12 @@ documents of the [scoreboard](#the-scoreboard)'s `pub` set (25 MB), which all fo
 - **Totals**, not per-file medians, so a slow file counts for what it costs. A warm-up pass comes
   first, and the buffer copies are outside the clock. The brackets are 95% intervals on the ratio, bootstrapped
   from the 7 rounds.
-- **The columns differ.** recto's text call also builds every char's box and the word columns;
-  pdf.js's `getTextContent` builds its items; pdfium's `FPDFText_GetText` returns a string; MuPDF's
-  `toStructuredText().asText()` builds its blocks and lines, then a string. MuPDF renders with alpha, the paper
+- **Each engine's text call** returns the page's string, and each still interprets the whole page for it:
+  recto's `plainText(i)`; pdfium's `FPDFText_LoadPage` then `FPDFText_GetText`; MuPDF's
+  `toStructuredText("preserve-whitespace").asText()`, which builds its blocks and lines first; pdf.js's
+  `getTextContent`, whose items are joined, since it has no call for a string alone. recto's `text(i)`, with
+  every char's box and the word columns, would be pdfium's `FPDFText_GetText` plus `FPDFText_GetCharBox` per char,
+  which no engine here is asked for. MuPDF renders with alpha, the paper
   left clear, which every reader here composites over white.
 - **The characters** agree: 802,592 in recto, 802,596 in pdf.js, 802,603 in pdfium and 802,699 in MuPDF, not
   counting whitespace, over the same pages. That's a count. [Text quality](#text-quality) compares the words.

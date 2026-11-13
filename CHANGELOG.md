@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Added
+
+- **A page's string alone.** `doc.plainText(i)` is `doc.text(i).text`, the same string from the same
+  interpretation, without building or copying out the per-char columns. In a pool too. The benchmark's text
+  pass calls it, as pdfium's `FPDFText_GetText` and MuPDF's `asText` give a string alone.
+
 ### Fixed
 
 - **Words kerned apart no longer run together.** A gap between two glyphs on a line is a space past 0.12 em

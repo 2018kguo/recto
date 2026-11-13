@@ -20,6 +20,7 @@ import {
   type PdfBox,
   PdfError,
 } from "../src/index.ts";
+import { pagePdf } from "./rare-pdfs.ts";
 import { syntheticPdf } from "./synthetic-pdf.ts";
 import { startRangeServer } from "./range-server.ts";
 
@@ -217,6 +218,36 @@ function encodePng(width: number, height: number, rgba: Uint8Array) {
     chunk("IEND", new Uint8Array(0)),
   ]);
 }
+
+test("plainText(i) is text(i).text on every page: ligatures, multi-code-point and unmapped chars included", async () => {
+  // Codes 41-43 map to a ligature, two code points and one; 44 maps to nothing and reads as its code.
+  const toUnicode = "/CIDInit /ProcSet findresource begin 12 dict begin begincmap 1 begincodespacerange <00> <FF> endcodespacerange " +
+    "3 beginbfchar <41> <FB01> <42> <00650301> <43> <0043> endbfchar endcmap CMapName currentdict /CMap defineresource pop end end";
+  const odd = pagePdf("BT /F 12 Tf 10 50 Td (ABCD) Tj ET", "/Font << /F 5 0 R >>", [
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding << /Differences [68 /g68] >> /ToUnicode 6 0 R >>",
+    { dict: "", data: new TextEncoder().encode(toUnicode) },
+  ]);
+  const files = [odd, truth.bytes, syntheticPdf({ pages: 3, charsPerPage: 400, vary: true })];
+  for (const name of ["chrome-mixed-rtl.pdf", "cjk-embedded.pdf", "cjk-predefined-cmap.pdf", "encrypted-objstm-shifted.pdf", "linearized.pdf"]) {
+    files.push(await fixture(name));
+  }
+  let pages = 0;
+  for (const bytes of files) {
+    const doc = await engine.open(bytes);
+    for (let i = 0; i < doc.pageCount; i++, pages++) {
+      assert.equal(doc.plainText(i), doc.text(i).text, `page ${i}`);
+    }
+    doc.close();
+  }
+  assert.ok(pages >= files.length);
+  const doc = await engine.open(odd);
+  const text = doc.text(0);
+  assert.equal(doc.plainText(0), "fiéCD");
+  assert.ok(text.flags.some((f) => f & CHAR_UNMAPPED));
+  assert.throws(() => doc.plainText(1), RangeError);
+  doc.close();
+  assert.throws(() => doc.plainText(0), PdfError);
+});
 
 test("render draws what we wrote, at pdf.js's size rule", async () => {
   const doc = await engine.open(truth.bytes);

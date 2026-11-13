@@ -55,6 +55,7 @@ together before drawing it, where the engine would otherwise wait a round trip f
 | `pageLabels()` | What each page is called, one string per page: `"iv"`, `"A-5"`. `null` if the file doesn't say |
 | `pageInfo(i)` | `{ width, height, rotation }`, in the page's own units: `/UserUnit` doesn't scale them. Rendering by `width` doesn't depend on it |
 | `text(i, { boxes? })` | `PdfPageText`: the page's `text`, and columns per char: `codepoints`, `boxes`, `fontSizes`, `tfSizes`, `hScales`, `angles`, `fills`, `fontIds`, `flags`, `runIds`; plus `fonts`, `words`, `runs`, `truncated`. `boxes: "tight"` for glyph bounds, below |
+| `plainText(i)` | `text(i).text` alone, the same string, without the columns: for search indexes and other reads that want only the words. The page is interpreted the same way; only the copying out is left out |
 | `fonts(i)` | `PdfFontInfo[]`: the fonts page `i`'s text uses, in `text(i).fonts` order, with what their dictionaries say and the program each embeds. [Fonts](#fonts) |
 | `fontProgram(id)` | The bytes of an embedded font program `fonts` listed, as its stream decodes; `null` for an id that names none. [Fonts](#fonts) |
 | `objects(i)` | `PdfPageObjects`: image boxes and pixel sizes, path boxes and flags, path segments, `truncated` |
@@ -222,7 +223,7 @@ pool.stats(): { threads: number; queued: number }
 pool.close()      // or `using`: stops every thread; what's unfinished fails with `closed`
 
 doc.pageCount
-doc.text(i)  doc.render(i, { width, maxHeight?, region?, text? })  doc.objects(i)
+doc.text(i)  doc.plainText(i)  doc.render(i, { width, maxHeight?, region?, text? })  doc.objects(i)
 doc.annotations(i)  doc.links(i)  doc.pageInfo(i)  doc.outline()     // each a promise
 doc.openAction()  doc.destination(nameOrDest)  doc.fonts(i)  doc.fontProgram(id)
 doc.close()       // or `await using`: frees it on every thread

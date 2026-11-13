@@ -49,7 +49,7 @@ import { openPdf } from "@2018kguo/recto";
 parentPort.on("message", async (bytes) => {
   using doc = await openPdf(bytes);
   const pages = [];
-  for (let i = 0; i < doc.pageCount; i++) pages.push(doc.text(i).text);
+  for (let i = 0; i < doc.pageCount; i++) pages.push(doc.plainText(i));
   parentPort.postMessage(pages);
 });
 ```
@@ -75,8 +75,8 @@ import { createPdfPool } from "@2018kguo/recto";
 
 using pool = await createPdfPool();
 await using doc = await pool.open(await readFile("report.pdf"));
-const pages = await Promise.all(Array.from({ length: doc.pageCount }, (_, i) => doc.text(i)));
-console.log(pages.length, pages[0].text);
+const pages = await Promise.all(Array.from({ length: doc.pageCount }, (_, i) => doc.plainText(i)));
+console.log(pages.length, pages[0]);
 ```
 
 Each thread holds its own copy of the file, so it costs memory. On a 2,000-page report, 8 threads read text
