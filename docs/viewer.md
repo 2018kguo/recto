@@ -7,7 +7,8 @@ it's a separate entry point: a program that doesn't import it doesn't download i
   in Web Workers. A page that leaves before it's drawn has its render stopped; painted pages are held to
   a pixel budget, the oldest off-screen ones shrinking to a thumbnail.
 - Each page has a transparent text layer, so text can be selected and copied, and its links: web and
-  mail links open (other schemes are dropped), links within the file scroll to their destination.
+  mail links open (other schemes are dropped), links within the file go to the exact place they name,
+  and links to another file go to your app, which decides what to open.
 - Zoom is one style write: the page grows at once with its old bitmap stretched, and the sharp one
   replaces it once the zoom has stopped moving. ⌘/Ctrl + plus, minus and 0 zoom.
 - A pinch (two fingers on a touch screen, a trackpad pinch, ctrl + wheel, Safari's gesture events) zooms
@@ -124,6 +125,8 @@ Server rendering is fine: importing the module touches no DOM. Create the viewer
 | `page` | `number` | The page to open at. |
 | `gap` | `number` | Pixels between and around pages. Default 12. |
 | `textLayer`, `links`, `gestures` | `boolean` | Each default true. |
+| `destinationZoom` | `boolean` | Let a link's or bookmark's `XYZ` zoom set the viewer's zoom (1 is 100%: a point at 96/72 CSS pixels). Default false: the place is brought to the top-left at the reader's zoom. The Fit views always fit. |
+| `onExternalDestination(detail)` | | A link or bookmark to another file was followed: `detail.target` is the engine's `remote` or `embedded` target, `detail.page` the page the link is on (null for a bookmark). The viewer doesn't move. |
 | `label` | `string` | The scrolling element's accessible name. |
 | `engine` | `ViewerEngine` | The workers to use; by default one engine is shared by every viewer on the page. |
 | `onOpen(info)` | | `{ pageCount, ranged, ms, timing: { engineMs, fetchMs, parseMs, bytes } }`, once the document is open. |
@@ -140,6 +143,8 @@ The hooks are where timing goes: send them to whatever records your metrics.
 | `state` | `"loading"`, `"ready"` or `"error"`, also the scrolling element's `data-state`. |
 | `pageCount`, `page`, `zoom`, `scale` | `page` is the one at the middle of the screen; `scale` is CSS pixels per point. |
 | `goToPage(n, { x, y, behavior })` | To a page from 1, or a point on it in points from its top-left. |
+| `goToDestination(dest, { behavior })` | To a destination, `{ page, view, x, y, zoom, box }` with `page` from 1, or a name of this file's. Below. Resolves false if it goes nowhere here. |
+| `follow(target)` | Does what clicking a link or bookmark with this `target` does. |
 | `next()`, `previous()` | |
 | `setZoom(zoom, anchor?)` | Keeps the point under `anchor` (`clientX`, `clientY`) still; the middle of the screen by default. |
 | `zoomIn()`, `zoomOut()`, `fitWidth()` | Steps of 25, 50, 75, 100, 125, 150, 200, 300 and 400%. |
@@ -147,13 +152,39 @@ The hooks are where timing goes: send them to whatever records your metrics.
 | `setHighlights([{ page, boxes, active? }])` | Draws boxes over pages, replacing the last set. |
 | `scrollToBox(page, box)` | Centres a box on the screen. |
 | `pageElement(n)` | A page's element, to put your own overlay in. |
-| `outline()` | The bookmarks, `[{ title, page, url, children }]`, `page` from 1 (null when it goes nowhere in the file). |
+| `outline()` | The bookmarks, `[{ title, page, url, target, children }]`, `page` from 1 (null when it goes nowhere in the file); `target` as a link's: `{ kind: "page", page, view, x, y, zoom, box }`, `{ kind: "uri", uri }`, `{ kind: "external", target }`, or null. |
 | `renderThumbnail(n, { width, signal })` | Page `n` drawn `width` pixels wide, queued behind the pages near the screen, newest first; dropped if `signal` aborts first. |
 | `element`, `document` | The scrolling element, and the open `ViewerDocument` for calls of your own. |
 | `destroy()` | Stops everything and removes what the viewer added. |
 
 Events, on the viewer: `open`, `pagechange` (`detail.page`), `zoomchange` (`detail.zoom`,
-`detail.scale`), `error` (`detail.error`, `detail.stage`, `detail.page`).
+`detail.scale`), `error` (`detail.error`, `detail.stage`, `detail.page`), `externaldestination`
+(as `onExternalDestination`'s `detail`).
+
+### Destinations
+
+A link or bookmark in the file goes to the place it names: the point at the top-left of the screen, and
+the zoom its view asks for. `Fit` and `FitB` fit the page, `FitH` and `FitBH` its width, `FitV` and
+`FitBV` its height, `FitR` its rectangle; `XYZ` keeps the reader's zoom unless `destinationZoom` is set.
+A file's own `/OpenAction` is not followed on open; `viewer.document` can't read it, but the engine's
+`openAction()` can.
+
+A link to another file is the app's to follow. Open the file, in this viewer or another, and go to the
+place the link names there:
+
+```js
+viewer.addEventListener("externaldestination", async ({ detail: { target } }) => {
+  const other = createViewer({ container, source: new URL(target.file, documentUrl) });
+  await other.ready;
+  const dest = target.destination;
+  if (dest.name !== null) await other.goToDestination(dest.name);
+  else {
+    // Its page there, from 0, and its numbers in that page's user space: placed by the file itself.
+    const placed = await other.document.destination(dest);
+    if (placed) await other.goToDestination(placed);
+  }
+});
+```
 
 ### Highlights of your own
 
@@ -210,8 +241,8 @@ needs the CDN to allow CORS, as the wasm does. Pass `createWorker` to start it s
 
 ## Not here yet
 
-No printing, no form filling or annotation editing, and no rotation control. The outline shows titles
-and pages, not the point on the page a bookmark names, and not page labels ("iv", "A-5"). A pinch shows
+No printing, no form filling or annotation editing, and no rotation control. The outline shows titles,
+not page labels ("iv", "A-5"). `FitB` views fit the page, not what's drawn on it. A pinch shows
 the stretched bitmap while the fingers move and past the edge of the document can't scroll beyond it,
 so a pinch that ends there settles at the edge. Find tells accents apart. A file opened by URL is
 cached as it was read: to show a changed file, give it a new URL.

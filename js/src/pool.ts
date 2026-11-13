@@ -11,7 +11,9 @@ import type {
   PdfAnnotation,
   PdfBitmap,
   PdfBox,
+  PdfDestination,
   PdfLink,
+  PdfLinkTarget,
   PdfOutlineItem,
   PdfPageInfo,
   PdfPageObjects,
@@ -44,6 +46,8 @@ export interface PdfPoolDocument {
   annotations(index: number): Promise<PdfAnnotation[]>;
   links(index: number): Promise<PdfLink[]>;
   outline(): Promise<PdfOutlineItem[]>;
+  openAction(): Promise<PdfLinkTarget>;
+  destination(target: string | PdfDestination): Promise<PdfDestination>;
   /** Takes no `signal`: a call that's running can't be stopped. */
   render(index: number, options: PdfRenderOptions & { region: PdfBox }): Promise<PdfRegionBitmap>;
   render(index: number, options: PdfRenderOptions): Promise<PdfBitmap>;
@@ -344,6 +348,8 @@ class Pool implements PdfPool {
       annotations: (index) => call("annotations", index) as Promise<PdfAnnotation[]>,
       links: (index) => call("links", index) as Promise<PdfLink[]>,
       outline: () => call("outline") as Promise<PdfOutlineItem[]>,
+      openAction: () => call("openAction") as Promise<PdfLinkTarget>,
+      destination: (target) => call("destination", target) as Promise<PdfDestination>,
       render: ((index: number, renderOptions: PdfRenderOptions) => {
         if ((renderOptions as { signal?: unknown } | undefined)?.signal) {
           return Promise.reject(

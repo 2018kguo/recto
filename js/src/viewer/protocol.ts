@@ -1,7 +1,7 @@
 // Messages between a viewer and its worker. The worker owns every open document; the page only
 // ever holds ids, page sizes, text runs, links, search hits and finished bitmaps.
 
-import type { PdfBox } from "../document.ts";
+import type { PdfBox, PdfDestination, PdfLinkTarget } from "../document.ts";
 
 export type ViewerSource =
   | { kind: "url"; url: string; credentials?: RequestCredentials }
@@ -27,17 +27,45 @@ export type ViewerTextRun = {
 };
 
 /**
- * A link a viewer can follow: a URI as the file states it (the text layer decides which schemes are
- * safe), or a page of this file (1-based) and, where the link names one, the point to show there, in
- * points in that page's viewer frame (y down).
+ * A place in this file: the page (from 1), the view the file names for it ("XYZ", "Fit", "FitH",
+ * "FitV", "FitR", "FitB", "FitBH", "FitBV", or null), the point to bring to the top-left in points in
+ * that page's viewer frame (y down; null for a coordinate left as it was), "XYZ"'s zoom (1 for 100%),
+ * and "FitR"'s rectangle.
  */
-export type ViewerLink = {
-  box: PdfBox;
-  target: { kind: "uri"; uri: string } | { kind: "page"; page: number; x: number | null; y: number | null };
+export type ViewerDestination = {
+  page: number;
+  view: string | null;
+  x: number | null;
+  y: number | null;
+  zoom: number | null;
+  box: PdfBox | null;
 };
 
-/** A bookmark: the page it goes to (from 1; null if none in this file), or the web address it opens. */
-export type ViewerOutlineItem = { title: string; page: number | null; url: string | null; children: ViewerOutlineItem[] };
+/** A destination in another file, or in a file embedded in this one, as the engine reports it. */
+export type ViewerExternalTarget = Extract<PdfLinkTarget, { kind: "remote" | "embedded" }>;
+
+/**
+ * Where a link or bookmark goes: a URI as the file states it (the text layer decides which schemes are
+ * safe), a place in this file, or a place in another file, which the viewer hands to its host.
+ */
+export type ViewerTarget =
+  | { kind: "uri"; uri: string }
+  | ({ kind: "page" } & ViewerDestination)
+  | { kind: "external"; target: ViewerExternalTarget };
+
+export type ViewerLink = { box: PdfBox; target: ViewerTarget };
+
+/**
+ * A bookmark: the page it goes to (from 1; null if none in this file), or the web address it opens, and
+ * where it goes in full (null for nowhere a viewer can go).
+ */
+export type ViewerOutlineItem = {
+  title: string;
+  page: number | null;
+  url: string | null;
+  target: ViewerTarget | null;
+  children: ViewerOutlineItem[];
+};
 
 /** One hit of a search: where it starts in the page's text, and its boxes, one a line, in points (y down). */
 export type ViewerFindHit = { index: number; boxes: PdfBox[] };
@@ -71,6 +99,8 @@ export type ViewerRequest =
     }
   | { op: "text"; id: number; docId: number; page: number }
   | { op: "outline"; id: number; docId: number }
+  /** A named destination, or another file's destination for a page here, placed on its page. */
+  | { op: "destination"; id: number; docId: number; target: string | PdfDestination }
   | { op: "find"; id: number; docId: number; page: number; query: string; caseSensitive: boolean }
   | { op: "cancel"; id: number }
   | { op: "close"; docId: number };
@@ -98,6 +128,8 @@ export type ViewerResult = {
   text: { runs: ViewerTextRun[]; links: ViewerLink[] };
   find: ViewerFindHit[];
   outline: ViewerOutlineItem[];
+  /** null if it goes nowhere in this file. */
+  destination: ViewerDestination | null;
 };
 
 export type ViewerFailure = { code: string; message: string };

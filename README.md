@@ -180,8 +180,10 @@ matches pdfium's tight box at an IoU of 0.998. See [character boxes](docs/benchm
 
 All of them are in one frame, the page as it's shown: points from the top left, after `/Rotate` and the
 crop box. So is `render(i, { width, region })`, which draws only part of a page, with the same pixels as
-that part of the whole render, for tiles and deep zoom; and `links(i)`, where each link goes: a URI, or a
-page and the point on it, in that page's frame. See [the reference](docs/reference.md#part-of-a-page).
+that part of the whole render, for tiles and deep zoom; and `links(i)`, where each link goes: a URI, a
+page and the exact place and view on it, in that page's frame and as the file writes it, or a place in
+another file. Bookmarks and the open action resolve the same way. See [the reference](docs/reference.md#part-of-a-page)
+and [destinations](docs/reference.md#destinations).
 
 ## How fast
 

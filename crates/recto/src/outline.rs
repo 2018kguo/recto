@@ -1,6 +1,7 @@
 //! The document outline (bookmarks), read-only.
 
 use crate::annots::text_string;
+use crate::links::Target;
 use hayro::hayro_syntax::Pdf;
 use hayro::hayro_syntax::object::{Array, Dict, Name, Object, ObjectIdentifier, String as PdfString};
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -18,6 +19,8 @@ pub struct OutlineItem {
     pub page: i32,
     /// A link out, if that's what it is.
     pub url: Option<String>,
+    /// Where it goes in full, as a link's target: its `/Dest`, or else its action.
+    pub target: Target,
 }
 
 struct Reader<'a> {
@@ -57,6 +60,19 @@ impl<'a> Destinations<'a> {
         Self { pdf, pages: None, indexes: None, names: None, root, walked: Walked::default() }
     }
 
+    pub(crate) fn pdf(&self) -> &'a Pdf {
+        self.pdf
+    }
+
+    /// What a name, as text, names: its bytes as a key, or a key that reads as the same text.
+    pub(crate) fn lookup(&mut self, name: &str) -> Option<Object<'a>> {
+        let names = self.names();
+        names
+            .get(name.as_bytes())
+            .or_else(|| names.iter().find(|(key, _)| text_string(key) == name).map(|(_, v)| v))
+            .cloned()
+    }
+
     fn pages(&mut self) -> &FxHashMap<ObjectIdentifier, i32> {
         let pdf = self.pdf;
         self.pages.get_or_insert_with(|| page_map(pdf))
@@ -90,28 +106,27 @@ impl<'a> Destinations<'a> {
 
     /// A destination: an array whose first entry is the page, a name for one, or either of those
     /// wrapped in a dictionary with a `D`.
-    pub(crate) fn page_of(&mut self, dest: Object<'a>) -> i32 {
-        self.explicit(dest, 0).map_or(-1, |array| self.page_of_array(&array))
-    }
-
-    /// The array a destination comes to, following names and dictionaries.
-    pub(crate) fn explicit(&mut self, dest: Object<'a>, hops: u32) -> Option<Array<'a>> {
+    /// The array a destination comes to, following names and dictionaries; `name` is the first
+    /// name it follows, set whether or not that name goes anywhere.
+    pub(crate) fn explicit(&mut self, dest: Object<'a>, hops: u32, name: &mut Option<String>) -> Option<Array<'a>> {
         if hops > 4 {
             return None;
         }
-        match dest {
-            Object::Array(array) => Some(array),
-            Object::Dict(dict) => dict.get::<Object<'_>>(b"D").and_then(|d| self.explicit(d, hops + 1)),
-            Object::Name(name) => {
-                let found = self.names().get(name.as_ref()).cloned();
-                found.and_then(|d| self.explicit(d, hops + 1))
+        let key = match dest {
+            Object::Array(array) => return Some(array),
+            Object::Dict(dict) => return dict.get::<Object<'_>>(b"D").and_then(|d| self.explicit(d, hops + 1, name)),
+            Object::Name(n) => {
+                name.get_or_insert_with(|| String::from_utf8_lossy(&n).into_owned());
+                n.as_ref().to_vec()
             }
-            Object::String(string) => {
-                let found = self.names().get(string.as_bytes()).cloned();
-                found.and_then(|d| self.explicit(d, hops + 1))
+            Object::String(s) => {
+                name.get_or_insert_with(|| text_string(s.as_bytes()));
+                s.as_bytes().to_vec()
             }
-            _ => None,
-        }
+            _ => return None,
+        };
+        let found = self.names().get(&key).cloned();
+        found.and_then(|d| self.explicit(d, hops + 1, name))
     }
 
     pub(crate) fn page_of_array(&mut self, array: &Array<'a>) -> i32 {
@@ -146,19 +161,17 @@ impl<'a> Reader<'a> {
                 .get::<PdfString<'_>>(b"Title")
                 .map_or_else(String::new, |t| text_string(t.as_bytes()));
             let action = item.get::<Dict<'_>>(b"A");
-            let dest = item.get::<Object<'_>>(b"Dest").or_else(|| {
-                action
-                    .as_ref()
-                    .filter(|a| a.get::<Name<'_>>(b"S").is_some_and(|s| s.as_ref() == b"GoTo"))
-                    .and_then(|a| a.get::<Object<'_>>(b"D"))
-            });
-            let page = dest.map_or(-1, |d| self.dests.page_of(d));
+            let target = crate::links::target(&mut self.dests, &item, false);
+            let page = match &target {
+                Target::Page(d) => d.page,
+                _ => -1,
+            };
             let url = action
                 .as_ref()
                 .filter(|a| a.get::<Name<'_>>(b"S").is_some_and(|s| s.as_ref() == b"URI"))
                 .and_then(|a| a.get::<PdfString<'_>>(b"URI"))
                 .map(|u| String::from_utf8_lossy(u.as_bytes()).into_owned());
-            self.items.push(OutlineItem { title, level, page, url });
+            self.items.push(OutlineItem { title, level, page, url, target });
             if let Some(child) = item.get::<Dict<'_>>(b"First") {
                 let child_id = item.get_ref(b"First").map(Into::into);
                 self.walk(Some((child, child_id)), level + 1);
@@ -179,8 +192,11 @@ fn name_tree<'a>(node: &Dict<'a>, depth: u32, walked: &mut Walked, out: &mut FxH
     if let Some(names) = node.get::<Array<'_>>(b"Names") {
         let mut entries = names.iter::<Object<'_>>();
         while let (Some(key), Some(value)) = (entries.next(), entries.next()) {
-            if let Object::String(key) = key {
-                out.insert(key.as_bytes().to_vec(), value);
+            // Keys are strings; some files write names.
+            match key {
+                Object::String(key) => _ = out.insert(key.as_bytes().to_vec(), value),
+                Object::Name(key) => _ = out.insert(key.as_ref().to_vec(), value),
+                _ => {}
             }
         }
     }

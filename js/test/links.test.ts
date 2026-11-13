@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { createPdfEngine, type PdfDocument, type PdfLink } from "../src/index.ts";
+import { createPdfEngine, type PdfDestination, type PdfDocument, type PdfLink } from "../src/index.ts";
 
 const engine = await createPdfEngine();
 const encoder = new TextEncoder();
@@ -23,6 +23,21 @@ function pdfOf(objects: string[], trailer = ""): Uint8Array {
   out += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R ${trailer}>>\nstartxref\n${xref}\n%%EOF\n`;
   return encoder.encode(out);
 }
+
+/** A destination with every field the engine gives, null where `fields` says nothing. */
+const dest = (fields: Partial<PdfDestination> & { page: number }): PdfDestination => ({
+  view: null,
+  x: null,
+  y: null,
+  zoom: null,
+  box: null,
+  left: null,
+  bottom: null,
+  right: null,
+  top: null,
+  name: null,
+  ...fields,
+});
 
 const link = (rect: string, rest: string) => `<< /Type /Annot /Subtype /Link /Rect [${rect}] ${rest} >>`;
 
@@ -86,23 +101,42 @@ function check(doc: PdfDocument, links: PdfLink[]): void {
   // Page 2's viewer frame: the point is where page 2's degenerate annotation at it is.
   const point = doc.annotations(1)[0]!.box;
   assert.equal(doc.pageInfo(1).rotation, 90);
-  assert.deepEqual(goTo, { kind: "page", destination: { page: 1, view: "XYZ", x: point.x, y: point.y, zoom: 2, box: null } });
+  assert.deepEqual(goTo, { kind: "page", destination: dest({ page: 1, view: "XYZ", x: point.x, y: point.y, zoom: 2, left: 100, top: 700 }) });
 
   // FitV names a left: on an unturned page, x, with y left as it was.
-  assert.deepEqual(dests, { kind: "page", destination: { page: 0, view: "FitV", x: 72, y: null, zoom: null, box: null } });
+  assert.deepEqual(dests, { kind: "page", destination: dest({ page: 0, view: "FitV", x: 72, left: 72, name: "named-in-dests" }) });
   const top = doc.annotations(2)[1]!.box;
-  assert.deepEqual(named, { kind: "page", destination: { page: 2, view: "FitH", x: null, y: top.y, zoom: null, box: null } });
+  assert.deepEqual(named, { kind: "page", destination: dest({ page: 2, view: "FitH", y: top.y, top: 500, name: "chapter" }) });
   assert.deepEqual(none, { kind: "none" });
-  assert.deepEqual(remote, { kind: "remote", file: "other.pdf", name: "intro", page: null });
-  assert.deepEqual(remoteSpec, { kind: "remote", file: "other file.pdf", name: null, page: 4 });
+  assert.deepEqual(remote, {
+    kind: "remote",
+    file: "other.pdf",
+    fileSystem: null,
+    destination: dest({ page: -1, name: "intro" }),
+    newWindow: null,
+    name: "intro",
+    page: null,
+  });
+  assert.deepEqual(remoteSpec, {
+    kind: "remote",
+    file: "other file.pdf",
+    fileSystem: null,
+    destination: dest({ page: 4, view: "Fit" }),
+    newWindow: null,
+    name: null,
+    page: 4,
+  });
   assert.deepEqual(launch, { kind: "launch", file: "setup.exe" });
   assert.deepEqual(nextPage, { kind: "action", action: "Named", name: "NextPage" });
   assert.deepEqual(script, { kind: "action", action: "JavaScript", name: null });
   const rect = doc.annotations(2)[0]!.box;
-  assert.deepEqual(fitR, { kind: "page", destination: { page: 2, view: "FitR", x: rect.x, y: rect.y, zoom: null, box: rect } });
+  assert.deepEqual(fitR, {
+    kind: "page",
+    destination: dest({ page: 2, view: "FitR", x: rect.x, y: rect.y, box: rect, left: 100, bottom: 200, right: 300, top: 400 }),
+  });
   // On page 2, a quarter turn, FitH's top is the point's viewer x, and y is left as it was.
-  assert.deepEqual(turnedTop, { kind: "page", destination: { page: 1, view: "FitH", x: point.x, y: null, zoom: null, box: null } });
-  assert.deepEqual(nowhere, { kind: "page", destination: { page: -1, view: "Fit", x: null, y: null, zoom: null, box: null } });
+  assert.deepEqual(turnedTop, { kind: "page", destination: dest({ page: 1, view: "FitH", x: point.x, top: 700 }) });
+  assert.deepEqual(nowhere, { kind: "page", destination: dest({ page: -1, view: "Fit" }) });
 }
 
 test("links: a URI, destinations to a page and a place on it, and what's only reported", async () => {

@@ -216,7 +216,10 @@ function linksOnly(links: ({ page: number } | { uri: string })[], pageCount = 2)
         target:
           "uri" in link
             ? { kind: "uri" as const, uri: link.uri }
-            : { destination: { box: null, page: link.page, view: "XYZ", x: 1, y: 2, zoom: null }, kind: "page" as const },
+            : {
+                destination: { box: null, bottom: null, left: 1, name: null, page: link.page, right: null, top: 2, view: "XYZ", x: 1, y: 2, zoom: null },
+                kind: "page" as const,
+              },
       })),
     pageCount,
   };
@@ -227,7 +230,7 @@ test("a link to a page outside the file gets no overlay", () => {
   const links = followableLinks(linksOnly([{ page: -1 }, { page: 2 }, { page: 1 }]), 0);
   assert.deepEqual(
     links.map(({ target }) => target),
-    [{ kind: "page", page: 2, x: 1, y: 2 }]
+    [{ box: null, kind: "page", page: 2, view: "XYZ", x: 1, y: 2, zoom: null }]
   );
 });
 

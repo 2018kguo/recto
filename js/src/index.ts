@@ -15,6 +15,7 @@ export {
   type PdfBitmap,
   type PdfBox,
   type PdfDestination,
+  type PdfEmbeddedStep,
   type PdfDocument,
   type PdfFont,
   type PdfLink,

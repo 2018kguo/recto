@@ -48,7 +48,9 @@ together before drawing it, where the engine would otherwise wait a round trip f
 | Member | What it returns |
 |---|---|
 | `pageCount` | The number of pages |
-| `outline()` | The bookmarks: `PdfOutlineItem[]` of `{ title, page, url, children }`. `page` is -1 if it goes nowhere in this file; `url` is set if it links out. Empty if there are none |
+| `outline()` | The bookmarks: `PdfOutlineItem[]` of `{ title, page, url, target, children }`. `page` is -1 if it goes nowhere in this file; `url` is set if it links out; `target` is where it goes in full, as a link's. Empty if there are none. [Destinations](#destinations) |
+| `openAction()` | Where the document opens, its catalog's `/OpenAction`, as a link's `target`; `{ kind: "none" }` if it names none |
+| `destination(nameOrDest)` | A named destination of this file, or another file's destination for a page of this one, placed on it. [Destinations](#destinations) |
 | `structureTruncated()` | `{ pages, pageLabels, outline }`: whether each was cut short. `pages` means `pageCount` may be short: a limit, or a damaged tree that left no pages, which an honestly empty document doesn't say. Walks the outline and labels again |
 | `pageLabels()` | What each page is called, one string per page: `"iv"`, `"A-5"`. `null` if the file doesn't say |
 | `pageInfo(i)` | `{ width, height, rotation }`, in the page's own units: `/UserUnit` doesn't scale them. Rendering by `width` doesn't depend on it |
@@ -191,6 +193,7 @@ pool.close()      // or `using`: stops every thread; what's unfinished fails wit
 doc.pageCount
 doc.text(i)  doc.render(i, { width, maxHeight?, region? })  doc.objects(i)
 doc.annotations(i)  doc.links(i)  doc.pageInfo(i)  doc.outline()     // each a promise
+doc.openAction()  doc.destination(nameOrDest)
 doc.close()       // or `await using`: frees it on every thread
 ```
 
@@ -223,37 +226,90 @@ type PdfLink = { annotation: number; box: PdfBox; target: PdfLinkTarget };
 type PdfLinkTarget =
   | { kind: "uri"; uri: string }
   | { kind: "page"; destination: PdfDestination }      // GoTo, or the link's /Dest
-  | { kind: "remote"; file: string; name: string | null; page: number | null }  // GoToR
+  | {                                                   // GoToR
+      kind: "remote";
+      file: string;                // as written: a relative path stays relative
+      fileSystem: string | null;   // the file specification's /FS, such as "URL"
+      destination: PdfDestination; // its page is that file's page index, or -1 for a name there
+      newWindow: boolean | null;   // /NewWindow, null if not given
+      name: string | null;         // destination.name again
+      page: number | null;         // destination.page again, null for none
+    }
+  | {                                                   // GoToE
+      kind: "embedded";
+      file: string | null;         // the file the embedded one is in, if not this one
+      path: { relation: "parent" | "child"; name: string | null }[];  // /T, step by step
+      destination: PdfDestination; // as remote's
+      newWindow: boolean | null;
+    }
   | { kind: "launch"; file: string }
   | { kind: "action"; action: string; name: string | null }  // any other /S; Named's /N is name
   | { kind: "none" };
-
-type PdfDestination = {
-  page: number;              // -1 if it goes nowhere in this file
-  view: string | null;       // "XYZ", "Fit", "FitH", "FitV", "FitR", "FitB", "FitBH", "FitBV"
-  x: number | null;          // the point to bring to the top left, in the target page's viewer frame
-  y: number | null;
-  zoom: number | null;       // XYZ's, 1 for 100%
-  box: PdfBox | null;        // FitR's rectangle, in the target page's viewer frame
-};
 ```
 
 - **`annotation` and `box`** are the link's index in `annotations(i)` and the box it has there, in the
   viewer frame.
-- **A destination** is resolved as the outline's are: an explicit array, a name in the catalog's `/Dests`
-  or its `/Names` tree, a `/D` dictionary. Its coordinates are moved into the target page's viewer frame,
-  so they compare with that page's boxes and a region to render. A coordinate the destination leaves as
-  it was is `null`; on a page turned a quarter, a `FitH`'s top is a viewer `x`, so `y` is the null one.
-  `zoom` is `null` for none, 0 or less.
-- **An action wins over `/Dest`** when a link has both, as the spec says.
-- **Another file or a program** (`GoToR`, `Launch`) is reported, with the file's name from a string or a
+- **An action wins over `/Dest`** when a link has both, as the spec says. A bookmark's `/Dest` wins over
+  its action, as its `page` always has.
+- **Another file or a program** (`GoToR`, `GoToE`, `Launch`) is reported, with the file's name from a string or a
   file specification's `/UF`, `/F` or a platform's key, and never opened or followed. Neither is JavaScript, which is
-  `{ kind: "action", action: "JavaScript" }` without its script.
+  `{ kind: "action", action: "JavaScript" }` without its script. A `GoToE` path's steps are its `/T`
+  dictionaries: `/R /P` to the parent, `/R /C` to the child its `/N` names in the embedded files (`name`
+  null for one attached to an annotation, whose `/P` and `/A` aren't reported).
 - **The page** is found in the page tree's order, once a call however many links there are, as the
   outline's are: a page the tree lists twice is where it first appears. On a ranged read that reads the
   whole tree, as `outline()` does, so a link's page is the same whole or ranged.
 
 `links` loads `recto-render.wasm`, as `render` does: the code is in that part.
+
+## Destinations
+
+A link's, a bookmark's, the open action's, or one looked up by name:
+
+```ts
+type PdfDestination = {
+  page: number;              // the page's index; -1 if it goes nowhere in this file
+  view: string | null;       // "XYZ", "Fit", "FitH", "FitV", "FitR", "FitB", "FitBH", "FitBV"
+  // On the page as shown: the viewer frame, as boxes and a region to render are.
+  x: number | null;          // the point to bring to the top left
+  y: number | null;
+  zoom: number | null;       // XYZ's, 1 for 100%
+  box: PdfBox | null;        // FitR's rectangle
+  // As the file writes them, in the page's user space (y up, before /Rotate and the crop box).
+  left: number | null;       // XYZ, FitV, FitBV, FitR
+  bottom: number | null;     // FitR
+  right: number | null;      // FitR
+  top: number | null;        // XYZ, FitH, FitBH, FitR
+  name: string | null;       // the named destination it came by
+};
+```
+
+| View | Its numbers | `x`, `y` | What a viewer does |
+|---|---|---|---|
+| `XYZ left top zoom` | `left`, `top`, `zoom` | the point | That point at the top-left; `zoom` if it has one, else the zoom it had |
+| `Fit`, `FitB` | none | null | The whole page in the window (FitB: what's drawn on it) |
+| `FitH top`, `FitBH top` | `top` | `y` (`x` on a page turned a quarter) | The page's width in the window, `top` at the top |
+| `FitV left`, `FitBV left` | `left` | `x` (`y` turned a quarter) | The page's height in the window, `left` at the left |
+| `FitR l b r t` | all four | the rectangle's top-left | The rectangle in the window |
+
+- **Named destinations** are found in the catalog's `/Dests` dictionary and its `/Names` `/Dests` tree:
+  every node, down its `/Kids`, whatever its `/Limits` say, by string keys and keys written as names. A
+  value may be the array or a dictionary with `/D`. `name` says which name a destination came by; one the
+  file doesn't define is `{ page: -1, name }` with the rest null, not dropped.
+- **On the page as shown**: `x`, `y` and `box` are in the target page's viewer frame, its `/Rotate` and crop
+  box applied, so they compare with that page's boxes. A coordinate the destination leaves as it was is
+  `null`; on a page turned a quarter, a `FitH`'s top is a viewer `x`, so `y` is the null one. `/UserUnit`
+  scales neither this frame nor `pageInfo`'s sizes, so it doesn't move a destination on its page; multiply
+  by it for physical size. `zoom` is `null` for none, 0 or less.
+- **In another file**, `destination.page` is the page index that file has, or -1 for a destination by
+  name, and only the user space numbers are set: there's no page here to place them on. Open that file
+  and ask it: `other.destination(target.destination.name)` for a name, or
+  `other.destination(target.destination)` to place an explicit one on its page. Either gives `page` -1
+  if it has no such name or page.
+- **`openAction()`** is the catalog's `/OpenAction`: a destination array, or an action dictionary read as a
+  link's action is.
+
+`openAction` and `destination` load `recto-render.wasm` too, as `links` does.
 
 ## Errors
 

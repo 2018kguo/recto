@@ -153,6 +153,8 @@ test("the sidebar: hidden until asked for, thumbnails drawn only near view and a
     assert.equal(sampling.textContent, "Sampling");
     sampling.click();
     await layout.until(() => viewer.page === 12, "the bookmark's page");
+    // To the place on it the bookmark names, XYZ 0 692 on a 792-point page: 100 points down, at the top.
+    await layout.until(() => Math.abs(viewer.pageElement(12)!.getBoundingClientRect().top + 100 * viewer.scale) < 1, "the bookmark's place");
     sampling.dispatchEvent(new window.KeyboardEvent("keydown", { bubbles: true, key: "ArrowLeft" }));
     assert.equal(shadow.activeElement, methods, "Left goes up to the parent");
     // Escape closes it, back to the button that opened it.

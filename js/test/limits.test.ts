@@ -150,10 +150,14 @@ test("outline: nesting, GoTo, named destinations, links out", async () => {
     .decode(body)
     .replace("<</Type /Catalog /Pages 2 0 R>>", "<</Type /Catalog /Pages 2 0 R /Outlines 5 0 R /Names <</Dests <</Names [(named) [3 0 R /Fit]]>>>>>>");
   await using doc = await openPdf(Uint8Array.from(patched, (c) => c.charCodeAt(0)));
+  const fit = (name: string | null) => ({
+    kind: "page",
+    destination: { page: 0, view: "Fit", x: null, y: null, zoom: null, box: null, left: null, bottom: null, right: null, top: null, name },
+  });
   assert.deepEqual(doc.outline(), [
-    { title: "One", page: 0, url: null, children: [{ title: "É", page: 0, url: null, children: [] }] },
-    { title: "Three", page: -1, url: "https://example.com/", children: [] },
-    { title: "Four", page: -1, url: null, children: [] },
+    { title: "One", page: 0, url: null, target: fit(null), children: [{ title: "É", page: 0, url: null, target: fit("named"), children: [] }] },
+    { title: "Three", page: -1, url: "https://example.com/", target: { kind: "uri", uri: "https://example.com/" }, children: [] },
+    { title: "Four", page: -1, url: null, target: { kind: "none" }, children: [] },
   ]);
   await using none = await openPdf(syntheticPdf({ pages: 1 }));
   assert.deepEqual(none.outline(), []);

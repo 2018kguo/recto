@@ -22,7 +22,8 @@ export function safeLinkHref(uri: string): string | null {
 
 /**
  * An anchor over a link's box, in CSS pixels at `scale`. A URI opens in a new tab; a page link carries
- * its destination for the viewer to scroll to.
+ * its destination for the viewer to scroll to, and a link to another file its target for the viewer to
+ * hand to its host, each as `data-target`.
  */
 function linkAnchor(document: Document, { box, target }: ViewerLink, scale: number): HTMLAnchorElement | null {
   const anchor = document.createElement("a");
@@ -38,7 +39,7 @@ function linkAnchor(document: Document, { box, target }: ViewerLink, scale: numb
     if (!href.startsWith("mailto:")) {
       anchor.target = "_blank";
     }
-  } else {
+  } else if (target.kind === "page") {
     anchor.href = `#page=${target.page}`;
     anchor.dataset.destPage = String(target.page);
     if (target.x !== null) {
@@ -47,7 +48,13 @@ function linkAnchor(document: Document, { box, target }: ViewerLink, scale: numb
     if (target.y !== null) {
       anchor.dataset.destY = String(target.y);
     }
+    anchor.dataset.target = JSON.stringify(target);
     anchor.setAttribute("aria-label", `Go to page ${target.page}`);
+  } else {
+    const file = target.target.kind === "remote" ? target.target.file : (target.target.path.at(-1)?.name ?? target.target.file ?? "");
+    anchor.href = "#";
+    anchor.dataset.target = JSON.stringify(target);
+    anchor.setAttribute("aria-label", file ? `Go to ${file}` : "Go to another file");
   }
   anchor.className = LINK_CLASS;
   anchor.style.left = `${box.x * scale}px`;

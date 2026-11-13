@@ -10,10 +10,12 @@ import {
   NOT_TEXT,
   type PdfBitmap,
   type PdfBox,
+  type PdfDestination,
   type PdfDocument,
   type PdfEngine,
   PdfError,
   type PdfFont,
+  type PdfLinkTarget,
   type PdfOutlineItem,
   type PdfPageInfo,
   type PdfPageText,
@@ -24,6 +26,7 @@ import {
   visibleCodepoint,
 } from "../index.ts";
 import type {
+  ViewerDestination,
   ViewerFindHit,
   ViewerLink,
   ViewerOpenTiming,
@@ -32,6 +35,7 @@ import type {
   ViewerRequest,
   ViewerResponse,
   ViewerResult,
+  ViewerTarget,
   ViewerTextRun,
 } from "./protocol.ts";
 
@@ -94,10 +98,36 @@ export function textRuns(text: PdfPageText, info: PdfPageInfo): ViewerTextRun[] 
   }));
 }
 
+/** A destination of this file as a viewer goes to it, its page from 1; null if it goes nowhere here. */
+export function viewerDestination({ page, view, x, y, zoom, box }: PdfDestination, pageCount: number): ViewerDestination | null {
+  if (page < 0 || page >= pageCount) {
+    return null;
+  }
+  return { page: page + 1, view, x: x ?? box?.x ?? null, y: y ?? box?.y ?? null, zoom, box };
+}
+
+/** Where a link or bookmark goes, as a viewer can follow it; null for nowhere it can (a launch, a script). */
+export function viewerTarget(target: PdfLinkTarget, pageCount: number): ViewerTarget | null {
+  switch (target.kind) {
+    case "uri":
+      return { kind: "uri", uri: target.uri };
+    case "page": {
+      const destination = viewerDestination(target.destination, pageCount);
+      return destination && { kind: "page", ...destination };
+    }
+    case "remote":
+    case "embedded":
+      return { kind: "external", target };
+    default:
+      return null;
+  }
+}
+
 /**
- * The page's links a viewer can follow: URIs, and destinations on a page of this file. Other files,
- * launches and scripts are left out. Only this page is read: a target page is sized when the link is
- * followed, not here, where a ranged file would block on reading every target first.
+ * The page's links a viewer can follow: URIs, destinations on a page of this file, and destinations in
+ * other files, for the host to follow. Launches and scripts are left out. Only this page is read: a
+ * target page is sized when the link is followed, not here, where a ranged file would block on reading
+ * every target first.
  */
 export function followableLinks(doc: Pick<PdfDocument, "links" | "pageCount">, index: number): ViewerLink[] {
   const links: ViewerLink[] = [];
@@ -105,15 +135,10 @@ export function followableLinks(doc: Pick<PdfDocument, "links" | "pageCount">, i
     if (links.length >= MAX_LINKS_PER_PAGE) {
       break;
     }
-    if (target.kind === "uri") {
-      links.push({ box, target: { kind: "uri", uri: target.uri } });
-      continue;
+    const followed = viewerTarget(target, doc.pageCount);
+    if (followed) {
+      links.push({ box, target: followed });
     }
-    if (target.kind !== "page" || target.destination.page < 0 || target.destination.page >= doc.pageCount) {
-      continue;
-    }
-    const { box: fit, page, x, y } = target.destination;
-    links.push({ box, target: { kind: "page", page: page + 1, x: x ?? fit?.x ?? null, y: y ?? fit?.y ?? null } });
   }
   return links;
 }
@@ -208,7 +233,8 @@ export function viewerOutline(doc: Pick<PdfDocument, "outline" | "pageCount">): 
         break;
       }
       const page = item.page >= 0 && item.page < doc.pageCount ? item.page + 1 : null;
-      out.push({ children: convert(item.children), page, title: item.title.trim() || "Untitled", url: item.url });
+      const target = viewerTarget(item.target, doc.pageCount);
+      out.push({ children: convert(item.children), page, target, title: item.title.trim() || "Untitled", url: item.url });
     }
     return out;
   };
@@ -714,7 +740,7 @@ export function createWorkerHandler(options: {
     return findInText(text, page.boxes, request.query, request.caseSensitive, normalized);
   };
 
-  const onDocument = async (request: Extract<ViewerRequest, { op: "pageInfo" | "render" | "text" | "find" | "outline" }>) => {
+  const onDocument = async (request: Extract<ViewerRequest, { op: "pageInfo" | "render" | "text" | "find" | "outline" | "destination" }>) => {
     const opening = documents.get(request.docId);
     if (!opening) {
       fail(request.id, new PdfError("closed", "the document was closed"));
@@ -742,6 +768,9 @@ export function createWorkerHandler(options: {
         case "outline":
           reply({ id: request.id, ok: true, value: viewerOutline(doc) }, []);
           return;
+        case "destination":
+          reply({ id: request.id, ok: true, value: viewerDestination(doc.destination(request.target), doc.pageCount) }, []);
+          return;
         case "render":
           await render(opened, request);
           return;
@@ -760,6 +789,7 @@ export function createWorkerHandler(options: {
       case "text":
       case "find":
       case "outline":
+      case "destination":
         return onDocument(request);
       case "cancel": {
         const running = renders.get(request.id);

@@ -22,12 +22,15 @@ export { installViewerCss, VIEWER_CSS } from "./css.ts";
 export { defineViewerElement, type ViewerElement } from "./element.ts";
 export { ZOOM_LEVELS } from "./layout.ts";
 export type {
+  ViewerDestination,
+  ViewerExternalTarget,
   ViewerFindHit,
   ViewerLink,
   ViewerOpenTiming,
   ViewerOutlineItem,
   ViewerPageInfo,
   ViewerSource,
+  ViewerTarget,
   ViewerTextRun,
 } from "./protocol.ts";
 export { buildTextLayer, safeLinkHref } from "./text-layer.ts";
