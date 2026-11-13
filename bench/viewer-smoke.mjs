@@ -18,6 +18,35 @@ const server = await serve({ extraRoots: { demo: path.join(here, "viewer-demo") 
 server.docs.set("sample.pdf", reportPdf({ pages: 60, imageEvery: 4, imageSize: 320, outline: true }));
 let failed = false;
 
+/**
+ * What the first page waited on, by the order of the requests (no clock): the viewer's code in two
+ * files, not a module at a time; the PDF asked for while the engine's wasm is still on its way, and
+ * only ever by range; the fonts its page names fetched together, not one after another. A browser
+ * that doesn't show a worker's requests is skipped.
+ */
+function checkNetwork(network, label) {
+  const at = (event, test) => network.findIndex((entry) => entry.event === event && test(entry.path));
+  const wasmDone = at("end", (path) => path.endsWith("/wasm/recto.wasm"));
+  if (wasmDone < 0) {
+    console.log(`${label}: the worker's requests aren't visible; network order not checked`);
+    return;
+  }
+  const scripts = network.filter((entry) => entry.event === "start" && entry.path.startsWith("/recto/") && /\.m?js$/u.test(entry.path));
+  assert.deepEqual(
+    scripts.map((entry) => entry.path),
+    ["/recto/dist/viewer/index.js", "/recto/dist/viewer/worker.js"],
+    `${label}: the viewer's code is two files`
+  );
+  const docs = network.filter((entry) => entry.event === "start" && entry.path === "/doc/sample.pdf");
+  assert.ok(docs.length > 0, `${label}: the PDF was asked for`);
+  assert.ok(at("start", (path) => path === "/doc/sample.pdf") < wasmDone, `${label}: the PDF is asked for before the engine has downloaded`);
+  assert.deepEqual(docs.filter((entry) => !entry.range), [], `${label}: every request for the PDF is by range`);
+  const fonts = network.filter((entry) => entry.event === "start" && entry.path.endsWith(".pfb"));
+  const firstFontDone = at("end", (path) => path.endsWith(".pfb"));
+  assert.ok(fonts.length >= 2, `${label}: the page's two standard fonts (${fonts.length})`);
+  assert.ok(network.findLastIndex((entry) => entry.event === "start" && entry.path.endsWith(".pfb")) < firstFontDone, `${label}: the fonts are fetched together`);
+}
+
 async function check(browserType, viewport, deviceScaleFactor = 1) {
   let browser;
   try {
@@ -32,6 +61,10 @@ async function check(browserType, viewport, deviceScaleFactor = 1) {
     if (message.type() === "error" || message.type() === "warning") problems.push(message.text());
   });
   page.on("pageerror", (error) => problems.push(String(error)));
+  // The network, in order: what a slow link turns into waiting.
+  const network = [];
+  page.on("request", (request) => network.push({ event: "start", path: new URL(request.url()).pathname, range: request.headers().range ?? null }));
+  page.on("requestfinished", (request) => network.push({ event: "end", path: new URL(request.url()).pathname }));
   const label = `${browserType.name()} ${viewport.width}x${viewport.height}${deviceScaleFactor > 1 ? ` @${deviceScaleFactor}x` : ""}`;
   try {
     const started = Date.now();
@@ -43,6 +76,7 @@ async function check(browserType, viewport, deviceScaleFactor = 1) {
       { timeout: 60_000 }
     );
     const firstPageMs = Date.now() - started;
+    checkNetwork(network, label);
     const state = await page.evaluate((selector) => {
       const element = document.querySelector(selector);
       const root = element.shadowRoot;

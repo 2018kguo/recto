@@ -38,7 +38,7 @@ export type ViewerInput = string | URL | ArrayBuffer | Uint8Array | Blob;
 
 export type ViewerOpenInfo = {
   pageCount: number;
-  /** Read by range rather than whole. */
+  /** Only ever read by range, rather than downloaded whole. */
   ranged: boolean;
   /** Where the worker's time went: waiting for the engine, the fetch and the parse. */
   timing: ViewerOpenTiming;
@@ -282,6 +282,8 @@ class PdfViewer extends EventTarget implements Viewer {
   #contentWidth: number | null = null;
   #refreshTimer: ReturnType<typeof setTimeout> | undefined;
   #tileTimer: ReturnType<typeof setTimeout> | undefined;
+  #tileSoon = false;
+  #refreshAfterTile = false;
   #pinching = false;
   #scrollFrame = 0;
   #resizeFrame = 0;
@@ -620,6 +622,7 @@ class PdfViewer extends EventTarget implements Viewer {
       this.element.style.setProperty("--recto-scale", String(this.scale));
       this.#cancelStaleTiles();
       this.#scheduleRefresh();
+      this.#scheduleTiles(true);
     }
   }
 
@@ -723,9 +726,25 @@ class PdfViewer extends EventTarget implements Viewer {
     return outputScale({ devicePixelRatio: this.#devicePixelRatio(), displayScale: this.scale, pageArea: 0 });
   }
 
-  #scheduleTiles() {
+  /**
+   * Asks for tiles once scrolling has been still a moment, or with `now`, at the next task: a zoom is
+   * one step, and its tiles, just the part on screen at the new density, are what make it sharp. A
+   * scroll that follows (the zoom's own anchoring) doesn't put them off. They have none of the margin
+   * a tile is drawn with otherwise, so the first scroll after draws them again with it.
+   */
+  #scheduleTiles(now = false) {
+    if (this.#tileSoon && !now) {
+      return;
+    }
+    this.#tileSoon = now;
     clearTimeout(this.#tileTimer);
-    this.#tileTimer = setTimeout(() => this.#refreshTiles(), TILE_QUIET_MS);
+    this.#tileTimer = setTimeout(
+      () => {
+        this.#tileSoon = false;
+        this.#refreshTiles(now);
+      },
+      now ? 0 : TILE_QUIET_MS
+    );
   }
 
   /**
@@ -770,9 +789,10 @@ class PdfViewer extends EventTarget implements Viewer {
 
   /**
    * Past the most pixels one bitmap of a whole page is given, a page zoomed far in is that bitmap
-   * stretched. The part of it on screen is drawn again at the screen's density, over it.
+   * stretched. The part of it on screen is drawn again at the screen's density, over it, with a
+   * margin unless `bare`.
    */
-  #refreshTiles() {
+  #refreshTiles(bare = false) {
     if (this.#destroyed || this.#pinching || !this.#doc) {
       return;
     }
@@ -782,16 +802,18 @@ class PdfViewer extends EventTarget implements Viewer {
       if (!record.onScreen) {
         continue;
       }
-      // The whole page first: it's what shows while a tile is drawn, and around it.
-      if (!record.canvasRendered || record.outputScale <= 0 || record.pendingOutputScale > 0) {
-        continue;
-      }
-      // A whole page about to be drawn sharper may need no tile at all.
-      if (record.outputScale * RASTER_REFRESH_THRESHOLD < this.#outputScaleFor(record)) {
+      // Some bitmap of the whole page first: it's what shows around a tile.
+      if (!record.canvasRendered || record.outputScale <= 0) {
         continue;
       }
       if (record.outputScale * RASTER_REFRESH_THRESHOLD >= sharp) {
         this.#dropTile(record);
+        continue;
+      }
+      // A whole page its next drawing makes sharp needs no tile. One that can't be (zoomed in past
+      // the cap on a whole page's pixels) gets its tile now, not after that drawing: the tile is the
+      // part on screen, a fraction of the pixels, and it's what the reader is looking at.
+      if (this.#outputScaleFor(record) * RASTER_REFRESH_THRESHOLD >= sharp) {
         continue;
       }
       const visible = this.#visiblePart(record);
@@ -803,7 +825,7 @@ class PdfViewer extends EventTarget implements Viewer {
       if (want && Math.abs(want.scale / sharp - 1) <= 0.01 && covers(want, visible.seen)) {
         continue;
       }
-      void this.#renderTile(record, { ...visible.drawn, scale: sharp });
+      void this.#renderTile(record, { ...(bare ? visible.seen : visible.drawn), scale: sharp });
     }
   }
 
@@ -828,11 +850,13 @@ class PdfViewer extends EventTarget implements Viewer {
         record.tileTask = null;
         record.tileWant = null;
       }
+      this.#refreshDeferred();
       if (!isAbort(cause)) {
         this.#report(cause, { page: record.pageNumber, stage: "render" });
       }
       return;
     }
+    this.#refreshDeferred();
     if (record.tileToken !== token || this.#destroyed || !record.onScreen || !bitmap.region) {
       return;
     }
@@ -857,6 +881,14 @@ class PdfViewer extends EventTarget implements Viewer {
     }
     record.tile = canvas;
     this.#options.onRender?.({ height: bitmap.height, ms: Math.round(performance.now() - started), page: record.pageNumber, width: bitmap.width });
+  }
+
+  /** The whole-page drawing a tile in flight put off, once it's done. */
+  #refreshDeferred() {
+    if (this.#refreshAfterTile) {
+      this.#refreshAfterTile = false;
+      this.#scheduleRefresh();
+    }
   }
 
   #dropTile(record: PageRecord) {
@@ -1049,6 +1081,7 @@ class PdfViewer extends EventTarget implements Viewer {
     if (this.#destroyed) {
       return;
     }
+    const tileBusy = this.#records.some((record) => record.tileTask !== null);
     for (const record of [...this.#live]) {
       if (!record.canvasRendered) {
         continue;
@@ -1064,7 +1097,10 @@ class PdfViewer extends EventTarget implements Viewer {
       if (ratio <= RASTER_REFRESH_THRESHOLD && ratio >= 1 / RASTER_REFRESH_THRESHOLD) {
         continue;
       }
-      if (record.near) {
+      if (record.near && tileBusy) {
+        // The tile on screen first: on one worker, drawing whole pages beside it would slow it down.
+        this.#refreshAfterTile = true;
+      } else if (record.near) {
         void this.#render(record, wanted).then((ok) => {
           if (!ok) {
             this.#queue?.pump();

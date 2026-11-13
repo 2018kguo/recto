@@ -52,11 +52,13 @@ export {
   showsGlyphs,
   vectorMeasures,
 } from "./page-measures.ts";
-export type {
-  PdfRangedDocument,
-  PdfRangedOpenOptions,
-  PdfRangedStats,
-  PdfRangeSource,
+export {
+  type PdfRangedDocument,
+  type PdfRangedOpenOptions,
+  type PdfRangedRead,
+  type PdfRangedStats,
+  type PdfRangeSource,
+  startRangedRead,
 } from "./ranged.ts";
 export {
   BREAK_LINE,

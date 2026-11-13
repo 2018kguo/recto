@@ -29,6 +29,8 @@ import {
   type PdfRangedOpenOptions,
   ownedSource,
   type PdfRangeSource,
+  type PdfRangedRead,
+  startedRead,
   startRangeLoader,
 } from "./ranged.ts";
 
@@ -88,7 +90,12 @@ export interface PdfEngine {
    * Opens a PDF read by byte range, fetching only what the engine parses. Every read of it
    * can block this thread for a network round trip; see `timeoutMs`.
    */
-  openRanged(source: PdfRangeSource, options?: PdfRangedOpenOptions): Promise<PdfRangedDocument>;
+  openRanged(source: PdfRangeSource | PdfRangedRead, options?: PdfRangedOpenOptions): Promise<PdfRangedDocument>;
+  /**
+   * Fetches and verifies assets (fonts, CMaps, wasm parts) ahead of the call that needs them, all at
+   * once: a thread that reads each when it's needed waits a round trip for each, one after another.
+   */
+  preload(names: AssetName[]): Promise<void>;
   stats(): PdfEngineStats;
 }
 
@@ -460,7 +467,7 @@ class RectoEngine implements PdfEngine {
   }
 
   async openRanged(
-    source: PdfRangeSource,
+    source: PdfRangeSource | PdfRangedRead,
     options: PdfRangedOpenOptions = {}
   ): Promise<PdfRangedDocument> {
     if (!canReadSync()) {
@@ -470,9 +477,10 @@ class RectoEngine implements PdfEngine {
           'dedicated Web Worker: new Worker(new URL("./pdf-worker.js", import.meta.url), { type: "module" }).'
       );
     }
-    const owned = ownedSource(source);
+    const started = startedRead(source);
+    const owned = started ? started.source : ownedSource(source as PdfRangeSource);
     const instance = await this.#live();
-    const loader = await startRangeLoader(owned, options);
+    const loader = await (started ? started.loader : startRangeLoader(owned, options));
     const read = (offset: number, length: number, ahead: number) => {
       const out = new Uint8Array(length);
       return loader.read(offset, out, ahead) ? out : undefined;
@@ -484,7 +492,8 @@ class RectoEngine implements PdfEngine {
         instance,
         instance.glue.Document.openRanged(loader.length, loader.chunkBytes, read, password),
         () => {
-          // Nothing is fetched twice: the loader keeps what it read.
+          // The new instance reads the file again: what the loader still holds costs nothing, and what
+          // it handed the old instance (and dropped) is fetched again.
           const next = this.#another();
           return {
             instance: next,
@@ -500,7 +509,14 @@ class RectoEngine implements PdfEngine {
       doc.close();
       throw loader.explain(loader.failure);
     }
-    return Object.assign(doc, { stats: () => loader.stats() });
+    return Object.assign(doc, {
+      stats: () => loader.stats(),
+      fetchRest: (rest: { signal?: AbortSignal; stallMs?: number } = {}) => loader.fetchRest(owned, rest),
+    });
+  }
+
+  async preload(names: AssetName[]): Promise<void> {
+    await preloadAssets(this.#base, names);
   }
 
   stats(): PdfEngineStats {

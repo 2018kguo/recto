@@ -81,7 +81,10 @@ export type RenderTask = { promise: Promise<ViewerBitmap>; cancel(): void };
 /** An open document. Pages are numbered from 1. */
 export interface ViewerDocument {
   readonly pageCount: number;
-  /** Whether it is read by range rather than whole. */
+  /**
+   * Whether it is only ever read by range: false for a file downloaded whole, even one whose first page
+   * was read by range ahead of the rest.
+   */
   readonly ranged: boolean;
   /** Where the open's time went. */
   readonly timing: ViewerOpenTiming;
@@ -107,7 +110,10 @@ export type ViewerEngineOptions = {
   assetBase?: string;
   /** At most this many workers, except for a file read by range past it. Default 4. */
   maxWorkers?: number;
-  /** Files up to this size are read in one request, larger ones by range. Default 8 MiB. */
+  /**
+   * Files up to this size are downloaded whole, the rest of the file in the background after the first page
+   * is drawn; larger ones only by range. Default 8 MiB.
+   */
   wholeFileMaxBytes?: number;
   now?: () => number;
   reopenBackoffMs?: number;
@@ -165,7 +171,8 @@ function defaultWorker(): WorkerPort {
   }
   const here = import.meta.url;
   return new URL(here).origin === location.origin
-    ? // Written out in full: the form bundlers recognise, and emit the worker for.
+    ? // Written out in full: the form bundlers recognise, and emit the worker for. The worker and the
+      // engine it runs are one file (scripts/bundle-viewer.mjs), fetched in one round trip.
       new Worker(new URL("./worker.js", import.meta.url), { name: "recto-viewer", type: "module" })
     : // A worker's script has to be of the page's origin, so from a CDN it's one line that imports the
       // real one, which the CDN has to allow with CORS, as it does the wasm.

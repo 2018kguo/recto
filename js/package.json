@@ -39,7 +39,7 @@
   ],
   "scripts": {
     "build": "sh ../scripts/build-wasm.sh && npm run build:ts",
-    "build:ts": "tsc -p . --removeComments --declaration false && tsc -p . --emitDeclarationOnly",
+    "build:ts": "tsc -p . --removeComments --declaration false && tsc -p . --emitDeclarationOnly && node ../scripts/bundle-viewer.mjs",
     "prepack": "npm run build",
     "test": "node --test --test-concurrency=2 test/*.test.ts test/viewer/*.test.ts",
     "typecheck": "tsc -p . --noEmit"
@@ -47,6 +47,7 @@
   "devDependencies": {
     "@types/jsdom": "21.1.7",
     "@types/node": "24.10.1",
+    "esbuild": "0.28.2",
     "jsdom": "26.1.0",
     "pdf-lib": "1.17.1",
     "pdfjs-dist": "4.10.38",

@@ -560,25 +560,31 @@ test("past a whole page's pixel cap, the part on screen is drawn sharp over it, 
     await viewer.ready;
     await layout.until(() => renders.length > 0, "the first paint");
     settleAll();
+    const zoomed = renders.length;
     viewer.setZoom(4);
-    // The whole pages again, at the cap; then a tile for the page on screen.
-    await layout.until(() => renders.some((render) => !render.region && render.width > 2000), "the repaint at 400%");
-    settleAll();
+    // The part on screen first, at once, and nothing else: the whole pages wait until it has landed.
     await layout.until(() => renders.some((render) => render.region), "a tile");
+    assert.deepEqual(
+      renders.slice(zoomed).map((render) => Boolean(render.region)),
+      [true],
+      "the tile is asked for before the whole page is drawn again"
+    );
     const sharp = 2 * viewer.scale;
     const capped = outputScale({ devicePixelRatio: 2, displayScale: viewer.scale, pageArea: 612 * 792 });
     assert.ok(capped * 1.5 < sharp, "fixture check: the whole page is soft at this zoom");
     const tile = renders.find((render) => render.region)!;
     assert.equal(tile.page, 1);
     assert.equal(tile.width, Math.round(612 * sharp), "the page's width at the screen's density");
-    // The part on screen, in points, and a margin around it.
+    // Just the part on screen, in points: no margin, which would only make it later.
     const region = tile.region!;
     const box = viewer.pageElement(1)!.getBoundingClientRect();
     const seen = { x: -box.left / viewer.scale, y: -box.top / viewer.scale, width: 800 / viewer.scale, height: 600 / viewer.scale };
     assert.ok(seen.x > 0 && seen.y > 0, "fixture check: the zoom kept the middle of the page in view");
-    assert.ok(region.x <= seen.x && region.y <= seen.y, JSON.stringify({ region, seen }));
-    assert.ok(region.x + region.width >= seen.x + seen.width && region.y + region.height >= seen.y + seen.height, JSON.stringify({ region, seen }));
-    assert.ok(region.width * viewer.scale <= 800 + 2 * 128 + 1 && region.height * viewer.scale <= 600 + 2 * 128 + 1, JSON.stringify(region));
+    for (const key of ["x", "y", "width", "height"] as const) {
+      assert.ok(Math.abs(region[key] - seen[key]) < 0.5, JSON.stringify({ region, seen }));
+    }
+    await layout.idle(400);
+    assert.ok(!renders.some((render) => !render.region && render.width > 2000), "no whole page while the tile is out");
     settleAll();
     const page = viewer.pageElement(1)!;
     await layout.until(() => page.querySelector(".recto-tile") !== null, "the tile on screen");
@@ -587,10 +593,15 @@ test("past a whole page's pixel cap, the part on screen is drawn sharp over it, 
     assert.equal(shown.previousElementSibling, page.querySelector("canvas:not(.recto-tile)"));
     const cssWidth = (Number.parseFloat(shown.style.width) / 100) * page.getBoundingClientRect().width;
     assert.ok(Math.abs(shown.width / cssWidth - 2) < 0.02, `${shown.width} px over ${cssWidth} CSS px`);
-    // Scroll down the page: a new tile is asked for; scroll on before it lands and it's stopped.
+    // Then the whole pages again, at the cap.
+    await layout.until(() => renders.some((render) => !render.region && render.width > 2000), "the repaint at 400%");
+    settleAll();
+    // Scroll down the page: a new tile is asked for, with a margin now; scroll on before it lands and it's stopped.
     const asked = () => renders.filter((render) => render.region);
     viewer.element.scrollTop += 900;
     await layout.until(() => asked().length === 2, "a tile for the new part");
+    const margined = asked()[1]!.region!;
+    assert.ok(margined.width * viewer.scale > 800 + 128 && margined.width * viewer.scale <= 800 + 2 * 128 + 1, JSON.stringify(margined));
     viewer.element.scrollTop += 900;
     await layout.idle(20);
     assert.ok(asked()[1]!.cancelled, "the tile for a part scrolled past is stopped");

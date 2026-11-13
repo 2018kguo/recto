@@ -8,7 +8,8 @@
 // The thread that reads a ranged document blocks while a fetch is in flight (bounded by
 // `timeoutMs`), so run it on a worker thread of its own, never on a server's main loop.
 //
-// Fetched bytes are kept as fixed-size chunks indexed by chunk number, so a read costs
+// Fetched bytes are kept as fixed-size chunks indexed by chunk number, until the engine has read
+// them into its own memory (then they're dropped here, so the file is held once), so a read costs
 // O(chunks it spans), whatever the number of fetches so far. The first round asks for the head
 // and the tail at once (the tail as a suffix range, `bytes=-n`, since the size isn't known
 // yet): an ordinary file's cross-reference table is at its end, and a small file's head is
@@ -63,17 +64,34 @@ export type PdfRangedStats = {
   readBytes: number;
   /** The file's full size, from the first response. */
   fileBytes: number;
+  /**
+   * Bytes held here and not yet read by the engine. What it has read is in its own memory, and dropped
+   * here, so a file is held once however it was fetched.
+   */
+  heldBytes: number;
 };
 
 /** A document opened over byte ranges. Use and close it like any other. */
 export type PdfRangedDocument = PdfDocument & {
   stats(): PdfRangedStats;
+  /**
+   * Downloads the rest of the file in the background, in pieces from where reads last missed, nothing
+   * held asked for again, so that reads after it never block on the network. Counts toward `maxBytes` (fails `too-large`
+   * up front past it). A failure fails no read: they fetch by range as before.
+   */
+  fetchRest(options?: { signal?: AbortSignal; stallMs?: number }): Promise<void>;
 };
 
 const DEFAULT_CHUNK_BYTES = 64 * 1024;
 const DEFAULT_MAX_BYTES = 64 * 1024 * 1024;
 const DEFAULT_TIMEOUT_MS = 30_000;
 const MAX_READ_AHEAD_BYTES = 8 * 1024 * 1024;
+/**
+ * A background piece (`fetchRest`): the most a read that misses shares the link with. 256 KiB is
+ * 1.4 s at Slow 4G, 0.25 s at Fast 4G; the next is asked for a round trip before its end, so the size
+ * costs no idle link.
+ */
+const REST_PIECE_BYTES = 256 * 1024;
 /**
  * The first read. It covers a small file whole in one request, and a linearized file's
  * first-page cross-reference section.
@@ -119,6 +137,10 @@ class RangeLoader {
   readonly chunkBytes: number;
   /** Fetched chunks by chunk number (a flat array, sized once the length is known). */
   #chunks: (Uint8Array | undefined)[] = [];
+  /** Chunks the reader (the engine) has copied in and dropped here. */
+  #delivered = new Set<number>();
+  /** Where the reader last missed: `fetchRest` goes on from there. */
+  #cursor = 0;
   /** A chunk's start or end, by chunk number, until the rest of it arrives. */
   #pieces = new Map<number, Piece[]>();
   /** Set once a fetch failed; every later read fails and every call throws it. */
@@ -166,13 +188,216 @@ class RangeLoader {
       reads: this.#reads,
       readBytes: this.#readBytes,
       fileBytes: this.length,
+      heldBytes:
+        this.#chunks.reduce((sum, chunk) => sum + (chunk?.byteLength ?? 0), 0) +
+        [...this.#pieces.values()].flat().reduce((sum, piece) => sum + piece.bytes.byteLength, 0),
     };
+  }
+
+  /**
+   * Downloads every chunk not held yet, keeping each as it completes: reads after it need no round
+   * trip. In pieces of consecutive missing chunks, from where the reader last missed, the next asked
+   * for as the last one nears its end so the link never idles: a read that misses shares the link with
+   * one piece at most (an abort can't reach the network while the thread is blocked on that read's
+   * request, so a single request for everything couldn't give way), and the piece after it goes on
+   * from what the reader is reading. Nothing held is asked for again. A failure fails no read.
+   */
+  async fetchRest(source: string | Uint8Array, options: { signal?: AbortSignal; stallMs?: number } = {}): Promise<void> {
+    if (this.failure || this.length <= 0) {
+      return;
+    }
+    const missing = (chunk: number) => !this.#has(chunk);
+    const first = this.#chunks.findIndex((_, chunk) => missing(chunk));
+    if (first < 0) {
+      return;
+    }
+    if (this.#bytesFetched + (this.length - first * this.chunkBytes) > this.#maxBytes) {
+      throw tooLarge(this.#maxBytes);
+    }
+    if (typeof source !== "string") {
+      this.#absorb(
+        this.#missing(first, this.#chunks.length).map(({ start, end }) => ({
+          start,
+          bytes: source.subarray(start, end),
+          length: source.byteLength,
+          etag: null,
+          status: 206,
+          received: end - start,
+        }))
+      );
+      return;
+    }
+    // A response that stops sending is given up after `stallMs` without a byte, as a blocking read would be.
+    const stalled = new AbortController();
+    const stallMs = options.stallMs ?? this.#timeoutMs;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const alive = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => stalled.abort(new PdfError("timeout", `the rest of the file sent nothing for ${stallMs} ms`)), stallMs);
+    };
+    const failed = new AbortController();
+    const signal = AbortSignal.any([stalled.signal, failed.signal, ...(options.signal ? [options.signal] : [])]);
+    // Chunks a piece in flight will bring.
+    const coming = new Set<number>();
+    const pieceChunks = Math.max(1, Math.round(REST_PIECE_BYTES / this.chunkBytes));
+    const nextPiece = (): [number, number] | null => {
+      const wanted = (chunk: number) => missing(chunk) && !coming.has(chunk);
+      let from = this.#chunks.findIndex((_, chunk) => chunk >= this.#cursor && wanted(chunk));
+      if (from < 0) {
+        from = this.#chunks.findIndex((_, chunk) => wanted(chunk));
+      }
+      if (from < 0) {
+        return null;
+      }
+      let to = from;
+      while (to + 1 < this.#chunks.length && to + 1 - from < pieceChunks && wanted(to + 1)) {
+        to += 1;
+      }
+      return [from, to];
+    };
+    type Flight = { done: Promise<void>; nearEnd: Promise<void>; near: boolean };
+    const flights = new Set<Flight>();
+    alive();
+    try {
+      for (;;) {
+        // At most two out, the second only once the first is a round trip from its end.
+        if (flights.size >= 2 || [...flights].some((flight) => !flight.near)) {
+          await Promise.race([...flights].flatMap((flight) => (flight.near ? [flight.done] : [flight.done, flight.nearEnd])));
+          continue;
+        }
+        const piece = nextPiece();
+        if (!piece) {
+          if (flights.size === 0) {
+            return;
+          }
+          await Promise.race([...flights].map((flight) => flight.done));
+          continue;
+        }
+        const [from, to] = piece;
+        for (let chunk = from; chunk <= to; chunk++) {
+          coming.add(chunk);
+        }
+        let resolveNear!: () => void;
+        const nearEnd = new Promise<void>((resolve) => (resolveNear = resolve));
+        const markNear = () => {
+          flight.near = true;
+          resolveNear();
+        };
+        const flight: Flight = {
+          near: false,
+          nearEnd,
+          done: this.#streamRest(source, from, to, signal, alive, () => markNear())
+            .catch((error: unknown) => {
+              failed.abort();
+              throw error;
+            })
+            .finally(() => {
+              for (let chunk = from; chunk <= to; chunk++) {
+                coming.delete(chunk);
+              }
+              flights.delete(flight);
+              markNear();
+            }),
+        };
+        flight.done.catch(() => {});
+        flights.add(flight);
+      }
+    } finally {
+      // Whatever happened, nothing is left downloading.
+      failed.abort();
+      await Promise.allSettled([...flights].map((flight) => flight.done));
+      clearTimeout(timer);
+    }
+  }
+
+  /**
+   * The missing bytes of chunks `first..last` in one request (less any part of the first or last
+   * already held). `nearEnd` is called once what's left of it would take about as long as the round
+   * trip it waited for its first byte: the time to ask for the next.
+   */
+  async #streamRest(source: string, first: number, last: number, signal: AbortSignal, alive: () => void, nearEnd: () => void): Promise<void> {
+    const run = this.#missing(first, last + 1)[0];
+    if (!run) {
+      return;
+    }
+    const { start, end } = run;
+    const asked = performance.now();
+    // Below whatever a page is waiting for, in a browser that orders requests by it.
+    const response = await fetch(source, { headers: { Range: `bytes=${start}-${end - 1}` }, signal, priority: "low" } as RequestInit);
+    const answered = performance.now();
+    const roundTrip = answered - asked;
+    alive();
+    const contentRange = response.headers.get("Content-Range");
+    const etag = response.headers.get("ETag");
+    const match = /^bytes (\d+)-(\d+)\/(\d+)$/u.exec(contentRange?.trim() ?? "");
+    if (
+      response.status !== 206 ||
+      !match ||
+      Number(match[1]) !== start ||
+      Number(match[2]) !== end - 1 ||
+      Number(match[3]) !== this.length ||
+      (this.#etag && etag && etag !== this.#etag)
+    ) {
+      await response.body?.cancel().catch(() => {});
+      throw response.ok ? new PdfError("fetch-failed", "the server answered a different range than asked", undefined, response.status) : httpFailure(response.status);
+    }
+    this.#requests += 1;
+    this.#rounds += 1;
+    const reader = response.body!.getReader();
+    // What's left of the chunk being filled, and how much of it has arrived; kept as `#store` keeps
+    // any answer, so a chunk the range starts or ends inside of joins the part already held.
+    const toChunkEnd = (offset: number) => Math.min(end, (Math.floor(offset / this.chunkBytes) + 1) * this.chunkBytes) - offset;
+    let at = start;
+    let chunk = new Uint8Array(toChunkEnd(at));
+    let filled = 0;
+    let received = 0;
+    let near = false;
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) {
+          break;
+        }
+        alive();
+        this.#bytesFetched += value.byteLength;
+        received += value.byteLength;
+        if (!near) {
+          const rate = received / Math.max(1, performance.now() - answered);
+          if ((end - start - received) / rate <= roundTrip) {
+            near = true;
+            nearEnd();
+          }
+        }
+        for (let from = 0; from < value.byteLength; ) {
+          const take = Math.min(chunk.byteLength - filled, value.byteLength - from);
+          chunk.set(value.subarray(from, from + take), filled);
+          filled += take;
+          from += take;
+          if (filled === chunk.byteLength) {
+            this.#store({ start: at, bytes: chunk, length: this.length, etag, status: 206, received: 0 });
+            at += chunk.byteLength;
+            if (at >= end) {
+              return;
+            }
+            chunk = new Uint8Array(toChunkEnd(at));
+            filled = 0;
+          }
+        }
+      }
+    } finally {
+      await reader.cancel().catch(() => {});
+    }
+    if (at < end) {
+      throw new PdfError("fetch-failed", `the answer ended early, at ${at + filled} of ${end} bytes`, undefined, response.status);
+    }
   }
 
   /** Fetches chunks `firstChunk..endChunk`, keeping only those not held yet: a read's miss, so it blocks. */
   #fetchChunks(firstChunk: number, endChunk: number): void {
     const runs = this.#missing(firstChunk, endChunk);
     if (runs.length > 0) {
+      // The reader is here: the background download's next piece goes on from here.
+      this.#cursor = endChunk;
       this.#absorb(this.#round(runs, (limit, timeoutMs) => this.#fetch(runs, timeoutMs, limit)));
     }
   }
@@ -227,7 +452,7 @@ class RangeLoader {
   #missing(firstChunk: number, endChunk: number): Range[] {
     const runs: Range[] = [];
     for (let chunk = firstChunk; chunk < endChunk; chunk++) {
-      if (this.#chunks[chunk]) {
+      if (this.#has(chunk)) {
         continue;
       }
       let start = chunk * this.chunkBytes;
@@ -330,7 +555,7 @@ class RangeLoader {
     }
     const end = start + bytes.byteLength;
     for (let chunk = Math.floor(start / this.chunkBytes); chunk * this.chunkBytes < end; chunk++) {
-      if (this.#chunks[chunk]) {
+      if (this.#has(chunk)) {
         continue;
       }
       const from = chunk * this.chunkBytes;
@@ -445,6 +670,10 @@ class RangeLoader {
     const spare = Math.max(0, this.#maxBytes - this.#bytesFetched - out.byteLength);
     const lastAhead = Math.floor((Math.min(this.length, end + Math.min(ahead, spare)) - 1) / this.chunkBytes);
     for (let chunk = first; chunk <= last; chunk++) {
+      // Asked for, so the reader doesn't hold it (a document reopened on a fresh instance reads all again).
+      this.#delivered.delete(chunk);
+    }
+    for (let chunk = first; chunk <= last; chunk++) {
       if (!this.#chunks[chunk]) {
         try {
           this.#fetchChunks(...this.#window(chunk, last, lastAhead));
@@ -469,7 +698,23 @@ class RangeLoader {
       out.set(bytes.subarray(from, from + take), at - offset);
       at += take;
     }
+    // The engine copies what it reads into its own buffer and never asks for it again, so a whole
+    // chunk it has is dropped here: the file is held once, as a whole-file open holds it. It's
+    // fetched again only if the document has to be reopened on a fresh instance. The first KiB and the
+    // last chunk stay: they're what tells a file that isn't a PDF (`explain`).
+    const keptHead = Math.ceil(HEADER_BYTES / this.chunkBytes);
+    for (let chunk = Math.max(first, keptHead); chunk <= Math.min(last, this.#chunks.length - 2); chunk++) {
+      if (chunk * this.chunkBytes >= offset && Math.min((chunk + 1) * this.chunkBytes, this.length) <= end) {
+        this.#chunks[chunk] = undefined;
+        this.#delivered.add(chunk);
+      }
+    }
     return true;
+  }
+
+  /** Whether chunk `chunk` is held here or by the reader. */
+  #has(chunk: number): boolean {
+    return this.#chunks[chunk] !== undefined || this.#delivered.has(chunk);
   }
 }
 
@@ -510,6 +755,34 @@ export async function startRangeLoader(
     throw loader.explain(error);
   }
   return loader;
+}
+
+/**
+ * A ranged read already under way (`startRangedRead`), which `openRanged` takes in place of a URL.
+ * Opaque: it only stands for the read.
+ */
+export type PdfRangedRead = { readonly kind: "ranged-read" };
+
+const startedReads = new WeakMap<PdfRangedRead, { source: string | Uint8Array; loader: Promise<RangeLoader> }>();
+
+/**
+ * Starts reading `source` by range now, before there is an engine to open it with: its first round
+ * (the head and the tail) goes out at once, so it overlaps the engine's own download. Open it with
+ * `engine.openRanged(read)`; these options are the read's, and only `password` is taken at the open.
+ */
+export function startRangedRead(source: PdfRangeSource, options: PdfRangedOpenOptions = {}): PdfRangedRead {
+  const owned = ownedSource(source);
+  const loader = startRangeLoader(owned, options);
+  // The open reports a failure; a read nobody opens must not be an unhandled rejection.
+  loader.catch(() => {});
+  const read: PdfRangedRead = Object.freeze({ kind: "ranged-read" });
+  startedReads.set(read, { source: owned, loader });
+  return read;
+}
+
+/** The read `startRangedRead` started, or null for any other source. */
+export function startedRead(source: unknown): { source: string | Uint8Array; loader: Promise<RangeLoader> } | null {
+  return typeof source === "object" && source !== null ? (startedReads.get(source as PdfRangedRead) ?? null) : null;
 }
 
 /**

@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 
 import type { ViewerRequest, ViewerResponse, ViewerResult } from "../../src/viewer/protocol.ts";
-import { createWorkerHandler, findInText, searchText } from "../../src/viewer/worker-core.ts";
+import { createWorkerHandler, findInText, searchText, standardFontFiles } from "../../src/viewer/worker-core.ts";
 import { createPdfEngine } from "../../src/index.ts";
 import { type RangeServer, startRangeServer } from "../range-server.ts";
 import { textPdf } from "./fixtures.ts";
@@ -123,13 +123,62 @@ test("closing a document fails later calls on it as closed", async () => {
   await assert.rejects(call<"pageInfo">({ docId: 7, op: "pageInfo", page: 1 }), { code: "closed" });
 });
 
-test("a file under the whole-file threshold is read in one request", async () => {
+test("a small file is read whole in one round trip: its head and tail, asked for together", async () => {
   const before = smallServer.served().requests;
   const { call } = worker();
   const opened = await call<"open">({ docId: 1, op: "open", source: { kind: "url", url: smallServer.url } });
   assert.equal(opened.ranged, false);
+  assert.equal(opened.timing.bytes, small.byteLength);
   assert.equal(await call<"find">({ caseSensitive: false, docId: 1, op: "find", page: 3, query: "page 3 LINE 2" }).then((hits) => hits.length), 1);
-  assert.equal(smallServer.served().requests - before, 1);
+  assert.ok(smallServer.served().requests - before <= 2, `${smallServer.served().requests - before} requests`);
+});
+
+test("a file under the cut draws its first page from a few ranges, then downloads the rest in the background", async () => {
+  // About 2.7 MB: the first page's objects are a small part of it.
+  const mid = textPdf({ pages: 40, padBytes: 64 * 1024 });
+  // A little latency, so the rest's first bytes can't have arrived by the time the render answers.
+  const server = await startRangeServer(mid, { latencyMs: 50 });
+  try {
+    const { call } = worker();
+    const opened = await call<"open">({ docId: 1, op: "open", source: { kind: "url", url: server.url } });
+    assert.equal(opened.ranged, false, "it is read whole in the end");
+    assert.equal(opened.pageCount, 40);
+    const bitmap = await call<"render">({ docId: 1, op: "render", page: 1, width: 200 });
+    assert.ok(bitmap.rgba.some((value) => value < 128), "the first page is drawn");
+    const first = server.served();
+    assert.ok(first.bytes < mid.byteLength / 4, `the first page took ${first.bytes} of ${mid.byteLength} bytes`);
+    // A search reads every page: it waits for the rest, which comes in one request, and nothing blocks.
+    const hits = await call<"find">({ caseSensitive: true, docId: 1, op: "find", page: 40, query: "Page 40 line 1" });
+    assert.equal(hits.length, 1);
+    for (let page = 2; page <= 40; page++) {
+      await call<"text">({ docId: 1, op: "text", page });
+    }
+    const all = server.served();
+    // In a few pieces, none of it twice.
+    assert.ok(all.requests - first.requests <= Math.ceil(mid.byteLength / (256 * 1024)), `${all.requests - first.requests} requests for the rest`);
+    assert.ok(all.bytes <= mid.byteLength, `${all.bytes} bytes served for a ${mid.byteLength}-byte file`);
+  } finally {
+    await server.close();
+  }
+});
+
+test("the standard fonts a page names, as the engine picks them", () => {
+  const font = (name: string, flags = 32, weight = 400) => ({ embedded: false, flags, name, weight });
+  assert.deepEqual(standardFontFiles([font("Helvetica-Bold", 32, 700), font("Helvetica")]), ["FoxitSansBold.pfb", "FoxitSans.pfb"]);
+  assert.deepEqual(standardFontFiles([font("Times-Roman"), font("Courier-Oblique"), font("Symbol", 4), font("ZapfDingbats", 4)]), [
+    "FoxitSerif.pfb",
+    "FoxitFixedItalic.pfb",
+    "FoxitSymbol.pfb",
+    "FoxitDingbats.pfb",
+  ]);
+  // Not a standard name: keywords in it, then the descriptor's flags.
+  assert.deepEqual(standardFontFiles([font("ABCDEF+Arial-BoldItalicMT"), font("Georgia", 2), font("Consolas", 1, 700), font("Verdana", 32 | 64)]), [
+    "FoxitSansBoldItalic.pfb",
+    "FoxitSerif.pfb",
+    "FoxitFixedBold.pfb",
+    "FoxitSansItalic.pfb",
+  ]);
+  assert.deepEqual(standardFontFiles([{ ...font("Helvetica"), embedded: true }]), [], "an embedded font needs no file");
 });
 
 test("a file over the threshold is read by range, not downloaded whole", async () => {

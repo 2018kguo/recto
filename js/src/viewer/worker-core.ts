@@ -13,10 +13,13 @@ import {
   type PdfDocument,
   type PdfEngine,
   PdfError,
+  type PdfFont,
   type PdfOutlineItem,
   type PdfPageInfo,
   type PdfPageText,
+  type PdfRangedDocument,
   readingOrder,
+  startRangedRead,
   textItems,
   visibleCodepoint,
 } from "../index.ts";
@@ -33,10 +36,11 @@ import type {
 } from "./protocol.ts";
 
 /**
- * Files up to this size are read in one request; larger ones by range. A ranged open needs several
- * dependent requests before the first page, so one request wins until the transfer itself costs more
- * than those round trips: 8 MiB is about 0.7 to 1.3 s at 50 to 100 Mbit/s, the cost of three to five
- * ranged rounds on a slow server.
+ * Files up to this size are downloaded whole; larger ones are only ever read by range. Either way a
+ * file is opened by range, its head and tail asked for while the engine itself downloads, so the first
+ * page needs only its own objects: the rest of a file this size follows in the background once
+ * the first page is drawn (bench/compare: on a 4.6 MB file, the first page at Slow 4G in a third of the
+ * time a whole read took, and no later on an unthrottled link).
  */
 export const WHOLE_FILE_MAX_BYTES = 8 * 1024 * 1024;
 /** A viewed file has no cap of its own; the engine's ranged default is 64 MiB. */
@@ -115,8 +119,12 @@ export function followableLinks(doc: Pick<PdfDocument, "links" | "pageCount">, i
 }
 
 /** What the text layer draws for a page. Links are extra: a page whose links can't be read still gets its text. */
-export function pageText(doc: Pick<PdfDocument, "links" | "pageCount" | "pageInfo" | "text">, index: number): ViewerResult["text"] {
-  const runs = textRuns(doc.text(index), doc.pageInfo(index));
+export function pageText(
+  doc: Pick<PdfDocument, "links" | "pageCount" | "pageInfo" | "text">,
+  index: number,
+  text: PdfPageText = doc.text(index)
+): ViewerResult["text"] {
+  const runs = textRuns(text, doc.pageInfo(index));
   let links: ViewerLink[] = [];
   try {
     links = followableLinks(doc, index);
@@ -124,6 +132,67 @@ export function pageText(doc: Pick<PdfDocument, "links" | "pageCount" | "pageInf
     // Text without overlays beats no text layer at all.
   }
   return { runs, links };
+}
+
+type StandardFontFile = Parameters<PdfEngine["preload"]>[0][number];
+
+const FONT_ITALIC = 64;
+const LITERAL_FONTS: Record<string, StandardFontFile> = {
+  Courier: "FoxitFixed.pfb",
+  "Courier-Bold": "FoxitFixedBold.pfb",
+  "Courier-BoldOblique": "FoxitFixedBoldItalic.pfb",
+  "Courier-Oblique": "FoxitFixedItalic.pfb",
+  Helvetica: "FoxitSans.pfb",
+  "Helvetica-Bold": "FoxitSansBold.pfb",
+  "Helvetica-BoldOblique": "FoxitSansBoldItalic.pfb",
+  "Helvetica-Oblique": "FoxitSansItalic.pfb",
+  Symbol: "FoxitSymbol.pfb",
+  "Times-Bold": "FoxitSerifBold.pfb",
+  "Times-BoldItalic": "FoxitSerifBoldItalic.pfb",
+  "Times-Italic": "FoxitSerifItalic.pfb",
+  "Times-Roman": "FoxitSerif.pfb",
+  ZapfDingbats: "FoxitDingbats.pfb",
+};
+
+/**
+ * The standard font files the engine will ask for to draw `fonts`, the ones a page names but does
+ * not embed: its own choice (the name, then keywords in it, then the descriptor's flags), mirrored
+ * here so they can be fetched together before the page is drawn rather than one round trip each while
+ * it is. A wrong guess costs one small fetch; a missed one, the round trip it always cost.
+ */
+export function standardFontFiles(fonts: readonly Pick<PdfFont, "name" | "flags" | "weight" | "embedded">[]): StandardFontFile[] {
+  const files = new Set<StandardFontFile>();
+  for (const font of fonts) {
+    if (font.embedded) {
+      continue;
+    }
+    const name = font.name.replace(/^[A-Z]{6}\+/u, "");
+    const literal = LITERAL_FONTS[name];
+    if (literal) {
+      files.add(literal);
+      continue;
+    }
+    const lower = name.toLowerCase();
+    if (lower.includes("dingbats")) {
+      files.add("FoxitDingbats.pfb");
+      continue;
+    }
+    const bold = font.weight >= 700 || lower.includes("bold") || lower.includes("demi");
+    const italic = (font.flags & FONT_ITALIC) !== 0 || lower.includes("italic") || lower.includes("oblique");
+    const family = /helvetica|arial|sans/u.test(lower)
+      ? "Sans"
+      : /courier|mono/u.test(lower)
+        ? "Fixed"
+        : /times|serif/u.test(lower)
+          ? "Serif"
+          : font.flags & FONT_FIXED_PITCH
+            ? "Fixed"
+            : font.flags & FONT_SERIF
+              ? "Serif"
+              : "Sans";
+    files.add(`Foxit${family}${bold ? "Bold" : ""}${italic ? "Italic" : ""}.pfb` as StandardFontFile);
+  }
+  return [...files];
 }
 
 /** A bookmark list too long to be read is cut here; a table of contents is a few hundred at most. */
@@ -375,6 +444,41 @@ async function readCapped(response: Response, limit: number, alive: () => void =
 
 export type WorkerHandler = (request: ViewerRequest) => Promise<void>;
 
+/**
+ * The rest of a file opened by range that is downloaded whole: started once its first page is drawn,
+ * so it doesn't share the link with that page's reads, or by the first call that reads every page.
+ */
+type Rest = { start(): void; done(): Promise<void>; stop(): void };
+
+function restOf(doc: PdfRangedDocument, stallMs: number): Rest {
+  const controller = new AbortController();
+  let running: Promise<void> | null = null;
+  return {
+    start() {
+      running ??= doc.fetchRest({ signal: controller.signal, stallMs }).catch(() => {
+        // Reads fetch what they need by range, as they would have anyway.
+      });
+    },
+    done() {
+      this.start();
+      return running!;
+    },
+    stop() {
+      controller.abort();
+    },
+  };
+}
+
+type OpenDoc = {
+  doc: PdfDocument;
+  search: Map<number, SearchText>;
+  rest: Rest | null;
+  /** The standard fonts the first page drawn names, fetched ahead of its render; every render waits for them. */
+  fonts: Promise<void> | null;
+  /** A page's text read for that, kept for the text layer's request that follows. */
+  text: { index: number; value: PdfPageText } | null;
+};
+
 export function createWorkerHandler(options: {
   reply: (response: ViewerResponse, transfer: Transferable[]) => void;
   fetch?: typeof fetch;
@@ -387,7 +491,7 @@ export function createWorkerHandler(options: {
   const timeoutMs = options.timeoutMs ?? RANGED_TIMEOUT_MS;
   const fetchFile = options.fetch ?? ((input: RequestInfo | URL, init?: RequestInit) => fetch(input, init));
   let enginePromise: Promise<PdfEngine> | null = null;
-  const documents = new Map<number, Promise<{ doc: PdfDocument; search: Map<number, SearchText> }>>();
+  const documents = new Map<number, Promise<OpenDoc>>();
   const renders = new Map<number, AbortController>();
   // Renders cancelled before they started (their document was still opening).
   const cancelledBeforeStart = new Set<number>();
@@ -420,7 +524,7 @@ export function createWorkerHandler(options: {
 
   const openDocument = async (
     request: Extract<ViewerRequest, { op: "open" }>
-  ): Promise<{ doc: PdfDocument; ranged: boolean; timing: ViewerOpenTiming }> => {
+  ): Promise<{ doc: PdfDocument; ranged: boolean; rest: Rest | null; timing: ViewerOpenTiming }> => {
     const { source, wholeOnly = false } = request;
     const wholeFileMaxBytes = options.wholeFileMaxBytes ?? request.wholeFileMaxBytes ?? WHOLE_FILE_MAX_BYTES;
     let mark = performance.now();
@@ -430,11 +534,35 @@ export function createWorkerHandler(options: {
       mark = at;
       return ms;
     };
+    // By range from the start, the file's first round under way while the engine downloads. Not on a
+    // shared worker, whose other documents a blocking read would stall, nor with cross-origin credentials,
+    // which a ranged read doesn't send.
+    if (source.kind === "url" && !wholeOnly && source.credentials !== "include" && /^https?:/iu.test(source.url)) {
+      const read = startRangedRead(source.url, { maxBytes: RANGED_MAX_BYTES, timeoutMs });
+      const pdf = await engine(request.assetBase);
+      const engineMs = lap();
+      try {
+        const doc = await pdf.openRanged(read);
+        const { fileBytes } = doc.stats();
+        // A file this size is downloaded whole after its first page; past it, only what's read is.
+        const whole = fileBytes <= wholeFileMaxBytes;
+        // The reads before the parse overlapped the engine's download: what's left is all parse.
+        const timing = { bytes: whole ? fileBytes : 0, engineMs, fetchMs: 0, parseMs: lap() };
+        return { doc, ranged: !whole, rest: whole ? restOf(doc, timeoutMs) : null, timing };
+      } catch (cause) {
+        // A server that answers but not by range (a cross-origin one that hides Content-Range, say)
+        // still serves the file whole: read it as before. An HTTP error would be the same either way.
+        if (!(cause instanceof PdfError && cause.code === "fetch-failed" && !(cause.status && cause.status >= 400))) {
+          throw cause;
+        }
+        lap();
+      }
+    }
     const pdf = await engine(request.assetBase);
     const engineMs = lap();
     const parse = async (bytes: Uint8Array | ArrayBuffer, fetchMs: number) => {
       const doc = await pdf.open(bytes);
-      return { doc, ranged: false, timing: { bytes: bytes.byteLength, engineMs, fetchMs, parseMs: lap() } };
+      return { doc, ranged: false, rest: null, timing: { bytes: bytes.byteLength, engineMs, fetchMs, parseMs: lap() } };
     };
     if (source.kind === "bytes") {
       return parse(source.bytes, 0);
@@ -479,13 +607,15 @@ export function createWorkerHandler(options: {
     if (whole) {
       return parse(whole, lap());
     }
+    // Not a byte more of the whole file than it took to learn it's too large.
+    controller.abort();
     if (wholeOnly) {
       throw new ViewerWorkerError("needs-own-worker", "the PDF is read by range and needs a worker of its own");
     }
     const fetchMs = lap();
     const doc = await pdf.openRanged(source.url, { maxBytes: RANGED_MAX_BYTES, timeoutMs });
     // A ranged open's reads and parse are interleaved: all of it is parse.
-    return { doc, ranged: true, timing: { bytes: 0, engineMs, fetchMs, parseMs: lap() } };
+    return { doc, ranged: true, rest: null, timing: { bytes: 0, engineMs, fetchMs, parseMs: lap() } };
   };
 
   const pageInfo = (doc: PdfDocument, page: number): ViewerPageInfo => {
@@ -502,7 +632,7 @@ export function createWorkerHandler(options: {
 
   const open = async (request: Extract<ViewerRequest, { op: "open" }>) => {
     const opened = openDocument(request);
-    const opening = opened.then(({ doc }) => ({ doc, search: new Map<number, SearchText>() }));
+    const opening = opened.then(({ doc, rest }): OpenDoc => ({ doc, fonts: null, rest, search: new Map<number, SearchText>(), text: null }));
     // Callers on this document see the failure through their own await.
     opening.catch(() => {});
     documents.set(request.docId, opening);
@@ -515,7 +645,26 @@ export function createWorkerHandler(options: {
     }
   };
 
-  const render = async (doc: PdfDocument, request: Extract<ViewerRequest, { op: "render" }>) => {
+  /**
+   * Before a document's first render: the standard fonts its page names, fetched together. The engine
+   * would otherwise ask for each while drawing, a blocking round trip apiece.
+   */
+  const fetchFonts = (opened: OpenDoc, index: number): Promise<void> =>
+    (opened.fonts ??= (async () => {
+      try {
+        const text = opened.doc.text(index);
+        opened.text = { index, value: text };
+        const files = standardFontFiles(text.fonts);
+        if (files.length > 0) {
+          await (await enginePromise!).preload(files);
+        }
+      } catch {
+        // The render reads what it needs itself, and reports what fails.
+      }
+    })());
+
+  const render = async (opened: OpenDoc, request: Extract<ViewerRequest, { op: "render" }>) => {
+    const { doc } = opened;
     const controller = new AbortController();
     if (cancelledBeforeStart.delete(request.id)) {
       controller.abort();
@@ -524,6 +673,7 @@ export function createWorkerHandler(options: {
     try {
       const size = { maxHeight: Number.POSITIVE_INFINITY, signal: controller.signal, width: request.width };
       const index = request.page - 1;
+      await fetchFonts(opened, index);
       let bitmap: PdfBitmap;
       let placed: ViewerResult["render"]["region"];
       if (request.region) {
@@ -538,10 +688,12 @@ export function createWorkerHandler(options: {
       reply({ id: request.id, ok: true, value }, [rgba.buffer]);
     } finally {
       renders.delete(request.id);
+      // The first page is drawn (or failed): the rest of the file may have the link now.
+      opened.rest?.start();
     }
   };
 
-  const find = (opened: { doc: PdfDocument; search: Map<number, SearchText> }, request: Extract<ViewerRequest, { op: "find" }>) => {
+  const find = (opened: OpenDoc, request: Extract<ViewerRequest, { op: "find" }>) => {
     const { doc, search } = opened;
     const index = request.page - 1;
     // The page's text is kept as one string per page; its boxes are read again only where it matches.
@@ -575,17 +727,23 @@ export function createWorkerHandler(options: {
         case "pageInfo":
           reply({ id: request.id, ok: true, value: pageInfo(doc, request.page) }, []);
           return;
-        case "text":
-          reply({ id: request.id, ok: true, value: pageText(doc, request.page - 1) }, []);
+        case "text": {
+          const index = request.page - 1;
+          const kept = opened.text?.index === index ? opened.text.value : undefined;
+          opened.text = null;
+          reply({ id: request.id, ok: true, value: pageText(doc, index, kept) }, []);
           return;
+        }
         case "find":
+          // A search reads every page: one stream of the rest beats a blocking round trip a page.
+          await opened.rest?.done();
           reply({ id: request.id, ok: true, value: find(opened, request) }, []);
           return;
         case "outline":
           reply({ id: request.id, ok: true, value: viewerOutline(doc) }, []);
           return;
         case "render":
-          await render(doc, request);
+          await render(opened, request);
           return;
       }
     } catch (cause) {
@@ -615,7 +773,12 @@ export function createWorkerHandler(options: {
       case "close": {
         const opening = documents.get(request.docId);
         documents.delete(request.docId);
-        opening?.then(({ doc }) => doc.close()).catch(() => {});
+        opening
+          ?.then(({ doc, rest }) => {
+            rest?.stop();
+            doc.close();
+          })
+          .catch(() => {});
         return;
       }
     }

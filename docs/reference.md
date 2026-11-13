@@ -10,8 +10,10 @@ openPdf(bytes: Uint8Array | ArrayBuffer, options?: { password?: string; signal?:
 createPdfEngine(options?: { assetBase?: string | URL; recycleAboveBytes?: number; maxDecodedBytes?: number; preloadAssets?: string[] }): Promise<PdfEngine>
 
 engine.open(bytes, options?): Promise<PdfDocument>
-engine.openRanged(source: string | URL | Uint8Array, options?: PdfRangedOpenOptions): Promise<PdfRangedDocument>
+engine.openRanged(source: string | URL | Uint8Array | PdfRangedRead, options?: PdfRangedOpenOptions): Promise<PdfRangedDocument>
+engine.preload(names: string[]): Promise<void>
 engine.stats(): { heapBytes: number; generation: number; openDocuments: number }
+startRangedRead(source: string | URL | Uint8Array, options?: PdfRangedOpenOptions): PdfRangedRead
 ```
 
 `openPdf` uses one shared engine per thread, created on first use. Create your own to set
@@ -37,7 +39,9 @@ document stays usable, and the next call tries again. A thread that will draw ca
 wait with `preloadAssets: ["recto-render.wasm"]`. To find a missing file at startup and not at the first page
 that needs it, name all three parts: `preloadAssets: ["recto-render.wasm", "recto-more.wasm", "recto-rare.wasm"]`
 fetches, hashes and compiles them while the engine is created, and creating it fails with `missing-asset` if one
-isn't there. Fonts and CMaps can be named the same way.
+isn't there. Fonts and CMaps can be named the same way. `engine.preload(names)` does the same later: a
+thread that knows which fonts a page names (a non-embedded `doc.text(i).fonts` entry) fetches them
+together before drawing it, where the engine would otherwise wait a round trip for each as it meets them.
 
 ## A document
 
@@ -307,6 +311,23 @@ objects and their fonts and images. These cases take more:
 - **Cross-origin**, `bytes=-n` isn't a safelisted `Range` value, so the browser sends a preflight first:
   two rounds for the suffix unless the preflight is cached (`Access-Control-Max-Age`), and a server that
   refuses it lands in the case above.
+
+**Start it before the engine.** `startRangedRead(url, options)` sends the open's round at once and
+returns a handle; `engine.openRanged(handle)` opens it when the engine is ready. Created together, the
+file's head and tail download alongside the engine's wasm instead of after it. Only `password` is taken
+at the open; the rest of the options are the read's.
+
+**Download the rest.** `await doc.fetchRest({ signal, stallMs })` asks for every byte not held yet, at low
+priority, in 256 KiB pieces starting from where the engine last read past what it had, the next piece asked
+for a round trip before the last one ends, and keeps each chunk as it arrives: reads after it never block.
+A read that misses meanwhile shares the link with one piece at most (it can't make the download stop:
+its thread is blocked on its own request), and nothing it fetched is fetched again. It's how a viewer
+reads a file whole while drawing its first page from a few ranges. It counts toward
+`maxBytes`, and gives up after `stallMs` (default `timeoutMs`) without a byte. A failure fails no read.
+
+**The file is held once.** What the engine reads it copies into its own memory, and the loader drops it
+(`stats().heldBytes` is what it still holds), keeping only the first KiB and the last chunk. A document
+reopened on a fresh instance (after a crash or a part that failed to load) fetches what it reads again.
 
 `bytesFetched` counts what was read from each response. A response that's cancelled (a 200 to the suffix,
 the head of a file the suffix covers) isn't read, but a server may have sent some of it before the cancel
