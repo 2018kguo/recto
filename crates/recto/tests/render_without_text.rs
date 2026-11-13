@@ -61,10 +61,7 @@ fn page(content: &str, form: &str, annotation: Option<&str>) -> Document {
         ),
         stream("/Type /XObject /Subtype /Form /BBox [0 0 200 200] /Resources << /Font << /F1 5 0 R >> >>", form),
         stream("", "1000 0 d0 0 0 1000 1000 re f"),
-        format!(
-            "<< /Type /Annot /Subtype /Stamp /Rect [0 0 200 200] /AP << /N 11 0 R >> >>"
-        )
-        .into_bytes(),
+        b"<< /Type /Annot /Subtype /Stamp /Rect [0 0 200 200] /AP << /N 11 0 R >> >>".to_vec(),
         stream(
             "/Type /XObject /Subtype /Form /BBox [0 0 200 200] /Resources << /Font << /F1 5 0 R >> >>",
             annotation.unwrap_or(""),
