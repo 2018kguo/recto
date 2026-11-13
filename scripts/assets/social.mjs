@@ -17,7 +17,7 @@ p{font-size:34px;line-height:1.28;color:${DARK.secondary};margin:0}
 .n{margin-top:52px;font-size:40px;font-weight:650;letter-spacing:-.01em}.n i{font-style:normal;color:${DARK.recto}}
 .s{margin-top:8px;font-size:22px;color:${DARK.secondary}}
 img{position:absolute;right:64px;top:64px;width:424px;border-radius:10px;box-shadow:0 12px 50px #0009;transform:rotate(1.5deg)}
-</style><div class="left"><h1>recto</h1><p>A PDF engine for JavaScript: text with positions, page objects and rendering, in Rust compiled to WebAssembly.</p><div class="n"><i>${ratio.toFixed(1)}×</i> faster text than pdf.js</div><div class="s">Measured in Node on 60 public PDFs</div></div><img src="data:image/png;base64,${page}">`;
+</style><div class="left"><h1>recto</h1><p>A PDF engine for JavaScript: text with positions, page objects and rendering, in Rust compiled to WebAssembly.</p><div class="n"><i>${ratio.toFixed(1)}×</i> faster text than pdf.js</div><div class="s">Measured in Node on ${node.documents.used} public PDFs</div></div><img src="data:image/png;base64,${page}">`;
 const browser = await launch({ width: 1280, height: 640 });
 const tab = await newPage(browser, { width: 1280, height: 640 });
 await tab.send("Emulation.setDeviceMetricsOverride", { width: 1280, height: 640, deviceScaleFactor: 1, mobile: false });

@@ -1,20 +1,73 @@
 # Benchmarks
 
-recto against pdf.js 6.5.438 and stock pdfium (`@embedpdf/pdfium` 2.15.1), on an Apple M5 Pro (18
-cores, 64 GB) that had other work running, so compare the ratios. The raw results, with the machine
-and versions, are in [`bench/results/`](../bench/results). Each section ends with the command that
-reproduces it. A megabyte here is 10^6 bytes.
+recto 0.7.1 against pdf.js 6.5.438, stock pdfium (`@embedpdf/pdfium` 2.15.1) and MuPDF 1.28.1 (Artifex's
+`mupdf` package, its own WebAssembly build), measured November 12–13, 2026 on an Apple M5 Pro (18 cores, 64 GB),
+macOS 26.6.1, Node 25.9.0 and Chromium 156. MuPDF is licensed under the AGPL-3.0 (with a commercial licence from
+Artifex); recto is MIT, pdf.js Apache-2.0, pdfium BSD-3-Clause (the `@embedpdf/pdfium` build MIT). The other engines are dev
+dependencies of the benchmark only, in `bench/package.json`.
 
-Each number is the median of 5 runs, in a fresh process or page, with the engines alternating run by
-run. The brackets are 95% confidence intervals on the ratio to recto, bootstrapped: resampled from
-the runs to see how much the ratio could move, and with 5 runs they're rough. Above 1× recto is faster;
-below it, the other engine is. The PDFs are 37 public and generated documents
-(25 MB) that all three engines open, plus generated ones; none is committed, so bring your
-own. [Transparency](#transparency) was measured earlier on a different set of 60, and
-[Text quality](#text-quality), [the scorecard](#the-scorecard) and [Damaged files](#damaged-files) on the
-sets they name; none is comparable with the tables here; recto's text
-on this set is byte for byte what it was before 0.2.0. Its pixels aren't: since 0.3.0 it draws annotations with no appearance, as on page 5 of the
-annotations file.
+## At a glance
+
+How recto compares with each, from the tables below. A ratio is the other engine's time or size over recto's, so
+above 1× recto is ahead; **bold** is where recto loses. "Level" means the 95% interval holds 1.
+
+| | pdf.js | pdfium | MuPDF |
+|---|---|---|---|
+| **Size**: download with brotli, text only | level (0.42 MB each) | 4.0× smaller | 8.7× smaller |
+| **Size**: download with brotli, text and pixels | **pdf.js 0.30 MB smaller** (0.42 against 0.72) | 2.4× smaller | 5.1× smaller |
+| **Cold start**: a fresh Node process to the first text | 3.9× | level (1.03×) | level (1.04×) |
+| **Cold start**: a fresh Node process to the first pixels | 3.6× | level (1.01×) | **MuPDF 7% faster** (72 against 77 ms) |
+| **Cold start**: a fresh Chromium page to the first text, slowed 3.8× | 1.5× | 1.09× (interval 0.99–1.18) | 1.09× (interval 0.93–1.16) |
+| **Cold start**: a fresh Chromium page to the first pixels, slowed 3.8× | 1.5× | **pdfium 7% faster** | **MuPDF 15% faster** |
+| **Open**: a 2,000-page report in Node | 14× | 1.17× (interval 0.97–1.25) | 1.8× |
+| **Open**: a 500-page report in Chromium | 7.5× | **pdfium faster**, 0.3 against 0.4 ms, at the timer's 0.1 ms | 1.5× |
+| **Render**: 50 pages at 1024 px in Node | 7.3× | 6.1× | 6.1× |
+| **Render**: 15 pages at 800 px in Chromium | 4.9× | 1.3× | 1.5× |
+| **Render**: 5 pages of the 2,000-page report in Node | 3.0× | level (1.06×) | **MuPDF 26% faster** (21 against 28 ms) |
+| **Text**: 296 pages in Node | 4.6× | 2.5× | 2.9× |
+| **Text**: 79 pages in Chromium | 3.3× | 2.7× | 2.9× |
+| **Memory**: peak of a Node process, 29 documents | 2.3× less | **pdfium 6% less** (280 against 298 MB) | 1.8× less |
+| **Memory**: peak, the 2,000-page report | 2.1× less | **pdfium 11% less** (195 against 218 MB) | level (1.02×) |
+| **Memory**: left with a 40-page report open in Chromium | **pdf.js holds 12.6 MB less WebAssembly** (none) | 1.5× less | 2.2× less |
+| **Stopping a slow render** on the same thread, Node | 0.3 against 1,921 ms | 0.3 against 3.1 ms (by `terminate()`) | 0.3 against 1.7 ms (by `terminate()`) |
+| **Robustness**: 7,000 web PDFs, files worse than another engine | 0 against 13 | 0 against 6 | 0 against 7 |
+| **Fidelity**: agrees with two other engines, of 531 small, mostly adversarial files | 95.6% against 87.0% | 95.6% against 88.6% | 95.6% against 83.8% |
+| **Text**: F1 against poppler, 84 documents | 98.5% against 97.8% | 98.5% against 98.3% | 98.5% against 97.4% |
+| **Text**: F1 against poppler, the 25 public documents alone | level (99.58% against 99.49%) | level (99.54%) | level (99.59%, MuPDF 0.01 ahead) |
+| **Char boxes**: IoU against the ink, median | not measured (items, not chars) | level (0.846 against 0.848) | 0.846 against 0.826 (`accurate-bboxes`) |
+
+What to take from it: recto is fastest at reading text and drawing pages in bulk, by 2.5–7× in Node, and of 7,000 web
+PDFs it did worse than another engine on none. It ties pdfium and MuPDF to a first page in a fresh process, and loses the first pixels in
+a fresh browser page by 7–15% slowed. MuPDF draws the generated report's image pages faster, and pdfium holds a
+little less memory. pdf.js downloads 0.30 MB less to draw, and holds no WebAssembly memory. The fidelity score has a
+built-in lean, explained in [the scorecard](#the-scorecard): read it as "rarely the odd one out", not "most correct".
+
+Each row, one command (after `npm run build`; PDFs aren't committed, so bring your own, as `pdfs/` here):
+
+```sh
+npm run bench -- pdfs --runs 7 --max-load 8 --min-idle 55                       # Node: cold start, open, render, text, memory, stopping
+npm run bench:browser -- pdfs --runs 7 --max-load 8 --min-idle 55               # Chromium slowed, and what a page downloads (--slowdown 1 for full speed)
+node bench/wild.mjs fetch && node bench/wild.mjs run --jobs 6 --results out.json # robustness, 7,000 web PDFs
+node bench/scorecard.mjs pub=pdfs --engines recto,pdfium,pdf.js,poppler,mupdf --out scratch  # fidelity
+node bench/text-compare.mjs pdfs                                                 # text against poppler
+node bench/box-compare.mjs pdfs --tight                                          # char boxes
+```
+
+## How it was measured
+
+Timed numbers are medians of 7 rounds, each in a fresh process or page, with the engines taking turns round by
+round. The brackets are 95% confidence intervals on the ratio to recto, bootstrapped: resampled from the rounds to
+see how much the ratio could move. The machine was shared: an indexer kept the 1-minute load average between about
+10 and 30 throughout, while leaving most of the 18 cores idle. So each measured process started only when the
+1-minute load was under 8 **or** the CPUs were at least 55% idle over a second (`--max-load 8 --min-idle 55`,
+`bench/quiet.mjs`); the results record what each started at. Read the ratios, not the absolute times, which are
+higher than a quiet machine's. The raw results are in [`bench/results/`](../bench/results), with files named by hash
+only. A megabyte here is 10^6 bytes.
+
+The timed PDFs are the 29 public documents of the scoreboard's `pub` set (25 MB), which all four engines open, and
+generated ones. [Text quality](#text-quality), [the scorecard](#the-scorecard), [character boxes](#character-boxes)
+and [real-world files](#real-world-files) use the sets they name. Sections marked as not rerun keep the version and
+the set they were measured on, and aren't comparable with the tables here.
 
 ## In Node
 
@@ -98,15 +151,15 @@ most of the draw. pdfium's and MuPDF's JavaScript calls can't be asked to stop: 
 `worker.terminate()`, which is immediate and takes the engine and its open documents with it, as it does for recto's
 `render`. (MuPDF's C library has a cookie that aborts a render; its JavaScript API doesn't take one.)
 
-What slicing costs and gives, from `bench/sliced.mjs`, on the same page: `render` takes 243 ms and holds
+What slicing costs and gives, from `bench/sliced.mjs`, on the same page, 0.7.1 (one run, not gated): `render` takes 243 ms and holds
 the thread for all of it.
 
 | `sliceMs` | Whole render | Longest the thread is held |
 |---:|---:|---:|
-| 2 | 247 ms | 65.9 ms |
-| 4 | 247 ms | 65.6 ms |
-| 8 | 246 ms | 66.0 ms |
-| 16 | 247 ms | 66.2 ms |
+| 2 | 245 ms | 25.6 ms |
+| 4 | 250 ms | 27.9 ms |
+| 8 | 254 ms | 27.4 ms |
+| 16 | 251 ms | 33.9 ms |
 
 The whole render costs about the same, within this machine's noise. The longest hold is the last step, rasterizing, which runs as
 one call whatever `sliceMs` says; every other slice keeps to it. On a 4.0 s page of 4 million shapes, stopped
@@ -120,55 +173,60 @@ node bench/sliced.mjs
 
 ## In a browser
 
-Chromium, at full speed (load average 2.2) and slowed to 4.6× (load average 1.9), at
-800 px. Each engine in the arrangement its documentation gives: pdf.js with its parser in a worker
-and drawing on the main thread, recto and pdfium doing both in a dedicated worker and posting the
-bitmap. Each page is a fresh browser context, with no cache.
+Chromium 156 (Playwright's, headless), at full speed and slowed to 3.8×, at 800 px, 7 rounds, with the same quiet
+gate as Node (at the starts, a median load of 14.5 and 64% idle at full speed, 9.9 and 69% slowed). Each engine in
+the arrangement its documentation gives: pdf.js with its parser in a worker and drawing on the main thread; recto,
+pdfium and MuPDF doing both in a dedicated worker and posting the bitmap. Each page is a fresh browser context, with
+no cache. The corpus is 8 of the 29 public documents.
 
 **The slowdown** stops the browser's whole process tree and resumes it, 2 ms on and 6 ms off, the way
-`cpulimit` does. A fixed loop, timed in the page, measures what that comes to: 4.6× here, with the 4× it's set to. Two others were tried and rejected. DevTools CPU throttling can't reach workers,
+`cpulimit` does. A fixed loop, timed in the page, measures what that comes to: 3.8× here, with the 4× it's set to. Two others were tried and rejected. DevTools CPU throttling can't reach workers,
 so it would slow pdf.js's drawing and not recto's. macOS background QoS slowed everything, but it
 also made every timer and frame take 200 ms, which charged pdf.js 20× for the frames it waits on.
 
-| | recto | pdf.js | pdfium |
-|---|---:|---:|---:|
-| Text, first 20 pages of each (52 pages) | 56.2 ms | 184 ms (3.3× [3.2–3.4]) | 149 ms (2.7× [2.6–2.7]) |
-| at 4.6× | 257 ms | 864 ms (3.4× [3.2–3.6]) | 686 ms (2.7× [2.6–2.8]) |
-| Render at 800 px, first 2 of each (13 pages) | 61.7 ms | 216 ms (3.5× [3.4–3.6]) | 89.0 ms (1.4× [1.4–1.5]) |
-| at 4.6× | 292 ms | 405 ms (1.4× [1.3–1.5]) | 434 ms (1.5× [1.4–1.6]) |
-| A fresh page to the first page's text | 34.1 ms | 53.1 ms (1.6× [1.5–1.6]) | 39.9 ms (1.2× [1.1–1.3]) |
-| at 4.6× | 182 ms | 261 ms (1.4× [1.4–1.5]) | 201 ms (1.1× [1.0–1.2]) |
-| A fresh page to the first page's pixels | 51.9 ms | 99.4 ms (1.9× [1.6–2.0]) | 51.0 ms (1.0× [0.9–1.1]) |
-| at 4.6× | 259 ms | 411 ms (1.6× [1.5–1.6]) | 249 ms (1.0× [0.9–1.0]) |
-| Warm: open, first page's text, close | 0.6 ms | 1.3 ms (2.2× [1.9–2.3]) | 0.8 ms (1.3× [1.1–1.3]) |
-| at 4.6× | 0.7 ms | 1.3 ms (1.9× [1.3–2.1]) | 1.0 ms (1.4× [1.0–12.3]) |
-| Warm: open, first page's pixels, close | 2.4 ms | 15.2 ms (6.3× [4.6–6.7]) | 4.2 ms (1.8× [1.7–1.8]) |
-| at 4.6× | 10.5 ms | 19.1 ms (1.8× [0.9–2.6]) | 19.7 ms (1.9× [1.1–2.2]) |
-| A 40-page report, every page read and drawn in a grid | 101 ms | 665 ms (6.6× [6.6–6.8]) | 140 ms (1.4× [1.4–1.4]) |
-| at 4.6× | 456 ms | 1,167 ms (2.6× [2.5–2.7]) | 622 ms (1.4× [1.3–1.5]) |
-| A 500-page report: open | 0.4 ms | 2.2 ms (5.5× [1.4–7.3]) | 0.3 ms (0.8× [0.2–1.0]) |
-| at 4.6× | 0.4 ms | 9.6 ms (24× [1.2–24.5]) | 0.3 ms (0.8× [0.0–0.8]) |
-| A 500-page report: every page's text | 127 ms | 307 ms (2.4× [2.3–2.5]) | 206 ms (1.6× [1.6–1.7]) |
-| at 4.6× | 586 ms | 1,402 ms (2.4× [2.3–2.5]) | 988 ms (1.7× [1.7–1.8]) |
-| A 500-page report: render 5 pages | 10.1 ms | 89.0 ms (8.8× [8.0–8.9]) | 15.0 ms (1.5× [1.5–1.5]) |
-| at 4.6× | 49.8 ms | 121 ms (2.4× [1.9–2.7]) | 66.7 ms (1.3× [1.1–1.4]) |
+| | recto | pdf.js | pdfium | MuPDF |
+|---|---:|---:|---:|---:|
+| Text, first 20 pages of each (79 pages) | 90.5 ms | 295 ms (3.3× [3.1–3.5]) | 248 ms (2.7× [2.6–2.9]) | 261 ms (2.9× [2.7–3.0]) |
+| at 3.8× | 363 ms | 1,149 ms (3.2× [3.0–3.7]) | 975 ms (2.7× [2.5–2.9]) | 1,010 ms (2.8× [2.6–3.0]) |
+| Render at 800 px, first 2 of each (15 pages) | 54.4 ms | 269 ms (4.9× [4.4–5.2]) | 69.0 ms (1.3× [1.2–1.4]) | 83.2 ms (1.5× [1.4–1.6]) |
+| at 3.8× | 213 ms | 549 ms (2.6× [2.3–2.8]) | 280 ms (1.3× [1.2–1.4]) | 336 ms (1.6× [1.4–1.8]) |
+| A fresh page to the first page's text | 35.7 ms | 58.4 ms (1.6× [1.1–1.8]) | 43.0 ms (1.2× [0.8–1.3]) | 43.1 ms (1.2× [0.8–1.3]) |
+| at 3.8× | 187 ms | 281 ms (1.5× [1.3–1.6]) | 204 ms (1.09× [0.99–1.18]) | 204 ms (1.09× [0.93–1.16]) |
+| A fresh page to the first page's pixels | 56.4 ms | 104 ms (1.8× [1.3–2.1]) | 55.8 ms (0.99× [0.72–1.10]) | 51.2 ms (0.91× [0.67–1.01]) |
+| at 3.8× | 273 ms | 420 ms (1.5× [1.3–1.6]) | **253 ms (0.93× [0.82–0.98])** | **232 ms (0.85× [0.75–0.90])** |
+| Warm: open, first page's text, close | 0.6 ms | 1.4 ms (2.3× [2.0–2.5]) | 0.9 ms (1.5× [1.3–1.8]) | 1.9 ms (3.2× [2.6–3.5]) |
+| at 3.8× | 0.8 ms | 1.8 ms (2.3× [1.5–3.3]) | 1.1 ms (1.4× [1.1–14]) | 8.7 ms (11× [8.3–16]) |
+| Warm: open, first page's pixels, close | 3.1 ms | 12.8 ms (4.1× [3.6–4.9]) | 5.0 ms (1.6× [1.4–1.7]) | 5.6 ms (1.8× [1.6–1.9]) |
+| at 3.8× | 11.1 ms | 19.4 ms (1.8× [1.1–2.4]) | 19.0 ms (1.7× [1.1–1.8]) | 20.9 ms (1.9× [1.2–2.4]) |
+| A 40-page report, every page read and drawn in a grid | 101 ms | 665 ms (6.6× [6.2–7.0]) | 152 ms (1.5× [1.4–1.7]) | 129 ms (1.3× [1.2–1.4]) |
+| at 3.8× | 402 ms | 1,228 ms (3.1× [2.8–3.2]) | 630 ms (1.6× [1.4–1.7]) | 493 ms (1.2× [1.1–1.4]) |
+| A 500-page report: open | 0.4 ms | 3.0 ms (7.5× [7.0–10]) | **0.3 ms (0.75× [0.75–1.0])** | 0.6 ms (1.5× [1.3–2.0]) |
+| at 3.8× | 0.4 ms | 9.9 ms (25× [20–25]) | **0.3 ms (0.75× [0.75–1.0])** | 0.6 ms (1.5× [1.5–2.0]) |
+| A 500-page report: every page's text | 145 ms | 324 ms (2.2× [2.1–2.5]) | 224 ms (1.5× [1.4–1.8]) | 265 ms (1.8× [1.8–2.0]) |
+| at 3.8× | 579 ms | 1,289 ms (2.2× [2.1–2.7]) | 897 ms (1.5× [1.4–1.9]) | 1,013 ms (1.7× [1.7–2.1]) |
+| A 500-page report: render 5 pages | 10.5 ms | 80.2 ms (7.6× [7.3–8.4]) | 16.0 ms (1.5× [1.5–1.7]) | 13.2 ms (1.3× [1.2–1.4]) |
+| at 3.8× | 45.9 ms | 106 ms (2.3× [2.2–3.5]) | 68.0 ms (1.5× [1.2–1.9]) | 48.0 ms (1.05× [1.01–1.39]) |
 
-- **A fresh page**: recto is first to text (34.1 ms against 53.1 ms and 39.9 ms), on 0.38 MB of wasm, hashed in full
-  before it compiles. **To pixels it ties pdfium** (51.9 ms against 51.0 ms), where it was 12 ms behind with two builds: the first render
-  now adds one part to the same instance, and doesn't reopen the file.
-- **pdfium opens faster** here too: 0.3 ms against 0.4 ms on 500 pages at full speed, too close to this timer's 0.1 ms to say by how much. At the slowdown both are
-  close to a cycle's length.
+- **A fresh page to text**: recto is first, 35.7 ms against 43 ms for pdfium and MuPDF, though at full speed the
+  intervals reach under 1. **To pixels it loses, slowed**: MuPDF is 15% ahead and pdfium 7%, and at full speed the
+  three are within noise. recto's first pixels add the drawing part (`recto-render.wasm`, see
+  [what a page downloads](#what-a-page-downloads)) to an instance that started with text's; pdfium and MuPDF
+  start whole, which is why they download 2.4 and 5 times as much.
+- **pdfium opens faster**: 0.3 ms against 0.4 ms on 500 pages, at this timer's 0.1 ms resolution, so by an unknown
+  amount under a tenth of a millisecond.
+- **MuPDF's warm text slowed** (8.7 ms, against 1.9 at full speed) is past what the slowdown explains; it wasn't
+  looked into.
 - **pdf.js waits for a frame** as it draws, so that it won't hold the main thread. At full speed
-  that's about 16 ms a page whatever the page costs, and it's most of the 40-page report's 6× and
-  the warm render's 5×. It's a design choice, and a reader on a page may well prefer it. Slowed, the
-  drawing weighs more than the frame and the ratio falls to about 2×. Text and the corpus render
+  that's about 16 ms a page whatever the page costs, and it's most of the 40-page report's 6.6× and
+  the warm render's 4×. It's a design choice, and a reader on a page may well prefer it. Slowed, the
+  drawing weighs more than the frame and the ratio falls. Text and the corpus render
   are the ones to read for raw speed.
 - **At the slowdown**, anything very small is close to the 8 ms a cycle takes, so warm numbers and
   the open times mean little there.
 
 ### What the parts cost
 
-One build cut in four, against the two builds it replaces, in paired runs back to back at load about 2, before the parts took their data (see [What a page downloads](#what-a-page-downloads) for now). The wasm measured here is byte for byte what a release builds on Linux:
+Measured when the parts were introduced, and not rerun for this page: one build cut in four, against the two builds it replaces, in paired runs back to back at load about 2, before the parts took their data (see [What a page downloads](#what-a-page-downloads) for now). The wasm measured here is byte for byte what a release builds on Linux:
 
 | | Two builds | Parts |
 |---|---:|---:|
@@ -193,18 +251,19 @@ takes the same parts: a second wasm would add 2.8 MB to the package and a second
 From the responses a real page load made: JavaScript, wasm and assets, then the same with brotli in
 brackets.
 
-| | recto | pdf.js | pdfium |
-|---|---:|---:|---:|
-| A report, first page's text, never drawn | 1.47 MB (0.41 MB) | 1.75 MB (0.42 MB) | 4.94 MB (1.70 MB) |
-| A report, first page's text and pixels | 2.35 MB (0.70 MB) | 1.75 MB (0.42 MB) | 4.94 MB (1.70 MB) |
-| A CJK document without embedded fonts, first page | 7.75 MB (2.89 MB) | 1.82 MB (0.48 MB) | 4.94 MB (1.70 MB) |
+| | recto | pdf.js | pdfium | MuPDF |
+|---|---:|---:|---:|---:|
+| A report, first page's text, never drawn | 1.52 MB (**0.42 MB**) | 1.75 MB (0.42 MB) | 4.94 MB (1.70 MB) | 10.54 MB (3.65 MB) |
+| A report, first page's text and pixels | 2.45 MB (0.72 MB) | 1.75 MB (**0.42 MB**) | 4.94 MB (1.70 MB) | 10.54 MB (3.65 MB) |
+| A CJK document without embedded fonts, first page | 7.85 MB (2.92 MB) | 1.82 MB (**0.48 MB**) | 4.94 MB (1.70 MB) | 10.54 MB (3.65 MB) |
 
-**For text, recto is now the smallest**: 0.41 MB, 11 KB under pdf.js, where it was 35 KB over (0.46 MB),
-of which the wasm is 0.38 MB. `wasm-split` moves functions but not data, so every constant table
+MuPDF's 3.65 MB is one 9.9 MB wasm (3.62 MB with brotli) that holds everything, whatever the
+page needs. **For text, recto is the smallest, by a hair**: 420,868 bytes with brotli against pdf.js's 424,332,
+of which the wasm is 0.39 MB. `wasm-split` moves functions but not data, so every constant table
 stayed in `recto.wasm`, and 0.15 MB of them (before brotli) are read only by drawing or rarer code. The
 build now moves those into the parts that read them; see [how it works](how-it-works.md). A page that
 goes on to draw adds `recto-render.wasm` (0.26 MB) and only the standard fonts it uses (13 KB each
-here), 0.70 MB in all, where it was 0.72 MB. **pdf.js is still the smallest for drawing**: its 0.42 MB
+here), 0.72 MB in all. **pdf.js is the smallest for drawing**, by 0.30 MB: its 0.42 MB
 covers that too, and it has the browser's canvas and system fonts to do it with.
 
 A file that runs a function the lists don't hold fetches more. With each of 38 public documents left out of the lists
@@ -213,24 +272,24 @@ Those two grew by 51 KB and 17 KB: a table that more than one part reads is in e
 
 On the CJK row most of the
 difference is recto's 5 MB fallback font, which draws CJK the document doesn't embed in any environment. pdf.js
-and pdfium downloaded no font for it, so what they draw depends on the system; this benchmark doesn't compare what
+and pdfium downloaded no font for it, so what they draw depends on the system; MuPDF downloads the same one wasm for every page; this benchmark doesn't compare what
 they drew.
 
 ### What's left in memory
 
 With the 40-page report still open, after a full collection, in a page of its own. Canvases are not
-counted, and those are the same on all three.
+counted, and those are the same on all four.
 
-| | recto | pdf.js | pdfium |
-|---|---:|---:|---:|
-| JS heap, page and workers | 1.7 MB | 5.6 MB | 2.0 MB |
-| WebAssembly memory | 11.9 MB | 0.0 MB | 18.6 MB |
+| | recto | pdf.js | pdfium | MuPDF |
+|---|---:|---:|---:|---:|
+| JS heap, page and workers | 1.7 MB | 5.6 MB | 2.0 MB | 1.6 MB |
+| WebAssembly memory | 12.6 MB | 0.0 MB | 18.6 MB | 27.7 MB |
 
-pdf.js holds the least while the document is open. recto and pdfium keep the file and their state in
+pdf.js holds the least while the document is open. recto, pdfium and MuPDF keep the file and their state in
 WebAssembly memory, which never shrinks while the instance lives. The JS heap here doesn't count
 `ArrayBuffer`s, so pdf.js's own copy of the 2 MB file isn't in its column, where recto's is in its.
 
-Where recto's 11.9 MB goes, measured stage by stage in Node: 1.5 MB at instantiation (a 1 MiB stack,
+Where recto's memory goes (11.9 MB when this was measured), stage by stage in Node: 1.5 MB at instantiation (a 1 MiB stack,
 of which no file in the corpus used more than 70 KB, nor a crafted deep one 130 KB, and static data); the open, with the file, to
 3.6 MB; text to 4.9 MB; the first render to 9.3 MB, of which the page's pixels are 3.3 MB; drawing the
 other pages to 12.4 MB. What's live at the end is 6.4 MB above the file, so about 2.5 MB is the
@@ -247,31 +306,31 @@ reader feels as dropped frames and delayed input. **A stretch in a worker** is t
 worker took no timer: there, the longest call it couldn't interrupt. The floor at the slowdown is
 about 20 ms.
 
-| | recto | pdf.js | pdfium |
-|---|---:|---:|---:|
-| 40-page report: main-thread stutter | 0.0 ms / 0.0 ms | 0.0 ms / 0.0 ms | 0.0 ms / 0.0 ms |
-| 40-page report: longest stretch in a worker | 6.5 ms / 26.8 ms | 7.0 ms / 11.3 ms | 7.1 ms / 20.9 ms |
-| Heavy page: all of it | 309 ms / 1,421 ms | 960 ms / 4,597 ms | 755 ms / 3,572 ms |
-| Heavy page: main-thread stutter | 0.0 ms / 0.0 ms | 0.0 ms / 465 ms | 0.0 ms / 0.0 ms |
-| Heavy page: longest main-thread task | 0.0 ms / 0.0 ms | 0.0 ms / 159 ms | 0.0 ms / 0.0 ms |
-| Heavy page: longest stretch in a worker | 235 ms / 1,097 ms | 202 ms / 923 ms | 525 ms / 2,491 ms |
-| Heavy page with `renderAsync`: all of it | 256 ms / 1,190 ms | | |
-| Heavy page with `renderAsync`: longest stretch in a worker | 64.7 ms / 265 ms | | |
+| | recto | pdf.js | pdfium | MuPDF |
+|---|---:|---:|---:|---:|
+| 40-page report: main-thread stutter | 0 ms / 0 ms | 0 ms / 0 ms | 0 ms / 0 ms | 0 ms / 0 ms |
+| 40-page report: longest stretch in a worker | 6.3 ms / 21.4 ms | 7.0 ms / 11.3 ms | 7.5 ms / 26.0 ms | 7.5 ms / 29.4 ms |
+| Heavy page: all of it | 337 ms / 1,322 ms | 1,112 ms / 4,296 ms | 836 ms / 3,397 ms | 1,327 ms / 5,284 ms |
+| Heavy page: main-thread stutter | 0 ms / 0 ms | 0 ms / 511 ms | 0 ms / 0 ms | 0 ms / 0 ms |
+| Heavy page: longest main-thread task | 0 ms / 0 ms | 0 ms / 162 ms | 0 ms / 0 ms | 0 ms / 0 ms |
+| Heavy page: longest stretch in a worker | 254 ms / 1,002 ms | 228 ms / 848 ms | 577 ms / 2,406 ms | 1,022 ms / 4,174 ms |
+| Heavy page with `renderAsync`: all of it | 274 ms / 1,081 ms | | | |
+| Heavy page with `renderAsync`: longest stretch in a worker | 52.3 ms / 158 ms | | | |
 
 The heavy page is the same 300,000 shapes.
 
 - **On the report, nobody stutters**, pdf.js included, drawing on the main thread: it slices its
   drawing and yields.
-- **On the heavy page**, pdf.js's slices stop being short once slowed. recto and pdfium keep the
+- **On the heavy page**, pdf.js's slices stop being short once slowed. recto, pdfium and MuPDF keep the
   main thread free, as a worker does for any engine, and that holds for a page of any weight.
 - **Both can be stopped in a browser now.** pdf.js's render task: 0.7 ms at full speed and 0.7 ms slowed, from the moment it's
-  asked. recto's `renderAsync` stops at the next pause. pdfium can only have its worker terminated, about 3 ms in Node.
-- **With `renderAsync`** the longest stretch falls by about 4×, and that stretch is its one rasterizing call. It's
-  under a third of pdf.js's. Its runs land near 57 ms or near 65 ms, on this build and the one before it; this
-  build's median of two sets of 5 was 64.7 and 61.1 ms, the one before's 58.2 and 58.1 ms.
+  asked. recto's `renderAsync` stops at the next pause. pdfium and MuPDF can only have their worker terminated, about 3 ms and 2 ms in Node.
+- **With `renderAsync`** the longest stretch falls by about 5×, and that stretch is its one rasterizing call. It's
+  under a quarter of pdf.js's.
 
 ```sh
-npm run bench:browser -- path/to/pdfs   # add --slowdown 1 for full speed
+npm run bench:browser -- path/to/pdfs --runs 7 --max-load 8 --min-idle 55 --slowdown 1 --out bench/results/browser-full-speed.json
+npm run bench:browser -- path/to/pdfs --runs 7 --max-load 8 --min-idle 55 --out bench/results/browser.json
 ```
 
 ## Before and after 0.2.0
@@ -328,6 +387,8 @@ the buffer at four times the input took 798 MiB.
 
 ## Giving memory back
 
+recto alone, on an earlier version; not rerun for this page.
+
 300 cycles of open, text, render and close on a 70 MiB file. At rest is 2.5 s later, after a collection, in a
 process that still holds the file. The default is a second idle once the instance has grown, and the close past 512 MiB.
 
@@ -347,6 +408,8 @@ node bench/recycle.mjs
 ```
 
 ## Across threads
+
+recto alone, on an earlier version and Node 24; not rerun for this page.
 
 `createPdfPool` on a generated 2,000-page report (13.9 MB) in Node 24, every page's text and then 200 pages drawn at
 800 px, with each result dropped as it arrives. Threads are warm: starting them and giving each the file is
@@ -386,6 +449,8 @@ node bench/pool.mjs
 
 ## The film
 
+Three engines, recorded on an earlier version; not remade for this page.
+
 [`recto-film.gif`](recto-film.gif) is a recording of each engine alone, 240 pages of a generated
 report at 800 px, then cut side by side. The counters are measured in the page. Each engine was
 recorded three times in turn, and the film shows the median take. It finished 2.2× sooner, close to
@@ -397,7 +462,7 @@ it and everything else generated under `docs/`.
 Against `pdftotext`, on the first 10 pages of each document with at least 50 words in poppler that all
 engines open, by matching the words. Poppler's output isn't truth, only a fourth opinion. F1 here is
 over all words of the set, so a long document counts for more than a short one; the median by document
-is 100 or close to it for all three.
+is 100 or close to it for all four.
 
 | F1 against poppler | recto | pdf.js | pdfium | MuPDF |
 |---|---:|---:|---:|---:|
@@ -425,8 +490,8 @@ node bench/text-compare.mjs path/to/pdfs [more/paths] [--worst file.json]
 ## Character boxes
 
 Against pdfium's tight char boxes (`FPDFText_GetCharBox`, the bounds of each glyph's outline), on the first
-5 pages of the 226 files of the public set and the pdf.js, pdfium and hayro test suites that all three
-engines open and that have text: 388,076 chars, 99.7% of them matched to one of pdfium's by code point in
+5 pages of the 226 files of the public set and the pdf.js, pdfium and hayro test suites that recto, pdf.js
+and pdfium open and that have text: 388,076 chars, 99.7% of them matched to one of pdfium's by code point in
 content order, whitespace and the chars the engines add left out. IoU is the area two boxes share over the
 area of both; 1 is the same box.
 
@@ -507,6 +572,8 @@ node bench/box-compare.mjs path/to/pdfs [more/paths] --tight [--no-ink] [--worst
 the repository.
 
 ## Ranged reads
+
+Not rerun for this page; MuPDF wasn't measured.
 
 Reading the page count and the last page's text of a generated 14.1 MB report of 2,000 pages, in one
 flat `/Kids`, from a local server that honours `Range`, in Node.
@@ -623,6 +690,8 @@ given by `--private` appear there as hashes. Credit for the suites: pdf.js, pdfi
 
 ### Scanned pages
 
+recto alone, 0.5.1 against the build of the time; not rerun for this page.
+
 A Letter page scanned at 300 dpi, 2550 by 3300 pixels: paper with grain, ten-point text as strokes, a stamp in
 colour and a photo, generated by `crates/recto/examples/scans.rs` (no scan is committed). In colour as a baseline
 JPEG (4:2:0, 1.36 MB) and a progressive one, and in gray. 0.5.1 against this build, in Node, each render in a
@@ -707,6 +776,8 @@ The results are in [`bench/results/scans.json`](../bench/results/scans.json), an
 
 ### Transparency
 
+Not rerun for this page. MuPDF here is PyMuPDF, from before it was an engine of the benchmark.
+
 Transparency is checked on small generated PDFs, with recto, poppler, stock pdfium and MuPDF sampled
 at points where the spec's formulas give the colour. recto is on the expected colour at every point.
 Where the others differ:
@@ -721,6 +792,8 @@ PYTHONPATH=path/to/pymupdf node bench/render-compare.mjs   # PYTHONPATH only for
 ```
 
 ## Damaged files
+
+recto alone, with a count for three other engines at the end; not rerun for this page.
 
 `bench/fuzz.mjs` damages PDFs by a seed (bit flips, overwritten ranges, truncation, xrefs, `startxref`,
 stream lengths, keywords, numbers), including copies of the files with their streams uncompressed, so
@@ -874,7 +947,7 @@ node bench/wild.mjs run --jobs 6 --results bench/results/wild.json
 A run caches one line per file and engine, with recto's keyed by its wasm, so a rerun after a change runs recto
 alone. It writes counts and file hashes to [`bench/results/wild.json`](../bench/results/wild.json), and each
 engine's worse files, by local name, to `~/.cache/recto-corpus/wild/worse.json`. Run it on an idle machine:
-with a load average past 100, 74 runs across all three engines went past 20 s, and none did when they were run again.
+with a load average past 100, 74 runs across the three engines then went past 20 s, and none did when they were run again.
 
 ## What this doesn't show
 
