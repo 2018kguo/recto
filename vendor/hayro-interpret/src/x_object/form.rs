@@ -350,11 +350,13 @@ impl<'a> FormXObject<'a> {
         context.stroke_paint_mut().alpha = 1.0;
 
         if needs_backdrop && device.begin_backdrop_group(opacity, &mask, blend_mode, self.knockout) {
-            context.save_state();
-            self.draw_contents(resources, context, device);
-            context.restore_state(device);
-            device.next_backdrop_pass();
-            self.draw_contents(resources, context, device);
+            if !device.backdrop_group_known() {
+                context.save_state();
+                self.draw_contents(resources, context, device);
+                context.restore_state(device);
+                device.next_backdrop_pass();
+                self.draw_contents(resources, context, device);
+            }
             device.end_backdrop_group();
         } else {
             device.push_transparency_group(opacity, mask, blend_mode);

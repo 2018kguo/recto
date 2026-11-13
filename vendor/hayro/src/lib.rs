@@ -313,6 +313,10 @@ impl<'a, 'r> Device<'a> for Renderer<'r> {
         self.begin_capture(opacity, mask.as_ref(), blend_mode, knockout)
     }
 
+    fn backdrop_group_known(&self) -> bool {
+        self.capture_known()
+    }
+
     fn next_backdrop_pass(&mut self) {
         self.next_capture_pass();
     }

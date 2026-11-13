@@ -231,6 +231,31 @@ fn soft_masks_and_colour_keys() {
 }
 
 #[test]
+fn an_image_with_a_soft_mask_its_own_size_is_cached_with_it() {
+    // The same image, with its soft mask, drawn on two pages: the second draw keeps it, with its
+    // alpha, and later draws come from the cache, the same pixels as a document drawing only that page.
+    // A mask of another size is drawn as a layer of its own, and isn't kept.
+    let (w, h) = (408, 528);
+    let pixels = scan_pixels(w, h, 3, 4);
+    let data = jpeg(&pixels, w, h, Jpeg::Color420, false, 85);
+    for (mask_w, kept) in [(w, true), (w / 2, false)] {
+        let mut pdf = PdfWriter::default();
+        let mask: Vec<u8> = (0..mask_w * h).map(|i| ((i % mask_w) * 255 / mask_w) as u8).collect();
+        let m = pdf.image(mask_w, h, "/DeviceGray", "", "", &mask);
+        let im = pdf.image(w, h, "/DeviceRGB", "/Filter /DCTDecode", &format!("/SMask {m} 0 R"), &data);
+        let page = (format!("1 0 0 rg 0 0 612 792 re f q {} 0 0 {} 0 0 cm /Im0 Do Q", LETTER.0, LETTER.1), vec![im]);
+        let bytes = pdf.pages(LETTER, &[page.clone(), page.clone(), page]);
+        let doc = Document::open(bytes.clone(), "").unwrap();
+        for i in 0..3 {
+            let drawn = doc.render(i, 306.0, f32::INFINITY).unwrap();
+            let fresh = Document::open(bytes.clone(), "").unwrap().render(i, 306.0, f32::INFINITY).unwrap();
+            assert_eq!(drawn.rgba, fresh.rgba, "mask {mask_w} wide, page {i}");
+            assert_eq!(doc.image_cache_bytes() > 0, kept && i >= 1, "mask {mask_w} wide, page {i}");
+        }
+    }
+}
+
+#[test]
 fn a_region_decodes_at_the_whole_page_scale_and_tiles_share_the_cache() {
     let bytes = page_with(Jpeg::Color420, false, "/DeviceRGB", "");
     let whole = Document::open(bytes.clone(), "").unwrap().render(0, 400.0, f32::INFINITY).unwrap();

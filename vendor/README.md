@@ -68,7 +68,13 @@ They are patched for what upstream does not have:
 
 - **hayro-syntax** and **hayro-interpret**: a JPEG decoded at 1/2, 1/4 or 1/8 when it's drawn that much
   smaller (`dct_scale_shift`), but never under a `/Matte`, a colour key or an indexed colour space; **hayro**:
-  the images a document draws again at the same size kept as drawn (`src/image_cache.rs`).
+  the images a document draws again at the same size kept as drawn (`src/image_cache.rs`), with their soft
+  mask when it's the image's own size (`Renderer::alpha_fits` in `src/image.rs`).
+- **hayro** and **hayro-interpret**: a group that needs its backdrop kept once drawn, cut to where it paints,
+  with its mask and the group events its contents took (`DrawnGroup` in `src/group.rs`), and painted from
+  there in the drawings of the page for later groups' backdrops, which skip its contents
+  (`Device::backdrop_group_known`); a backdrop is no longer kept once used. Without it, n groups drew
+  n^2 / 2 groups and held page-sized pixmaps for each.
 
 - **hayro**: a cached glyph kept as its coverage, a byte a pixel and column by column, rather than an RGBA image
   with only its alpha set, and drawn through `vello_cpu`'s `RenderContext::fill_coverage` (below) rather than as
