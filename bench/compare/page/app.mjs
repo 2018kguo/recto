@@ -17,9 +17,9 @@ const ROWS = [
   ["downloaded", "Downloaded"],
   ["code", "JS + wasm, brotli"],
   ["scrollTasks", `Long tasks, scroll to p. ${SCRIPT.page}`],
-  ["scrollSharp", `Page ${SCRIPT.page} sharp`],
+  ["scrollSharp", `Page ${SCRIPT.page} sharp, since open`],
   ["zoomSharp", "300% sharp"],
-  ["find", `Find “${WORD}”`],
+  ["find", `Find “${WORD}” done, since open`],
   ["memory", "Memory, incl. workers"],
   ["canvas", "Canvas pixels held"],
 ];
@@ -62,6 +62,7 @@ function show(key, row, value, text, note = "") {
 }
 const ms = (value) => (value >= 10_000 ? `${(value / 1000).toFixed(1)}<span class="unit">s</span>` : `${Math.round(value).toLocaleString()}<span class="unit">ms</span>`);
 const mb = (bytes) => (bytes >= 1e6 ? `${(bytes / 1e6).toFixed(bytes >= 1e7 ? 0 : 1)}<span class="unit">MB</span>` : `${Math.round(bytes / 1e3).toLocaleString()}<span class="unit">KB</span>`);
+const plain = (html) => html.replace(/<[^>]+>/gu, " ").replace(/ +/gu, " ").trim();
 function clear() {
   for (const key of Object.keys(panes)) {
     results[key] = {};
@@ -145,7 +146,7 @@ async function playSide(key, doc, run, script) {
     out.scrollSharpMs = Math.round(afterScroll.at - scroll.ended);
     // And from the frame's creation: when the reader, who opened the file then, sees it.
     out.scrollSharpSinceOpenMs = Math.round(afterScroll.at - started);
-    show(key, "scrollSharp", out.scrollSharpMs, ms(out.scrollSharpMs), "after scrolling");
+    show(key, "scrollSharp", out.scrollSharpSinceOpenMs, ms(out.scrollSharpSinceOpenMs), `${plain(ms(out.scrollSharpMs))} after the scroll`);
     await wait(100);
     const tasks = side.longTasksBetween(scroll.started, scroll.ended);
     Object.assign(out, { scrollLongTasks: tasks.longTasks, scrollLongTaskMs: tasks.longTaskMs, scrollP95FrameMs: scroll.p95FrameMs, scrollDroppedFrames: scroll.droppedFrames });
@@ -167,7 +168,7 @@ async function playSide(key, doc, run, script) {
     out.findMs = Math.round(found.ms);
     out.findDoneSinceOpenMs = Math.round(now() - started);
     out.findHits = found.hits;
-    show(key, "find", out.findMs, ms(out.findMs), `${found.hits} hits`);
+    show(key, "find", out.findDoneSinceOpenMs, ms(out.findDoneSinceOpenMs), `${plain(ms(out.findMs))} after the search · ${found.hits} hits`);
   }
   // What it still reads in the background (pdf.js fetches the rest of the file) shares the link
   // with the next side: let it finish first, for up to ten minutes.
