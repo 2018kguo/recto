@@ -648,8 +648,10 @@ impl Document {
         y: f64,
         region_width: f64,
         region_height: f64,
+        text: bool,
     ) -> Result<RenderTask, JsValue> {
-        crate::RenderTask::new(self.0.clone(), index, width, max_height, region(x, y, region_width, region_height))
+        let options = crate::RenderOptions { text };
+        crate::RenderTask::with_options(self.0.clone(), index, width, max_height, region(x, y, region_width, region_height), options)
             .map(RenderTask)
             .map_err(js_error)
     }
@@ -665,10 +667,11 @@ impl Document {
         y: f64,
         region_width: f64,
         region_height: f64,
+        text: bool,
     ) -> Result<RenderedPage, JsValue> {
         let b = self
             .0
-            .render_region(index, width, max_height, region(x, y, region_width, region_height))
+            .render_with(index, width, max_height, region(x, y, region_width, region_height), crate::RenderOptions { text })
             .map_err(js_error)?;
         Ok(b.into())
     }

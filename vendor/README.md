@@ -43,6 +43,9 @@ They are patched for what upstream does not have:
   (`may_start_ref` in `src/object/ref.rs`); the page walk makes room for a node's kids at once; and a page
   not yet built takes a pointer, not a `Page`, in `LazyPages::built`.
 - **hayro-interpret**: a function listed again at the same depth built once and shared.
+- **hayro-interpret**: a page drawn without its text (`RenderContent::NO_TEXT`): `Tf` and the text-showing
+  operators skipped in `run_ops`, and an ExtGState's `/Font` in `handle_gs`, so no font loads, no glyph draws
+  and a clipping mode adds no clip.
 - **hayro-interpret**: an even-odd clip whose first subpath is a rectangle around the current clip, as Word
   cuts holes in a page, given to the renderer with that rectangle far past the viewport, so it's culled
   rather than rasterized again on every push (`widen_covering_rect` in `src/context.rs`).

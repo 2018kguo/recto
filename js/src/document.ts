@@ -286,6 +286,12 @@ export type PdfRenderOptions = {
    * are on the region's bitmap, not the page's, and `width` may be up to 262,144.
    */
   region?: PdfBox;
+  /**
+   * Default true. False draws the page without its text: nothing the text-showing operators show, in any
+   * rendering mode (Type 3 glyphs included), and no clip from a clipping mode. Paths, images, shadings,
+   * forms and annotations draw as usual, less any text in them, and fonts only text needs aren't loaded.
+   */
+  text?: boolean;
 };
 
 /** A render of a region: where its pixels are in the whole page's bitmap at that scale. */
@@ -513,10 +519,13 @@ function tightBoxes(options: PdfTextOptions | undefined): boolean {
   return boxes === "tight";
 }
 
-/** `width`, `maxHeight` and the region as the engine takes them (NaNs for none), or a RangeError. */
-function renderArgs(options: PdfRenderOptions): [number, number, number, number, number, number] {
+/** `width`, `maxHeight`, the region (NaNs for none) and `text` as the engine takes them, or a RangeError. */
+function renderArgs(options: PdfRenderOptions): [number, number, number, number, number, number, boolean] {
   const maxHeight = options.maxHeight ?? DEFAULT_MAX_HEIGHT;
-  const { region } = options;
+  const { region, text = true } = options;
+  if (typeof text !== "boolean") {
+    throw new RangeError("render text must be true or false");
+  }
   const most = region ? MAX_REGION_DIMENSION : MAX_DIMENSION;
   if (!(options.width > 0 && options.width <= most) || !(maxHeight > 0)) {
     throw new RangeError(
@@ -526,13 +535,13 @@ function renderArgs(options: PdfRenderOptions): [number, number, number, number,
     );
   }
   if (!region) {
-    return [options.width, maxHeight, Number.NaN, Number.NaN, Number.NaN, Number.NaN];
+    return [options.width, maxHeight, Number.NaN, Number.NaN, Number.NaN, Number.NaN, text];
   }
   const { x, y, width, height } = region;
   if (![x, y, width, height].every((v) => typeof v === "number" && Number.isFinite(v)) || !(width > 0 && height > 0)) {
     throw new RangeError("a render's region needs finite x and y, and width and height above 0");
   }
-  return [options.width, maxHeight, x, y, width, height];
+  return [options.width, maxHeight, x, y, width, height, text];
 }
 
 /** A rendered page as `render` returns it: with a region, where it is on the page. */
