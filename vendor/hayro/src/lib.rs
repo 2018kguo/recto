@@ -90,6 +90,9 @@ pub(crate) struct GlobalState {
     page: Option<Rect>,
     // recto: see `image_cache`.
     image_cache: Rc<RefCell<image_cache::ImageCache>>,
+    // recto: the images this render drew, for a drawing of the page again for a group's backdrop;
+    // see `image_cache::RenderImages`.
+    render_images: RefCell<image_cache::RenderImages>,
     // recto: what the page has drawn so far, where it's been rasterized in parts; see
     // `MAX_RECORDED_BYTES`. On the background, as the page's pixmap is.
     flushed: RefCell<Option<Pixmap>>,
@@ -132,6 +135,7 @@ impl GlobalState {
             degraded: cache.degraded.clone(),
             page: None,
             image_cache: cache.image_cache.clone(),
+            render_images: RefCell::default(),
             flushed: RefCell::default(),
             background: settings.background,
         }

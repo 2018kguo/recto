@@ -580,8 +580,15 @@ impl Renderer<'_> {
                     .decode_key(target)
                     .filter(|_| !self.in_type3_glyph)
                     .map(|key| (key, [a, b, c, d].map(f64::to_bits), self.global.force_image_interpolation));
+                // recto: or from earlier in this render, as a group's backdrop draws the page again;
+                // that's a second drawing, which the document's cache keeps.
+                let this_render = || {
+                    let (drawn, asked) = self.global.render_images.borrow().get(key?)?;
+                    self.global.image_cache.borrow_mut().insert(key?, &drawn, asked);
+                    Some(drawn)
+                };
                 if let Some(key) = key
-                    && let Some(drawn) = self.global.image_cache.borrow_mut().get(key)
+                    && let Some(drawn) = { self.global.image_cache.borrow_mut().get(key) }.or_else(this_render)
                 {
                     self.draw_pixmap(drawn.pixmap, drawn.quality, transform * drawn.transform);
                     self.ctx.set_aliasing_threshold(self.global.aliasing_threshold);
@@ -616,6 +623,7 @@ impl Renderer<'_> {
                         && !cut
                     {
                         self.global.image_cache.borrow_mut().insert(key, &drawn, asked);
+                        self.global.render_images.borrow_mut().insert(key, &drawn, asked);
                     }
                     self.draw_pixmap(drawn.pixmap, drawn.quality, props.transform * drawn.transform);
                 }

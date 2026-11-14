@@ -1,5 +1,5 @@
-//! JPEGs drawn smaller than their size are decoded at 1/2, 1/4 or 1/8 of it, and an image drawn
-//! again at the same size comes from the document's cache. Each test renders with scaled decoding
+//! JPEGs drawn smaller than their size are decoded at 1/2, 1/4 or 1/8 of it, other images of a byte a
+//! sample averaged to that, and an image drawn again at the same size comes from the document's cache. Each test renders with scaled decoding
 //! and without (`set_scaled_dct_decode`), on scanned pages made in `support/scans.rs`.
 mod support;
 
@@ -170,6 +170,96 @@ fn every_kind_of_jpeg_renders_as_its_full_decode_does() {
             }
         }
     }
+}
+
+fn deflate(data: &[u8]) -> Vec<u8> {
+    use std::io::Write;
+    let mut encoder = flate2::write::ZlibEncoder::new(Vec::new(), flate2::Compression::fast());
+    encoder.write_all(data).unwrap();
+    encoder.finish().unwrap()
+}
+
+#[test]
+fn flate_images_drawn_smaller_render_as_their_full_decode_does() {
+    // A byte a sample, other than DCT, is averaged in blocks as a JPEG is decoded at 1/2..1/8:
+    // with a /Decode, in CMYK, and with a soft mask of its own size, close to the full decode. An
+    // index, 16 bits a sample and a colour key aren't averaged: those stay the same pixels.
+    let (w, h) = (W, H);
+    let gray = scan_pixels(w, h, 1, 11);
+    let rgb = scan_pixels(w, h, 3, 12);
+    let cmyk: Vec<u8> = scan_pixels(w, h, 4, 13);
+    let mask: Vec<u8> = (0..w * h).map(|i| ((i % w) * 255 / w) as u8).collect();
+    let wide: Vec<u8> = rgb.iter().flat_map(|&v| [v, v ^ 0x5a]).collect();
+    let flate = "/Filter /FlateDecode";
+    type Image = Box<dyn Fn(&mut PdfWriter) -> usize>;
+    let cases: Vec<(&str, bool, Image)> = vec![
+        ("RGB", true, Box::new(move |pdf| pdf.image(w, h, "/DeviceRGB", flate, "", &deflate(&rgb)))),
+        ("gray, unfiltered, /Decode inverted", true, Box::new({
+            let gray = gray.clone();
+            move |pdf| pdf.image(w, h, "/DeviceGray", "", "/Decode [1 0]", &gray)
+        })),
+        ("CMYK, /Decode inverted", true, Box::new({
+            let cmyk = cmyk.clone();
+            move |pdf| pdf.image(w, h, "/DeviceCMYK", flate, "/Decode [1 0 1 0 1 0 1 0]", &deflate(&cmyk))
+        })),
+        ("CMYK with a soft mask", true, Box::new({
+            let (cmyk, mask) = (cmyk.clone(), mask.clone());
+            move |pdf| {
+                let m = pdf.image(w, h, "/DeviceGray", flate, "", &deflate(&mask));
+                pdf.image(w, h, "/DeviceCMYK", flate, &format!("/SMask {m} 0 R"), &deflate(&cmyk))
+            }
+        })),
+        ("16 bits", false, Box::new(move |pdf| {
+            let dict = format!("/Type /XObject /Subtype /Image /Width {w} /Height {h} /ColorSpace /DeviceRGB /BitsPerComponent 16 {flate}");
+            pdf.stream(&dict, &deflate(&wide))
+        })),
+        ("indexed", false, Box::new({
+            let gray = gray.clone();
+            move |pdf| pdf.image(w, h, "[/Indexed /DeviceRGB 1 <ff000000ff00>]", flate, "", &deflate(&gray.iter().map(|&g| g >> 7).collect::<Vec<_>>()))
+        })),
+        ("gray, colour key", false, Box::new(move |pdf| pdf.image(w, h, "/DeviceGray", flate, "/Mask [0 40]", &deflate(&gray)))),
+    ];
+    for (label, averaged, image) in cases {
+        let bytes = full_page(|pdf| image(pdf));
+        // Averaged only to twice the size drawn: at 400 not at all, at 200 by 2 and at 100 by 4.
+        for (width, shift) in [(500.0, 0), (400.0, 0), (200.0, 1), (100.0, 2)] {
+            let (scaled, full) = (render(&bytes, width, true), render(&bytes, width, false));
+            if shift == 0 || !averaged {
+                assert_eq!(scaled.rgba, full.rgba, "{label} at {width}: the same pixels");
+            } else {
+                assert_ne!(scaled.rgba, full.rgba, "{label} at {width}: averaged");
+                assert_close(&format!("{label} at {width} (1/{})", 1 << shift), &diff(&scaled, &full));
+            }
+        }
+    }
+}
+
+#[test]
+fn an_image_under_a_group_that_needs_its_backdrop_is_decoded_once() {
+    // A non-isolated group with a blend mode inside and an opacity draws the page again for its
+    // backdrop; the image in that drawing is the one drawn before it, and the same pixels as a
+    // document drawing the page without anything kept (the image cache counts it drawn twice).
+    let pixels = scan_pixels(W, H, 3, 14);
+    let mut pdf = PdfWriter::default();
+    let im = pdf.image(W, H, "/DeviceRGB", "/Filter /FlateDecode", "", &deflate(&pixels));
+    let group = pdf.stream(
+        "/Type /XObject /Subtype /Form /BBox [0 0 612 792] /Group << /S /Transparency >> /Resources << /ExtGState << /M << /BM /Multiply >> >> >>",
+        b"/M gs 0 0 1 rg 100 100 300 300 re f",
+    );
+    // The group painted at an opacity, from a form whose resources hold the state.
+    let outer = pdf.stream(
+        &format!("/Type /XObject /Subtype /Form /BBox [0 0 612 792] /Resources << /ExtGState << /G << /ca 0.7 /CA 0.7 >> >> /XObject << /Fm {group} 0 R >> >>"),
+        b"/G gs /Fm Do",
+    );
+    let content = format!("q {} 0 0 {} 0 0 cm /Im0 Do Q /Im1 Do", LETTER.0, LETTER.1);
+    let bytes = pdf.pages(LETTER, &[(content, vec![im, outer])]);
+    let doc = Document::open(bytes.clone(), "").unwrap();
+    let drawn = doc.render(0, 306.0, f32::INFINITY).unwrap();
+    assert!(doc.image_cache_bytes() > 0, "drawn twice in one render, it's kept");
+    set_scaled_dct_decode(false);
+    let full = Document::open(bytes, "").unwrap().render(0, 306.0, f32::INFINITY).unwrap();
+    set_scaled_dct_decode(true);
+    assert_close("under a group", &diff(&drawn, &full));
 }
 
 /// A page with `content` drawing `/Im0`, the scan.

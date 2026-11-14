@@ -1,5 +1,6 @@
 // The PDFs the benchmark, the film and the README's images use. All generated here, written
 // directly, deterministic: nothing third-party, nothing to license.
+import crypto from "node:crypto";
 import zlib from "node:zlib";
 
 /** xorshift32: the same numbers every run. */
@@ -60,7 +61,7 @@ function lines(next, count) {
 const escaped = (text) => text.replace(/[\\()]/gu, "\\$&");
 
 /** Assembles objects into a file. `objects[i]` is object i + 1: a string, or { dict, data }. */
-export function assemble(objects, root) {
+export function assemble(objects, root, trailer = "") {
   const chunks = [Buffer.from("%PDF-1.7\n%\xe2\xe3\xcf\xd3\n", "latin1")];
   let at = chunks[0].length;
   const offsets = [];
@@ -81,7 +82,7 @@ export function assemble(objects, root) {
   });
   const xref = [`xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`];
   for (const offset of offsets) xref.push(`${String(offset).padStart(10, "0")} 00000 n \n`);
-  xref.push(`trailer\n<</Size ${objects.length + 1} /Root ${root} 0 R>>\nstartxref\n${at}\n%%EOF\n`);
+  xref.push(`trailer\n<</Size ${objects.length + 1} /Root ${root} 0 R${trailer}>>\nstartxref\n${at}\n%%EOF\n`);
   chunks.push(Buffer.from(xref.join(""), "latin1"));
   return new Uint8Array(Buffer.concat(chunks));
 }
@@ -320,4 +321,114 @@ export function heavyPagePdf({ paths }) {
     ],
     1,
   );
+}
+
+/** RC4, for the standard security handler's O and U entries. */
+function rc4(key, data) {
+  const s = Array.from({ length: 256 }, (_, i) => i);
+  for (let i = 0, j = 0; i < 256; i++) {
+    j = (j + s[i] + key[i % key.length]) & 255;
+    [s[i], s[j]] = [s[j], s[i]];
+  }
+  const out = Buffer.alloc(data.length);
+  for (let k = 0, i = 0, j = 0; k < data.length; k++) {
+    i = (i + 1) & 255;
+    j = (j + s[i]) & 255;
+    [s[i], s[j]] = [s[j], s[i]];
+    out[k] = data[k] ^ s[(s[i] + s[j]) & 255];
+  }
+  return out;
+}
+
+const md5 = (...parts) => crypto.createHash("md5").update(Buffer.concat(parts)).digest();
+const PASSWORD_PAD = Buffer.from("28bf4e5e4e758a4164004e56fffa01082e2e00b6d0683e802f0ca9fe6453697a", "hex");
+
+/**
+ * `objects` encrypted as Acrobat does by default since version 7, with AES-128 (the standard security handler,
+ * revision 4) and no password to open: each stream's data, under a key of its own. Strings aren't encrypted, so
+ * there must be none. Returns what the trailer adds.
+ */
+function encryptAes128(objects, next) {
+  const id = Buffer.from(Array.from({ length: 16 }, () => Math.floor(next() * 256)));
+  const permissions = -1852;
+  // The owner entry (algorithm 3), for an owner password as empty as the user's.
+  let ownerKey = md5(PASSWORD_PAD);
+  for (let i = 0; i < 50; i++) ownerKey = md5(ownerKey);
+  let owner = rc4(ownerKey, PASSWORD_PAD);
+  for (let i = 1; i <= 19; i++) owner = rc4(ownerKey.map((b) => b ^ i), owner);
+  // The file key (algorithm 2) and the user entry (algorithm 5).
+  const p = Buffer.alloc(4);
+  p.writeInt32LE(permissions);
+  let key = md5(PASSWORD_PAD, owner, p, id);
+  for (let i = 0; i < 50; i++) key = md5(key);
+  let user = rc4(key, md5(PASSWORD_PAD, id));
+  for (let i = 1; i <= 19; i++) user = rc4(key.map((b) => b ^ i), user);
+  user = Buffer.concat([user, Buffer.alloc(16)]);
+  objects.forEach((object, i) => {
+    if (typeof object === "string") return;
+    const number = Buffer.alloc(5);
+    number.writeUIntLE(i + 1, 0, 3);
+    const objectKey = md5(key, number, Buffer.from("sAlT", "latin1"));
+    const iv = Buffer.from(Array.from({ length: 16 }, () => Math.floor(next() * 256)));
+    const cipher = crypto.createCipheriv("aes-128-cbc", objectKey, iv);
+    objects[i] = { dict: object.dict, data: Buffer.concat([iv, cipher.update(object.data), cipher.final()]) };
+  });
+  const hex = (bytes) => bytes.toString("hex");
+  objects.push(
+    `<</Filter /Standard /V 4 /R 4 /Length 128 /CF <</StdCF <</CFM /AESV2 /AuthEvent /DocOpen /Length 16>>>> /StmF /StdCF /StrF /StdCF /O <${hex(owner)}> /U <${hex(user)}> /P ${permissions}>>`,
+  );
+  return ` /Encrypt ${objects.length} 0 R /ID [<${hex(id)}> <${hex(id)}>]`;
+}
+
+/**
+ * A poster as a design tool exports one: an A3 sheet of large CMYK photos, each with a soft mask its own size
+ * and drawn from a form at a fraction of its size, then a group that needs the page under it (not isolated, a
+ * blend mode inside, an opacity of its own), the file encrypted with AES as such tools do by default. `photos`
+ * pictures of `size` pixels across, 3:4.
+ */
+export function posterPdf({ photos = 8, size = 1500, seed = 31 } = {}) {
+  const next = random(seed);
+  const objects = [];
+  const add = (object) => objects.push(object) && objects.length;
+  add("<</Type /Catalog /Pages 2 0 R>>");
+  add("<</Type /Pages /Count 1 /Kids [3 0 R]>>");
+  add(""); // the page, once its resources are known
+  const [width, height] = [size, Math.round(size * 0.75)];
+  let content = "0 0 0 0.06 k 0 0 1190.55 841.89 re f\n";
+  const forms = [];
+  for (let n = 0; n < photos; n++) {
+    // Smooth fields of ink with grain, as a photo is, and a mask that fades out at the edges.
+    const phase = [next(), next(), next(), next()].map((v) => v * 6.28);
+    const cmyk = Buffer.alloc(width * height * 4);
+    const alpha = Buffer.alloc(width * height);
+    for (let y = 0, i = 0; y < height; y++) {
+      const v = y / height;
+      for (let x = 0; x < width; x++, i++) {
+        const u = x / width;
+        const grain = (next() - 0.5) * 8;
+        for (let c = 0; c < 4; c++) {
+          const ink = 110 + 90 * Math.sin(u * (3 + c) + v * (2 + c * 1.5) + phase[c]) * (c === 3 ? 0.4 : 1);
+          cmyk[i * 4 + c] = Math.min(255, Math.max(0, ink + grain));
+        }
+        const edge = Math.min(u, 1 - u, v, 1 - v) * 12;
+        alpha[i] = Math.min(255, Math.round(edge * 255));
+      }
+    }
+    const mask = add({ dict: ` /Type /XObject /Subtype /Image /Width ${width} /Height ${height} /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode`, data: zlib.deflateSync(alpha) });
+    const image = add({
+      dict: ` /Type /XObject /Subtype /Image /Width ${width} /Height ${height} /ColorSpace /DeviceCMYK /BitsPerComponent 8 /SMask ${mask} 0 R /Filter /FlateDecode`,
+      data: zlib.deflateSync(cmyk),
+    });
+    // Four across, at about 230 by 170 points.
+    const [x, y] = [40 + (n % 4) * 285, 470 - Math.floor(n / 4) * 220];
+    forms.push(add({ ...flate(`q 230 0 0 172 ${x} ${y} cm /Im Do Q`), dict: ` /Type /XObject /Subtype /Form /BBox [0 0 1190.55 841.89] /Resources <</XObject <</Im ${image} 0 R>>>> /Filter /FlateDecode` }));
+    content += `/Fm${n} Do\n`;
+  }
+  // A shadow over the photos, multiplied, at 70%: drawn over the page as it stands, so it's drawn again.
+  const group = add({ ...flate("/M gs 0.2 0.1 0 0.6 k 60 60 1070 260 re f"), dict: " /Type /XObject /Subtype /Form /BBox [0 0 1190.55 841.89] /Group <</S /Transparency>> /Resources <</ExtGState <</M <</BM /Multiply>>>>>> /Filter /FlateDecode" });
+  content += "/Shade gs /Group Do\n";
+  const contents = add(flate(content));
+  const xobjects = forms.map((form, n) => `/Fm${n} ${form} 0 R`).join(" ");
+  objects[2] = `<</Type /Page /Parent 2 0 R /MediaBox [0 0 1190.55 841.89] /Contents ${contents} 0 R /Resources <</XObject <<${xobjects} /Group ${group} 0 R>> /ExtGState <</Shade <</ca 0.7 /CA 0.7>>>>>>>>`;
+  return assemble(objects, 1, encryptAes128(objects, next));
 }

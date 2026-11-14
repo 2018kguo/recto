@@ -23,6 +23,19 @@
   memory to 3.3 GB, and the process to 1.8 GB. Each patch is drawn as it's cut now; the
   pixels are the same, and that file peaks at 274 MB.
 
+### Faster
+
+- **Large images drawn small.** An image of a byte a sample that isn't a JPEG (Flate, LZW, run-length or
+  unfiltered) and is drawn at under a quarter, an eighth or a sixteenth of its size is averaged in 2x2, 4x4 or
+  8x8 blocks before its colour is converted and resized, as a JPEG is decoded smaller. So is its soft mask. It
+  isn't averaged under an index, a colour key or a `/Matte`, at 16 bits a sample, or when the image is drawn larger. Against the full
+  decode it's within the scanned-page tolerance (`tests/scans.rs`). An image drawn again in the same
+  render, which happens when a group draws the page again for its backdrop, comes from the first drawing
+  instead of being decoded again. AES-encrypted streams decrypt with lookup tables a column at a time. On a
+  generated poster (`posterPdf` in `bench/generate.mjs`, an encrypted A3 sheet of CMYK photos with soft masks
+  under a multiplied shadow), a render took POSTER_BEFORE and now takes POSTER_AFTER in Node. A 32 MB Illustrator poster
+  from the web sample went from WILD_BEFORE to WILD_AFTER. [Node](docs/benchmarks.md#in-node)
+
 ## 0.8.2
 
 ### Added

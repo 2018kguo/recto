@@ -18,7 +18,7 @@ import { parseArgs } from "node:util";
 import { Worker, isMainThread, parentPort, workerData } from "node:worker_threads";
 
 import { mupdfEngine, pdfiumEngine, pdfjsEngine, rectoEngine } from "./engines.mjs";
-import { heavyPagePdf, reportPdf } from "./generate.mjs";
+import { heavyPagePdf, posterPdf, reportPdf } from "./generate.mjs";
 import { quietGate } from "./quiet.mjs";
 
 const here = import.meta.dirname;
@@ -158,6 +158,17 @@ const jobs = {
     const render = performance.now() - started;
     await doc.close();
     return { open, text, render, rss: peakRss() };
+  },
+  /** The generated poster, opened and drawn in a fresh process: large images drawn small. */
+  async poster({ engine: name, poster }) {
+    const engine = await load(name);
+    const bytes = new Uint8Array(fs.readFileSync(poster));
+    const started = performance.now();
+    const doc = await engine.open(bytes);
+    await renderBytes(doc, 0, WIDTH);
+    const render = performance.now() - started;
+    await doc.close();
+    return { render };
   },
   /** The engine on the main thread, yielding between calls, as a server would be if it did that. */
   async blocking(request) {
@@ -328,9 +339,11 @@ async function main() {
   const report = path.join(temp, "report.pdf");
   const large = path.join(temp, "large.pdf");
   const heavy = path.join(temp, "heavy.pdf");
+  const poster = path.join(temp, "poster.pdf");
   fs.writeFileSync(report, reportPdf({ pages: 40, imageSize: 240 }));
   fs.writeFileSync(large, reportPdf({ pages: LARGE_PAGES, imageEvery: 10, imageSize: 240 }));
   fs.writeFileSync(heavy, heavyPagePdf({ paths: 300_000 }));
+  fs.writeFileSync(poster, posterPdf());
 
   const probes = await Promise.all(ENGINES.map((engine) => child({ job: "probe", engine, files })));
   const total = files.length;
@@ -340,7 +353,7 @@ async function main() {
   const bytes = files.reduce((sum, file) => sum + fs.statSync(file).size, 0);
 
   const samples = Object.fromEntries(ENGINES.map((engine) => [engine, []]));
-  const shared = { files, report, large, heavy };
+  const shared = { files, report, large, heavy, poster };
   const gate = quietGate({
     maxLoad: values["max-load"] ? Number(values["max-load"]) : undefined,
     minIdle: values["min-idle"] ? Number(values["min-idle"]) / 100 : undefined,
@@ -351,7 +364,7 @@ async function main() {
       const engine = ENGINES[(run + k) % ENGINES.length];
       const started = Date.now();
       const sample = {};
-      for (const job of ["cold", "speed", "large", "blocking", "abort"]) {
+      for (const job of ["cold", "speed", "large", "poster", "blocking", "abort"]) {
         await quiet();
         sample[job] = await child({ job, engine, ...shared });
       }
@@ -373,6 +386,7 @@ async function main() {
     largeRender: (s) => s.large.render,
     rss: (s) => s.speed.rss,
     largeRss: (s) => s.large.rss,
+    posterRender: (s) => s.poster.render,
     maxMedian: (s) => s.blocking.maxMedian,
     maxWorst: (s) => s.blocking.maxWorst,
     p99Median: (s) => s.blocking.p99Median,

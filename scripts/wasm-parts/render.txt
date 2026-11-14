@@ -17,6 +17,7 @@
 <ab_glyph_rasterizer::raster::Rasterizer>::new
 <ab_glyph_rasterizer::raster::Rasterizer>::tessellate_cubic
 <alloc::boxed::Box<hayro_interpret::pattern::Pattern> as core::clone::Clone>::clone
+<alloc::raw_vec::RawVec<((u128, [u64; 4usize], bool), hayro::image_cache::DrawnImage, usize)>>::grow_one
 <alloc::raw_vec::RawVec<(u128, [u64; 4usize], bool)>>::grow_one
 <alloc::raw_vec::RawVec<alloc::vec::Vec<u8>>>::grow_one
 <alloc::raw_vec::RawVec<hayro::group::GroupFrame>>::grow_one
@@ -113,6 +114,7 @@
 <hayro::Renderer>::set_stroke_properties
 <hayro::Renderer>::stroke_outline_run
 <hayro::Renderer>::stroke_path
+<hayro::image_cache::ImageCache>::insert
 <hayro_font::GlyphIdentifier>::cache_key
 <hayro_font::OutlineGlyph>::glyph_id
 <hayro_font::OutlineGlyph>::hinted_outline
@@ -623,6 +625,7 @@ hayro_interpret::interpret::text::show_glyph_run::<hayro::Renderer>
 hayro_interpret::x_object::decode::decode_context
 hayro_interpret::x_object::decode::mask::decode_mask
 hayro_syntax::content::ops::parse_named_color
+hayro_syntax::filter::dct_scale_shift
 hayro_syntax::filter::fits_decoded
 hayro_syntax::filter::max_decoded_bytes
 kurbo::offset::offset_cubic
