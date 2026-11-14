@@ -24,6 +24,7 @@ above 1× recto is ahead; **bold** is where recto loses. "Level" means the 95% i
 | **Render**: 50 pages at 1024 px in Node | 7.3× | 6.1× | 6.1× |
 | **Render**: 15 pages at 800 px in Chromium | 4.9× | 1.3× | 1.5× |
 | **Render**: 5 pages of the 2,000-page report in Node | 3.0× | level (1.06×) | **MuPDF 26% faster** (21 against 28 ms) |
+| **Render**: a generated poster of large images drawn small, in Node | 2.3× | level (1.05×) | level (1.04×) |
 | **Text**: 296 pages in Node | 4.6× | 2.5× | 2.9× |
 | **Text**: 79 pages in Chromium | 3.3× | 2.7× | 2.9× |
 | **Memory**: peak of a Node process, 29 documents | 2.3× less | **pdfium 6% less** (280 against 298 MB) | 1.8× less |
@@ -87,6 +88,7 @@ documents of the [scoreboard](#the-scoreboard)'s `pub` set (25 MB), which all fo
 | 2,000-page report: open | 3.0 ms | 41.9 ms (14× [12–15]) | 3.5 ms (1.17× [0.97–1.25]) | 5.4 ms (1.8× [1.5–1.9]) |
 | 2,000-page report: every page's text | 557 ms | 1,682 ms (3.0× [2.8–3.5]) | 820 ms (1.5× [1.4–1.6]) | 1,005 ms (1.8× [1.7–1.9]) |
 | 2,000-page report: render 5 pages | 28.2 ms | 85.5 ms (3.0× [2.6–3.3]) | 29.8 ms (1.06× [0.93–1.08]) | **20.8 ms (0.74× [0.65–0.81])** |
+| A generated poster: open, render at 1024 px | 511 ms | 1,175 ms (2.3× [2.1–2.6]) | 534 ms (1.05× [0.94–1.11]) | 533 ms (1.04× [0.92–1.16]) |
 
 - **The machine.** An Apple M5 Pro, 18 cores, 64 GB, shared with an indexer that keeps the load average high while
   leaving most cores idle. Each measured process started only when the 1-minute load was under 8 or the CPUs were at
@@ -94,6 +96,12 @@ documents of the [scoreboard](#the-scoreboard)'s `pub` set (25 MB), which all fo
   idle share's 71% (55% at the least). The engines take turns round by round, so what the machine did falls on all
   four; read the ratios. Absolute times are higher than this page's earlier tables (a fresh process's first text was
   30.7 ms then), which were on Node 24 at a load of 2.
+- **The poster** is `posterPdf()` from `bench/generate.mjs`, 34.7 MB: an A3 sheet, AES-encrypted, of 8 CMYK photos
+  1500 px across with soft masks, each drawn at about a sixth of its size from a form, under a multiplied shadow
+  group at 70% that needs the page under it. Its row is from a later run of the same job (`poster` in
+  `bench/bench.mjs`) on recto 0.8.2 and the image changes after it, 7 rounds under the same gate (load median
+  19.1, idle 69%); the rest of the table wasn't rerun. Before those changes recto took 1,373 ms on it (see
+  [Large images drawn small](#large-images-drawn-small)).
 - **Totals**, not per-file medians, so a slow file counts for what it costs. A warm-up pass comes
   first, and the buffer copies are outside the clock. The brackets are 95% intervals on the ratio, bootstrapped
   from the 7 rounds.
@@ -779,6 +787,40 @@ node bench/scans.mjs /tmp/scans --compare path/to/0.5.1/js/dist
 
 The results are in [`bench/results/scans.json`](../bench/results/scans.json), and 0.5.1's in
 [`bench/results/before/scans-0.5.1.json`](../bench/results/before/scans-0.5.1.json).
+
+### Large images drawn small
+
+A design tool's poster is a few large photos drawn at a fraction of their size, often in CMYK with soft masks, in
+an encrypted file, with a shadow or glow group over them. One from the [web sample](#real-world-files), 32 MB,
+took recto 2.5 s to open and draw at 1024 px in a fresh Node process, where pdfium takes 0.84 s and MuPDF 0.63
+(5 rounds each under the gate above). It now takes 0.52 s: 1.6× pdfium [1.5–1.7] and 1.2× MuPDF [1.1–1.2].
+Profiled, it was all images:
+
+- **Each image was decoded twice.** A group that needs its backdrop draws the page again up to the group, and
+  every image before it was decoded, converted and resized again. An image drawn earlier in the same render now
+  comes from that drawing (`RenderImages` in `vendor/hayro/src/image_cache.rs`), within the image cache's limits.
+- **A Flate CMYK image was converted at full size and then shrunk tenfold**: the CMYK conversion was 35% of the
+  time. An image of a byte a sample that isn't a JPEG is now averaged in 2x2, 4x4 or 8x8 blocks first, when it's
+  drawn at under a quarter, an eighth or a sixteenth of its size, under the same conditions as a JPEG's smaller
+  decode. It's averaged only to twice the drawn size, so the resize after it filters as before: averaging to the
+  drawn size itself showed on hairlines in a thumbnail (a per-pixel mean of 5.1 of 255 at 1/8).
+- **AES decrypted a byte at a time**; it now goes a column at a time from tables.
+
+Node, `origin/main` against these changes, taking turns, each a fresh process started under the gate above, which
+opens the file and draws page 0 at 1024 px; medians, with 95% intervals on the ratio:
+
+| | Before | After |
+|---|---:|---:|
+| `posterPdf()`, 9 rounds | 1,373 ms | 538 ms (2.6× [2.2–3.1]) |
+| The 32 MB poster from the web sample, 9 rounds | 2,458 ms | 517 ms (4.8× [4.5–5.8]) |
+| 2,000-page report, 5 pages drawn (the `large` job), 15 rounds | 35.8 ms | 37.2 ms (level, 0.96× [0.86–1.14]) |
+
+Natively, three draws of the web poster take 15.2 billion instructions, where they took 51.2. What's left is
+inflating the images and decrypting them, which no engine skips. Against their full decode, the averaged images
+are within the [scanned pages](#scanned-pages)' tolerance by a wide margin (`tests/scans.rs`): at 1/4, a mean of
+0.83 of 255 a channel at most, 0.49 over 4x4 cells, no pixel past 48 and no cell past 16; indexed, 16-bit and
+colour-keyed images are the same pixels as before. The report's pages draw their images larger than their size,
+so neither change touches them.
 
 ### Transparency
 
