@@ -1057,11 +1057,11 @@ recto::text::build_page
 recto::text::classify
 recto::text::mirrored
 recto::text::rtl_segment
+recto::wasm::char_text
 recto::wasm::js_error
 recto::wasm::js_set_raw::__wbg_set externref shim
 recto::wasm::js_sys_error::__wbg_Error externref shim
 recto::wasm::page_text
-recto::wasm::page_text::{closure#9}
 roundf
 setAssetLoader
 setAssetLoader externref shim

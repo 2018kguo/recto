@@ -136,19 +136,19 @@ fn ligature(c: char) -> Option<&'static str> {
     })
 }
 
-/// What a char reads as, code point by code point: one per entry of `PdfPageText`'s columns.
-fn char_text(c: &crate::Char, mut push: impl FnMut(char)) {
+/// Appends what a char reads as: one code point per entry of `PdfPageText`'s columns.
+fn char_text(c: &crate::Char, text: &mut String) {
     if c.text.is_empty() {
         // An unmapped glyph stands in as its char code. A code that is no
         // scalar value (4-byte codespaces, surrogates) reads as U+FFFD.
-        push(char::from_u32(c.code).unwrap_or('\u{FFFD}'));
+        text.push(char::from_u32(c.code).unwrap_or('\u{FFFD}'));
         return;
     }
     for ch in c.text.chars() {
         // The Latin ligatures U+FB00..FB06 split into their letters, each with the ligature's box.
         match ligature(ch) {
-            Some(letters) => letters.chars().for_each(&mut push),
-            None => push(ch),
+            Some(letters) => text.push_str(letters),
+            None => text.push(ch),
         }
     }
 }
@@ -186,7 +186,9 @@ fn page_text(page: &crate::TextPage) -> PageText {
     let mut first = Vec::with_capacity(n + 1);
     for c in &page.chars {
         first.push(t.codepoints.len() as u32);
-        char_text(c, |ch| {
+        let start = t.text.len();
+        char_text(c, &mut t.text);
+        for ch in t.text[start..].chars() {
             t.codepoints.push(ch as u32);
             t.boxes.extend_from_slice(&c.bbox);
             t.font_sizes.push(c.em);
@@ -197,8 +199,7 @@ fn page_text(page: &crate::TextPage) -> PageText {
             t.font_ids.push(c.font);
             t.flags.push(c.flags);
             t.run_ids.push(c.run);
-            t.text.push(ch);
-        });
+        }
     }
     first.push(t.codepoints.len() as u32);
     t.count = t.codepoints.len() as u32;
@@ -481,7 +482,7 @@ impl Document {
         let page = self.0.text_with(index, crate::Boxes::Font).map_err(js_error)?;
         let mut text = String::new();
         for c in &page.chars {
-            char_text(c, |ch| text.push(ch));
+            char_text(c, &mut text);
         }
         Ok(text)
     }
