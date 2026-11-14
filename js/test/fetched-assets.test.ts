@@ -23,11 +23,11 @@ let base = 0;
 /** A fresh location, because the compiled wasm is cached per location. */
 const location = () => new URL(`http://assets.test/${++base}/`);
 
-function serve(change: (bytes: Buffer, name: string) => Buffer = (bytes) => bytes): void {
+function serve(change: (bytes: Buffer, name: string) => Buffer = (bytes) => bytes, type = "application/wasm"): void {
   // Takes no options, as a wrapper around fetch might.
   globalThis.fetch = (async (input: string | URL) => {
     const name = new URL(String(input)).pathname.split("/").pop()!;
-    return new Response(change(packaged(name), name), { headers: { "Content-Type": "application/wasm" } });
+    return new Response(change(packaged(name), name), { headers: { "Content-Type": type } });
   }) as typeof fetch;
 }
 
@@ -41,14 +41,15 @@ for (const [label, secure] of [["crypto.subtle", true], ["the JavaScript hash, o
   const setCrypto = () =>
     Object.defineProperty(globalThis, "crypto", secure ? realCrypto : { value: undefined, configurable: true });
 
-  test(`a changed wasm never compiles, whatever fetch did with the options (${label})`, async () => {
+  test(`a changed wasm is never instantiated, whatever fetch did with the options (${label})`, async () => {
     setCrypto();
-    const compile = WebAssembly.compile;
-    let compiled = 0;
-    WebAssembly.compile = ((bytes: BufferSource) => {
-      compiled += 1;
-      return compile(bytes);
-    }) as typeof WebAssembly.compile;
+    // It may compile while it streams in, which runs none of its code; it must not get an instance.
+    const RealInstance = WebAssembly.Instance;
+    let instantiated = 0;
+    WebAssembly.Instance = function Instance(module: WebAssembly.Module, imports?: WebAssembly.Imports) {
+      instantiated += 1;
+      return new RealInstance(module, imports);
+    } as unknown as typeof WebAssembly.Instance;
     try {
       serve(flipLastByte);
       for (const preloadAssets of [[], ["recto.wasm"]] as const) {
@@ -57,9 +58,32 @@ for (const [label, secure] of [["crypto.subtle", true], ["the JavaScript hash, o
           message: /not this build's file/u,
         });
       }
-      assert.equal(compiled, 0);
+      assert.equal(instantiated, 0);
     } finally {
-      WebAssembly.compile = compile;
+      WebAssembly.Instance = RealInstance;
+    }
+  });
+
+  test(`the wasm compiles as it streams in, and from its bytes when the type isn't application/wasm (${label})`, async () => {
+    setCrypto();
+    const realStreaming = WebAssembly.compileStreaming;
+    let streamed = 0;
+    WebAssembly.compileStreaming = ((source) => {
+      streamed += 1;
+      return realStreaming(source);
+    }) as typeof WebAssembly.compileStreaming;
+    try {
+      for (const type of ["application/wasm", "application/octet-stream"]) {
+        streamed = 0;
+        serve((bytes) => bytes, type);
+        const engine = await createPdfEngine({ assetBase: location() });
+        using doc = await engine.open(syntheticPdf({ pages: 1, charsPerPage: 100 }));
+        assert.ok(doc.text(0).text.length > 50);
+        // Here, with no way to read a file mid-call, that is recto.wasm and all three parts.
+        assert.equal(streamed, type === "application/wasm" ? 4 : 0);
+      }
+    } finally {
+      WebAssembly.compileStreaming = realStreaming;
     }
   });
 
@@ -98,3 +122,4 @@ test("listing other assets can't take away drawing, and the old CMaps name still
   assert.ok(doc.objects(0));
   assert.throws(() => doc.render(0, { width: 100 }), { code: "missing-asset", message: /FoxitSans\.pfb/u });
 });
+

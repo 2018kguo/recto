@@ -209,6 +209,10 @@ async function fetchBytes(name: AssetName, url: URL): Promise<Uint8Array<ArrayBu
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`);
   }
+  return await verified(name, url, response);
+}
+
+async function verified(name: AssetName, url: URL, response: Response): Promise<Uint8Array<ArrayBuffer>> {
   const bytes = new Uint8Array(await response.arrayBuffer());
   if ((await hashOf(bytes)) !== PINS[name]) {
     throw notThisBuild(name, url, bytes);
@@ -216,10 +220,30 @@ async function fetchBytes(name: AssetName, url: URL): Promise<Uint8Array<ArrayBu
   return bytes;
 }
 
-/** The wasm, verified and then compiled. */
+/**
+ * The wasm, compiled, and returned only once its bytes are verified, so a changed file is never
+ * instantiated. Fetched, it compiles as it streams in while a copy of the body is hashed; compiling runs
+ * none of its code. A response `compileStreaming` won't take (no `application/wasm` type) compiles from
+ * the verified bytes instead.
+ */
 export async function compileWasm(name: WasmName, base: URL | null): Promise<WebAssembly.Module> {
-  const bytes = await located(name, base, async (url) => (nodeFs() ? checked(name, url, readFromDisk(url)) : await fetchBytes(name, url)));
-  return await compiling(name, WebAssembly.compile(bytes as Uint8Array<ArrayBuffer>));
+  return await located(name, base, async (url) => {
+    if (nodeFs()) {
+      return await compiling(name, WebAssembly.compile(checked(name, url, readFromDisk(url)) as Uint8Array<ArrayBuffer>));
+    }
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    let streamed: Promise<WebAssembly.Module | null> = Promise.resolve(null);
+    let copy = response;
+    if (typeof WebAssembly.compileStreaming === "function" && response.headers.get("Content-Type")?.startsWith("application/wasm")) {
+      copy = response.clone();
+      streamed = WebAssembly.compileStreaming(response).catch(() => null);
+    }
+    const bytes = await verified(name, url, copy);
+    return (await streamed) ?? (await compiling(name, WebAssembly.compile(bytes)));
+  });
 }
 
 function compiling(name: WasmName, module: Promise<WebAssembly.Module>): Promise<WebAssembly.Module> {

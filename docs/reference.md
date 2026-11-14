@@ -575,9 +575,10 @@ The files can also be reached by name, through `@2018kguo/recto/wasm/*`: `@2018k
 `PINS`, each file's SHA-256 by name, which is also the list of what a deploy must ship.
 
 Every file is pinned by SHA-256, and every byte is hashed before it's used, so a dev server's HTML
-fallback page cannot read as a font, and a changed wasm is never compiled. A wasm is fetched whole and
-hashed with `crypto.subtle`, or in JavaScript where there is none (a page on plain http), then
-compiled. A missing asset throws from the call that needed it; it never reads
+fallback page cannot read as a font, and a changed wasm is never instantiated. `recto.wasm` is compiled
+as it streams in (`WebAssembly.compileStreaming`, when the server sends `application/wasm`) while a copy
+of it is hashed with `crypto.subtle`, or in JavaScript where there is none (a page on plain http), and
+used only once the hash matches. A part read in the middle of a call is hashed before it's compiled. A missing asset throws from the call that needed it; it never reads
 as blank text.
 
 ## The Rust crate
