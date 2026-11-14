@@ -2292,6 +2292,28 @@ mod tests {
         assert!((flat[1] - raised[1] - 25.0).abs() < 1e-3, "{flat:?} {raised:?}");
     }
 
+    /// Words set apart by `TJ` adjustments alone, with no space glyph, part as poppler, pdfium and
+    /// pdf.js part them: a dot leader 0.14 em from its page number, and words 0.2 em apart under
+    /// `70 Tz`. A heading letter-spaced a third of an em, its words three times as far apart, reads
+    /// as poppler reads it. Math and a dot leader in the middle of a line keep their spaces.
+    #[test]
+    fn kerned_and_letter_spaced_words_part_where_other_readers_part_them() {
+        let doc = one_font_page(
+            b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+            &[],
+            "BT /F1 3 Tf 5 TL 2 90 Td \
+             (Results) Tj [(.)-50(.)-50(.)-50(.)-140(21)] TJ T* \
+             70 Tz [(Condensed)-200(seventy)-200(Tz)] TJ 100 Tz T* \
+             [(C)-300(H)-300(A)-300(P)-300(T)-300(E)-300(R)-900(T)-300(W)-300(O)] TJ T* \
+             [(Thus)-250(q)-250(+)-250(1)-250(is)-250(prime)] TJ T* \
+             [(Scope)-250(.)-250(.)-250(.)-250(.)-250(3)] TJ ET",
+        );
+        let text = doc.text(0).unwrap().text();
+        let lines: Vec<&str> = text.lines().collect();
+        let want = ["Results.... 21", "Condensed seventy Tz", "CHAPTER TWO", "Thus q + 1 is prime", "Scope . . . . 3"];
+        assert_eq!(lines, want);
+    }
+
     /// Each char carries the `Tz` it was shown with, over 100: set inside a text object, kept across
     /// `BT`, saved and restored by `q` and `Q`. A run's matrix is the text rendering matrix, Tz and skew
     /// included, in the viewer frame.

@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **Words kerned apart no longer run together.** A gap between two glyphs on a line is a space past 0.12 em
+  (it was 0.15), measured across the line with its `Tz`, so a dot leader 0.14 em from its page number reads
+  `Results.... 21`, and words a `TJ` sets 0.2 em apart under `70 Tz` read `Condensed seventy Tz`, as poppler,
+  pdfium and pdf.js read them. A letter-spaced stretch of three or more one-char words, set apart from the rest
+  of its line, keeps a space only where its gap is clearly wider than its narrowest: `D o c I D #` reads
+  `Doc ID#`, as poppler reads it. A space glyph always stays, and math (`q + 1`) and dot leaders in the middle of a
+  line are as they were. F1 against poppler goes from 98.52% to 98.55% on 84 documents, and from 99.58% to
+  99.60% on the public 25. [Text quality](docs/benchmarks.md#text-quality)
+
 ## 0.8.2
 
 ### Added

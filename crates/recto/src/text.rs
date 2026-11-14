@@ -17,8 +17,10 @@ pub const CHAR_UNMAPPED: u8 = 2;
 /// The box's height where a font doesn't state its own.
 pub(crate) const ASCENT: f64 = 0.8;
 pub(crate) const DESCENT: f64 = -0.2;
-/// A gap wider than this (in em) between two glyphs on a line is a space.
-const SPACE_GAP: f64 = 0.15;
+/// A gap wider than this (in em, across: `Tz` narrows it) between two glyphs on a line is a space.
+const SPACE_GAP: f64 = 0.12;
+/// A gap this wide (in em across) sets text apart, as a column or a tab stop does.
+const APART: f64 = 1.0;
 /// A baseline shift larger than this (in em) is a new line.
 const LINE_SHIFT: f64 = 0.5;
 
@@ -34,6 +36,8 @@ pub(crate) struct Glyph {
     up: Vec2,
     /// Font size in viewer points.
     pub(crate) em: f64,
+    /// The em along the line, `Tz` included: what a gap between words is measured in.
+    across: f64,
     /// The `Tf` operand.
     pub(crate) tf: f32,
     /// `Tz` over 100.
@@ -102,10 +106,10 @@ pub(crate) fn glyph_from(
     }
     // Vertical writing advances down the glyph's y axis, one em per glyph
     // (hayro does not expose the W2 vertical advance), and lines sit side by side.
-    let (dir, up, advance) = if vertical {
-        (-up, x_dir, em)
+    let (dir, up, advance, across) = if vertical {
+        (-up, x_dir, em, em)
     } else {
-        (x_dir, up, x_len * advance_units / 1000.0)
+        (x_dir, up, x_len * advance_units / 1000.0, x_len)
     };
     Some(Glyph {
         class: classify(&text),
@@ -115,6 +119,7 @@ pub(crate) fn glyph_from(
         dir,
         up,
         em,
+        across,
         tf: 0.0,
         h_scale: 1.0,
         advance,
@@ -463,7 +468,11 @@ pub(crate) fn build_page(glyphs: &[Glyph], fonts: &[Font], runs: &[Run]) -> Text
     let mut chars: Vec<Char> = Vec::with_capacity(glyphs.len() + glyphs.len() / 4 + 16);
     let mut kept: Vec<&Glyph> = Vec::with_capacity(glyphs.len());
     let copies = copies(glyphs);
+    // Each char's gap from the glyph before, in ems across (0 where none was measured), for
+    // `join_letter_spaced`.
+    let mut gaps: Vec<f32> = Vec::with_capacity(chars.capacity());
     for (g, _) in glyphs.iter().zip(&copies).filter(|(_, copy)| !**copy) {
+        let mut wide = 0.0;
         if let Some(&p) = kept.last() {
             let d = g.origin - p.origin;
             // Superscripts and subscripts shift by a fraction of the larger size.
@@ -496,13 +505,20 @@ pub(crate) fn build_page(glyphs: &[Glyph], fonts: &[Font], runs: &[Run]) -> Text
                 {
                     chars.push(generated("\n", p));
                 }
-            } else if spaced
-                && (gap - tracking > em * SPACE_GAP || (both_rtl && back > em * SPACE_GAP))
-            {
-                chars.push(generated(" ", p));
+            } else {
+                // In ems across, so a `Tz`-narrowed line's gaps count as wide as they were set.
+                let across = p.across.min(g.across);
+                wide = ((gap - tracking) / across).max(if both_rtl { back / across } else { 0.0 });
+                if spaced && wide > SPACE_GAP {
+                    gaps.resize(chars.len(), 0.0);
+                    gaps.push(wide as f32);
+                    chars.push(generated(" ", p));
+                }
             }
         }
         let flags = if g.text.is_empty() { CHAR_UNMAPPED } else { 0 };
+        gaps.resize(chars.len(), 0.0);
+        gaps.push(wide as f32);
         chars.push(Char {
             class: g.class,
             text: g.text.clone(),
@@ -521,6 +537,8 @@ pub(crate) fn build_page(glyphs: &[Glyph], fonts: &[Font], runs: &[Run]) -> Text
         kept.push(g);
     }
 
+    gaps.resize(chars.len(), 0.0);
+    join_letter_spaced(&mut chars, &gaps);
     close_lines(&mut chars);
     for line in chars.split_mut(|c| c.text == "\n") {
         logical_order(line);
@@ -597,6 +615,55 @@ fn join_hyphenated(chars: &mut Vec<Char>, next: &Glyph) -> bool {
     true
 }
 
+/// Letter-spaced text, `D o c` set a fifth of an em apart with no space glyph, reads as one word.
+/// poppler's rule for a line of one-char words, on a stretch of three or more of them, three of
+/// them letters or digits, set apart from the rest of its line: a generated space under 1.3 times
+/// the stretch's narrowest (and under 0.4 em) goes, so its wider gaps still part words. A space
+/// glyph always stays, and math (`q + 1`) and dot leaders (`. . .`) mid-line are left as they are.
+fn join_letter_spaced(chars: &mut [Char], gaps: &[f32]) {
+    let gap = |i: usize| gaps.get(i).copied().unwrap_or(0.0);
+    let parts = |chars: &[Char], i: usize| chars.get(i).is_none_or(|c| c.is_space() || c.text.is_empty());
+    let line_end = |chars: &[Char], i: usize| chars.get(i).is_none_or(|c| c.text == "\n");
+    // A word starting at `i` begins its line or a column.
+    let apart = |chars: &[Char], i: usize| {
+        i == 0
+            || line_end(chars, i - 1)
+            || line_end(chars, i)
+            || gap(i - 1).max(gap(i)) >= APART as f32
+    };
+    let mut i = 0;
+    while i < chars.len() {
+        // A one-char word, then more, each after one space on the same line.
+        let start = i;
+        let (mut letters, mut narrowest) = (0, f32::MAX);
+        while !parts(chars, i) && parts(chars, i + 1) && (i == 0 || parts(chars, i - 1)) {
+            letters += usize::from(matches!(chars[i].dir(), Dir::Ltr | Dir::Rtl | Dir::Number));
+            let next = i + 2;
+            if line_end(chars, i + 1) || parts(chars, next) || !parts(chars, next + 1) {
+                break;
+            }
+            if chars[i + 1].flags & CHAR_GENERATED != 0 {
+                narrowest = narrowest.min(gap(i + 1));
+            }
+            i = next;
+        }
+        if letters >= 3
+            && narrowest < f32::MAX
+            && apart(chars, start)
+            && (line_end(chars, i + 1) || apart(chars, i + 2))
+        {
+            let under = (narrowest * 1.3).min(0.4);
+            for s in (start + 1..i).step_by(2) {
+                if chars[s].flags & CHAR_GENERATED != 0 && gap(s) < under {
+                    // `close_lines` drops it.
+                    chars[s].text = Text::EMPTY;
+                }
+            }
+        }
+        i += 1;
+    }
+}
+
 /// Before the bidi pass: on each line a
 /// run of U+0020 spaces (the PDF's own or generated) keeps only its first,
 /// and a line of two or more chars drops a trailing space. Word pads columns
@@ -607,6 +674,9 @@ fn close_lines(chars: &mut Vec<Char>) {
     let mut prev_space = false;
     for read in 0..chars.len() {
         let space = chars[read].text == " ";
+        if chars[read].text.is_empty() && chars[read].flags & CHAR_GENERATED != 0 {
+            continue;
+        }
         if chars[read].text == "\n" {
             if prev_space && write - line_start > 1 {
                 write -= 1;
@@ -1192,9 +1262,10 @@ mod tests {
 
     #[test]
     fn letter_spacing_is_no_word_gap_within_a_run() {
-        // 10pt glyphs 5pt wide, drawn 7pt apart: 0.2 em past the advance.
+        // 10pt glyphs 5pt wide, drawn 7pt apart: 0.2 em past the advance. Two of them, as three
+        // evenly spaced one-char words read as letter-spaced text (see `join_letter_spaced`).
         let spaced = |char_space: f64, run_of: fn(usize) -> u32| {
-            let glyphs = "Doc"
+            let glyphs = "Do"
                 .chars()
                 .enumerate()
                 .map(|(i, c)| {
@@ -1207,10 +1278,10 @@ mod tests {
                 .collect();
             build(glyphs).text()
         };
-        assert_eq!(spaced(2.0, |_| 0), "Doc");
-        assert_eq!(spaced(0.0, |_| 0), "D o c");
+        assert_eq!(spaced(2.0, |_| 0), "Do");
+        assert_eq!(spaced(0.0, |_| 0), "D o");
         // A scan's text layer places each run itself: the gap to the next is real.
-        assert_eq!(spaced(2.0, |i| i as u32), "D o c");
+        assert_eq!(spaced(2.0, |i| i as u32), "D o");
         // A TJ cancelling `Tc` draws them tight (the 5pt advance apart here is
         // not, so measure from a gapless line): a negative `Tc` adds no space.
         let tight: Vec<_> = "Doc"
