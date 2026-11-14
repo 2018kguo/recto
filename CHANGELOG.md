@@ -18,6 +18,10 @@
   `Doc ID#`, as poppler reads it. A space glyph always stays, and math (`q + 1`) and dot leaders in the middle of a
   line are as they were. F1 against poppler goes from 98.52% to 98.55% on 84 documents, and from 99.58% to
   99.60% on the public 25. [Text quality](docs/benchmarks.md#text-quality)
+- **A patch mesh's memory.** A Coons or tensor-product patch mesh (shading types 6 and 7) was cut into
+  triangles all at once before any was drawn, 722 a patch: on a real 90-page file one page grew the WebAssembly
+  memory to 3.3 GB, and the process to 1.8 GB. Each patch is drawn as it's cut now; the
+  pixels are the same, and that file peaks at 274 MB.
 
 ## 0.8.2
 

@@ -20,7 +20,7 @@ import {
   type PdfBox,
   PdfError,
 } from "../src/index.ts";
-import { pagePdf } from "./rare-pdfs.ts";
+import { pagePdf, tensorPdf } from "./rare-pdfs.ts";
 import { syntheticPdf } from "./synthetic-pdf.ts";
 import { startRangeServer } from "./range-server.ts";
 
@@ -247,6 +247,21 @@ test("plainText(i) is text(i).text on every page: ligatures, multi-code-point an
   assert.throws(() => doc.plainText(1), RangeError);
   doc.close();
   assert.throws(() => doc.plainText(0), PdfError);
+});
+
+test("a patch mesh's memory doesn't grow with its patches", async () => {
+  // Each patch is 722 triangles; 4,000 patches held them all at once, 1.5 GiB. Measured while the
+  // document is open: closing one that grew past the mark gives its memory back.
+  const meshEngine = await createPdfEngine();
+  const heaps = [];
+  for (const patches of [1, 4_000]) {
+    using doc = await meshEngine.open(tensorPdf(patches));
+    const { rgba, width } = doc.render(0, { width: 64 });
+    assert.deepEqual([...rgba.subarray((32 * width + 32) * 4, (32 * width + 32) * 4 + 3)], [0, 0, 255]);
+    heaps.push(meshEngine.stats().heapBytes);
+  }
+  const [one = 0, many = 0] = heaps;
+  assert.ok(many - one < 16 * 1024 * 1024, `${(one / 2 ** 20).toFixed(0)} MiB, then ${(many / 2 ** 20).toFixed(0)} MiB`);
 });
 
 test("render draws what we wrote, at pdf.js's size rule", async () => {

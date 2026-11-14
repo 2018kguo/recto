@@ -138,14 +138,14 @@ export const meshPdf = () => {
   ]);
 };
 
-/** A patch mesh, type 7: one square patch in one colour. */
-export const tensorPdf = () => {
+/** A patch mesh, type 7: one square patch in one colour, `patches` times over. */
+export const tensorPdf = (patches = 1) => {
   const c = (x: number, y: number) => [x, y];
   const points = [c(0, 0), c(0, 85), c(0, 170), c(0, 255), c(85, 255), c(170, 255), c(255, 255), c(255, 170), c(255, 85), c(255, 0), c(170, 0), c(85, 0), c(85, 85), c(85, 170), c(170, 170), c(170, 85)];
   return pagePdf("/S sh", "/Shading << /S 5 0 R >>", [
     {
       dict: "/ShadingType 7 /ColorSpace /DeviceRGB /BitsPerCoordinate 8 /BitsPerComponent 8 /BitsPerFlag 8 /Decode [0 100 0 100 0 1 0 1 0 1]",
-      data: Uint8Array.from([0, ...points.flat(), 0, 0, 255, 0, 0, 255, 0, 0, 255, 0, 0, 255]),
+      data: Uint8Array.from(Array.from({ length: patches }, () => [0, ...points.flat(), 0, 0, 255, 0, 0, 255, 0, 0, 255, 0, 0, 255]).flat()),
     },
   ]);
 };
