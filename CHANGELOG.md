@@ -34,7 +34,7 @@
   AES-encrypted streams decrypt with lookup tables a column at a time. On a generated poster (`posterPdf` in
   `bench/generate.mjs`, an encrypted A3 sheet of CMYK photos with soft masks under a multiplied shadow), opening it
   and drawing it at 1024 px in a fresh Node process took 1,373 ms and now takes 538 (2.6×, 95% interval 2.2–3.1). A
-  32 MB Illustrator poster from the web sample went from 2,458 ms to 517 (4.8×, 4.5–5.8). Drawing downloads 1.1 kB
+  32 MB Illustrator poster from the web sample went from 2,458 ms to 517 (4.8×, 4.5–5.8). Drawing downloads 1.5 kB
   more with brotli; its budget in `scripts/check-wasm-budget.mjs` goes from 692,000 bytes to 694,000.
   [Node](docs/benchmarks.md#in-node)
 
