@@ -32,8 +32,8 @@ above 1× recto is ahead; **bold** is where recto loses. "Level" means the 95% i
 | **Stopping a slow render** on the same thread, Node | 0.3 against 1,921 ms | 0.3 against 3.1 ms (by `terminate()`) | 0.3 against 1.7 ms (by `terminate()`) |
 | **Robustness**: 7,000 web PDFs, files worse than another engine | 0 against 13 | 0 against 6 | 0 against 7 |
 | **Fidelity**: agrees with two other engines, of 531 small, mostly adversarial files | 95.6% against 87.0% | 95.6% against 88.6% | 95.6% against 83.8% |
-| **Text**: F1 against poppler, 84 documents | 98.5% against 97.8% | 98.5% against 98.3% | 98.5% against 97.4% |
-| **Text**: F1 against poppler, the 25 public documents alone | level (99.58% against 99.49%) | level (99.54%) | level (99.59%, MuPDF 0.01 ahead) |
+| **Text**: F1 against poppler, 84 documents | 98.55% against 97.84% | 98.55% against 98.33% | 98.55% against 97.35% |
+| **Text**: F1 against poppler, the 25 public documents alone | level (99.60% against 99.49%) | level (99.54%) | level (99.59%) |
 | **Char boxes**: IoU against the ink, median | not measured (items, not chars) | level (0.846 against 0.848) | 0.846 against 0.826 (`accurate-bboxes`) |
 
 What to take from it: recto is fastest at reading text and drawing pages in bulk, by 2.5–7× in Node, and of 7,000 web
@@ -466,15 +466,18 @@ is 100 or close to it for all four.
 
 | F1 against poppler | recto | pdf.js | pdfium | MuPDF |
 |---|---:|---:|---:|---:|
-| 84 documents: the public set, and the pdf.js, pdfium and hayro test suites | **98.52%** | 97.84% | 98.33% | 97.35% |
-| The 25 of the public set alone | 99.58% | 99.49% | 99.54% | **99.59%** |
+| 84 documents: the public set, and the pdf.js, pdfium and hayro test suites | **98.55%** | 97.84% | 98.33% | 97.35% |
+| The 25 of the public set alone | **99.60%** | 99.49% | 99.54% | 99.59% |
 
-On the public set all four are level: the spread is 0.1 point, MuPDF on top by 0.01. recto's lead is on the suites,
+On the public set all four are level: the spread is 0.1 point, recto on top by 0.01. recto's lead is on the suites,
 which are written to break things, and it's narrow over pdfium (0.2 point). The same measure among the engines, all
-84: recto against pdfium 99.11%, recto against pdf.js 98.66%, recto against MuPDF 98.18%, pdf.js against pdfium
+84: recto against pdfium 99.10%, recto against pdf.js 98.64%, recto against MuPDF 98.16%, pdf.js against pdfium
 98.28%, pdfium against MuPDF 98.06%. MuPDF's text is `toStructuredText("preserve-whitespace").asText()`.
 The earlier run of this table had 39 public documents where this has 29 (25 with enough words), so pdfium's 97.00%
-then and 98.33% now aren't a change in pdfium.
+then and 98.33% now aren't a change in pdfium. The recto column is 0.9's: a gap between glyphs is a space past
+0.12 em measured across, `Tz` included (0.15 em of the font size before), which parts a dot leader from its page
+number and words kerned apart under `Tz`, and a letter-spaced stretch like `D o c I D #` reads `Doc ID#` as
+poppler reads it (pdfium and pdf.js keep its letters apart, which is why recto agrees with them a little less).
 
 Where recto disagrees with poppler on purpose:
 
