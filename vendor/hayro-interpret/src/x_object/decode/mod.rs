@@ -45,11 +45,39 @@ fn decode_context<'a>(
         height: obj.height(),
     };
 
-    let decoded = obj
+    let mut decoded = obj
         .stream
         .decoded_image(&decode_params)
         .map_err(|_| (obj.warning_sink)(InterpreterWarning::ImageDecodeFailure))
         .ok()?;
+
+    // recto: samples of a byte each, as a filter other than DCT or JPX leaves them, averaged in
+    // 2x2, 4x4 or 8x8 blocks when the image is drawn at under half of that, as a JPEG is decoded
+    // smaller (`dct_scale_shift`, here for twice the target); what's left to convert and resize is
+    // a quarter to a 64th. Twice: the resize after a box at the target's own size filters as the
+    // box does, sharper than the resize alone, which shows on hairlines. The callers pass no target
+    // where pixels can't be averaged (an index, a colour key, a `/Matte`), and a `/Decode` maps
+    // each sample linearly, so it commutes with the average.
+    if decoded.image_data.is_none()
+        && dict_bpc == Some(8)
+        && let Some(components) = color_space.as_ref().map(|c| usize::from(c.num_components()))
+        && let shift = hayro_syntax::dct_scale_shift(
+            obj.width(),
+            obj.height(),
+            target_dimension.map(|(w, h)| (w.saturating_mul(2), h.saturating_mul(2))),
+        )
+        && shift > 0
+        && let Some(reduced) = box_reduce(&decoded.data, obj.width(), obj.height(), components, shift)
+    {
+        decoded.image_data = Some(hayro_syntax::object::stream::ImageData {
+            alpha: None,
+            color_space: None,
+            bits_per_component: 8,
+            width: obj.width().div_ceil(1 << shift),
+            height: obj.height().div_ceil(1 << shift),
+        });
+        decoded.data = reduced.into();
+    }
 
     let (mut scale_x, mut scale_y) = (1.0, 1.0);
 
@@ -395,4 +423,37 @@ fn for_each_sample(
     }
 
     Some(())
+}
+
+/// recto: `data`, `width` by `height` pixels of `components` bytes, averaged in blocks of
+/// `1 << shift` pixels a side (fewer at the right and bottom edges), rounded to nearest. None
+/// where the data is short of the image, which is padded as it's drawn instead.
+fn box_reduce(data: &[u8], width: u32, height: u32, components: usize, shift: u8) -> Option<Vec<u8>> {
+    let (width, height) = (width as usize, height as usize);
+    let row = width.checked_mul(components)?;
+    if components == 0 || data.len() < row.checked_mul(height)? {
+        return None;
+    }
+    let block = 1usize << shift;
+    let out_width = width.div_ceil(block);
+    let mut out = Vec::with_capacity(out_width * components * height.div_ceil(block));
+    // Each band's columns summed first, at most 8 x 255 a sample, then each block's columns.
+    let mut columns = vec![0u16; row];
+    for band in data[..row * height].chunks(row * block) {
+        columns.fill(0);
+        for line in band.chunks_exact(row) {
+            for (sum, &value) in columns.iter_mut().zip(line) {
+                *sum += u16::from(value);
+            }
+        }
+        let rows = band.len() / row;
+        for (x, pixels) in columns.chunks(block * components).enumerate() {
+            let count = (rows * block.min(width - x * block)) as u32;
+            for c in 0..components {
+                let sum: u32 = pixels[c..].iter().step_by(components).map(|&v| u32::from(v)).sum();
+                out.push(((sum + count / 2) / count) as u8);
+            }
+        }
+    }
+    Some(out)
 }

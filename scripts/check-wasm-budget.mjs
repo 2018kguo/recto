@@ -19,7 +19,7 @@ const glue = brotli(here("wasm/recto.gen.mjs")) + brotli(here("wasm/pins.mjs"));
 const text = script + glue + brotli(here("wasm/recto.wasm"));
 const drawing = text + brotli(here("wasm/recto-render.wasm"));
 
-const BUDGET = { text: 420_000, drawing: 692_000 };
+const BUDGET = { text: 420_000, drawing: 694_000 };
 console.log(`text ${text} of ${BUDGET.text} bytes, text and drawing ${drawing} of ${BUDGET.drawing}`);
 assert.ok(text <= BUDGET.text, "reading text downloads more than the budget");
 assert.ok(drawing <= BUDGET.drawing, "drawing downloads more than the budget");

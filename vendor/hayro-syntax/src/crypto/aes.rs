@@ -159,23 +159,29 @@ const MUL14: [u8; 256] = [
     0xd7, 0xd9, 0xcb, 0xc5, 0xef, 0xe1, 0xf3, 0xfd, 0xa7, 0xa9, 0xbb, 0xb5, 0x9f, 0x91, 0x83, 0x8d,
 ];
 
-const INV_MIX_0: [u32; 256] = build_inv_mix_table(0);
-const INV_MIX_1: [u32; 256] = build_inv_mix_table(1);
-const INV_MIX_2: [u32; 256] = build_inv_mix_table(2);
-const INV_MIX_3: [u32; 256] = build_inv_mix_table(3);
+// recto: InvMixColumns of InvSubBytes, a column's word for each byte at each row, so that a round of
+// decryption is 16 lookups (the equivalent inverse cipher of FIPS-197, 5.3.5) rather than 32 and a
+// shuffle of bytes. InvMixColumns alone of a byte `b` is `TD_r[S_BOX[b]]`.
+const TD: [[u32; 256]; 4] = [
+    build_td_table(0),
+    build_td_table(1),
+    build_td_table(2),
+    build_td_table(3),
+];
 
-const fn build_inv_mix_table(table: usize) -> [u32; 256] {
+const fn build_td_table(table: usize) -> [u32; 256] {
     let mut result = [0_u32; 256];
-    let mut i = 0;
+    let mut x = 0;
 
-    while i < 256 {
-        result[i] = match table {
+    while x < 256 {
+        let i = INV_S_BOX[x] as usize;
+        result[x] = match table {
             0 => u32::from_le_bytes([MUL14[i], MUL9[i], MUL13[i], MUL11[i]]),
             1 => u32::from_le_bytes([MUL11[i], MUL14[i], MUL9[i], MUL13[i]]),
             2 => u32::from_le_bytes([MUL13[i], MUL11[i], MUL14[i], MUL9[i]]),
             _ => u32::from_le_bytes([MUL9[i], MUL13[i], MUL11[i], MUL14[i]]),
         };
-        i += 1;
+        x += 1;
     }
 
     result
@@ -188,13 +194,6 @@ impl AESCore {
     fn sub_bytes(state: &mut [u8; 16]) {
         for byte in state.iter_mut() {
             *byte = S_BOX[*byte as usize];
-        }
-    }
-
-    #[inline(always)]
-    fn inv_sub_bytes(state: &mut [u8; 16]) {
-        for byte in state.iter_mut() {
-            *byte = INV_S_BOX[*byte as usize];
         }
     }
 
@@ -221,28 +220,6 @@ impl AESCore {
     }
 
     #[inline(always)]
-    fn inv_shift_rows(state: &mut [u8; 16]) {
-        let temp = state[13];
-        state[13] = state[9];
-        state[9] = state[5];
-        state[5] = state[1];
-        state[1] = temp;
-
-        let temp1 = state[2];
-        let temp2 = state[6];
-        state[2] = state[10];
-        state[6] = state[14];
-        state[10] = temp1;
-        state[14] = temp2;
-
-        let temp = state[3];
-        state[3] = state[7];
-        state[7] = state[11];
-        state[11] = state[15];
-        state[15] = temp;
-    }
-
-    #[inline(always)]
     fn mix_columns(state: &mut [u8; 16]) {
         for i in 0..4 {
             let col = i * 4;
@@ -252,24 +229,6 @@ impl AESCore {
             state[col + 1] = s0 ^ MUL2[s1 as usize] ^ MUL3[s2 as usize] ^ s3;
             state[col + 2] = s0 ^ s1 ^ MUL2[s2 as usize] ^ MUL3[s3 as usize];
             state[col + 3] = MUL3[s0 as usize] ^ s1 ^ s2 ^ MUL2[s3 as usize];
-        }
-    }
-
-    #[inline(always)]
-    fn inv_mix_columns(state: &mut [u8; 16]) {
-        for i in 0..4 {
-            let col = i * 4;
-            let [s0, s1, s2, s3] = [state[col], state[col + 1], state[col + 2], state[col + 3]];
-
-            let word = INV_MIX_0[s0 as usize]
-                ^ INV_MIX_1[s1 as usize]
-                ^ INV_MIX_2[s2 as usize]
-                ^ INV_MIX_3[s3 as usize];
-            let [b0, b1, b2, b3] = word.to_le_bytes();
-            state[col] = b0;
-            state[col + 1] = b1;
-            state[col + 2] = b2;
-            state[col + 3] = b3;
         }
     }
 
@@ -383,25 +342,59 @@ impl<const KEY_SIZE: usize, const ROUNDS: usize> AESCipher<KEY_SIZE, ROUNDS> {
         state
     }
 
-    pub(crate) fn decrypt_block(&self, input: &[u8; 16]) -> [u8; 16] {
-        let mut state = *input;
-
-        let main_rounds = ROUNDS - 1;
-
-        AESCore::add_round_key(&mut state, &self.round_keys[main_rounds]);
-        AESCore::inv_shift_rows(&mut state);
-        AESCore::inv_sub_bytes(&mut state);
-
-        for round in (1..main_rounds).rev() {
-            AESCore::add_round_key(&mut state, &self.round_keys[round]);
-            AESCore::inv_mix_columns(&mut state);
-            AESCore::inv_shift_rows(&mut state);
-            AESCore::inv_sub_bytes(&mut state);
+    /// recto: the round keys for `decrypt_block`, as words of columns: the last first, and those
+    /// between with InvMixColumns applied.
+    fn decryption_keys(&self) -> [[u32; 4]; ROUNDS] {
+        let mut keys = [[0_u32; 4]; ROUNDS];
+        for (round, key) in keys.iter_mut().enumerate() {
+            let bytes = &self.round_keys[ROUNDS - 1 - round];
+            for (c, word) in key.iter_mut().enumerate() {
+                let column = [bytes[c * 4], bytes[c * 4 + 1], bytes[c * 4 + 2], bytes[c * 4 + 3]];
+                *word = if round == 0 || round == ROUNDS - 1 {
+                    u32::from_le_bytes(column)
+                } else {
+                    (0..4).fold(0, |w, r| w ^ TD[r][S_BOX[column[r] as usize] as usize])
+                };
+            }
         }
+        keys
+    }
 
-        AESCore::add_round_key(&mut state, &self.round_keys[0]);
+    #[inline(always)]
+    fn decrypt_words(keys: &[[u32; 4]; ROUNDS], input: &[u8; 16]) -> [u8; 16] {
+        let byte = |w: u32, r: usize| ((w >> (8 * r)) & 0xff) as usize;
+        let mut state = [0_u32; 4];
+        for c in 0..4 {
+            let column = [input[c * 4], input[c * 4 + 1], input[c * 4 + 2], input[c * 4 + 3]];
+            state[c] = u32::from_le_bytes(column) ^ keys[0][c];
+        }
+        for key in &keys[1..ROUNDS - 1] {
+            let s = state;
+            for c in 0..4 {
+                state[c] = TD[0][byte(s[c], 0)]
+                    ^ TD[1][byte(s[(c + 3) % 4], 1)]
+                    ^ TD[2][byte(s[(c + 2) % 4], 2)]
+                    ^ TD[3][byte(s[(c + 1) % 4], 3)]
+                    ^ key[c];
+            }
+        }
+        let last = &keys[ROUNDS - 1];
+        let mut out = [0_u8; 16];
+        for c in 0..4 {
+            let column = [
+                INV_S_BOX[byte(state[c], 0)],
+                INV_S_BOX[byte(state[(c + 3) % 4], 1)],
+                INV_S_BOX[byte(state[(c + 2) % 4], 2)],
+                INV_S_BOX[byte(state[(c + 1) % 4], 3)],
+            ];
+            out[c * 4..c * 4 + 4].copy_from_slice(&(u32::from_le_bytes(column) ^ last[c]).to_le_bytes());
+        }
+        out
+    }
 
-        state
+    #[cfg(test)]
+    fn decrypt_block(&self, input: &[u8; 16]) -> [u8; 16] {
+        Self::decrypt_words(&self.decryption_keys(), input)
     }
 
     pub(crate) fn encrypt_cbc(&self, data: &[u8], iv: &[u8; 16]) -> Vec<u8> {
@@ -429,14 +422,15 @@ impl<const KEY_SIZE: usize, const ROUNDS: usize> AESCipher<KEY_SIZE, ROUNDS> {
     }
 
     pub(crate) fn decrypt_cbc(&self, data: &[u8], iv: &[u8; 16], unpad: bool) -> Vec<u8> {
-        let mut result = Vec::new();
+        let mut result = Vec::with_capacity(data.len());
         let mut prev_block = *iv;
+        let keys = self.decryption_keys();
 
         for chunk in data.as_chunks::<16>().0 {
             let mut block = [0_u8; 16];
             block.copy_from_slice(chunk);
 
-            let decrypted = self.decrypt_block(&block);
+            let decrypted = Self::decrypt_words(&keys, &block);
 
             let mut plain_block = [0_u8; 16];
             for i in 0..16 {
@@ -460,5 +454,28 @@ impl<const KEY_SIZE: usize, const ROUNDS: usize> AESCipher<KEY_SIZE, ROUNDS> {
         }
 
         result
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    /// recto: FIPS-197's examples (C.1, C.3), and a round trip through CBC.
+    fn fips197() {
+        let key: Vec<u8> = (0u8..16).collect();
+        let plain: [u8; 16] = core::array::from_fn(|i| (i as u8) * 0x11);
+        let c = AES128Cipher::new(&key).unwrap();
+        let enc = c.encrypt_block(&plain);
+        assert_eq!(enc, [0x69,0xc4,0xe0,0xd8,0x6a,0x7b,0x04,0x30,0xd8,0xcd,0xb7,0x80,0x70,0xb4,0xc5,0x5a]);
+        assert_eq!(c.decrypt_block(&enc), plain);
+        let key: Vec<u8> = (0u8..32).collect();
+        let c = AES256Cipher::new(&key).unwrap();
+        let enc = c.encrypt_block(&plain);
+        assert_eq!(enc, [0x8e,0xa2,0xb7,0xca,0x51,0x67,0x45,0xbf,0xea,0xfc,0x49,0x90,0x4b,0x49,0x60,0x89]);
+        assert_eq!(c.decrypt_block(&enc), plain);
+        let data: Vec<u8> = (0..100u32).map(|i| (i * 7) as u8).collect();
+        let iv = [3u8; 16];
+        assert_eq!(c.decrypt_cbc(&c.encrypt_cbc(&data, &iv), &iv, true), data);
     }
 }

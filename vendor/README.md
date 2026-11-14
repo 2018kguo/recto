@@ -75,6 +75,14 @@ They are patched for what upstream does not have:
   smaller (`dct_scale_shift`), but never under a `/Matte`, a colour key or an indexed colour space; **hayro**:
   the images a document draws again at the same size kept as drawn (`src/image_cache.rs`), with their soft
   mask when it's the image's own size (`Renderer::alpha_fits` in `src/image.rs`).
+- **hayro-interpret**: an image of a byte a sample that isn't a JPEG or JPEG 2000 (Flate, LZW, run-length or
+  none), averaged in 2x2, 4x4 or 8x8 blocks before its colour is converted when it's drawn at under half of
+  that (`box_reduce` in `src/x_object/decode/mod.rs`), under the same conditions as a JPEG's smaller decode;
+  **hayro**: an image drawn again in the same render, as a drawing of the page for a group's backdrop draws
+  every image before the group, taken from that render's earlier drawing (`RenderImages` in
+  `src/image_cache.rs`) rather than decoded again.
+- **hayro-syntax**: AES decryption a column at a time from tables of InvMixColumns of InvSubBytes, FIPS-197's
+  equivalent inverse cipher, rather than byte by byte (`TD` in `src/crypto/aes.rs`).
 - **hayro** and **hayro-interpret**: a group that needs its backdrop kept once drawn, cut to where it paints,
   with its mask and the group events its contents took (`DrawnGroup` in `src/group.rs`), and painted from
   there in the drawings of the page for later groups' backdrops, which skip its contents

@@ -32,8 +32,9 @@ std::thread_local! {
     static SCALED_DCT: core::cell::Cell<bool> = const { core::cell::Cell::new(true) };
 }
 
-/// recto: whether a JPEG drawn well under its size is decoded at 1/2, 1/4 or 1/8 of it, on this
-/// thread (on by default). Off, for tests and comparisons, every JPEG decodes at full size.
+/// recto: whether a JPEG drawn well under its size is decoded at 1/2, 1/4 or 1/8 of it, and an image of
+/// a byte a sample from another filter averaged to that, on this thread (on by default). Off, for tests
+/// and comparisons, every image decodes at full size.
 #[doc(hidden)]
 pub fn set_scaled_dct_decode(on: bool) {
     SCALED_DCT.with(|scaled| scaled.set(on));

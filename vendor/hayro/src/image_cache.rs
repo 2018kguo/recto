@@ -105,3 +105,31 @@ impl ImageCache {
         self.bytes
     }
 }
+
+/// recto: the images one render drew, by key, for as long as the render lasts: a group that needs
+/// its backdrop draws the page again (`group::PageReplay`), and each image in it would be decoded
+/// and resized again, before the document's cache, which keeps an image from its second drawing
+/// on, has it. The pixmaps are the ones the drawing holds until it's rasterized, and together at most
+/// the cache's limit.
+#[derive(Default)]
+pub(crate) struct RenderImages {
+    entries: Vec<(ImageKey, DrawnImage, usize)>,
+    bytes: usize,
+}
+
+impl RenderImages {
+    /// The image drawn for `key` in this render, and the most its decode asked for.
+    pub(crate) fn get(&self, key: ImageKey) -> Option<(DrawnImage, usize)> {
+        self.entries.iter().find(|e| e.0 == key).map(|(_, image, asked)| (image.clone(), *asked))
+    }
+
+    /// Keeps `image`, from a decode that wasn't cut, while it fits.
+    pub(crate) fn insert(&mut self, key: ImageKey, image: &DrawnImage, asked: usize) {
+        let bytes = image.pixmap.data_as_u8_slice().len();
+        let limit = MAX_CACHED_IMAGE_BYTES.min(hayro_interpret::hayro_syntax::max_decoded_bytes() / 8);
+        if self.bytes + bytes <= limit && self.entries.len() < MAX_CACHED_IMAGES {
+            self.bytes += bytes;
+            self.entries.push((key, image.clone(), asked));
+        }
+    }
+}
