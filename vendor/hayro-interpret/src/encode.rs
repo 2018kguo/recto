@@ -190,13 +190,8 @@ impl ShadingPattern {
                 })
             }
             ShadingType::CoonsPatchMesh { patches, function } => {
-                let mut triangles = vec![];
-                for patch in patches {
-                    patch.to_triangles(&mut triangles);
-                }
-
                 let full_transform = self.matrix;
-                let samples = sample_triangles(&triangles, full_transform, area);
+                let samples = sample_patches(patches, |p, t| p.to_triangles(t), full_transform, area);
 
                 base_transform = Affine::IDENTITY;
 
@@ -206,13 +201,8 @@ impl ShadingPattern {
                 })
             }
             ShadingType::TensorProductPatchMesh { patches, function } => {
-                let mut triangles = vec![];
-                for patch in patches {
-                    patch.to_triangles(&mut triangles);
-                }
-
                 let full_transform = self.matrix;
-                let samples = sample_triangles(&triangles, full_transform, area);
+                let samples = sample_patches(patches, |p, t| p.to_triangles(t), full_transform, area);
 
                 base_transform = Affine::IDENTITY;
 
@@ -292,14 +282,41 @@ fn encode_axial_shading(
     )
 }
 
+/// recto: a patch mesh's triangles sampled a patch at a time, into one map in the same order, rather
+/// than every patch's 722 triangles built first: on one real page they took 1.8 GB at once.
+fn sample_patches<P>(
+    patches: &[P],
+    to_triangles: impl Fn(&P, &mut Vec<Triangle>),
+    transform: Affine,
+    area: Option<Rect>,
+) -> FxHashMap<(u16, u16), ColorComponents> {
+    let mut map = FxHashMap::default();
+    let mut triangles = Vec::new();
+    for patch in patches {
+        triangles.clear();
+        to_triangles(patch, &mut triangles);
+        sample_into(&mut map, &triangles, transform, area);
+    }
+    map
+}
+
 fn sample_triangles(
     triangles: &[Triangle],
     transform: Affine,
     area: Option<Rect>,
 ) -> FxHashMap<(u16, u16), ColorComponents> {
-    let area = area.map(|a| a.inflate(1.0, 1.0));
     let mut map = FxHashMap::default();
+    sample_into(&mut map, triangles, transform, area);
+    map
+}
 
+fn sample_into(
+    map: &mut FxHashMap<(u16, u16), ColorComponents>,
+    triangles: &[Triangle],
+    transform: Affine,
+    area: Option<Rect>,
+) {
+    let area = area.map(|a| a.inflate(1.0, 1.0));
     for t in triangles {
         let t = {
             let p0 = transform * t.p0.point;
@@ -335,8 +352,6 @@ fn sample_triangles(
             }
         }
     }
-
-    map
 }
 
 fn encode_function_shading(domain: &[f32; 4], function: &ShadingFunction) -> EncodedShadingType {

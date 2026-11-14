@@ -11,7 +11,9 @@ export function rectoEngine(engine) {
       const doc = await engine.open(bytes);
       return {
         pageCount: doc.pageCount,
-        text: async (i) => doc.text(i).text,
+        // The string alone, as pdfium's FPDFText_GetText and mupdf's asText give it: each engine still
+        // interprets the whole page, and none copies per-char boxes out. `text(i)` adds the columns.
+        text: async (i) => doc.plainText(i),
         render: async (i, width) => doc.render(i, { width }),
         close: () => doc.close(),
       };

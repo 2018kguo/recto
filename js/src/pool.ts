@@ -43,6 +43,7 @@ export interface PdfPoolDocument {
   readonly pageCount: number;
   pageInfo(index: number): Promise<PdfPageInfo>;
   text(index: number, options?: PdfTextOptions): Promise<PdfPageText>;
+  plainText(index: number): Promise<string>;
   objects(index: number): Promise<PdfPageObjects>;
   annotations(index: number): Promise<PdfAnnotation[]>;
   links(index: number): Promise<PdfLink[]>;
@@ -347,6 +348,7 @@ class Pool implements PdfPool {
       pageInfo: (index) => call("pageInfo", index) as Promise<PdfPageInfo>,
       text: (index, textOptions) =>
         call("text", index, textOptions?.boxes === undefined ? undefined : { boxes: textOptions.boxes }) as Promise<PdfPageText>,
+      plainText: (index) => call("plainText", index) as Promise<string>,
       objects: (index) => call("objects", index) as Promise<PdfPageObjects>,
       annotations: (index) => call("annotations", index) as Promise<PdfAnnotation[]>,
       links: (index) => call("links", index) as Promise<PdfLink[]>,

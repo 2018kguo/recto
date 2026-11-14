@@ -256,6 +256,7 @@ test("every test file reads its text with no part at all", async () => {
   for (const bytes of [pdf(), bilevel.jbig2(), jpxPdf(), meshPdf(), tensorPdf(), postScriptPdf()]) {
     using doc = await engine.open(bytes);
     doc.text(0);
+    doc.plainText(0);
   }
   assert.equal(engine.stats().generation, 0);
 });

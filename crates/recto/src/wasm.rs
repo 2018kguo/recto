@@ -136,6 +136,23 @@ fn ligature(c: char) -> Option<&'static str> {
     })
 }
 
+/// Appends what a char reads as: one code point per entry of `PdfPageText`'s columns.
+fn char_text(c: &crate::Char, text: &mut String) {
+    if c.text.is_empty() {
+        // An unmapped glyph stands in as its char code. A code that is no
+        // scalar value (4-byte codespaces, surrogates) reads as U+FFFD.
+        text.push(char::from_u32(c.code).unwrap_or('\u{FFFD}'));
+        return;
+    }
+    for ch in c.text.chars() {
+        // The Latin ligatures U+FB00..FB06 split into their letters, each with the ligature's box.
+        match ligature(ch) {
+            Some(letters) => text.push_str(letters),
+            None => text.push(ch),
+        }
+    }
+}
+
 fn page_text(page: &crate::TextPage) -> PageText {
     let n = page.chars.len();
     let mut t = PageText {
@@ -169,8 +186,10 @@ fn page_text(page: &crate::TextPage) -> PageText {
     let mut first = Vec::with_capacity(n + 1);
     for c in &page.chars {
         first.push(t.codepoints.len() as u32);
-        let mut push = |cp: u32| {
-            t.codepoints.push(cp);
+        let start = t.text.len();
+        char_text(c, &mut t.text);
+        for ch in t.text[start..].chars() {
+            t.codepoints.push(ch as u32);
             t.boxes.extend_from_slice(&c.bbox);
             t.font_sizes.push(c.em);
             t.tf_sizes.push(c.tf);
@@ -180,29 +199,6 @@ fn page_text(page: &crate::TextPage) -> PageText {
             t.font_ids.push(c.font);
             t.flags.push(c.flags);
             t.run_ids.push(c.run);
-        };
-        if c.text.is_empty() {
-            // An unmapped glyph stands in as its char code. A code that is no
-            // scalar value (4-byte codespaces, surrogates) reads as U+FFFD.
-            let ch = char::from_u32(c.code).unwrap_or('\u{FFFD}');
-            push(ch as u32);
-            t.text.push(ch);
-        } else {
-            for ch in c.text.chars() {
-                // The Latin ligatures U+FB00..FB06 split into their letters, each with the ligature's box.
-                match ligature(ch) {
-                    Some(letters) => {
-                        for l in letters.chars() {
-                            push(l as u32);
-                            t.text.push(l);
-                        }
-                    }
-                    None => {
-                        push(ch as u32);
-                        t.text.push(ch);
-                    }
-                }
-            }
         }
     }
     first.push(t.codepoints.len() as u32);
@@ -478,6 +474,17 @@ impl Document {
         let boxes = if tight { crate::Boxes::Tight } else { crate::Boxes::Font };
         let page = self.0.text_with(index, boxes).map_err(js_error)?;
         Ok(page_text(&page))
+    }
+
+    /// `pageText`'s `text` alone: the same interpretation, with none of the columns built or copied out.
+    #[wasm_bindgen(js_name = pageString)]
+    pub fn page_string(&self, index: usize) -> Result<String, JsValue> {
+        let page = self.0.text_with(index, crate::Boxes::Font).map_err(js_error)?;
+        let mut text = String::new();
+        for c in &page.chars {
+            char_text(c, &mut text);
+        }
+        Ok(text)
     }
 
     /// Text, objects and annotations from one interpretation of the page.

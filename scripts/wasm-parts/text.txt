@@ -638,6 +638,7 @@
 <recto::wasm::Document>::outline
 <recto::wasm::Document>::page_info
 <recto::wasm::Document>::page_labels
+<recto::wasm::Document>::page_string
 <recto::wasm::Document>::page_text
 <recto::wasm::Document>::scan_parts
 <rustc_hash::FxBuildHasher as core::hash::BuildHasher>::hash_one::<&&[u8]>
@@ -852,6 +853,8 @@ document_pageInfo
 document_pageInfo multivalue shim
 document_pageLabels
 document_pageLabels externref shim
+document_pageString
+document_pageString multivalue shim
 document_pageText
 document_pageText multivalue shim
 document_structureTruncated
@@ -1054,11 +1057,11 @@ recto::text::build_page
 recto::text::classify
 recto::text::mirrored
 recto::text::rtl_segment
+recto::wasm::char_text
 recto::wasm::js_error
 recto::wasm::js_set_raw::__wbg_set externref shim
 recto::wasm::js_sys_error::__wbg_Error externref shim
 recto::wasm::page_text
-recto::wasm::page_text::{closure#9}
 roundf
 setAssetLoader
 setAssetLoader externref shim

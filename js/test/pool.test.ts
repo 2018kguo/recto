@@ -29,6 +29,7 @@ test("text and pixels equal one thread's, in the order asked, on several threads
   assert.deepEqual(await doc.objects(0), single.objects(0));
   assert.deepEqual(await doc.outline(), single.outline());
   assert.deepEqual(await doc.pageInfo(0), single.pageInfo(0));
+  assert.equal(await doc.plainText(0), single.text(0).text);
 });
 
 test("calls made one at a time stay on one thread, so the file isn't copied for nothing", async () => {
