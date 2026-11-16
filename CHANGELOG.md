@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+### Fixed
+
+- **Words a table of contents sets tight no longer run together.** Some files set a line with a `Tc` and take it
+  back between letters with each `TJ` adjustment, leaving it only between words: recto counted all of that `Tc`
+  as letter spacing and read `Supplementaryobservations` and `community’sassistancetoHaiti`. Where at least half
+  of a stretch's letter pairs are set under a quarter of its `Tc` apart, the spacing they show is what's taken
+  off, not the `Tc`, so those read as poppler, pdfium and pdf.js read them. Tracked text, where every gap is the
+  `Tc`, is one word as before, and CJK is left alone. 95 of 7,000 web files read differently, nearly all words
+  parted where they ran together (`©2021ElsevierB.V.Allrightsreserved.`).
+- **Data behind a filter recto can't decode is left out.** A stream naming a filter that isn't a standard one,
+  `/BrotliDecode` or a misspelling, had the name dropped and its encoded bytes read as if decoded: an image drew
+  its compressed bytes as pixels, and content was parsed from them. It's now undecodable, as in pdfium and
+  poppler.
+- **A knockout group inside a knockout group knocks out by its shape.** A group drawn as an element of a knockout
+  group took away what was under it only as far as its own opacity, so a half-transparent inner group left half
+  of what it covered (ISO 32000-2, 11.4.8: the shape decides). Opacities and soft masks set inside it no longer
+  weaken that, as MuPDF draws it.
+
 ### Changed
 
 - **Less memory held while a document is open.** A page kept its own parsed dictionaries of fonts, images

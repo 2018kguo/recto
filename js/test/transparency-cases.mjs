@@ -139,6 +139,23 @@ export function transparencyCases() {
       ],
     },
     {
+      // The inner group's opacity is its own, set inside it: the element still covers its whole
+      // shape, so the red is gone there and the blue is half over the paper under the group.
+      name: "knockout group with a group inside at half opacity of its own",
+      pdf: pdfOf({
+        content: `${YELLOW_BACK}/G Do`,
+        resources: "/XObject <</G 5 0 R>>",
+        objects: [
+          group("/I true /K true", `1 0 0 rg 0 0 100 100 re f\n/Inner Do`, "/XObject <</Inner 6 0 R>>"),
+          group("/I true /K true", "/A gs 0 0 1 rg 20 20 60 60 re f", gs("/ca 0.5")),
+        ],
+      }),
+      probes: [
+        { at: [50, 50], want: [127, 127, 128], note: "inner group half, red gone" },
+        { at: [5, 5], want: [255, 0, 0], note: "just the red" },
+      ],
+    },
+    {
       name: "non-isolated inside an isolated group",
       pdf: pdfOf({
         content: `${YELLOW_BACK}/Outer Do`,

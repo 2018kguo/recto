@@ -19,6 +19,8 @@ use smallvec::SmallVec;
 struct FiltersAndParams<'a> {
     filters: SmallVec<[Filter; 2]>,
     params: SmallVec<[Dict<'a>; 2]>,
+    /// recto: a filter named that isn't one of the standard ones.
+    unknown: bool,
 }
 
 /// A stream of arbitrary data.
@@ -61,21 +63,29 @@ impl<'a> Stream<'a> {
     fn filters_and_params(&self) -> FiltersAndParams<'a> {
         let mut collected_filters = SmallVec::new();
         let mut collected_params = SmallVec::new();
+        let mut unknown = false;
 
-        if let Some(filter) = self
+        if let Some(name) = self
             .dict
             .get::<Name<'_>>(F)
             .or_else(|| self.dict.get::<Name<'_>>(FILTER))
-            .and_then(Filter::from_name)
         {
-            let params = self
-                .dict
-                .get::<Dict<'_>>(DP)
-                .or_else(|| self.dict.get::<Dict<'_>>(DECODE_PARMS))
-                .unwrap_or_default();
+            // recto: a filter this can't apply leaves the data undecodable. Upstream dropped the
+            // name and handed out the encoded bytes as if decoded, which drew a Brotli image's
+            // compressed bytes as pixels.
+            match Filter::from_name(name) {
+                Some(filter) => {
+                    let params = self
+                        .dict
+                        .get::<Dict<'_>>(DP)
+                        .or_else(|| self.dict.get::<Dict<'_>>(DECODE_PARMS))
+                        .unwrap_or_default();
 
-            collected_filters.push(filter);
-            collected_params.push(params);
+                    collected_filters.push(filter);
+                    collected_params.push(params);
+                }
+                None => unknown = true,
+            }
         } else if let Some(filters) = self
             .dict
             .get::<Array<'_>>(F)
@@ -95,9 +105,12 @@ impl<'a> Stream<'a> {
                     .and_then(|p| p.into_dict())
                     .unwrap_or_default();
 
-                if let Some(filter) = filter {
-                    collected_filters.push(filter);
-                    collected_params.push(params);
+                match filter {
+                    Some(filter) => {
+                        collected_filters.push(filter);
+                        collected_params.push(params);
+                    }
+                    None => unknown = true,
                 }
             }
         }
@@ -105,6 +118,7 @@ impl<'a> Stream<'a> {
         FiltersAndParams {
             filters: collected_filters,
             params: collected_params,
+            unknown,
         }
     }
 
@@ -200,8 +214,11 @@ impl<'a> Stream<'a> {
             return Err(DecodeFailure::StreamDecode);
         }
 
-        let data = self.raw_data();
         let filters_and_params = self.filters_and_params();
+        if filters_and_params.unknown {
+            return Err(DecodeFailure::StreamDecode);
+        }
+        let data = self.raw_data();
 
         let mut current: Option<FilterResult<'a>> = None;
 
@@ -230,7 +247,7 @@ impl<'a> Stream<'a> {
     }
 
     fn crypt_filter(&self) -> Option<Name<'a>> {
-        let FiltersAndParams { filters, params } = self.filters_and_params();
+        let FiltersAndParams { filters, params, .. } = self.filters_and_params();
 
         (filters.first() == Some(&Filter::Crypt)).then(|| {
             params

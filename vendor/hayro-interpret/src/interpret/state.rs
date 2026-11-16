@@ -298,6 +298,7 @@ pub(crate) fn handle_gs_single<'a>(
                 convert_line_join(LineJoin(dict.get::<Number>(key)?));
         }
         "ML" => context.stroke_props_mut().miter_limit = dict.get::<f32>(key)?,
+        "CA" | "ca" | "SMask" if context.shape_only => {}
         "CA" => context.stroke_paint_mut().alpha = dict.get::<f32>(key)?,
         "ca" => context.fill_paint_mut().alpha = dict.get::<f32>(key)?,
         "TR" | "TR2" => {
