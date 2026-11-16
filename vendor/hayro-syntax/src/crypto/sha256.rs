@@ -1,7 +1,8 @@
 //! Ported from <https://github.com/mozilla/pdf.js/blob/master/src/core/calculate_sha256.js>.
 
 
-const K: [u32; 64] = [
+/// recto: public, for recto's lanes.
+pub const K: [u32; 64] = [
     0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
     0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
     0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
@@ -48,20 +49,20 @@ const fn little_sigma_1(x: u32) -> u32 {
 }
 
 pub(crate) fn calculate(data: &[u8]) -> [u8; 32] {
-    let mut h = [
-        0x6a09e667_u32,
-        0xbb67ae85,
-        0x3c6ef372,
-        0xa54ff53a,
-        0x510e527f,
-        0x9b05688c,
-        0x1f83d9ab,
-        0x5be0cd19,
-    ];
+    finish(H0, data, data.len())
+}
 
+/// recto: the state SHA-256 starts from.
+pub const H0: [u32; 8] = [
+    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
+];
+
+/// recto: SHA-256 of a message `total` bytes long whose blocks before `rest` left the state `h`, so a
+/// caller that hashed those blocks another way (recto's lanes, side by side) finishes here.
+pub(crate) fn finish(mut h: [u32; 8], rest: &[u8], total: usize) -> [u8; 32] {
     // recto: the file's blocks in place, and only the last ones copied to pad them. Hashing a 4 MB
     // wasm is why: one call per block also lets the engine's optimizing tier take over midway.
-    let (blocks, rest) = data.as_chunks::<64>();
+    let (blocks, rest) = rest.as_chunks::<64>();
     for block in blocks {
         compress(&mut h, block);
     }
@@ -70,7 +71,7 @@ pub(crate) fn calculate(data: &[u8]) -> [u8; 32] {
     last[..rest.len()].copy_from_slice(rest);
     last[rest.len()] = 0x80;
     let last_len = if rest.len() + 9 <= 64 { 64 } else { 128 };
-    last[last_len - 8..last_len].copy_from_slice(&(data.len() as u64 * 8).to_be_bytes());
+    last[last_len - 8..last_len].copy_from_slice(&(total as u64 * 8).to_be_bytes());
     for block in last[..last_len].as_chunks::<64>().0 {
         compress(&mut h, block);
     }

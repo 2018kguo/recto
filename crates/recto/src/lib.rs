@@ -15,6 +15,9 @@ mod device;
 mod fonts;
 mod forms;
 mod ranged;
+// The wasm's own check on what it reads synchronously; tested natively.
+#[cfg_attr(not(feature = "wasm"), allow(dead_code))]
+mod sha256_lanes;
 mod text;
 #[cfg(feature = "wasm")]
 mod wasm;

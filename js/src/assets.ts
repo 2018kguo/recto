@@ -13,11 +13,11 @@
 // left to `fetch`'s `integrity`, which a wrapper around `fetch` can drop, and which buffers the
 // body anyway. pins.mjs is written by the build.
 
-import { PINS } from "../wasm/pins.mjs";
+import { LANE_PINS } from "../wasm/pins.mjs";
 import { PdfError } from "./errors.ts";
-import { sha256Hex } from "./sha256.ts";
+import { hexOf, lanesOf, sha256LanesHex } from "./sha256.ts";
 
-export type AssetName = keyof typeof PINS;
+export type AssetName = keyof typeof LANE_PINS;
 export type WasmName = "recto.wasm" | "recto-render.wasm" | "recto-more.wasm" | "recto-rare.wasm";
 
 /** The standard fonts, in the order the wasm asks for them (`font_index` in crates/recto/src/assets.rs). */
@@ -157,7 +157,10 @@ function located<T>(name: AssetName, base: URL | null, read: (url: URL) => T): T
   }
 }
 
-/** A hash to use where there is no native one to call synchronously. A live instance's is quicker than this file's. */
+/**
+ * A hash to use where there is no native one to call synchronously: a live instance's, which hashes the
+ * lanes side by side, quicker than this file's SHA-256. Null when the instance can't run it.
+ */
 export type SyncHash = (bytes: Uint8Array) => string | null;
 
 function notThisBuild(name: AssetName, url: URL, bytes: Uint8Array): PdfError {
@@ -169,9 +172,8 @@ function notThisBuild(name: AssetName, url: URL, bytes: Uint8Array): PdfError {
 }
 
 function checked(name: AssetName, url: URL, bytes: Uint8Array, hash?: SyncHash): Uint8Array {
-  const crypto = globalThis.process?.getBuiltinModule?.("node:crypto");
-  const hex = crypto ? crypto.createHash("sha256").update(bytes).digest("hex") : (hash?.(bytes) ?? sha256Hex(bytes));
-  if (hex !== PINS[name]) {
+  const node = globalThis.process?.getBuiltinModule?.("node:crypto");
+  if (((node ? null : hash?.(bytes)) ?? sha256LanesHex(bytes)) !== LANE_PINS[name]) {
     throw notThisBuild(name, url, bytes);
   }
   return bytes;
@@ -197,10 +199,12 @@ function readSync(url: URL): Uint8Array {
 async function hashOf(bytes: Uint8Array<ArrayBuffer>): Promise<string> {
   const subtle = globalThis.crypto?.subtle;
   if (!subtle) {
-    return sha256Hex(bytes);
+    return sha256LanesHex(bytes);
   }
-  const digest = new Uint8Array(await subtle.digest("SHA-256", bytes));
-  return Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  const digests = new Uint8Array(32 * 8);
+  const lanes = await Promise.all(lanesOf(bytes).map((lane) => subtle.digest("SHA-256", lane as Uint8Array<ArrayBuffer>)));
+  lanes.forEach((digest, i) => digests.set(new Uint8Array(digest), 32 * i));
+  return hexOf(new Uint8Array(await subtle.digest("SHA-256", digests)));
 }
 
 /** The only way bytes get here from a network without blocking: whole, and hashed before they're used. */
@@ -214,7 +218,7 @@ async function fetchBytes(name: AssetName, url: URL): Promise<Uint8Array<ArrayBu
 
 async function verified(name: AssetName, url: URL, response: Response): Promise<Uint8Array<ArrayBuffer>> {
   const bytes = new Uint8Array(await response.arrayBuffer());
-  if ((await hashOf(bytes)) !== PINS[name]) {
+  if ((await hashOf(bytes)) !== LANE_PINS[name]) {
     throw notThisBuild(name, url, bytes);
   }
   return bytes;

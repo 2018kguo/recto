@@ -123,3 +123,54 @@ test("listing other assets can't take away drawing, and the old CMaps name still
   assert.throws(() => doc.render(0, { width: 100 }), { code: "missing-asset", message: /FoxitSans\.pfb/u });
 });
 
+
+/** A worker's synchronous XMLHttpRequest, answered from the package's files after `change`. */
+function syncRequests(change: (bytes: Buffer, name: string) => Buffer = (bytes) => bytes): string[] {
+  const asked: string[] = [];
+  class Request {
+    status = 0;
+    response: ArrayBuffer | null = null;
+    responseType = "";
+    timeout = 0;
+    #name = "";
+    open(_method: string, url: string, async: boolean) {
+      assert.equal(async, false);
+      this.#name = new URL(url).pathname.split("/").pop()!;
+    }
+    send() {
+      asked.push(this.#name);
+      const bytes = change(packaged(this.#name), this.#name);
+      this.response = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+      this.status = 200;
+    }
+  }
+  Object.defineProperty(globalThis, "XMLHttpRequest", { value: Request, configurable: true, writable: true });
+  return asked;
+}
+
+test("in a worker, a part and fonts read mid-call are checked by the instance's own hash, and a changed byte never compiles", async () => {
+  Object.defineProperty(globalThis, "crypto", realCrypto);
+  serve();
+  const RealModule = WebAssembly.Module;
+  const compiled: number[] = [];
+  WebAssembly.Module = new Proxy(RealModule, {
+    construct(target, [bytes]: [Uint8Array]) {
+      compiled.push(bytes.byteLength);
+      return new target(bytes as Uint8Array<ArrayBuffer>);
+    },
+  });
+  try {
+    const asked = syncRequests((bytes, name) => (name === "recto-render.wasm" ? flipLastByte(bytes) : bytes));
+    const engine = await createPdfEngine({ assetBase: location() });
+    using doc = await engine.open(syntheticPdf({ pages: 1, charsPerPage: 100 }));
+    assert.throws(() => doc.render(0, { width: 100 }), { code: "missing-asset", message: /recto-render\.wasm.*not this build's/su });
+    assert.deepEqual(compiled, [], "the changed part never compiled");
+    syncRequests();
+    assert.ok(doc.render(0, { width: 100 }).rgba.some((value) => value !== 255));
+    assert.equal(compiled.length, 1);
+    assert.ok(asked.includes("recto-render.wasm"));
+  } finally {
+    WebAssembly.Module = RealModule;
+    delete (globalThis as { XMLHttpRequest?: unknown }).XMLHttpRequest;
+  }
+});

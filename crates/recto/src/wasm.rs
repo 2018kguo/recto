@@ -38,10 +38,11 @@ pub fn set_max_decoded_bytes(bytes: f64) {
     hayro::hayro_syntax::set_max_decoded_bytes(if bytes >= usize::MAX as f64 { usize::MAX } else { bytes as usize });
 }
 
-/// SHA-256, for the JavaScript side's checks on large assets it read synchronously.
-#[wasm_bindgen]
-pub fn sha256(bytes: &[u8]) -> Vec<u8> {
-    hayro::hayro_syntax::sha256(bytes).to_vec()
+/// SHA-256 of eight lanes' SHA-256 digests (src/sha256_lanes.rs), for the JavaScript side's checks on
+/// the assets it read synchronously, where it has no native hash it can wait for.
+#[wasm_bindgen(js_name = sha256Lanes)]
+pub fn sha256_lanes(bytes: &[u8]) -> Vec<u8> {
+    crate::sha256_lanes::sha256_lanes(bytes).to_vec()
 }
 
 #[wasm_bindgen]

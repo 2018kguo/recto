@@ -24,7 +24,9 @@ const drawing = text + brotli(here("wasm/recto-render.wasm"));
 // count of dist/ before it left out: 259 bytes more counted, and 8.7 KB less downloaded.
 // Drawing's raised by 250 bytes (627 over the build before) for what draws a page with fewer instructions: the
 // glyph cache's one lookup and the rows written straight in.
-const BUDGET = { text: 420_000, drawing: 694_250 };
+// Lowered by 11 KB for a first draw that compiles less: rare paths out of the large functions, and the font
+// outline crates at opt-level "s" (the lane hash adds about 0.9 KB to text).
+const BUDGET = { text: 418_000, drawing: 683_500 };
 console.log(`text ${text} of ${BUDGET.text} bytes, text and drawing ${drawing} of ${BUDGET.drawing}`);
 assert.ok(text <= BUDGET.text, "reading text downloads more than the budget");
 assert.ok(drawing <= BUDGET.drawing, "drawing downloads more than the budget");

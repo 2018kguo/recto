@@ -177,6 +177,9 @@ fn fix_image_length<T: Copy>(
     }
 }
 
+// recto: not inlined into the image decoder: most images are 8 bits a component and take the
+// decoded bytes as they are.
+#[inline(never)]
 fn decode_u8_samples(
     data: &[u8],
     width: u32,

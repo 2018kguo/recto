@@ -38,6 +38,17 @@
   another ahead of a timer that was due. The default `sliceMs` is 4, not 8: the whole render takes the same time.
   The pixels are the same; the heavy page is 3.3% more instructions (CPU time level, interval 0.77–1.08), the
   corpus unchanged, and it ends with 58 MB of WebAssembly memory where it was 109.
+- **A first draw compiles less.** WebAssembly compiles each function the first time it runs, so a fresh page's
+  first draw paid for every byte of the large functions it entered, rare paths included. The operators a page
+  seldom uses (out of `run_ops`), a pattern's paint, a stencil image's drawing, samples other than plain 8-bit, a `/Matte`, and
+  each painter's composite in the rasterizer are now functions of their own, compiled only by a page that uses
+  them, and the font outline crates are built for size (their steady-state speed is unchanged within 2%). A first
+  draw of a 40-page report compiles 259 KB, from 328 KB, and on 48 real files a median 357 KB, from 436 KB.
+  `recto-render.wasm` is 270 KB with brotli, from 279 KB: text and drawing download 683 KB, from 694 KB.
+- **A part read in the middle of a call is checked twice as fast in a browser.** The engine checks each file by
+  SHA-256 over the SHA-256 digests of its eight lanes, which the running instance hashes side by side in SIMD,
+  rather than one SHA-256 of the whole file in JavaScript: about 2.6 ms for `recto-render.wasm`, from 5.1. A
+  changed byte still never instantiates. `wasm/pins.mjs` exports these as `LANE_PINS`, beside `PINS`.
 
 ### Benchmarks
 

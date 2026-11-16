@@ -6,7 +6,7 @@ use crate::device::Device;
 use crate::interpret::path::{
     close_path, end_path, fill_path, fill_path_impl, fill_stroke_path, stroke_path,
 };
-use crate::interpret::state::{TextStateFont, handle_gs};
+use crate::interpret::state::{PaintState, TextStateFont, handle_gs};
 use crate::interpret::text::TextRenderingMode;
 use crate::pattern::{Pattern, ShadingPattern};
 use crate::shading::Shading;
@@ -14,13 +14,14 @@ use crate::util::RectExt;
 use crate::x_object::{FormXObject, ImageXObject, XObject};
 use bitflags::bitflags;
 use hayro_syntax::content::TypedIter;
-use hayro_syntax::content::ops::TypedInstruction;
+use hayro_syntax::content::ops::{DashPattern, TypedInstruction};
 use hayro_syntax::object::dict::keys::{AP, AS, F, N, OC, RECT};
 use hayro_syntax::object::{Dict, Name, Object, Rect, Stream, dict_or_stream};
 use hayro_syntax::page::{Page, Resources};
 use kurbo::{Affine, Point, Shape};
 use rustc_hash::FxHashMap;
-use smallvec::smallvec;
+use hayro_syntax::object::Number;
+use smallvec::{SmallVec, smallvec};
 use std::sync::Arc;
 
 #[doc(hidden)]
@@ -414,7 +415,7 @@ pub(crate) fn run_ops<'a>(
     // recto: how many states this stream started with, which its `Q`s can't go below.
     floor: usize,
 ) -> page_run::Step<'a> {
-    let mut font_dict_cache = FxHashMap::<Name<'a>, Option<TextStateFont<'a>>>::default();
+    let mut font_dict_cache = FxHashMap::<Name<'_>, Option<TextStateFont<'a>>>::default();
     // recto: a named resource is read once per stream. Each read parses the object it names, so a
     // stream naming one of n bytes m times cost m×n: 8,000 `gs`, `Do`, `cs` or `BDC` naming a 16 KB
     // object took 0.6 s.
@@ -594,16 +595,8 @@ pub(crate) fn run_ops<'a>(
                 stroke_path(context, device);
             }
             TypedInstruction::EndPath(_) => end_path(context, device),
-            TypedInstruction::NonStrokeColor(c) => {
-                let paint = context.fill_paint_mut();
-                paint.color = c.0.into_iter().map(|n| n.as_f32()).collect();
-                paint.pattern = None;
-            }
-            TypedInstruction::StrokeColor(c) => {
-                let paint = context.stroke_paint_mut();
-                paint.color = c.0.into_iter().map(|n| n.as_f32()).collect();
-                paint.pattern = None;
-            }
+            TypedInstruction::NonStrokeColor(c) => set_components(context.fill_paint_mut(), c.0),
+            TypedInstruction::StrokeColor(c) => set_components(context.stroke_paint_mut(), c.0),
             TypedInstruction::ClipNonZero(_) => {
                 *(context.clip_mut()) = Some(FillRule::NonZero);
             }
@@ -622,89 +615,23 @@ pub(crate) fn run_ops<'a>(
                 // Ignore for now.
             }
             TypedInstruction::ColorSpaceStroke(c) => {
-                let cs = if let Some(device) = ColorSpace::new_from_name(c.0) {
-                    device
-                } else {
-                    named
-                        .color_space(context, resources, c.0)
-                        .unwrap_or(ColorSpace::device_gray())
-                };
-
-                if !cs.is_pattern() {
-                    context.stroke_paint_mut().pattern = None;
-                }
-                context.stroke_paint_mut().color = cs.initial_color();
-                context.stroke_paint_mut().color_space = cs;
+                set_color_space(context, &mut named, resources, c.0, true);
             }
             TypedInstruction::ColorSpaceNonStroke(c) => {
-                let cs = if let Some(device) = ColorSpace::new_from_name(c.0) {
-                    device
-                } else {
-                    named
-                        .color_space(context, resources, c.0)
-                        .unwrap_or(ColorSpace::device_gray())
-                };
-
-                if !cs.is_pattern() {
-                    context.fill_paint_mut().pattern = None;
-                }
-                context.fill_paint_mut().color = cs.initial_color();
-                context.fill_paint_mut().color_space = cs;
+                set_color_space(context, &mut named, resources, c.0, false);
             }
-            TypedInstruction::DashPattern(p) => {
-                context.stroke_props_mut().dash_offset = p.1.as_f32();
-                // kurbo apparently cannot properly deal with offsets that are exactly 0.
-                context.stroke_props_mut().dash_array =
-                    p.0.iter::<f32>()
-                        .map(|n| if n == 0.0 { 0.01 } else { n })
-                        .collect();
-            }
+            TypedInstruction::DashPattern(p) => set_dash_pattern(context, p),
             TypedInstruction::RenderingIntent(_) => {
                 // Ignore for now.
             }
             TypedInstruction::NonStrokeColorNamed(n) => {
-                context.fill_paint_mut().color = n.0.into_iter().map(|n| n.as_f32()).collect();
-                context.fill_paint_mut().pattern = n.1.and_then(|name| {
-                    named
-                        .pattern(resources, name)
-                        .and_then(|d| Pattern::new(d, context))
-                });
+                set_named_color(context, &mut named, resources, n.0, n.1, false);
             }
             TypedInstruction::StrokeColorNamed(n) => {
-                context.stroke_paint_mut().color = n.0.into_iter().map(|n| n.as_f32()).collect();
-                context.stroke_paint_mut().pattern = n.1.and_then(|name| {
-                    named
-                        .pattern(resources, name)
-                        .and_then(|d| Pattern::new(d, context))
-                });
+                set_named_color(context, &mut named, resources, n.0, n.1, true);
             }
             TypedInstruction::BeginMarkedContentWithProperties(bdc) => {
-                // Properties can be either:
-                // 1. A Name that references an entry in the Resources/Properties dictionary
-                // 2. An inline property-list dictionary
-
-                let (properties, oc) = match bdc.1.clone().into_name() {
-                    Some(name) => named.properties(resources, &name),
-                    None => (None, None),
-                };
-                let properties =
-                    properties.or_else(|| dict_or_stream(bdc.1).map(|(props, _)| props.clone()));
-
-                let oc = oc
-                    .or_else(|| {
-                        let (props, _) = dict_or_stream(bdc.1)?;
-                        let r = props.get_ref(OC)?;
-                        let d = props.get::<Dict<'_>>(OC).unwrap_or_default();
-                        Some((d, r))
-                    });
-
-                if let Some((dict, oc_ref)) = oc {
-                    context.ocg_state.begin_ocg(&dict, oc_ref.into());
-                } else {
-                    context.ocg_state.begin_marked_content();
-                }
-
-                device.begin_marked_content(bdc.0, properties.as_ref());
+                begin_marked_content_with_properties(context, device, &mut named, resources, bdc.0, bdc.1);
             }
             TypedInstruction::MarkedContentPointWithProperties(_) => {}
             TypedInstruction::EndMarkedContent(_) => {
@@ -733,38 +660,13 @@ pub(crate) fn run_ops<'a>(
                 context.text_state_mut().text_matrix = m;
             }
             TypedInstruction::EndText(_) => {
-                let has_outline = context.text_state().clip_paths.segments().next().is_some();
-
-                if has_outline {
-                    let clip_path = context.ctm() * context.text_state().clip_paths.clone();
-
-                    context.push_clip_path(clip_path, FillRule::NonZero, device);
+                if context.text_state().clip_paths.segments().next().is_some() {
+                    clip_to_text(context, device);
                 }
-
                 context.text_state_mut().clip_paths.truncate(0);
             }
             TypedInstruction::TextFont(t) => {
-                let name = t.0;
-
-                // In case we are unable to resolve the font, two scenarios:
-                // 1) If the font doesn't exist in the first place in the resource dictionary,
-                // assume Helvetica (this seems to be what other PDF viewers do).
-                // 2) In case it's `None` because we were unable to resolve the font
-                // (for whatever reason), leave it as `None`. Better showing no
-                // text at all than garbage text.
-                // recto: the font a name resolves to, once per stream: resolving hashes the
-                // font's dictionary.
-                let font = if let Some(font) = font_dict_cache.get(name).cloned() {
-                    font
-                } else if let Some(font_dict) = resources.get_font(name) {
-                    NAMED_READS.with(|n| n.set(n.get() + 1));
-                    let font = context.resolve_font(&font_dict);
-                    font_dict_cache.insert(name.clone(), font.clone());
-                    font
-                } else {
-                    context.fallback_font()
-                };
-
+                let font = text_font(context, &mut font_dict_cache, resources, t.0);
                 context.text_state_mut().font_size = t.1.as_f32();
                 context.text_state_mut().font = font;
             }
@@ -843,22 +745,7 @@ pub(crate) fn run_ops<'a>(
             }
             TypedInstruction::ShapeGlyph(_) => {}
             TypedInstruction::XObject(x) => {
-                let cache = context.interpreter_cache.object_cache.clone();
-                let warning_sink = context.settings.warning_sink.clone();
-                let transfer_function = context.compositing().transfer_function.clone();
-                if let Some(x_object) = named.x_object(resources, x.0).and_then(|s| {
-                    // recto: a form's dictionary is read once in this context.
-                    if let Some(form) = FormXObject::drawn(&s, &mut context.x_objects, context.xref) {
-                        return form.map(XObject::FormXObject);
-                    }
-                    XObject::new(
-                        &s,
-                        |name| named.color_space(context, resources, name),
-                        &warning_sink,
-                        &cache,
-                        transfer_function.clone(),
-                    )
-                }) {
+                if let Some(x_object) = x_object(context, &mut named, resources, x.0) {
                     if slice.is_some() {
                         match x_object {
                             XObject::FormXObject(form) => return page_run::Step::Enter(form),
@@ -873,63 +760,14 @@ pub(crate) fn run_ops<'a>(
                 }
             }
             TypedInstruction::InlineImage(i) => {
-                let warning_sink = context.settings.warning_sink.clone();
-                let transfer_function = context.compositing().transfer_function.clone();
-                let cache = context.interpreter_cache.object_cache.clone();
-                if let Some(x_object) = ImageXObject::new(
-                    i.0,
-                    |name| named.color_space(context, resources, name),
-                    &warning_sink,
-                    &cache,
-                    transfer_function,
-                ) {
-                    x_object.draw(context, device);
-                }
+                draw_inline_image(context, device, &mut named, resources, i.0);
             }
             TypedInstruction::TextRise(t) => {
                 context.text_state_mut().rise = t.0.as_f32();
             }
             TypedInstruction::Shading(s) => {
-                if !context.ocg_state.is_visible() {
-                    continue;
-                }
-
-                let transfer_function = context.compositing().transfer_function.clone();
-
-                if let Some(mut shading) = named.shading(resources, s.0).and_then(|o| {
-                    let (dict, stream) = dict_or_stream(&o)?;
-                    Shading::new(dict, stream, &context.interpreter_cache.object_cache)
-                }) {
-                    // The background only applies to shading patterns, not to `sh`.
-                    shading.background = None;
-
-                    let mut bbox = context.bbox();
-                    if let Some(bounds) = shading.mesh_bounds {
-                        // Snapped outwards to whole pixels, so that the sampled texture stays
-                        // aligned with the device pixels.
-                        let bounds = context.ctm().transform_rect_bbox(bounds);
-                        bbox = bbox.intersect(bounds.expand().inflate(1.0, 1.0));
-                    }
-
-                    context.save_state();
-                    context.push_root_transform();
-                    let paint = context.fill_paint_mut();
-                    paint.pattern = Some(Pattern::Shading(ShadingPattern {
-                        shading: Arc::new(shading),
-                        matrix: Affine::IDENTITY,
-                        opacity: 1.0,
-                        transfer_function: transfer_function.clone(),
-                    }));
-                    paint.color_space = ColorSpace::pattern();
-
-                    let bbox = bbox.to_path(0.1);
-                    let inverted_bbox = context.ctm().inverse() * bbox;
-                    device.shading_fill(true);
-                    fill_path_impl(context, device, FillRule::NonZero, Some(&inverted_bbox));
-                    device.shading_fill(false);
-
-                    context.pop_root_transform();
-                    context.restore_state(device);
+                if context.ocg_state.is_visible() {
+                    draw_shading(context, device, &mut named, resources, s.0);
                 }
             }
             TypedInstruction::BeginCompatibility(_) => {}
@@ -943,5 +781,246 @@ pub(crate) fn run_ops<'a>(
             }
             _ => {}
         }
+    }
+}
+
+/// An operator's colour components, as `sc` and `scn` give them.
+type Components = SmallVec<[Number; 4]>;
+
+// recto: what an operator does that a first draw's page seldom asks for, or that every copy of
+// `run_ops` (one per device) had inlined. Out of its body, each is compiled when a page first uses it,
+// and once for every device where it doesn't use the device.
+
+#[inline(never)]
+fn set_components(paint: &mut PaintState<'_>, numbers: Components) {
+    paint.color = numbers.into_iter().map(|n| n.as_f32()).collect();
+    paint.pattern = None;
+}
+
+#[inline(never)]
+fn set_named_color<'a>(
+    context: &mut Context<'a>,
+    named: &mut Named<'a>,
+    resources: &Resources<'a>,
+    numbers: Components,
+    name: Option<&Name<'_>>,
+    stroke: bool,
+) {
+    let color = numbers.into_iter().map(|n| n.as_f32()).collect();
+    if stroke {
+        context.stroke_paint_mut().color = color;
+    } else {
+        context.fill_paint_mut().color = color;
+    }
+    let pattern = name.and_then(|name| {
+        named
+            .pattern(resources, name)
+            .and_then(|d| Pattern::new(d, context))
+    });
+    if stroke {
+        context.stroke_paint_mut().pattern = pattern;
+    } else {
+        context.fill_paint_mut().pattern = pattern;
+    }
+}
+
+#[inline(never)]
+fn set_color_space<'a>(
+    context: &mut Context<'a>,
+    named: &mut Named<'a>,
+    resources: &Resources<'a>,
+    name: &Name<'_>,
+    stroke: bool,
+) {
+    let cs = if let Some(device) = ColorSpace::new_from_name(name) {
+        device
+    } else {
+        named
+            .color_space(context, resources, name)
+            .unwrap_or(ColorSpace::device_gray())
+    };
+    let paint = if stroke {
+        context.stroke_paint_mut()
+    } else {
+        context.fill_paint_mut()
+    };
+    if !cs.is_pattern() {
+        paint.pattern = None;
+    }
+    paint.color = cs.initial_color();
+    paint.color_space = cs;
+}
+
+#[inline(never)]
+fn set_dash_pattern(context: &mut Context<'_>, p: DashPattern<'_, '_>) {
+    context.stroke_props_mut().dash_offset = p.1.as_f32();
+    // kurbo apparently cannot properly deal with offsets that are exactly 0.
+    context.stroke_props_mut().dash_array =
+        p.0.iter::<f32>()
+            .map(|n| if n == 0.0 { 0.01 } else { n })
+            .collect();
+}
+
+#[inline(never)]
+fn begin_marked_content_with_properties<'a>(
+    context: &mut Context<'a>,
+    device: &mut impl Device<'a>,
+    named: &mut Named<'a>,
+    resources: &Resources<'a>,
+    tag: &Name<'_>,
+    properties: &Object<'_>,
+) {
+    // Properties can be either:
+    // 1. A Name that references an entry in the Resources/Properties dictionary
+    // 2. An inline property-list dictionary
+
+    let (dict, oc) = match properties.clone().into_name() {
+        Some(name) => named.properties(resources, &name),
+        None => (None, None),
+    };
+    let dict = dict.or_else(|| dict_or_stream(properties).map(|(props, _)| props.clone()));
+
+    let oc = oc.or_else(|| {
+        let (props, _) = dict_or_stream(properties)?;
+        let r = props.get_ref(OC)?;
+        let d = props.get::<Dict<'_>>(OC).unwrap_or_default();
+        Some((d, r))
+    });
+
+    if let Some((dict, oc_ref)) = oc {
+        context.ocg_state.begin_ocg(&dict, oc_ref.into());
+    } else {
+        context.ocg_state.begin_marked_content();
+    }
+
+    device.begin_marked_content(tag, dict.as_ref());
+}
+
+#[inline(never)]
+fn clip_to_text<'a>(context: &mut Context<'a>, device: &mut impl Device<'a>) {
+    let clip_path = context.ctm() * context.text_state().clip_paths.clone();
+    context.push_clip_path(clip_path, FillRule::NonZero, device);
+}
+
+/// The font a `Tf` names.
+#[inline(never)]
+fn text_font<'a, 'n>(
+    context: &mut Context<'a>,
+    font_dict_cache: &mut FxHashMap<Name<'n>, Option<TextStateFont<'a>>>,
+    resources: &Resources<'a>,
+    name: &Name<'n>,
+) -> Option<TextStateFont<'a>> {
+    // In case we are unable to resolve the font, two scenarios:
+    // 1) If the font doesn't exist in the first place in the resource dictionary,
+    // assume Helvetica (this seems to be what other PDF viewers do).
+    // 2) In case it's `None` because we were unable to resolve the font
+    // (for whatever reason), leave it as `None`. Better showing no
+    // text at all than garbage text.
+    // recto: the font a name resolves to, once per stream: resolving hashes the
+    // font's dictionary.
+    if let Some(font) = font_dict_cache.get(name).cloned() {
+        font
+    } else if let Some(font_dict) = resources.get_font(name) {
+        NAMED_READS.with(|n| n.set(n.get() + 1));
+        let font = context.resolve_font(&font_dict);
+        font_dict_cache.insert(name.clone(), font.clone());
+        font
+    } else {
+        context.fallback_font()
+    }
+}
+
+/// What a `Do` names.
+#[inline(never)]
+fn x_object<'a>(
+    context: &mut Context<'a>,
+    named: &mut Named<'a>,
+    resources: &Resources<'a>,
+    name: &Name<'_>,
+) -> Option<XObject<'a>> {
+    let cache = context.interpreter_cache.object_cache.clone();
+    let warning_sink = context.settings.warning_sink.clone();
+    let transfer_function = context.compositing().transfer_function.clone();
+    named.x_object(resources, name).and_then(|s| {
+        // recto: a form's dictionary is read once in this context.
+        if let Some(form) = FormXObject::drawn(&s, &mut context.x_objects, context.xref) {
+            return form.map(XObject::FormXObject);
+        }
+        XObject::new(
+            &s,
+            |name| named.color_space(context, resources, name),
+            &warning_sink,
+            &cache,
+            transfer_function.clone(),
+        )
+    })
+}
+
+#[inline(never)]
+fn draw_inline_image<'a>(
+    context: &mut Context<'a>,
+    device: &mut impl Device<'a>,
+    named: &mut Named<'a>,
+    resources: &Resources<'a>,
+    stream: &Stream<'_>,
+) {
+    let warning_sink = context.settings.warning_sink.clone();
+    let transfer_function = context.compositing().transfer_function.clone();
+    let cache = context.interpreter_cache.object_cache.clone();
+    if let Some(x_object) = ImageXObject::new(
+        stream,
+        |name| named.color_space(context, resources, name),
+        &warning_sink,
+        &cache,
+        transfer_function,
+    ) {
+        x_object.draw(context, device);
+    }
+}
+
+#[inline(never)]
+fn draw_shading<'a>(
+    context: &mut Context<'a>,
+    device: &mut impl Device<'a>,
+    named: &mut Named<'a>,
+    resources: &Resources<'a>,
+    name: &Name<'_>,
+) {
+    let transfer_function = context.compositing().transfer_function.clone();
+
+    if let Some(mut shading) = named.shading(resources, name).and_then(|o| {
+        let (dict, stream) = dict_or_stream(&o)?;
+        Shading::new(dict, stream, &context.interpreter_cache.object_cache)
+    }) {
+        // The background only applies to shading patterns, not to `sh`.
+        shading.background = None;
+
+        let mut bbox = context.bbox();
+        if let Some(bounds) = shading.mesh_bounds {
+            // Snapped outwards to whole pixels, so that the sampled texture stays
+            // aligned with the device pixels.
+            let bounds = context.ctm().transform_rect_bbox(bounds);
+            bbox = bbox.intersect(bounds.expand().inflate(1.0, 1.0));
+        }
+
+        context.save_state();
+        context.push_root_transform();
+        let paint = context.fill_paint_mut();
+        paint.pattern = Some(Pattern::Shading(ShadingPattern {
+            shading: Arc::new(shading),
+            matrix: Affine::IDENTITY,
+            opacity: 1.0,
+            transfer_function: transfer_function.clone(),
+        }));
+        paint.color_space = ColorSpace::pattern();
+
+        let bbox = bbox.to_path(0.1);
+        let inverted_bbox = context.ctm().inverse() * bbox;
+        device.shading_fill(true);
+        fill_path_impl(context, device, FillRule::NonZero, Some(&inverted_bbox));
+        device.shading_fill(false);
+
+        context.pop_root_transform();
+        context.restore_state(device);
     }
 }

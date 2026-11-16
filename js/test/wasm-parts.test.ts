@@ -294,7 +294,7 @@ test("pageLabels and structureTruncated move off an abandoned instance like ever
 test("a part of the hash's own can't send its check round in a circle", () => {
   const instance = {
     dead: false,
-    glue: { sha256: (bytes: Uint8Array) => (inner.push(hashOn(instance as never)(bytes)), new Uint8Array(32)) },
+    glue: { sha256Lanes: (bytes: Uint8Array) => (inner.push(hashOn(instance as never)(bytes)), new Uint8Array(32)) },
   };
   const inner: unknown[] = [];
   assert.equal(hashOn(instance as never)(new Uint8Array(1)), "00".repeat(32));

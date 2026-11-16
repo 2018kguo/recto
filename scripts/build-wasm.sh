@@ -9,8 +9,11 @@ cd "$(dirname "$0")/.."
 # meaningful from build to build. Names leave with the split.
 # --emit-relocs: scripts/wasm-data.mjs reads where each table is, to move those only parts read into them.
 export RUSTFLAGS="-C target-feature=+simd128 -C symbol-mangling-version=v0 -C link-arg=--emit-relocs --remap-path-prefix=$HOME=~ --remap-path-prefix=${CARGO_HOME:-$HOME/.cargo}=~/.cargo --remap-path-prefix=$PWD=."
+# The font outline crates for size: a first draw compiles every function it runs, and these are 20 KB less
+# of it (brotli) at the same steady speed within 2%. Only here, so a native build keeps opt-level 3.
 RUSTC="$PWD/scripts/rustc-fixed-host.sh" cargo build --release -p recto --lib --no-default-features --features wasm \
-  --target wasm32-unknown-unknown
+  --target wasm32-unknown-unknown \
+  --config 'profile.release.package.skrifa.opt-level="s"' --config 'profile.release.package.read-fonts.opt-level="s"'
 node scripts/wasm-data.mjs target/wasm32-unknown-unknown/release/recto.wasm target/wasm-layout.json target/recto-linked.wasm
 # --omit-default-module-path: the glue's default `new URL("recto_bg.wasm", import.meta.url)`
 # names a file that is not shipped, and bundlers fail on it. src/assets.ts finds the wasm.

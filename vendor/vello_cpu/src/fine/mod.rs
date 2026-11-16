@@ -594,6 +594,71 @@ pub struct Fine<S: Simd, T: FineKernel<S>> {
     origin: (u16, u16),
 }
 
+/// recto: a painter's pixels into `dest`, through `color_buf` when they must be composited. Not
+/// inlined into `indexed_fill`, and neither is the tint or the blend: each is compiled when a page
+/// first paints that way.
+#[inline(never)]
+#[allow(clippy::too_many_arguments)]
+fn fill_painted<S: Simd, T: FineKernel<S>, P: Painter>(
+    simd: S,
+    dest: &mut [T::Numeric],
+    color_buf: &mut [T::Numeric],
+    painter: P,
+    tint: Option<&Tint>,
+    buffered: bool,
+    (x, y): (u16, u16),
+    attrs: &PaintFillAttrs,
+    alphas: Option<&[u8]>,
+) {
+    if buffered {
+        T::apply_painter(simd, color_buf, painter);
+        if let Some(tint) = tint {
+            apply_tint::<S, T>(simd, color_buf, tint);
+        }
+
+        if attrs.blend_mode == BlendMode::default() && attrs.mask.is_none() {
+            T::alpha_composite_buffer(simd, dest, color_buf, alphas);
+        } else {
+            blend_painted::<S, T>(simd, dest, (x, y), color_buf, attrs, alphas);
+        }
+    } else {
+        // Similarly to solid colors we can just override the previous values
+        // if all colors in the gradient are fully opaque.
+        T::apply_painter(simd, dest, painter);
+        if let Some(tint) = tint {
+            apply_tint::<S, T>(simd, dest, tint);
+        }
+    }
+}
+
+#[inline(never)]
+fn apply_tint<S: Simd, T: FineKernel<S>>(simd: S, dest: &mut [T::Numeric], tint: &Tint) {
+    T::apply_tint(simd, dest, tint);
+}
+
+#[inline(never)]
+fn blend_painted<S: Simd, T: FineKernel<S>>(
+    simd: S,
+    dest: &mut [T::Numeric],
+    (x, y): (u16, u16),
+    color_buf: &[T::Numeric],
+    attrs: &PaintFillAttrs,
+    alphas: Option<&[u8]>,
+) {
+    T::blend(
+        simd,
+        dest,
+        x,
+        y,
+        color_buf
+            .chunks_exact(T::Composite::LENGTH)
+            .map(|s| T::Composite::from_slice(simd, s)),
+        attrs.blend_mode,
+        alphas,
+        attrs.mask.as_ref(),
+    );
+}
+
 impl<S: Simd, T: FineKernel<S>> Fine<S, T> {
     /// Create a new fine rasterizer with the given SIMD context.
     ///
@@ -1016,45 +1081,27 @@ impl<S: Simd, T: FineKernel<S>> Fine<S, T> {
 
         // We need to have this as a macro because closures cannot take generic arguments, and
         // we would have to repeatedly provide all arguments if we made it a function.
+        // recto: what it does is in `fill_painted`, not inlined, once per kind of painter: a first draw
+        // compiles the painters it uses, not every one in this match.
         macro_rules! fill_complex_paint {
             ($may_have_transparency:expr, $filler:expr) => {
                 fill_complex_paint!($may_have_transparency, $filler, None::<&Tint>)
             };
             ($may_have_transparency:expr, $filler:expr, $tint:expr) => {
-                if $may_have_transparency
-                    || alphas.is_some()
-                    || !default_blend
-                    || attrs.mask.is_some()
-                {
-                    T::apply_painter(simd, color_buf, $filler);
-                    if let Some(tint) = $tint {
-                        T::apply_tint(simd, color_buf, tint);
-                    }
-
-                    if default_blend && attrs.mask.is_none() {
-                        T::alpha_composite_buffer(simd, dest, color_buf, alphas);
-                    } else {
-                        T::blend(
-                            simd,
-                            dest,
-                            x,
-                            y,
-                            color_buf
-                                .chunks_exact(T::Composite::LENGTH)
-                                .map(|s| T::Composite::from_slice(simd, s)),
-                            attrs.blend_mode,
-                            alphas,
-                            attrs.mask.as_ref(),
-                        );
-                    }
-                } else {
-                    // Similarly to solid colors we can just override the previous values
-                    // if all colors in the gradient are fully opaque.
-                    T::apply_painter(simd, dest, $filler);
-                    if let Some(tint) = $tint {
-                        T::apply_tint(simd, dest, tint);
-                    }
-                }
+                fill_painted::<S, T, _>(
+                    simd,
+                    dest,
+                    color_buf,
+                    $filler,
+                    $tint,
+                    $may_have_transparency
+                        || alphas.is_some()
+                        || !default_blend
+                        || attrs.mask.is_some(),
+                    (x, y),
+                    attrs,
+                    alphas,
+                )
             };
         }
 

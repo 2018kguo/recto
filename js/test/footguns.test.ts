@@ -14,7 +14,8 @@ import { Worker } from "node:worker_threads";
 import { createPdfEngine, openPdf, PdfError, type PdfErrorCode } from "../src/index.ts";
 import { startRangeServer } from "./range-server.ts";
 import { syntheticPdf } from "./synthetic-pdf.ts";
-import { PINS } from "../wasm/pins.mjs";
+import { LANE_PINS, PINS } from "../wasm/pins.mjs";
+import { createGlue } from "../wasm/recto.gen.mjs";
 
 const ASSETS = Object.keys(PINS);
 const packaged = (name: string) => new URL(`../wasm/${name}`, import.meta.url);
@@ -50,6 +51,28 @@ test("the pins are the shipped files' hashes", () => {
   for (const name of ASSETS) {
     const actual = createHash("sha256").update(readFileSync(packaged(name))).digest("hex");
     assert.equal(actual, PINS[name], name);
+  }
+});
+
+/** SHA-256 of eight lanes' SHA-256 digests, each lane whole 64-byte blocks: crates/recto/src/sha256_lanes.rs. */
+const sha256Lanes = (bytes: Uint8Array) => {
+  const digest = (data: Uint8Array) => createHash("sha256").update(data).digest();
+  const lane = Math.ceil(Math.ceil(bytes.length / 8) / 64) * 64;
+  const lanes = Array.from({ length: 8 }, (_, i) => digest(bytes.subarray(Math.min(i * lane, bytes.length), Math.min((i + 1) * lane, bytes.length))));
+  return digest(Buffer.concat(lanes)).toString("hex");
+};
+
+test("the lane pins are the shipped files' lane hashes, and the wasm computes the same at every length", async () => {
+  for (const name of ASSETS) {
+    assert.equal(sha256Lanes(readFileSync(packaged(name))), LANE_PINS[name as keyof typeof LANE_PINS], name);
+  }
+  const absent = new Proxy({}, { get: () => () => assert.fail("hashing ran a part's function") });
+  const glue = createGlue({ "part.recto-render": absent, "part.recto-more": absent, "part.recto-rare": absent }, () => {});
+  glue.initSync({ module: new WebAssembly.Module(readFileSync(packaged("recto.wasm"))) });
+  const data = Uint8Array.from({ length: 70_000 }, (_, i) => (Math.imul(i, 2_654_435_761) >>> 13) & 255);
+  for (const length of [0, 1, 55, 56, 63, 64, 65, 511, 512, 513, 4095, 4096, 4097, 8 * 64 * 3 + 7, 70_000]) {
+    const bytes = data.subarray(0, length);
+    assert.equal(Buffer.from(glue.sha256Lanes(bytes)).toString("hex"), sha256Lanes(bytes), `${length} bytes`);
   }
 });
 

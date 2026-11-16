@@ -3,7 +3,7 @@
 // instance goes once nothing has been open on it for a moment, and a document still open on an
 // instance keeps it.
 
-import { PINS } from "../wasm/pins.mjs";
+import { LANE_PINS } from "../wasm/pins.mjs";
 import { createGlue, PART_TABLE } from "../wasm/recto.gen.mjs";
 import {
   type AssetName,
@@ -24,6 +24,7 @@ import {
   RectoDocument,
 } from "./document.ts";
 import { PdfError } from "./errors.ts";
+import { hexOf } from "./sha256.ts";
 import {
   type PdfRangedDocument,
   type PdfRangedOpenOptions,
@@ -153,7 +154,7 @@ function partModule(name: Part, base: URL | null, hash: SyncHash): WebAssembly.M
   return module;
 }
 
-/** An instance's own SHA-256, for an asset it needs: faster than JavaScript's in a cold browser. */
+/** An instance's own hash of an asset it needs, over eight lanes: faster than JavaScript's SHA-256 in a cold browser. */
 export function hashOn(instance: Pick<Instance, "dead" | "glue">): SyncHash {
   return (bytes) => {
     // A function the hash itself runs may be in a part, and that part's check can't use this hash.
@@ -162,7 +163,7 @@ export function hashOn(instance: Pick<Instance, "dead" | "glue">): SyncHash {
     }
     hashing.add(instance);
     try {
-      return Array.from(instance.glue.sha256(bytes), (byte) => byte.toString(16).padStart(2, "0")).join("");
+      return hexOf(instance.glue.sha256Lanes(bytes));
     } finally {
       hashing.delete(instance);
     }
@@ -536,8 +537,8 @@ async function createEngine(options: PdfEngineOptions): Promise<RectoEngine> {
   const base = assetBaseUrl(options.assetBase);
   const canRead = canReadSync();
   for (const asset of options.preloadAssets ?? []) {
-    if (asset !== "cmaps.brotli" && asset !== "fonts.bin" && !Object.hasOwn(PINS, asset)) {
-      const accepted = [...Object.keys(PINS), "cmaps.brotli", "fonts.bin"].join(", ");
+    if (asset !== "cmaps.brotli" && asset !== "fonts.bin" && !Object.hasOwn(LANE_PINS, asset)) {
+      const accepted = [...Object.keys(LANE_PINS), "cmaps.brotli", "fonts.bin"].join(", ");
       throw new TypeError(`preloadAssets does not know ${JSON.stringify(asset)}. It takes: ${accepted}`);
     }
   }
