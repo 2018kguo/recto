@@ -4,7 +4,7 @@ use hayro_interpret::hayro_syntax;
 use fearless_simd::{Level, Select, Simd, SimdBase, SimdInto, mask8x32, u8x32, u16x16};
 use hayro_interpret::util::x_y_advances;
 use hayro_interpret::{FillRule, ImageData, ImageDrawProps, LumaData, Paint, RgbData};
-use kurbo::{Affine, Rect};
+use kurbo::{Affine, Rect, Shape};
 use pic_scale::{
     ImageSize, ImageStore, ImageStoreMut, PicScaleError, Resampling, ResamplingFunction, Scaler,
 };
@@ -99,7 +99,15 @@ impl Renderer<'_> {
             interpolate: alpha_data.interpolate,
         };
 
-        self.ctx.push_layer(None, None, None, None, None);
+        // recto: the layer cut to where the image can paint, two pixels around it so its own edge is all
+        // inside, rather than the whole page (the mask's layer inside it is cut with it): a page of 300 small
+        // images with larger soft masks composited the whole page for each, 20 times as long as pdfium took.
+        let around = image_transform
+            .transform_rect_bbox(Rect::new(0.0, 0.0, f64::from(img_width), f64::from(img_height)))
+            .inflate(2.0, 2.0)
+            .to_path(0.1);
+        self.ctx.set_transform(Affine::IDENTITY);
+        self.ctx.push_layer(Some(&around), None, None, None, None);
         self.ctx.set_transform(image_transform);
         self.draw_image(image_data, None);
 

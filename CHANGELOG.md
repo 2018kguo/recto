@@ -35,6 +35,10 @@
 
 ### Faster
 
+- **An image with a soft mask of another size is masked in a layer cut to it**, not one the size of the page
+  composited whole for each image: a web page of 300 small images with larger masks took 6.9 s to draw, 20 times
+  pdfium's time, and takes 93 ms.
+
 - **`plainText(i)` skips the words.** It builds the page's chars as `text(i)` does and stops there, without
   finding words or renumbering fonts and runs it doesn't return: 2.2% fewer instructions over the benchmark's
   text pass (interval 2.2–2.3%). `text(i)` hands each column to JavaScript without cloning it in WebAssembly
