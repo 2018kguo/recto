@@ -463,6 +463,16 @@ fn copies(glyphs: &[Glyph]) -> Vec<bool> {
 /// Chars, generated spaces and breaks, words, and the fonts and runs the
 /// chars use, renumbered in the order they first appear.
 pub(crate) fn build_page(glyphs: &[Glyph], fonts: &[Font], runs: &[Run]) -> TextPage {
+    build_with(glyphs, fonts, runs, true)
+}
+
+/// `build_page`'s chars alone, in the same order: what the page's string is made of, without its
+/// words, or its fonts and runs renumbered.
+pub(crate) fn build_chars(glyphs: &[Glyph]) -> Vec<Char> {
+    build_with(glyphs, &[], &[], false).chars
+}
+
+fn build_with(glyphs: &[Glyph], fonts: &[Font], runs: &[Run], words: bool) -> TextPage {
     // Room for the usual few generated spaces and breaks; a page that needs
     // more regrows once.
     let mut chars: Vec<Char> = Vec::with_capacity(glyphs.len() + glyphs.len() / 4 + 16);
@@ -542,6 +552,9 @@ pub(crate) fn build_page(glyphs: &[Glyph], fonts: &[Font], runs: &[Run]) -> Text
     close_lines(&mut chars);
     for line in chars.split_mut(|c| c.text == "\n") {
         logical_order(line);
+    }
+    if !words {
+        return TextPage { truncated: false, chars, words: Vec::new(), fonts: Vec::new(), runs: Vec::new(), font_order: Vec::new() };
     }
     let ((fonts, font_order), (runs, _)) = (
         renumber(&mut chars, fonts, |c| &mut c.font),

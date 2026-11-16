@@ -87,7 +87,7 @@ pub struct PageRun<'a> {
 impl<'a> PageRun<'a> {
     /// `page` is drawn by repeated calls to `step`, with the same context and device.
     pub fn new(page: &'a Page<'a>, context: &mut Context<'a>) -> Self {
-        let resources = page.resources().clone();
+        let resources = page.resources();
         let states = context.num_states();
         context.save_state();
         let annotations = if context

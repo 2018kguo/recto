@@ -237,7 +237,7 @@ fn appearance<'a>(
     let mut resources = stream
         .dict()
         .get::<Dict<'_>>(b"Resources")
-        .map_or_else(|| page.resources().clone(), Resources::new);
+        .map_or_else(|| page.resources(), Resources::new);
     let (objects, texts) = count_objects(TypedIter::new(&decoded), &resources);
     if texts == 0 {
         return (objects, 0, String::new());

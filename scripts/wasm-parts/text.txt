@@ -454,6 +454,7 @@
 <hayro_syntax::page::Page>::new
 <hayro_syntax::page::Page>::page_stream
 <hayro_syntax::page::Page>::render_dimensions
+<hayro_syntax::page::Page>::resources
 <hayro_syntax::page::PageWalk>::built
 <hayro_syntax::page::PageWalk>::enter
 <hayro_syntax::page::Pages>::get
@@ -619,11 +620,13 @@
 <read_fonts::tables::os2::Os2>::us_win_ascent
 <read_fonts::tables::os2::Os2>::us_win_descent
 <read_fonts::tables::post::GlyphNames as core::iter::traits::iterator::Iterator>::next
+<recto::Caches>::keep_glyphs
 <recto::Document>::annotations
 <recto::Document>::open_data
 <recto::Document>::open_ranged
 <recto::Document>::scan_with
 <recto::Document>::structure_truncated
+<recto::Document>::text_chars
 <recto::Inner as core::ops::drop::Drop>::drop
 <recto::assets::host::set_loader::{closure#2} as core::ops::function::FnOnce<()>>::call_once
 <recto::ctext::Text>::first
@@ -975,6 +978,12 @@ moxcms::conversions::lut_transforms::pcs_lab_v4_to_v2
 moxcms::conversions::prelude_lut_xyz_rgb::prepare_inverse_lut_rgb_xyz::<u8, 8usize, 4096usize>
 moxcms::helpers::read_matrix_3d
 moxcms::reader::read_desc_unicode
+pageobjects_pathBoxes
+pageobjects_pathBoxes multivalue shim
+pageobjects_pathStart
+pageobjects_pathStart multivalue shim
+pageobjects_segmentPoints
+pageobjects_segmentPoints multivalue shim
 pagescan_takeAnnotations
 pagescan_takeText
 pagetext_angles
@@ -1054,6 +1063,7 @@ recto::outline::read_walked
 recto::outline::walked
 recto::ranged::data::{closure#0}
 recto::text::build_page
+recto::text::build_with
 recto::text::classify
 recto::text::mirrored
 recto::text::rtl_segment

@@ -158,7 +158,7 @@ pub fn interpret_page<'a>(
     context: &mut Context<'a>,
     device: &mut impl Device<'a>,
 ) {
-    let resources = page.resources();
+    let resources = &page.resources();
     let render_content = context.settings.render_content;
 
     // recto: the page's content counts against the limit on what's decoded while it's drawn.

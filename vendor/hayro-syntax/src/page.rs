@@ -655,7 +655,11 @@ pub struct Page<'a> {
     page_streams: Mutex<Weak<Vec<u8>>>,
     /// recto: whether a limit left part of the content out when it was last decoded.
     content_cut: core::sync::atomic::AtomicBool,
-    resources: Resources<'a>,
+    // recto: what the page inherits as its resources, if it has none of its own. Its resources are
+    // read when they're asked for, not kept: each page built kept its own parsed dictionaries of fonts,
+    // images and states, 3 KB a page listing two fonts and 15 KB listing 200, for as long as the
+    // document was open.
+    inherited_resources: Dict<'a>,
     ctx: ReaderContext<'a>,
 }
 
@@ -700,11 +704,6 @@ impl<'a> Page<'a> {
             _ => Rotation::None,
         };
 
-        let resources = Resources::new(
-            dict.get::<Dict<'a>>(RESOURCES)
-                .unwrap_or_else(|| ctx.resources.clone()),
-        );
-
         Some(Self {
             inner: dict.clone(),
             media_box,
@@ -712,7 +711,7 @@ impl<'a> Page<'a> {
             rotation,
             page_streams: Mutex::new(Weak::new()),
             content_cut: core::sync::atomic::AtomicBool::new(false),
-            resources,
+            inherited_resources: ctx.resources.clone(),
             ctx: reader_ctx.clone(),
         })
     }
@@ -786,8 +785,14 @@ impl<'a> Page<'a> {
     }
 
     /// Get the resources of the page.
-    pub fn resources(&self) -> &Resources<'a> {
-        &self.resources
+    ///
+    /// recto: read from the page's dictionary at each call, so call it once per pass.
+    pub fn resources(&self) -> Resources<'a> {
+        Resources::new(
+            self.inner
+                .get::<Dict<'a>>(RESOURCES)
+                .unwrap_or_else(|| self.inherited_resources.clone()),
+        )
     }
 
     /// Get the media box of the page.

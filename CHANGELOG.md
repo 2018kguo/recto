@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **Less memory held while a document is open.** A page kept its own parsed dictionaries of fonts, images
+  and graphics states from the first time it was read until the document closed: 3 KB a page listing two
+  fonts, 15 KB a page listing 200. It keeps its own dictionary now and reads its resources again when it's
+  interpreted, about 1 KB a page either way. Reading every page of a 9,000-page file, WebAssembly memory went
+  from 41.8 to 22.9 MB and the process's peak from 172 to 152 MB (median of 6, interval of the ratio
+  0.83–0.92); the generated 2,000-page report, read and 5 pages drawn, ends at 27.7 MB of WebAssembly memory
+  where it was 34.4, with the process's peak level. The scoreboard's text-pass peak went from 42.9 to 24.0 MB.
+- **A page of more than 16,384 glyphs no longer leaves its glyph buffer behind.** The buffer a page's text is
+  collected in is kept for the next page, so that it doesn't grow from nothing each time; past 16,384 glyphs
+  (2.9 MB) it goes with its page. A page of 500,000 glyphs left 92 MB held until the document closed.
+
+### Faster
+
+- **`plainText(i)` skips the words.** It builds the page's chars as `text(i)` does and stops there, without
+  finding words or renumbering fonts and runs it doesn't return: 2.2% fewer instructions over the benchmark's
+  text pass (interval 2.2–2.3%). `text(i)` hands each column to JavaScript without cloning it in WebAssembly
+  first (0.4% fewer, interval 0.2–0.4%). The text, the boxes and the corpus hash are unchanged.
+
 ## 0.9.0
 
 ### Added
