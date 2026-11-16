@@ -13,11 +13,16 @@
 // the 10th percentile and the share at 0.8 or more.
 //
 //   npm run build
-//   node bench/box-compare.mjs <directory of PDFs> [more directories] [--docs 400] [--pages 5] [--out bench/results/boxes.json] [--tight]
+//   node bench/box-compare.mjs <directory of PDFs> [more directories] [--docs 400] [--pages 5] [--jobs 0] [--out bench/results/boxes.json] [--tight]
+//
+// `--jobs` spreads the files over that many processes (0, the default: a core each but one); the tallies
+// are the same at any count.
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { parseArgs } from "node:util";
+
+import { defaultJobs, shards } from "./shards.mjs";
 
 const here = import.meta.dirname;
 const { values, positionals } = parseArgs({
@@ -30,6 +35,7 @@ const { values, positionals } = parseArgs({
     ink: { type: "boolean", default: true },
     tight: { type: "boolean", default: false },
     worst: { type: "string" },
+    jobs: { type: "string", default: "0" },
   },
 });
 if (positionals.length === 0) {
@@ -40,6 +46,8 @@ const all = positionals.flatMap((directory) => fs.readdirSync(directory).filter(
 const wanted = Math.min(Number(values.docs), all.length);
 const files = Array.from({ length: wanted }, (_, i) => all[Math.floor((i * all.length) / wanted)]);
 const PAGES = Number(values.pages);
+const started = performance.now();
+const shard = await shards(files, Number(values.jobs) || defaultJobs());
 
 const { createPdfEngine, textItems } = await import(path.join(here, "../js/dist/index.js"));
 const recto = await createPdfEngine();
@@ -310,8 +318,7 @@ let rectoTotal = 0;
 const textDiffers = [];
 // With `--worst`: chars whose tight box is furthest from pdfium's, by page. Local: they quote the PDFs.
 const worst = {};
-const started = performance.now();
-for (const file of files) {
+for (const file of shard.files ?? []) {
   try {
     await scoreFile(file);
   } catch (error) {
@@ -321,6 +328,9 @@ for (const file of files) {
 }
 
 async function scoreFile(file) {
+  // A fresh pdfium for each file: an instance's text for a file can depend on the files it read before,
+  // and the reference shouldn't depend on the order or on --jobs.
+  await startPdfium();
   const bytes = new Uint8Array(fs.readFileSync(file));
   const pd = pdfiumOpen(bytes);
   if (!pd) return;
@@ -474,6 +484,18 @@ async function scoreFile(file) {
   await jdoc.task.destroy();
   pd.close();
 }
+
+shard.done?.({ series, pages, used, unmatched, rectoTotal, textDiffers, worst });
+for (const state of shard.states ?? []) {
+  for (const [name, list] of Object.entries(state.series)) (series[name] ??= []).push(...list);
+  pages += state.pages;
+  used += state.used;
+  unmatched += state.unmatched;
+  rectoTotal += state.rectoTotal;
+  textDiffers.push(...state.textDiffers);
+  for (const [where, list] of Object.entries(state.worst)) (worst[where] ??= []).push(...list);
+}
+textDiffers.sort();
 
 const quantile = (sorted, q) => sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))];
 const summary = Object.fromEntries(

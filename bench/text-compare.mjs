@@ -8,13 +8,17 @@
 // they quote the PDFs, so they stay out of the repository.
 //
 //   npm run build
-//   node bench/text-compare.mjs <directory of PDFs> [more directories] [--docs 200] [--pages 10] [--out bench/results/text.json] [--worst file.json]
+//   node bench/text-compare.mjs <directory of PDFs> [more directories] [--docs 200] [--pages 10] [--jobs 0] [--out bench/results/text.json] [--worst file.json]
+//
+// `--jobs` spreads the files over that many processes (0, the default: a core each but one); the totals
+// are the same at any count.
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { parseArgs } from "node:util";
 
 import { mupdfEngine, pdfiumEngine, pdfjsEngine, rectoEngine } from "./engines.mjs";
+import { defaultJobs, shards } from "./shards.mjs";
 
 const here = import.meta.dirname;
 const { values, positionals } = parseArgs({
@@ -24,6 +28,7 @@ const { values, positionals } = parseArgs({
     pages: { type: "string", default: "10" },
     out: { type: "string", default: path.join(here, "results/text.json") },
     worst: { type: "string" },
+    jobs: { type: "string", default: "0" },
   },
 });
 if (positionals.length === 0) {
@@ -34,17 +39,23 @@ const all = positionals.flatMap((directory) => fs.readdirSync(directory).filter(
 const wanted = Math.min(Number(values.docs), all.length);
 const files = Array.from({ length: wanted }, (_, i) => all[Math.floor((i * all.length) / wanted)]);
 const PAGES = Number(values.pages);
+const shard = await shards(files, Number(values.jobs) || defaultJobs());
 
 const { createPdfEngine } = await import(path.join(here, "../js/dist/index.js"));
 const pdfjs = await import(path.join(here, "node_modules/pdfjs-dist/legacy/build/pdf.mjs"));
 const root = path.join(here, "node_modules/pdfjs-dist");
 const { init } = await import(path.join(here, "node_modules/@embedpdf/pdfium/dist/index.js"));
+const pdfiumWasm = fs.readFileSync(path.join(here, "node_modules/@embedpdf/pdfium/dist/pdfium.wasm"));
 const engines = [
   rectoEngine(await createPdfEngine()),
   pdfjsEngine(pdfjs, { isEvalSupported: false, verbosity: 0, standardFontDataUrl: `${root}/standard_fonts/`, cMapUrl: `${root}/cmaps/`, cMapPacked: true, wasmUrl: `${root}/wasm/` }),
-  pdfiumEngine(await init({ wasmBinary: fs.readFileSync(path.join(here, "node_modules/@embedpdf/pdfium/dist/pdfium.wasm")) })),
+  null,
   mupdfEngine(await import(path.join(here, "node_modules/mupdf/dist/mupdf.js"))),
 ];
+// pdfium gets a fresh instance for each file: one instance's text for a file depends on the files it
+// read before (8 of the 531 read differently), so the totals would depend on the order and the --jobs.
+const freshPdfium = async () => (engines[2] = pdfiumEngine(await init({ wasmBinary: pdfiumWasm })));
+await freshPdfium();
 
 // A line-end hyphen is marked, not dropped: recto and pdfium write U+0002 and keep the word whole,
 // as poppler does by removing it. For comparing words, the mark and a soft hyphen count for nothing.
@@ -63,9 +74,9 @@ function overlap(a, b) {
 const names = [...engines.map((e) => e.name), "poppler"];
 const pairTotals = {};
 const pairOf = (name, reference) => (pairTotals[`${name} against ${reference}`] ??= { shared: 0, words: 0, reference: 0, f1: [] });
-const worst = [];
+let worst = [];
 let used = 0;
-for (const file of files) {
+for (const file of shard.files ?? []) {
   let reference;
   try {
     reference = execFileSync("pdftotext", ["-q", "-f", "1", "-l", String(PAGES), file, "-"], { maxBuffer: 2 ** 28, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], timeout: 20000 });
@@ -76,6 +87,7 @@ for (const file of files) {
   const popplerPages = reference.split("\f");
   const bytes = new Uint8Array(fs.readFileSync(file));
   const texts = { poppler: popplerPages.map((page) => words(page)) };
+  await freshPdfium();
   try {
     for (const engine of engines) {
       const doc = await engine.open(bytes);
@@ -119,6 +131,18 @@ for (const file of files) {
     worst.push({ file, page: i, gap: (rectoOnly.length + popplerOnly.length) / size, popplerAgreesWithPdfjs: others[0], popplerAgreesWithPdfium: others[1], rectoOnly: rectoOnly.slice(0, 30), popplerOnly: popplerOnly.slice(0, 30) });
   }
 }
+shard.done?.({ pairTotals, worst, used });
+for (const state of shard.states ?? []) {
+  used += state.used;
+  worst = worst.concat(state.worst);
+  for (const [key, total] of Object.entries(state.pairTotals)) {
+    const into = (pairTotals[key] ??= { shared: 0, words: 0, reference: 0, f1: [] });
+    into.shared += total.shared;
+    into.words += total.words;
+    into.reference += total.reference;
+    into.f1.push(...total.f1);
+  }
+}
 const median = (list) => list.toSorted((a, b) => a - b)[Math.floor(list.length / 2)];
 const summary = Object.fromEntries(
   Object.entries(pairTotals).map(([name, t]) => [
@@ -132,7 +156,7 @@ const summary = Object.fromEntries(
     },
   ]),
 );
-if (values.worst) fs.writeFileSync(values.worst, JSON.stringify(worst.sort((a, b) => b.gap - a.gap).slice(0, 300), null, 1));
+if (values.worst) fs.writeFileSync(values.worst, JSON.stringify(worst.sort((a, b) => b.gap - a.gap || a.file.localeCompare(b.file) || a.page - b.page).slice(0, 300), null, 1));
 const results = { date: new Date().toISOString(), documents: used, of: files.length, pagesEach: PAGES, reference: execFileSync("pdftotext", ["-v"], { encoding: "utf8", stdio: ["ignore", "ignore", "pipe"] }), summary };
 fs.writeFileSync(values.out, `${JSON.stringify(results, null, 1)}\n`);
 for (const name of ["recto", "pdf.js", "pdfium", "mupdf"]) console.log(`${name.padEnd(7)} against poppler: F1 ${summary[`${name} against poppler`].microF1} (median ${summary[`${name} against poppler`].medianF1})`);

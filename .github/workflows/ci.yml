@@ -49,6 +49,8 @@ jobs:
           npm run build
           npm run typecheck
           npm test
+      - name: The benchmark's statistics, and its docs tables from the committed results
+        run: node --test bench/stats.test.mjs bench/docs.test.mjs
       - name: What a release would download, and that text fetches no part
         run: node scripts/check-wasm-budget.mjs
       - name: The packed package, in Node and in a browser's Web Worker
