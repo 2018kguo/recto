@@ -1234,7 +1234,7 @@ mod tests {
         let whole = doc.render(0, 960.0, f32::INFINITY).unwrap();
         hayro::set_max_recorded_bytes(1);
         let parts = doc.render(0, 960.0, f32::INFINITY);
-        hayro::set_max_recorded_bytes(32 << 20);
+        hayro::set_max_recorded_bytes(2 << 20);
         let parts = parts.unwrap();
         assert!(whole.rgba.chunks(4).filter(|p| p[0] < 64).count() > 1000);
         assert!(whole.rgba == parts.rgba, "the page in parts differs");
@@ -2797,6 +2797,140 @@ mod tests {
             assert_eq!(px(&widened, 30, 20), [255, 0, 0, 255], "red between the holes");
             assert_eq!(px(&widened, 15, 82), [255, 255, 255, 255], "white in the first hole");
             assert_eq!(px(&widened, 7, 50), [255, 255, 255, 255], "white outside the rectangle");
+        }
+    }
+
+    /// The content of `a_page_rasterized_in_parts_is_the_page`, on a page of its own with `before`
+    /// drawn first: text in colours, clips, an image and a group, leaving rows
+    /// and columns of the page bare.
+    fn sparse_page(before: &str) -> Document {
+        let mut content = format!("{before} q 0.2 0.5 0.9 rg 20 20 60 40 re f Q BT /F1 9 Tf ");
+        for (i, colour) in ["0 g", "0.8 0.1 0.1 rg", "0.1 0.4 0.2 rg /Half gs", "0.5 g"].iter().enumerate() {
+            content += &format!("{colour} 1 0 0 1 {} {} Tm (Rows and columns) Tj ", 60 + i * 3, 180 - i * 11);
+        }
+        content += "ET q 30 60 50.5 40.25 re W n BT 0 g /F1 14 Tf 20 70 Td (Clipped) Tj ET Q ";
+        content += "q 100 100 m 220 130 l 120 40 l h W n BT 0 g /F1 16 Tf 60 80 Td (By a path) Tj ET Q ";
+        content += "BT 0 g /F1 10 Tf 0.9 0.4 -0.4 0.9 140 20 Tm (Turned) Tj ET 2 w 0 0 1 RG 150 10 m 230 30 l S ";
+        content += "q 40 0 0 30 160 150 cm BI /W 2 /H 2 /CS /G /BPC 8 /F /AHx ID 0080C0FF> EI Q /G0 Do";
+        let group = stream(
+            "/Type /XObject /Subtype /Form /BBox [0 0 240 200] /Group << /S /Transparency /I true >> /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >>",
+            b"BT 0.3 g /F1 12 Tf 120 20 Td (In a group) Tj ET",
+        );
+        let page = "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 200] /Contents 4 0 R /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> /ExtGState << /Half << /ca 0.5 >> >> /XObject << /G0 5 0 R >> >> >>";
+        Document::open(
+            pdf(&[
+                b"<< /Type /Catalog /Pages 2 0 R >>",
+                b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                page.as_bytes(),
+                &stream("", content.as_bytes()),
+                &group,
+            ]),
+            "",
+        )
+        .unwrap()
+    }
+
+    /// A row of the page goes through the rasterizer's scratch buffer only where something draws
+    /// in it, and a row where nothing does is the paper written straight in: the same pixels as a
+    /// page under an opaque white fill, which puts every row of it through the buffer whole.
+    #[test]
+    fn rows_and_columns_nothing_draws_in_are_the_paper_they_were() {
+        for width in [240.0, 517.0, 960.0] {
+            let bare = sparse_page("").render(0, width, f32::INFINITY).unwrap();
+            let covered = sparse_page("q 1 g -10 -10 260 220 re f Q").render(0, width, f32::INFINITY).unwrap();
+            assert!(bare.rgba.chunks(4).filter(|p| p[0] < 128).count() > 100);
+            assert!(bare.rgba == covered.rgba, "at {width} px, the bare page differs");
+            // In parts, the parts after the first go over what's drawn, and rows nothing draws in
+            // are left as they are.
+            hayro::set_max_recorded_bytes(1);
+            let parts = sparse_page("").render(0, width, f32::INFINITY);
+            hayro::set_max_recorded_bytes(2 << 20);
+            assert!(bare.rgba == parts.unwrap().rgba, "at {width} px, the page in parts differs");
+        }
+    }
+
+    /// A glyph drawn from the cache, without its outline, is the glyph rasterized for it: a page
+    /// drawn again, or two pages drawn a slice at a time in turns, sharing the cache, give what a
+    /// fresh document gives for each. The text is at sizes that hint and that don't, turned, and
+    /// moved by fractions of a pixel.
+    #[test]
+    fn glyphs_from_the_cache_are_the_glyphs_rasterized() {
+        let page_content = |shift: f32| {
+            let mut content = String::from("BT 0 g ");
+            for (i, size) in [7.0f32, 9.5, 12.0, 30.0, 140.0].iter().enumerate() {
+                let y = 170.0 - 30.0 * i as f32;
+                content += &format!("/F1 {size} Tf 1 0 0 1 {} {y} Tm (Hamburgefonstiv) Tj ", 5.0 + shift + i as f32 * 0.3);
+            }
+            content += "/F1 11 Tf 0.8 0.6 -0.6 0.8 40 40 Tm (Turned glyphs) Tj ET";
+            content
+        };
+        let doc = || {
+            let font = "/Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Times-Roman >> >>";
+            let page = |contents: usize| format!("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 200] /Contents {contents} 0 R /Resources << {font} >> >>");
+            std::rc::Rc::new(
+                Document::open(
+                    pdf(&[
+                        b"<< /Type /Catalog /Pages 2 0 R >>",
+                        b"<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>",
+                        page(5).as_bytes(),
+                        page(6).as_bytes(),
+                        &stream("", page_content(0.0).as_bytes()),
+                        &stream("", page_content(0.37).as_bytes()),
+                    ]),
+                    "",
+                )
+                .unwrap(),
+            )
+        };
+        let fresh = |i: usize| doc().render(i, 480.0, f32::INFINITY).unwrap().rgba;
+        let (first, second) = (fresh(0), fresh(1));
+        assert!(first != second);
+        let shared = doc();
+        assert!(shared.render(0, 480.0, f32::INFINITY).unwrap().rgba == first);
+        assert!(shared.render(1, 480.0, f32::INFINITY).unwrap().rgba == second);
+        assert!(shared.render(0, 480.0, f32::INFINITY).unwrap().rgba == first, "drawn again");
+        // In turns, a slice each, on a document whose cache neither has yet.
+        let shared = doc();
+        let mut tasks = [0, 1].map(|i| RenderTask::new(shared.clone(), i, 480.0, f32::INFINITY, None).unwrap());
+        let mut done = [false; 2];
+        while done != [true; 2] {
+            for (task, done) in tasks.iter_mut().zip(&mut done) {
+                *done = *done || task.step(&|| true);
+            }
+        }
+        let [a, b] = tasks.map(|mut task| task.finish().rgba);
+        assert!(a == first && b == second, "drawn in turns");
+    }
+
+    /// A glyph moved by whole pixels is the same pixels moved: its mask is cut into the
+    /// rasterizer's 4-pixel strips wherever it lands, and cut on whole pixels by a clip.
+    #[test]
+    fn a_glyph_moved_by_whole_pixels_draws_the_same_pixels_moved() {
+        let render = |dx: usize, dy: usize, clip: bool| {
+            let clip = if clip { "21 0 9 60 re W n " } else { "" };
+            let content = format!("q 1 0 0 1 {dx} {} cm {clip}BT 0 g /F1 23 Tf 10 20 Td (Wg) Tj ET Q", 40 - dy);
+            let doc = Document::open(
+                pdf(&[
+                    b"<< /Type /Catalog /Pages 2 0 R >>",
+                    b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                    b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 80 80] /Contents 4 0 R /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> >>",
+                    &stream("", content.as_bytes()),
+                ]),
+                "",
+            )
+            .unwrap();
+            doc.render(0, 80.0, f32::INFINITY).unwrap()
+        };
+        let window = |b: &Bitmap, dx: usize, dy: usize| -> Vec<u8> {
+            (0..56).flat_map(|y| b.rgba[((y + dy) * 80 + dx) * 4..][..60 * 4].to_vec()).collect()
+        };
+        for clip in [false, true] {
+            let at_rest = render(0, 0, clip);
+            assert!(window(&at_rest, 0, 0).chunks(4).any(|p| p[0] < 64));
+            for (dx, dy) in [(1, 0), (2, 1), (3, 2), (5, 3), (6, 7)] {
+                let moved = render(dx, dy, clip);
+                assert!(window(&at_rest, 0, 0) == window(&moved, dx, dy), "moved by {dx}, {dy}, clipped {clip}");
+            }
         }
     }
 }

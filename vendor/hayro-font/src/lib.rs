@@ -576,6 +576,11 @@ impl<'a> OutlineGlyph<'a> {
             .hinted_outline(self.glyph_id(), ppem, cache)
     }
 
+    /// recto: `identifier().cache_key()`, without the identifier's copy of the program.
+    pub fn cache_key(&self) -> u128 {
+        glyph_key(self.font.program(), (!self.hidden).then(|| self.glyph_id()))
+    }
+
     /// Return the identifier of the glyph. You can use this to calculate the cache key
     /// for the outline of the glyph.
     pub fn identifier(&self) -> GlyphIdentifier {
@@ -683,9 +688,20 @@ pub struct GlyphIdentifier {
 
 impl GlyphIdentifier {
     /// Return the cache key of the glyph.
+    ///
+    /// recto: the program's content hash, already 128 random bits, with the glyph's ID in its low
+    /// bits, rather than both hashed again at every glyph drawn. Within a program each glyph's key
+    /// differs; across programs two collide only if their hashes differ in no more than the low 33
+    /// bits.
     pub fn cache_key(&self) -> u128 {
-        hash128(self)
+        glyph_key(self.program.as_ref(), self.glyph)
     }
+}
+
+/// recto: see `GlyphIdentifier::cache_key`.
+fn glyph_key(program: Option<&FontProgram>, glyph: Option<GlyphId>) -> u128 {
+    let program = program.map_or(0, FontProgram::content_hash);
+    program ^ glyph.map_or(1 << 32, |glyph| u128::from(glyph.to_u32()))
 }
 
 /// A query for a font.
@@ -1180,6 +1196,35 @@ pub(crate) fn normalized_glyph_name(mut name: &str) -> &str {
     }
 
     name
+}
+
+#[cfg(test)]
+mod glyph_key_tests {
+    use super::{FontData, FontProgram, GlyphId, GlyphIdentifier, glyph_key};
+    use std::sync::Arc;
+
+    fn program(bytes: &'static [u8]) -> FontProgram {
+        let data: FontData = Arc::new(bytes);
+        FontProgram::new(data, 0).unwrap()
+    }
+
+    /// recto: the key is the program's hash with the glyph in its low bits: the key the identifier
+    /// hashed for, a key of its own for each glyph of a program and for a hidden one, and none
+    /// shared by two programs.
+    #[test]
+    fn each_glyph_of_each_program_has_a_key_of_its_own() {
+        let sans = program(include_bytes!("../assets/FoxitSans.pfb"));
+        let serif = program(include_bytes!("../assets/FoxitSerif.pfb"));
+        let mut keys = std::collections::HashSet::new();
+        for program in [Some(&sans), Some(&serif), None] {
+            for glyph in (0..1 << 16).map(|id| Some(GlyphId::new(id))).chain([None]) {
+                let key = glyph_key(program, glyph);
+                let identifier = GlyphIdentifier { program: program.cloned(), glyph };
+                assert_eq!(identifier.cache_key(), key);
+                assert!(keys.insert(key), "{glyph:?} shares a key");
+            }
+        }
+    }
 }
 
 #[cfg(test)]

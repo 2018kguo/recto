@@ -462,6 +462,15 @@ pub(crate) fn rasterize_region<S: Simd, T: FineKernel<S>>(
     depth.clear();
 
     let has_cmds = !row.depth_cmds.is_empty() || !row.render_cmds.is_empty();
+    // recto: a row nothing draws in is the target as it starts: the clear colour written straight
+    // into it, or left as it is over what's there, rather than filled into the scratch buffer and
+    // packed out of it. The same bytes, without the scratch row's fill and transpose.
+    if !has_cmds {
+        if let TargetInit::Clear(color) = target_init {
+            clear_columns(region, 0, region.width(), color);
+        }
+        return;
+    }
     let isolate_bg = root_is_blend_target
         && has_cmds
         && match target_init {
@@ -485,6 +494,12 @@ pub(crate) fn rasterize_region<S: Simd, T: FineKernel<S>>(
         });
     }
 
+    // recto: only the part of the row its commands reach goes through the scratch buffer; the rest
+    // is the target as it starts, written as the empty rows above are. With its background
+    // isolated, the whole row as before.
+    let reached = if isolate_bg { None } else { row_extent(row) };
+    let span = reached.unwrap_or(span);
+
     // Initialize any regions in the fine buffer that haven't been filled with an opaque fill.
     fine.init_uncovered_range(span, region, target_init, depth);
 
@@ -499,7 +514,58 @@ pub(crate) fn rasterize_region<S: Simd, T: FineKernel<S>>(
     }
 
     // Pack the composited result back into the pixmap.
-    fine.pack(region);
+    let width = region.width();
+    let (x0, x1) = reached.map_or((0, width), |reached| {
+        (reached.pixel_x().min(width), reached.pixel_end().min(width))
+    });
+    if x0 < x1 {
+        fine.pack_span(x0, x1 - x0, region);
+    }
+    if let TargetInit::Clear(color) = target_init
+        && reached.is_some()
+    {
+        clear_columns(region, 0, x0, color);
+        clear_columns(region, x1, width, color);
+    }
+}
+
+/// recto: the region's pixels from `x0` to `x1` set to `color`, as the u8 kernel's `copy_solid`
+/// fills its own buffer.
+#[inline(never)]
+fn clear_columns(region: &mut Region<'_>, x0: u16, x1: u16, color: PremulColor) {
+    let color = u32::from_ne_bytes(color.as_premul_rgba8().to_u8_array());
+    let rows = usize::from(region.height);
+    for row in region.areas().iter_mut().take(rows) {
+        let row: &mut [u32] = bytemuck::cast_slice_mut(&mut row[usize::from(x0) * 4..usize::from(x1) * 4]);
+        row.fill(color);
+    }
+}
+
+/// recto: the tile-aligned span a row's commands reach, or `None` for the whole row: when a layer
+/// buffer is pushed without a span, or nothing has a width.
+fn row_extent(row: &RowState) -> Option<TileAlignedSpan> {
+    let mut reached: Option<TileAlignedSpan> = None;
+    let mut add = |span: TileAlignedSpan| {
+        if span.pixel_width() > 0 {
+            match &mut reached {
+                Some(reached) => reached.extend(span),
+                None => reached = Some(span),
+            }
+        }
+    };
+    for cmd in &row.depth_cmds {
+        add(cmd.span());
+    }
+    for cmd in &row.render_cmds {
+        match *cmd {
+            RenderCmd::PaintFill(fill) => add(fill.span),
+            RenderCmd::LayerFill(fill) => add(fill.span),
+            RenderCmd::PushBuf(Some(span)) => add(span),
+            RenderCmd::PushBuf(None) => return None,
+            RenderCmd::PopBuf => {}
+        }
+    }
+    reached
 }
 
 /// Fine rasterizer for processing strip rows at the pixel level.
@@ -651,6 +717,12 @@ impl<S: Simd, T: FineKernel<S>> Fine<S, T> {
         let scratch = self.blend_buffers.last().unwrap();
 
         T::pack(self.simd, scratch, width, region);
+    }
+
+    /// recto: `pack` for the `width` pixels from `x`, a multiple of the tile width.
+    fn pack_span(&self, x: u16, width: u16, region: &mut Region<'_>) {
+        let scratch = &self.blend_buffers.last().unwrap()[usize::from(x) * TILE_HEIGHT_COMPONENTS..];
+        T::pack(self.simd, scratch, usize::from(width), &mut region.sub_span(x, width));
     }
 
     /// Reads the pixels of the target back into the buffer.

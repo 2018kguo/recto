@@ -21,6 +21,23 @@
   finding words or renumbering fonts and runs it doesn't return: 2.2% fewer instructions over the benchmark's
   text pass (interval 2.2–2.3%). `text(i)` hands each column to JavaScript without cloning it in WebAssembly
   first (0.4% fewer, interval 0.2–0.4%). The text, the boxes and the corpus hash are unchanged.
+- **Drawing a page does less a glyph and a row.** A glyph the page has drawn before at the same size is drawn
+  from the cache in one lookup, without its outline; its cache key is its font program's hash with its ID in the
+  low bits rather than both hashed again; and its mask goes into the rasterizer's strips 4 bytes a column. Rows
+  of the page nothing draws in, and the parts of a row left and right of what draws in it, are the paper written
+  straight into the bitmap rather than filled and packed through the rasterizer's scratch row. The pixels are the
+  same. In WebAssembly, 6.8% fewer instructions a pass over the first two pages of the 29 public documents at
+  1024 px, and 6.1% fewer for 5 pages of the generated 2,000-page report.
+- **`renderAsync` stops within a slice.** Stopped 100 ms into the benchmark's 300,000-shape page, it freed the
+  thread in 1.9 ms where it took 12.7 (median of 8; pdfium's and MuPDF's `terminate()` took 3.3 and 1.7). Three
+  things held the thread past the slice it was asked for. The call ran the page's first slice, and read its
+  content, before it returned, so a timer set right after it waited for both: it returns first now. What a page
+  has drawn was rasterized in one call once it held 32 MB, 45 ms in WebAssembly that no slice could stop or yield
+  in; it is at 2 MB, a few ms, and the heavy page's longest hold of the thread went from 45 ms to 6. In Node the
+  next slice waits on `setImmediate` rather than a `MessageChannel`, whose messages could be taken one after
+  another ahead of a timer that was due. The default `sliceMs` is 4, not 8: the whole render takes the same time.
+  The pixels are the same; the heavy page is 3.3% more instructions (CPU time level, interval 0.77–1.08), the
+  corpus unchanged, and it ends with 58 MB of WebAssembly memory where it was 109.
 
 ### Benchmarks
 

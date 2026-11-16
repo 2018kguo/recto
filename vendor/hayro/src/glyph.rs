@@ -1,3 +1,4 @@
+use crate::glyph_cache::glyph_key;
 use crate::{Renderer, convert_fill_rule};
 use hayro_interpret::font::{Glyph, GlyphRun, OutlineGlyph};
 use hayro_interpret::hayro_cmap::WritingMode;
@@ -9,6 +10,12 @@ use vello_cpu::color::AlphaColor;
 const MIN_HINTING_PPEM: f64 = 4.0;
 const MAX_HINTING_PPEM: f64 = 128.0;
 
+/// Whether a glyph drawn with `transform` is hinted, where hinting is on and its outline hints.
+fn hints(transform: Affine) -> bool {
+    let [_, b, _, d, _, _] = transform.as_coeffs();
+    b == 0.0 && (MIN_HINTING_PPEM..=MAX_HINTING_PPEM).contains(&(d.abs() * 1000.0))
+}
+
 impl Renderer<'_> {
     fn fill_glyph<'a>(
         &mut self,
@@ -19,7 +26,7 @@ impl Renderer<'_> {
     ) {
         match glyph {
             Glyph::Outline(glyph) => {
-                let id = glyph.identifier().cache_key();
+                let id = glyph.cache_key();
                 let (outline, transform, _) =
                     self.fill_outline(glyph, id, props.transform * transform, hint);
                 let props = DrawProps { transform, ..props };
@@ -43,7 +50,7 @@ impl Renderer<'_> {
     ) {
         match glyph {
             Glyph::Outline(glyph) => {
-                let outline = self.cached_outline(glyph, glyph.identifier().cache_key());
+                let outline = self.cached_outline(glyph, glyph.cache_key());
                 self.stroke_path(
                     &(transform * outline.as_ref().clone()),
                     props,
@@ -73,7 +80,7 @@ impl Renderer<'_> {
         let [a, b, c, d, e, f] = transform.as_coeffs();
         let ppem = d.abs() * 1000.0;
 
-        if hint && b == 0.0 && (MIN_HINTING_PPEM..=MAX_HINTING_PPEM).contains(&ppem) {
+        if hint && hints(transform) {
             let ppem = ppem as f32;
 
             if let Some(hinted) = self.cached_hinted_outline(glyph, id, ppem) {
@@ -138,7 +145,7 @@ impl Renderer<'_> {
 
                 let (path, glyph_transform, _) = self.fill_outline(
                     outline,
-                    outline.identifier().cache_key(),
+                    outline.cache_key(),
                     transform * glyph.transform(),
                     self.hint(glyph_run),
                 );
@@ -156,7 +163,7 @@ impl Renderer<'_> {
                     return None;
                 };
 
-                let outline = self.cached_outline(outline, outline.identifier().cache_key());
+                let outline = self.cached_outline(outline, outline.cache_key());
                 Some(glyph.transform() * outline.as_ref().clone())
             })
             .collect()
@@ -221,14 +228,28 @@ impl Renderer<'_> {
                         continue;
                     };
 
-                    let id = outline.identifier().cache_key();
-                    let (path, transform, hinted) =
-                        self.fill_outline(outline, id, props.transform * glyph.transform(), hint);
-
-                    if !use_cache || !self.fill_cached_glyph(id, hinted, &path, transform, color) {
-                        self.ctx.set_paint(color);
-                        self.ctx.set_transform(transform);
-                        self.ctx.fill_path(path.as_ref());
+                    let id = outline.cache_key();
+                    let transform = props.transform * glyph.transform();
+                    // recto: a glyph drawn before at this size is drawn from the cache without
+                    // its outline, which is looked up only to rasterize it or fill it as a path.
+                    let cached = use_cache.then(|| glyph_key(id, hint && hints(transform), transform));
+                    let drawn = match cached {
+                        Some((key, x, y)) => self.draw_cached_glyph(&key, x, y, color),
+                        None => Some(false),
+                    };
+                    if drawn != Some(true) {
+                        let (path, transform, _) = self.fill_outline(outline, id, transform, hint);
+                        let filled = match cached {
+                            Some((key, x, y)) if drawn.is_none() => {
+                                self.fill_cached_glyph(key, x, y, &path, transform, color)
+                            }
+                            _ => false,
+                        };
+                        if !filled {
+                            self.ctx.set_paint(color);
+                            self.ctx.set_transform(transform);
+                            self.ctx.fill_path(path.as_ref());
+                        }
                     }
                     // recto: a run can be a page of glyphs.
                     self.flush_if_large();
@@ -260,7 +281,7 @@ impl Renderer<'_> {
                         continue;
                     };
 
-                    let outline = self.cached_outline(outline, outline.identifier().cache_key());
+                    let outline = self.cached_outline(outline, outline.cache_key());
                     let outline = glyph.transform() * outline.as_ref().clone();
                     self.ctx.stroke_path(&outline);
                 }

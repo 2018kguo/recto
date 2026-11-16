@@ -92,11 +92,18 @@ They are patched for what upstream does not have:
   (`Device::backdrop_group_known`); a backdrop is no longer kept once used. Without it, n groups drew
   n^2 / 2 groups and held page-sized pixmaps for each.
 
+- **hayro**: a cached glyph drawn without its outline: its key is made from the transform and whether it's asked
+  for hinted, which with the glyph and its size decides whether it is, so the outline is looked up only to rasterize
+  it or fill it as a path (`draw_cached_glyph` in `src/glyph_cache.rs`). A cached glyph holds the stamp of the
+  render that last drew it, so drawing it again on a page takes one lookup rather than three. **hayro-font**: a glyph's
+  cache key is its program's content hash with its ID in the low bits (`glyph_key` in `src/lib.rs`), rather than both
+  hashed again with SipHash at every glyph, and `OutlineGlyph::cache_key` makes it without copying the program.
+
 - **hayro**: a cached glyph kept as its coverage, a byte a pixel and column by column, rather than an RGBA image
   with only its alpha set, and drawn through `vello_cpu`'s `RenderContext::fill_coverage` (below) rather than as
   an image paint; the image is made from the mask only where that can't draw it (`src/glyph_cache.rs`). A page
-  rasterized in parts once what it has drawn holds more than 32 MB, at its own level, outside any layer or group
-  (`MAX_RECORDED_BYTES` in `src/lib.rs`).
+  rasterized in parts once what it has drawn holds more than 2 MB, at its own level, outside any layer or group
+  (`MAX_RECORDED_BYTES` in `src/lib.rs`): a part's rasterization is one call a sliced render can't stop in.
 
 `vello_cpu` (0.3.0, by the Vello authors, MIT or Apache-2.0) is vendored as well, without its examples, for
 two things it lacks. `RenderContext::fill_coverage` (`src/coverage.rs`) fills a coverage mask with a solid
@@ -111,6 +118,12 @@ colour already is. `RenderContext::render_and_clear` rasterizes what's been draw
 the state and the clips, with `recorded_bytes` to say how much that is; a part rasterized over the parts
 before it is what rasterizing them at once gives, except where a non-default blend mode at the page's root
 blends over the earlier parts rather than apart from them.
+
+`vello_cpu`'s fine rasterizer writes a strip row nothing draws in straight into the target, the clear colour or
+nothing over what's there, and puts a row something draws in through its scratch buffer only across the span its
+commands reach, writing the rest as an empty row (`rasterize_region` and `row_extent` in `src/fine/mod.rs`), where it
+filled and packed every row whole. Its glyph coverage goes into a strip's alphas a column of 4 bytes at a time
+(`src/coverage.rs`).
 
 What `hayro` doesn't turn on is gone from `vello_cpu`, so it has no features: its `multithreading`
 (`dispatch/multi_threaded`, `Regions::update_par`, and with them `rayon`, `crossbeam-channel`,

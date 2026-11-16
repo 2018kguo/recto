@@ -773,7 +773,6 @@ core::ptr::drop_in_place::<core::option::Option<hayro_syntax::page::Descent>>
 core::ptr::drop_in_place::<core::option::Option<moxcms::profile::LutWarehouse>>
 core::ptr::drop_in_place::<core::option::Option<moxcms::profile::ProfileText>>
 core::ptr::drop_in_place::<core::option::Option<moxcms::trc::ToneReprCurve>>
-core::ptr::drop_in_place::<hayro::glyph_cache::GlyphCache>
 core::ptr::drop_in_place::<hayro_cmap::CMap>
 core::ptr::drop_in_place::<hayro_cmap::CharacterCollection>
 core::ptr::drop_in_place::<hayro_font::FallbackFontQuery>
@@ -810,6 +809,7 @@ core::ptr::drop_in_place::<recto::wasm::PageObjects>
 core::ptr::drop_in_place::<recto::wasm::PageText>
 core::ptr::drop_in_place::<skrifa::scaler::ScalerFont>
 core::ptr::drop_in_place::<std::collections::hash::map::HashMap<alloc::vec::Vec<u8>, hayro_syntax::crypto::CryptDictionary>>
+core::ptr::drop_in_place::<std::collections::hash::map::HashMap<hayro::glyph_cache::GlyphKey, hayro::glyph_cache::CacheEntry, rustc_hash::FxBuildHasher>>
 core::ptr::drop_in_place::<std::collections::hash::map::HashMap<hayro_syntax::object::name::Name, core::option::Option<hayro_interpret::interpret::state::TextStateFont>, rustc_hash::FxBuildHasher>>
 core::ptr::drop_in_place::<std::collections::hash::map::HashMap<hayro_syntax::object::name::Name, usize, rustc_hash::FxBuildHasher>>
 core::ptr::drop_in_place::<std::collections::hash::map::HashMap<u8, alloc::string::String, rustc_hash::FxBuildHasher>>
