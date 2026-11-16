@@ -1237,7 +1237,7 @@ mod tests {
         let whole = doc.render(0, 960.0, f32::INFINITY).unwrap();
         hayro::set_max_recorded_bytes(1);
         let parts = doc.render(0, 960.0, f32::INFINITY);
-        hayro::set_max_recorded_bytes(32 << 20);
+        hayro::set_max_recorded_bytes(2 << 20);
         let parts = parts.unwrap();
         assert!(whole.rgba.chunks(4).filter(|p| p[0] < 64).count() > 1000);
         assert!(whole.rgba == parts.rgba, "the page in parts differs");
@@ -2847,7 +2847,7 @@ mod tests {
             // are left as they are.
             hayro::set_max_recorded_bytes(1);
             let parts = sparse_page("").render(0, width, f32::INFINITY);
-            hayro::set_max_recorded_bytes(32 << 20);
+            hayro::set_max_recorded_bytes(2 << 20);
             assert!(bare.rgba == parts.unwrap().rgba, "at {width} px, the page in parts differs");
         }
     }
@@ -2950,7 +2950,7 @@ mod tests {
                 hayro::recycle_pixels(vec![0x77; 8 << 20]);
                 hayro::set_max_recorded_bytes(1);
                 let parts = doc.render(0, width, f32::INFINITY);
-                hayro::set_max_recorded_bytes(32 << 20);
+                hayro::set_max_recorded_bytes(2 << 20);
                 assert!(parts.unwrap().rgba == fresh[i], "in parts at {width} px");
             }
         }

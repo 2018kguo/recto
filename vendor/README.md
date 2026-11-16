@@ -104,8 +104,8 @@ They are patched for what upstream does not have:
 - **hayro**: a cached glyph kept as its coverage, a byte a pixel and column by column, rather than an RGBA image
   with only its alpha set, and drawn through `vello_cpu`'s `RenderContext::fill_coverage` (below) rather than as
   an image paint; the image is made from the mask only where that can't draw it (`src/glyph_cache.rs`). A page
-  rasterized in parts once what it has drawn holds more than 32 MB, at its own level, outside any layer or group
-  (`MAX_RECORDED_BYTES` in `src/lib.rs`).
+  rasterized in parts once what it has drawn holds more than 2 MB, at its own level, outside any layer or group
+  (`MAX_RECORDED_BYTES` in `src/lib.rs`): a part's rasterization is one call a sliced render can't stop in.
 
 `vello_cpu` (0.3.0, by the Vello authors, MIT or Apache-2.0) is vendored as well, without its examples, for
 two things it lacks. `RenderContext::fill_coverage` (`src/coverage.rs`) fills a coverage mask with a solid

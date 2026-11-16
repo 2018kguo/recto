@@ -132,3 +132,35 @@ test("other calls and other renders can run between slices", async () => {
     assert.ok(Buffer.from(result.rgba).equals(Buffer.from(sync.rgba)));
   }
 });
+
+test("the call returns before any drawing, and rasterizing holds the thread no longer than a slice", async () => {
+  // At the page's own level, where what's drawn is rasterized in parts as it goes.
+  await using doc = await openPdf(pdfOf({ content: shapes(200_000), resources: "", objects: [] }));
+  const before = performance.now();
+  const sync = doc.render(0, { width: 800 });
+  const syncMs = performance.now() - before;
+
+  // A slice longer than the page: before the first yield, the call would draw the whole of it.
+  const called = performance.now();
+  const whole = doc.renderAsync(0, { width: 800, sliceMs: 60_000 });
+  const callMs = performance.now() - called;
+  assert.ok(Buffer.from((await whole).rgba).equals(Buffer.from(sync.rgba)));
+  assert.ok(callMs < syncMs / 8, `the call held the thread ${callMs.toFixed(1)} ms of a ${syncMs.toFixed(0)} ms render`);
+
+  let last = performance.now();
+  let longest = 0;
+  let running = true;
+  const beat = () => {
+    const now = performance.now();
+    longest = Math.max(longest, now - last);
+    last = now;
+    if (running) {
+      setImmediate(beat);
+    }
+  };
+  setImmediate(beat);
+  const sliced = await doc.renderAsync(0, { width: 800, sliceMs: 2 });
+  running = false;
+  assert.ok(Buffer.from(sliced.rgba).equals(Buffer.from(sync.rgba)));
+  assert.ok(longest < syncMs / 8, `longest stall ${longest.toFixed(1)} ms of a ${syncMs.toFixed(0)} ms render`);
+});

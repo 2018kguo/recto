@@ -105,8 +105,11 @@ pub(crate) struct GlobalState {
 /// holds about this much of what it draws however much that is: each glyph or path drawn is strips
 /// and their alphas until the page is rasterized, and 1,280,000 glyphs took 1.1 GB. Only at the page's
 /// own level, outside any layer or group; see `RenderContext::render_and_clear`, which says what a
-/// part can't give exactly as one rasterization would.
-const MAX_RECORDED_BYTES: usize = 32 << 20;
+/// part can't give exactly as one rasterization would. 2 MB rather than 32: a part's rasterization
+/// is one call, which a render in slices can't stop or yield in, and 32 MB of it took 45 ms in
+/// WebAssembly; 2 MB is a few ms, and parts that size stay in cache, so a page drawn in them is no
+/// slower.
+const MAX_RECORDED_BYTES: usize = 2 << 20;
 
 thread_local! {
     static MAX_RECORDED: std::cell::Cell<usize> = const { std::cell::Cell::new(MAX_RECORDED_BYTES) };

@@ -307,7 +307,7 @@ export type PdfRegionBitmap = PdfBitmap & {
 export type PdfRenderAsyncOptions = PdfRenderOptions & {
   /** Stops the render at the next pause: `aborted`, with the document still usable. */
   signal?: AbortSignal;
-  /** About how long it runs before giving the thread back. Default 8. */
+  /** About how long it runs before giving the thread back. Default 4. */
   sliceMs?: number;
 };
 
@@ -820,10 +820,17 @@ function toLink([annotation, x, y, width, height, target]: LinkEntry): PdfLink {
   return { annotation, box: { x, y, width, height }, target: toTarget(target) };
 }
 
-const DEFAULT_SLICE_MS = 8;
+const DEFAULT_SLICE_MS = 4;
 
-/** Back to the event loop, without the 4 ms a nested timer waits in a browser. */
+/**
+ * Back to the event loop, without the 4 ms a nested timer waits in a browser. In Node, setImmediate:
+ * there a MessageChannel's messages can be taken one after another in one pass of the loop, ahead of
+ * timers and I/O that are due, so the thread wasn't given back for several slices.
+ */
 function nextTask(): Promise<void> {
+  if (typeof setImmediate === "function") {
+    return new Promise((resolve) => setImmediate(resolve));
+  }
   return new Promise((resolve) => {
     const { port1, port2 } = new MessageChannel();
     port1.onmessage = () => {
@@ -1064,9 +1071,11 @@ export class RectoDocument implements PdfDocument {
     this.#check(index);
     const args = renderArgs(options);
     this.#needsRender();
+    // Nothing before the first yield: the call returns before the page's first slice, or reading its
+    // content, holds the thread, so the caller can go on and abort it.
+    await nextTask();
     const instance = this.#instance;
     const sliceMs = options.sliceMs ?? DEFAULT_SLICE_MS;
-    const task = this.#call(() => this.#doc.renderTask(index, ...args));
     const stopIfAsked = () => {
       if (options.signal?.aborted) {
         throw new PdfError("aborted", "the signal was aborted", options.signal.reason);
@@ -1081,8 +1090,9 @@ export class RectoDocument implements PdfDocument {
         throw instance.failure ?? new PdfError("missing-asset", "a file the engine needed failed to load while this render was paused; render again");
       }
     };
+    stopIfAsked();
+    const task = this.#call(() => this.#doc.renderTask(index, ...args));
     try {
-      stopIfAsked();
       while (!this.#call(() => task.step(sliceMs))) {
         await nextTask();
         stopIfAsked();

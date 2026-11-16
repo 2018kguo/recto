@@ -33,6 +33,16 @@
   several pages' worth. The buffer goes back when the rendered page is freed and the next page is drawn into
   it. With the generated 40-page report open, every page read and drawn, 9.8 MB of WebAssembly memory is left
   where it was 11.7 at 800 px, and 11.9 where it was 15.9 at 1024 px. `render` still returns a copy of its own.
+- **`renderAsync` stops within a slice.** Stopped 100 ms into the benchmark's 300,000-shape page, it freed the
+  thread in 3.3 ms where it took 12.7 (median of 8; pdfium's and MuPDF's `terminate()` 3.4 and 1.7, level with
+  both now). Three things held the thread past the slice it was asked for. The call ran the page's first slice,
+  and read its content, before it returned, so a timer set right after it waited for both: it returns first now.
+  What a page has drawn was rasterized in one call once it held 32 MB, 45 ms in WebAssembly that no slice could
+  stop or yield in; it is at 2 MB, a few ms, and the heavy page's longest hold of the thread went from 45 ms to
+  6. In Node the next slice waits on `setImmediate` rather than a `MessageChannel`, whose messages could be
+  taken one after another ahead of a timer that was due. The default `sliceMs` is 4, not 8: the whole render
+  takes the same time. The pixels are the same; the heavy page is 3.3% more instructions (CPU time level,
+  interval 0.77–1.08), the corpus unchanged, and it ends with 58 MB of WebAssembly memory where it was 109.
 
 ### Benchmarks
 
