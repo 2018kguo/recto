@@ -22,6 +22,20 @@
   text pass (interval 2.2–2.3%). `text(i)` hands each column to JavaScript without cloning it in WebAssembly
   first (0.4% fewer, interval 0.2–0.4%). The text, the boxes and the corpus hash are unchanged.
 
+### Benchmarks
+
+- **A refresh takes minutes on a busy machine, not most of a day.** `npm run bench:refresh` builds recto if its
+  sources changed, runs every benchmark the docs quote and writes their results; with `--docs`,
+  `scripts/bench-docs.mjs` rewrites the tables of [the benchmarks](docs/benchmarks.md) from them. Timed rounds are
+  paired (each job's four engines back to back, shuffled, the ratio taken within the round, with an exact
+  signed-rank interval), stop once each row is settled, and time an engine's own work in its thread's CPU time,
+  behind a soft gate. At a load around 30 the Node run took 13 minutes with intervals a median 1.18× wide, where
+  the old method, behind its gate, took 81 minutes for 1.54×. [How it was measured](docs/benchmarks.md#how-it-was-measured)
+- **The counting runs use every core**, with the same totals at any `--jobs`: text-compare and box-compare give
+  pdfium a fresh instance for each file, since one instance read 8 of 531 files' text differently depending on the
+  files before. The web sample's time limit is CPU time.
+- **Stopping a render is timed from when it was asked for**, 100 ms in, not from when the thread got to the request.
+
 ## 0.9.0
 
 ### Added

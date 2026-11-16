@@ -4,11 +4,17 @@
 // not commit them. docs/benchmarks.md says what each number means.
 //
 //   npm run build
-//   npm run bench -- <directory of PDFs> [--docs 60] [--runs 5] [--max-load 8 --min-idle 55] [--out bench/results/node.json]
+//   npm run bench -- <directory of PDFs> [--docs 60] [--min-rounds 6] [--max-rounds 20] [--tolerance 5]
+//                    [--min-idle 10 --max-wait 60] [--runs 7] [--out bench/results/node.json]
 //
-// `--max-load` and `--min-idle` hold each measured process until the 1-minute load average is under
-// the one or the CPUs are at least that % idle (see quiet.mjs), so a busy machine delays the numbers
-// instead of moving them; what each started at is in the results.
+// Rounds are paired: each round runs one job for all four engines back to back, in a shuffled order,
+// then the next job, so the ratio of a round is taken over the same minute of the machine. A job stops
+// once every row it feeds is decided (stats.mjs: its interval leaves out 1, or is within --tolerance %
+// of its estimate), and in any case at --max-rounds; --runs N runs exactly N rounds. Rows where the work
+// is the engine's own on the calling thread report that thread's CPU time, which a busy machine moves far
+// less than wall time (meter.mjs); cold start, blocking and stopping stay in wall time. Each row says which.
+// `--max-load` and `--min-idle` hold each measured process for a quieter machine (see quiet.mjs);
+// `--max-wait` makes that hold soft. What each started at is in the results.
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -17,9 +23,12 @@ import { monitorEventLoopDelay } from "node:perf_hooks";
 import { parseArgs } from "node:util";
 import { Worker, isMainThread, parentPort, workerData } from "node:worker_threads";
 
+import { generatedPdf } from "./cache.mjs";
 import { mupdfEngine, pdfiumEngine, pdfjsEngine, rectoEngine } from "./engines.mjs";
 import { heavyPagePdf, posterPdf, reportPdf } from "./generate.mjs";
+import { meter, sinceStart } from "./meter.mjs";
 import { quietGate } from "./quiet.mjs";
+import { compareRow, decided, median, pairedRatio, seeded, shuffled } from "./stats.mjs";
 
 const here = import.meta.dirname;
 const TEXT_PAGES = 20;
@@ -62,7 +71,7 @@ async function renderBytes(doc, page, width) {
 async function textPass(engine, docs) {
   let chars = 0;
   let pages = 0;
-  const started = performance.now();
+  const stop = meter();
   for (const bytes of docs) {
     const doc = await engine.open(bytes);
     const count = Math.min(doc.pageCount, TEXT_PAGES);
@@ -70,12 +79,12 @@ async function textPass(engine, docs) {
     pages += count;
     await doc.close();
   }
-  return { ms: performance.now() - started, pages, chars };
+  return { ...stop(), pages, chars };
 }
 
 async function renderPass(engine, docs) {
   let pages = 0;
-  const started = performance.now();
+  const stop = meter();
   for (const bytes of docs) {
     const doc = await engine.open(bytes);
     const count = Math.min(doc.pageCount, RENDER_PAGES);
@@ -83,10 +92,11 @@ async function renderPass(engine, docs) {
     pages += count;
     await doc.close();
   }
-  return { ms: performance.now() - started, pages };
+  return { ...stop(), pages };
 }
 
-const median = (values) => values.toSorted((a, b) => a - b)[Math.floor(values.length / 2)];
+/** Each field's median over a list of meter readings. */
+const medians = (list) => Object.fromEntries(Object.keys(list[0]).map((key) => [key, list[0][key] === null ? null : median(list.map((m) => m[key]))]));
 const peakRss = () => process.resourceUsage().maxRSS * 1024;
 const corpus = (request) => request.files.map((file) => new Uint8Array(fs.readFileSync(file)));
 
@@ -115,9 +125,9 @@ const jobs = {
     const engine = await load(name);
     const doc = await engine.open(bytes);
     await doc.text(0);
-    const text = performance.now();
+    const text = sinceStart();
     await renderBytes(doc, 0, WIDTH);
-    return { text, render: performance.now() };
+    return { text, render: sinceStart() };
   },
   /** One warm-up pass over the files, then the same passes counted. */
   async speed(request) {
@@ -127,35 +137,35 @@ const jobs = {
     await renderPass(engine, docs);
     const text = await textPass(engine, docs);
     const render = await renderPass(engine, docs);
-    const firstText = [];
-    const firstRender = [];
-    for (const bytes of docs) {
-      let started = performance.now();
-      let doc = await engine.open(bytes);
-      await doc.text(0);
-      firstText.push(performance.now() - started);
-      await doc.close();
-      started = performance.now();
-      doc = await engine.open(bytes);
-      await renderBytes(doc, 0, WIDTH);
-      firstRender.push(performance.now() - started);
-      await doc.close();
-    }
-    return { text, render, firstText: median(firstText), firstRender: median(firstRender), rss: peakRss() };
+    // Each document's first page, timed alone.
+    const first = async (draw) => {
+      const each = [];
+      for (const bytes of docs) {
+        const stop = meter();
+        const doc = await engine.open(bytes);
+        await draw(doc);
+        each.push(stop());
+        await doc.close();
+      }
+      return medians(each);
+    };
+    const firstText = await first((doc) => doc.text(0));
+    const firstRender = await first((doc) => renderBytes(doc, 0, WIDTH));
+    return { text, render, firstText, firstRender, rss: peakRss() };
   },
   /** The generated large document, alone in its process, so the peak is its own. */
   async large({ engine: name, large }) {
     const engine = await load(name);
     const bytes = new Uint8Array(fs.readFileSync(large));
-    let started = performance.now();
+    let stop = meter();
     const doc = await engine.open(bytes);
-    const open = performance.now() - started;
-    started = performance.now();
+    const open = stop();
+    stop = meter();
     for (let i = 0; i < doc.pageCount; i++) await doc.text(i);
-    const text = performance.now() - started;
-    started = performance.now();
+    const text = stop();
+    stop = meter();
     for (let i = 0; i < LARGE_RENDERED; i++) await renderBytes(doc, i * 300, WIDTH);
-    const render = performance.now() - started;
+    const render = stop();
     await doc.close();
     return { open, text, render, rss: peakRss() };
   },
@@ -163,10 +173,10 @@ const jobs = {
   async poster({ engine: name, poster }) {
     const engine = await load(name);
     const bytes = new Uint8Array(fs.readFileSync(poster));
-    const started = performance.now();
+    const stop = meter();
     const doc = await engine.open(bytes);
     await renderBytes(doc, 0, WIDTH);
-    const render = performance.now() - started;
+    const render = stop();
     await doc.close();
     return { render };
   },
@@ -213,15 +223,11 @@ const jobs = {
         const { canvas, context } = doc.canvasFactory.create(Math.ceil(viewport.width), Math.ceil(viewport.height));
         const render = page.render({ canvas, canvasContext: context, viewport });
         const started = performance.now();
-        let asked = 0;
-        if (cancel) {
-          setTimeout(() => {
-            asked = performance.now();
-            render.cancel();
-          }, AFTER);
-        }
+        if (cancel) setTimeout(() => render.cancel(), AFTER);
         await render.promise.catch(() => {});
-        return { whole: performance.now() - started, stopped: cancel ? performance.now() - (asked || started + AFTER) : null };
+        // From when the stop was asked for, not from when the thread got to the timer: a thread that is
+        // still drawing runs the timer late, and that wait is part of stopping.
+        return { whole: performance.now() - started, stopped: cancel ? performance.now() - (started + AFTER) : null };
       };
       // The operator list is cached after the first draw; a fresh document for each is fairer.
       const first = await draw(true);
@@ -243,12 +249,13 @@ const jobs = {
       await doc.renderAsync(0, { width: WIDTH });
       const whole = performance.now() - started;
       const controller = new AbortController();
+      const begun = performance.now();
       const render = doc.renderAsync(0, { width: WIDTH, signal: controller.signal }).catch(() => {});
       await new Promise((resolve) => setTimeout(resolve, AFTER));
-      const asked = performance.now();
       controller.abort();
       await render;
-      const stopped = performance.now() - asked;
+      // As for pdf.js: from when the stop was asked for.
+      const stopped = performance.now() - (begun + AFTER);
       doc.close();
       return { whole, stopped, how: "renderAsync's signal, on the same thread; the document stays open" };
     }
@@ -267,22 +274,6 @@ const jobs = {
     return { whole, stopped: performance.now() - asked, how: "worker.terminate(); the call itself can't be stopped" };
   },
 };
-
-if (!isMainThread) {
-  const engine = await load(workerData.engine);
-  const doc = await engine.open(new Uint8Array(fs.readFileSync(workerData.heavy)));
-  if (workerData.started) parentPort.postMessage("started");
-  const started = performance.now();
-  await renderBytes(doc, 0, WIDTH);
-  if (!workerData.started) parentPort.postMessage(performance.now() - started);
-} else if (process.env.RECTO_BENCH_JOB) {
-  const request = JSON.parse(process.env.RECTO_BENCH_JOB);
-  const result = await jobs[request.job](request);
-  console.log(`\n@@${JSON.stringify(result)}`);
-  process.exit(0);
-} else {
-  await main();
-}
 
 function child(request) {
   return new Promise((resolve, reject) => {
@@ -303,29 +294,66 @@ function child(request) {
   });
 }
 
-/** The ratio's 95% interval, resampling the runs. */
-function ratioInterval(slower, faster, draws = 2000) {
-  const pick = (values) => median(Array.from(values, () => values[Math.floor(Math.random() * values.length)]));
-  const ratios = Array.from({ length: draws }, () => pick(slower) / pick(faster)).sort((a, b) => a - b);
-  return [ratios[Math.floor(draws * 0.025)], ratios[Math.floor(draws * 0.975)]];
+/**
+ * Every row: the job that measures it, how to find it in a job's result, and the measure its ratio is
+ * taken on (meter.mjs). `thread` is the calling thread's CPU time, for an engine's own work on that thread,
+ * which a busy machine moves far less than wall time; `wall` stays for a cold start (a process starting
+ * waits on the disk and compiles on other threads, which a user waits for), the event loop's delays and
+ * stopping; `bytes` is memory.
+ */
+const ROWS = {
+  text: { job: "speed", pick: (s) => s.text, measure: "thread" },
+  render: { job: "speed", pick: (s) => s.render, measure: "thread" },
+  coldText: { job: "cold", pick: (s) => s.text, measure: "wall" },
+  coldRender: { job: "cold", pick: (s) => s.render, measure: "wall" },
+  firstText: { job: "speed", pick: (s) => s.firstText, measure: "thread" },
+  firstRender: { job: "speed", pick: (s) => s.firstRender, measure: "thread" },
+  largeOpen: { job: "large", pick: (s) => s.open, measure: "thread" },
+  largeText: { job: "large", pick: (s) => s.text, measure: "thread" },
+  largeRender: { job: "large", pick: (s) => s.render, measure: "thread" },
+  rss: { job: "speed", pick: (s) => s.rss, measure: "bytes" },
+  largeRss: { job: "large", pick: (s) => s.rss, measure: "bytes" },
+  posterRender: { job: "poster", pick: (s) => s.render, measure: "thread" },
+  maxMedian: { job: "blocking", pick: (s) => s.maxMedian, measure: "wall" },
+  maxWorst: { job: "blocking", pick: (s) => s.maxWorst, measure: "wall" },
+  p99Median: { job: "blocking", pick: (s) => s.p99Median, measure: "wall" },
+  abortWhole: { job: "abort", pick: (s) => s.whole, measure: "wall" },
+  abortStopped: { job: "abort", pick: (s) => s.stopped, measure: "wall" },
+};
+const JOBS = ["cold", "speed", "large", "poster", "blocking", "abort"];
+
+/** A row's value in one sample, by `measure`: a meter reading's field (wall where it has none), or the number itself. */
+function valueOf(row, sample, measure = row.measure) {
+  const picked = row.pick(sample);
+  if (typeof picked === "number") return picked;
+  return picked[measure] ?? picked.wall;
 }
 
+const round2 = (value) => Math.round(value * 100) / 100;
 async function main() {
   const { values, positionals } = parseArgs({
     allowPositionals: true,
     options: {
       docs: { type: "string", default: "60" },
-      runs: { type: "string", default: "5" },
+      runs: { type: "string" },
+      "min-rounds": { type: "string", default: "6" },
+      "max-rounds": { type: "string", default: "20" },
+      tolerance: { type: "string", default: "5" },
+      jobs: { type: "string", default: JOBS.join(",") },
+      seed: { type: "string", default: "1" },
       out: { type: "string" },
+      raw: { type: "string" },
       "max-load": { type: "string" },
-      "min-idle": { type: "string" },
+      "min-idle": { type: "string", default: "10" },
+      "max-wait": { type: "string", default: "60" },
     },
   });
   const directory = positionals[0];
   if (!directory) {
-    console.error("usage: bench.mjs <directory of PDFs> [--docs 60] [--runs 5] [--out file.json]");
+    console.error("usage: bench.mjs <directory of PDFs> [--docs 60] [--min-rounds 6] [--max-rounds 20] [--tolerance 5] [--runs N] [--out file.json]");
     process.exit(2);
   }
+  const begun = Date.now();
   const all = fs
     .readdirSync(directory)
     .filter((name) => name.toLowerCase().endsWith(".pdf"))
@@ -333,17 +361,15 @@ async function main() {
   const wanted = Math.min(Number(values.docs), all.length);
   // Every nth file, so the sample is spread over however the directory is ordered.
   let files = Array.from({ length: wanted }, (_, i) => path.join(directory, all[Math.floor((i * all.length) / wanted)]));
-  const runs = Number(values.runs);
+  const minRounds = Number(values.runs ?? values["min-rounds"]);
+  const maxRounds = Number(values.runs ?? values["max-rounds"]);
+  const tolerance = Number(values.tolerance) / 100;
+  const jobs = values.jobs.split(",");
 
-  const temp = fs.mkdtempSync(path.join(os.tmpdir(), "recto-bench-"));
-  const report = path.join(temp, "report.pdf");
-  const large = path.join(temp, "large.pdf");
-  const heavy = path.join(temp, "heavy.pdf");
-  const poster = path.join(temp, "poster.pdf");
-  fs.writeFileSync(report, reportPdf({ pages: 40, imageSize: 240 }));
-  fs.writeFileSync(large, reportPdf({ pages: LARGE_PAGES, imageEvery: 10, imageSize: 240 }));
-  fs.writeFileSync(heavy, heavyPagePdf({ paths: 300_000 }));
-  fs.writeFileSync(poster, posterPdf());
+  const report = generatedPdf("report-40", () => reportPdf({ pages: 40, imageSize: 240 }));
+  const large = generatedPdf(`report-${LARGE_PAGES}`, () => reportPdf({ pages: LARGE_PAGES, imageEvery: 10, imageSize: 240 }));
+  const heavy = generatedPdf("heavy-300000", () => heavyPagePdf({ paths: 300_000 }));
+  const poster = generatedPdf("poster", () => posterPdf());
 
   const probes = await Promise.all(ENGINES.map((engine) => child({ job: "probe", engine, files })));
   const total = files.length;
@@ -352,65 +378,72 @@ async function main() {
   console.error(`${files.length} of ${total} documents opened in all four (refused: ${JSON.stringify(leftOut)})`);
   const bytes = files.reduce((sum, file) => sum + fs.statSync(file).size, 0);
 
-  const samples = Object.fromEntries(ENGINES.map((engine) => [engine, []]));
+  /** samples[job][engine][round] */
+  const samples = Object.fromEntries(jobs.map((job) => [job, Object.fromEntries(ENGINES.map((engine) => [engine, []]))]));
   const shared = { files, report, large, heavy, poster };
   const gate = quietGate({
     maxLoad: values["max-load"] ? Number(values["max-load"]) : undefined,
     minIdle: values["min-idle"] ? Number(values["min-idle"]) / 100 : undefined,
+    maxWait: values["max-wait"] ? Number(values["max-wait"]) : undefined,
   });
-  const quiet = gate.wait;
-  for (let run = 0; run < runs; run++) {
-    for (let k = 0; k < ENGINES.length; k++) {
-      const engine = ENGINES[(run + k) % ENGINES.length];
-      const started = Date.now();
-      const sample = {};
-      for (const job of ["cold", "speed", "large", "poster", "blocking", "abort"]) {
-        await quiet();
-        sample[job] = await child({ job, engine, ...shared });
+  const random = seeded(Number(values.seed));
+  const rowsOf = (job) => Object.entries(ROWS).filter(([, row]) => row.job === job);
+  const settled = (job) =>
+    rowsOf(job).every(([, row]) => {
+      const recto = samples[job].recto.map((s) => valueOf(row, s));
+      return ENGINES.slice(1).every((engine) => {
+        const mine = samples[job][engine].map((s) => valueOf(row, s));
+        // A value that can't be a ratio (a 0 ms stop) has nothing to settle.
+        return mine.some((v) => !(v > 0)) || recto.some((v) => !(v > 0)) || decided(pairedRatio(mine, recto), tolerance);
+      });
+    });
+  const active = new Set(jobs);
+  const roundsRun = {};
+  for (let round = 0; round < maxRounds && active.size > 0; round++) {
+    const started = Date.now();
+    for (const job of jobs) {
+      if (!active.has(job)) continue;
+      for (const engine of shuffled(ENGINES, random)) {
+        const at = await gate.wait();
+        const result = await child({ job, engine, ...shared });
+        samples[job][engine].push({ ...result, at: { load: round2(at.load), idle: round2(at.idle), forced: at.forced } });
       }
-      samples[engine].push(sample);
-      console.error(`run ${run + 1}/${runs} ${engine}: ${Date.now() - started} ms`);
+      roundsRun[job] = round + 1;
     }
+    for (const job of [...active]) if (round + 1 >= minRounds && settled(job)) active.delete(job);
+    console.error(`round ${round + 1}: ${Date.now() - started} ms, ${active.size ? `still running ${[...active].join(", ")}` : "all settled"}`);
   }
-  fs.rmSync(temp, { recursive: true, force: true });
 
-  const pickers = {
-    text: (s) => s.speed.text.ms,
-    render: (s) => s.speed.render.ms,
-    coldText: (s) => s.cold.text,
-    coldRender: (s) => s.cold.render,
-    firstText: (s) => s.speed.firstText,
-    firstRender: (s) => s.speed.firstRender,
-    largeOpen: (s) => s.large.open,
-    largeText: (s) => s.large.text,
-    largeRender: (s) => s.large.render,
-    rss: (s) => s.speed.rss,
-    largeRss: (s) => s.large.rss,
-    posterRender: (s) => s.poster.render,
-    maxMedian: (s) => s.blocking.maxMedian,
-    maxWorst: (s) => s.blocking.maxWorst,
-    p99Median: (s) => s.blocking.p99Median,
-    abortWhole: (s) => s.abort.whole,
-    abortStopped: (s) => s.abort.stopped,
-  };
   const summary = {};
-  for (const [key, pick] of Object.entries(pickers)) {
-    const recto = samples.recto.map(pick);
-    summary[key] = {};
+  for (const [key, row] of Object.entries(ROWS)) {
+    if (!samples[row.job]) continue;
+    const recto = samples[row.job].recto.map((s) => valueOf(row, s));
+    summary[key] = { measure: row.measure, rounds: samples[row.job].recto.length };
     for (const engine of ENGINES) {
-      const mine = samples[engine].map(pick);
+      const mine = samples[row.job][engine].map((s) => valueOf(row, s));
       summary[key][engine] = { median: ms(median(mine)), runs: mine.map(ms) };
-      if (engine !== "recto") {
-        summary[key][engine].ratio = Math.round((median(mine) / median(recto)) * 100) / 100;
-        summary[key][engine].interval = ratioInterval(mine, recto).map((v) => Math.round(v * 100) / 100);
+      if (engine !== "recto") Object.assign(summary[key][engine], compareRow(mine, recto));
+      // A CPU row keeps its wall time beside it, so the two can be read together.
+      if (row.measure === "thread") {
+        const wall = samples[row.job][engine].map((s) => valueOf(row, s, "wall"));
+        const rectoWall = samples[row.job].recto.map((s) => valueOf(row, s, "wall"));
+        summary[key][engine].wall = { median: ms(median(wall)), ...(engine !== "recto" ? compareRow(wall, rectoWall) : {}) };
       }
     }
   }
+  const first = (job) => samples[job]?.recto[0];
   const results = {
     date: new Date().toISOString(),
     node: process.version,
     machine: `${os.cpus()[0].model}, ${os.cpus().length} cores, ${Math.round(os.totalmem() / 2 ** 30)} GB`,
     loadAverage: os.loadavg()[0],
+    method: {
+      rounds: { min: minRounds, max: maxRounds, run: roundsRun },
+      tolerance,
+      order: "each job's four engines back to back, shuffled each round",
+      interval: "Hodges-Lehmann estimate of the paired ratio, exact Wilcoxon signed-rank interval",
+      seconds: Math.round((Date.now() - begun) / 1000),
+    },
     // The 1-minute load average and the CPUs' idle share as each measured process started.
     quiet: gate.summary(),
     versions: Object.fromEntries(
@@ -418,14 +451,37 @@ async function main() {
     ),
     documents: { used: files.length, of: total, refused: leftOut, bytes, largePages: LARGE_PAGES, largeRendered: LARGE_RENDERED },
     widths: { render: WIDTH, textPages: TEXT_PAGES, renderPages: RENDER_PAGES },
-    pagesRead: samples.recto[0].speed.text.pages,
-    pagesRendered: samples.recto[0].speed.render.pages,
-    chars: Object.fromEntries(ENGINES.map((engine) => [engine, samples[engine][0].speed.text.chars])),
-    how: { abort: Object.fromEntries(ENGINES.map((engine) => [engine, samples[engine][0].abort.how])) },
+    pagesRead: first("speed")?.text.pages,
+    pagesRendered: first("speed")?.render.pages,
+    chars: samples.speed ? Object.fromEntries(ENGINES.map((engine) => [engine, samples.speed[engine][0].text.chars])) : undefined,
+    how: samples.abort ? { abort: Object.fromEntries(ENGINES.map((engine) => [engine, samples.abort[engine][0].how])) } : undefined,
     summary,
   };
   const out = values.out ?? path.join(here, "results/node.json");
   fs.writeFileSync(out, `${JSON.stringify(results, null, 1)}\n`);
-  console.log(JSON.stringify(Object.fromEntries(Object.entries(summary).map(([k, v]) => [k, Object.fromEntries(ENGINES.map((e) => [e, v[e].ratio ? `${v[e].median} (${v[e].ratio}x ${v[e].interval})` : v[e].median]))])), null, 1));
-  console.error(`wrote ${out}`);
+  if (values.raw) fs.writeFileSync(values.raw, `${JSON.stringify(samples)}\n`);
+  console.log(
+    JSON.stringify(
+      Object.fromEntries(Object.entries(summary).map(([k, v]) => [k, Object.fromEntries(ENGINES.map((e) => [e, v[e].ratio ? `${v[e].median} (${v[e].ratio}x ${v[e].interval})` : v[e].median]))])),
+      null,
+      1,
+    ),
+  );
+  console.error(`wrote ${out} in ${results.method.seconds} s`);
+}
+
+if (!isMainThread) {
+  const engine = await load(workerData.engine);
+  const doc = await engine.open(new Uint8Array(fs.readFileSync(workerData.heavy)));
+  if (workerData.started) parentPort.postMessage("started");
+  const started = performance.now();
+  await renderBytes(doc, 0, WIDTH);
+  if (!workerData.started) parentPort.postMessage(performance.now() - started);
+} else if (process.env.RECTO_BENCH_JOB) {
+  const request = JSON.parse(process.env.RECTO_BENCH_JOB);
+  const result = await jobs[request.job](request);
+  console.log(`\n@@${JSON.stringify(result)}`);
+  process.exit(0);
+} else {
+  await main();
 }

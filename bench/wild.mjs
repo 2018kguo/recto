@@ -11,9 +11,11 @@
 //   node bench/wild.mjs fetch [--zips 7] [--dir ~/.cache/recto-corpus/wild]
 //   npm run build
 //   node bench/wild.mjs run [--dir ...] [--results bench/results/wild.json] [--timeout 20] [--max-rss 2048]
-//        [--jobs 8] [--engines recto,pdf.js,pdfium,mupdf] [--limit n] [--cache file.jsonl] [--only file-of-hashes]
+//        [--jobs 17] [--engines recto,pdf.js,pdfium,mupdf] [--limit n] [--cache file.jsonl] [--only file-of-hashes]
 //
-// The cache holds one line per file and engine; recto's lines are keyed by its wasm's hash, so after a
+// `--timeout` is seconds of the process's CPU time (polled with its memory every 200 ms), so a run on a
+// busy machine, or many at once, isn't cut short by waiting for a core; ten times it in wall time ends a
+// run that hangs without using any. The cache holds one line per file and engine; recto's lines are keyed by its wasm's hash, so after a
 // fix a rerun reruns recto alone.
 import { execFileSync, spawn } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -31,6 +33,8 @@ const TEXT_PAGES = 5;
 const RENDER_PAGES = 2;
 const WIDTH = 1024;
 const ZIPS_IN_CORPUS = 7933;
+/** How many times --timeout of wall time a run may take, whatever its CPU time. */
+const WALL_LIMIT = 10;
 const BASE = "https://digitalcorpora.s3.amazonaws.com/corpora/files/CC-MAIN-2021-31-PDF-UNTRUNCATED/zipfiles";
 
 // ---- The child: one engine, one file. A line of JSON per step, so a hang or a death says how far it got.
@@ -150,14 +154,20 @@ function runOne(engine, file, timeoutMs, maxRssMb, onPid) {
     const result = { engine, outcome: null, pageCount: null, openMs: null, ms: null, maxRssMb: null, text: [], render: [], step: "open" };
     const started = performance.now();
     let killedFor = null;
+    // The limit is CPU time, read with the memory: on a busy machine a process waits for a core, and
+    // that wait isn't the engine's. A process that uses no CPU and never ends is caught by the wall clock.
     const timer = setTimeout(() => {
       killedFor = "timeout";
       proc.kill("SIGKILL");
-    }, timeoutMs);
-    onPid(proc.pid, (rss) => {
+    }, timeoutMs * WALL_LIMIT);
+    onPid(proc.pid, (rss, cpuMs) => {
       result.maxRssMb = Math.max(result.maxRssMb ?? 0, rss);
+      result.cpuMs = cpuMs;
       if (rss > maxRssMb && !killedFor) {
         killedFor = "memory";
+        proc.kill("SIGKILL");
+      } else if (cpuMs > timeoutMs && !killedFor) {
+        killedFor = "timeout";
         proc.kill("SIGKILL");
       }
     });
@@ -209,20 +219,23 @@ function runOne(engine, file, timeoutMs, maxRssMb, onPid) {
   });
 }
 
-/** One `ps` for every child, every 200 ms: the resident size each has now. */
+/** "1:02.50" or "1:01:02.50", as `ps -o time=` gives CPU time, in milliseconds. */
+const psTime = (text) => Math.round(text.split(":").reduce((sum, part) => sum * 60 + Number(part), 0) * 1000);
+
+/** One `ps` for every child, every 200 ms: the resident size and the CPU time each has now. */
 function memoryWatch() {
   const watched = new Map();
   const timer = setInterval(() => {
     if (watched.size === 0) return;
     let out = "";
     try {
-      out = execFileSync("ps", ["-o", "pid=,rss=", "-p", [...watched.keys()].join(",")], { encoding: "utf8" });
+      out = execFileSync("ps", ["-o", "pid=,rss=,time=", "-p", [...watched.keys()].join(",")], { encoding: "utf8" });
     } catch (error) {
       out = error.stdout ?? "";
     }
     for (const line of out.trim().split("\n")) {
-      const [pid, rss] = line.trim().split(/\s+/).map(Number);
-      watched.get(pid)?.(Math.round(rss / 1024));
+      const [pid, rss, time] = line.trim().split(/\s+/);
+      if (time) watched.get(Number(pid))?.(Math.round(Number(rss) / 1024), psTime(time));
     }
   }, 200);
   return {
@@ -374,7 +387,7 @@ if (process.argv[2] === "--child") {
       cache: { type: "string" },
       timeout: { type: "string", default: "20" },
       "max-rss": { type: "string", default: "2048" },
-      jobs: { type: "string", default: String(Math.max(1, Math.floor(os.availableParallelism() / 2))) },
+      jobs: { type: "string", default: String(Math.max(1, os.availableParallelism() - 1)) },
       engines: { type: "string", default: "recto,pdf.js,pdfium,mupdf" },
       limit: { type: "string" },
       only: { type: "string" },

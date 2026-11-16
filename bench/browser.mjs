@@ -3,10 +3,14 @@
 // thread feels, and what memory is left. docs/benchmarks.md says what each number means.
 //
 //   npm run build
-//   npm run bench:browser -- <directory of PDFs> [--docs 8] [--runs 5] [--slowdown 4] [--max-load 8 --min-idle 55] [--out bench/results/browser.json]
+//   npm run bench:browser -- <directory of PDFs> [--docs 8] [--min-rounds 6] [--max-rounds 15] [--tolerance 5]
+//                            [--slowdown 4] [--min-idle 10 --max-wait 60] [--runs 7] [--out bench/results/browser.json]
 //
 // The slowdown stops and resumes the whole browser (see cdp.mjs); --slowdown 1 runs at full speed.
-// `--max-load` and `--min-idle` hold each engine's run for a quiet machine, as in bench.mjs.
+// Each round runs the four engines back to back in a shuffled order, and its ratios are paired, as in
+// bench.mjs; rounds stop once the rows that decide (DECIDING below) are settled, or at --max-rounds.
+// Times here are wall times: the work crosses threads and processes, and the slowdown is one of wall time.
+// `--max-load`, `--min-idle` and `--max-wait` gate each engine's run, as in bench.mjs.
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -16,6 +20,7 @@ import { launch, newPage } from "./cdp.mjs";
 import { cjkPdf, heavyPagePdf, reportPdf } from "./generate.mjs";
 import { quietGate } from "./quiet.mjs";
 import { serve } from "./serve.mjs";
+import { compareRow, decided, median, pairedRatio, seeded, shuffled } from "./stats.mjs";
 
 const here = import.meta.dirname;
 const ENGINES = ["recto", "pdf.js", "pdfium", "mupdf"];
@@ -25,16 +30,22 @@ const { values, positionals } = parseArgs({
   allowPositionals: true,
   options: {
     docs: { type: "string", default: "8" },
-    runs: { type: "string", default: "5" },
+    runs: { type: "string" },
+    "min-rounds": { type: "string", default: "6" },
+    "max-rounds": { type: "string", default: "15" },
+    tolerance: { type: "string", default: "5" },
+    seed: { type: "string", default: "1" },
+    raw: { type: "string" },
+    "max-wait": { type: "string", default: "60" },
     slowdown: { type: "string", default: "4" },
     out: { type: "string", default: path.join(here, "results/browser.json") },
     "max-load": { type: "string" },
-    "min-idle": { type: "string" },
+    "min-idle": { type: "string", default: "10" },
   },
 });
 const directory = positionals[0];
 if (!directory) {
-  console.error("usage: browser.mjs <directory of PDFs> [--docs 8] [--runs 5] [--out file.json]");
+  console.error("usage: browser.mjs <directory of PDFs> [--docs 8] [--min-rounds 6] [--max-rounds 15] [--runs N] [--out file.json]");
   process.exit(2);
 }
 
@@ -54,7 +65,9 @@ arm();
 const gate = quietGate({
   maxLoad: values["max-load"] ? Number(values["max-load"]) : undefined,
   minIdle: values["min-idle"] ? Number(values["min-idle"]) / 100 : undefined,
+  maxWait: values["max-wait"] ? Number(values["max-wait"]) : undefined,
 });
+const begun = Date.now();
 const quiet = async () => {
   await gate.wait();
   arm();
@@ -109,13 +122,6 @@ const longestWorkerGap = async (page) => {
   return longest;
 };
 
-const median = (list) => list.toSorted((a, b) => a - b)[Math.floor(list.length / 2)];
-const interval = (slower, faster, draws = 2000) => {
-  const pick = (list) => median(Array.from(list, () => list[Math.floor(Math.random() * list.length)]));
-  const ratios = Array.from({ length: draws }, () => pick(slower) / pick(faster)).sort((a, b) => a - b);
-  return [ratios[Math.floor(draws * 0.025)], ratios[Math.floor(draws * 0.975)]].map((v) => Math.round(v * 100) / 100);
-};
-
 // At full speed: what each page downloads, then the fixed loop that states the slowdown.
 const fast = await launch();
 const bundle = {};
@@ -153,11 +159,50 @@ const browserVersion = (await browser.send("Browser.getVersion", {})).product;
 const slowSpin = await spin(browser);
 console.error(`slowdown: ${(slowSpin / fastSpin).toFixed(1)}x (${Math.round(fastSpin)} ms to ${Math.round(slowSpin)} ms)`);
 
+const pickers = {
+  coldText: (s) => s.cold.text,
+  coldRender: (s) => s.cold.render,
+  warmText: (s) => s.warm.text,
+  warmRender: (s) => s.warm.render,
+  text: (s) => s.speed.text,
+  render: (s) => s.speed.render,
+  largeOpen: (s) => s.large.open,
+  largeText: (s) => s.large.text,
+  largeRender: (s) => s.large.render,
+  loadDone: (s) => s.load.done,
+  stutter: (s) => s.load.stutter,
+  longestTask: (s) => s.load.longestTask,
+  longestGapInWorker: (s) => s.load.longestGapInWorker,
+  heavyDone: (s) => s.heavy.done,
+  heavyStutter: (s) => s.heavy.stutter,
+  heavyLongestTask: (s) => s.heavy.longestTask,
+  heavyGapInWorker: (s) => s.heavy.longestGapInWorker,
+  slicedDone: (s) => s.sliced.done,
+  slicedGapInWorker: (s) => s.sliced.longestGapInWorker,
+  heap: (s) => s.memory.heap,
+  wasm: (s) => s.memory.wasm,
+};
+/**
+ * The rows that hold the rounds until they are settled: the ones the docs' tables state. Stutter, the
+ * longest task and the gaps are reported from the same rounds but are too spiky to wait on.
+ */
+const DECIDING = ["coldText", "coldRender", "warmText", "warmRender", "text", "render", "largeOpen", "largeText", "largeRender", "loadDone", "heavyDone", "heap", "wasm"];
+const settled = () =>
+  DECIDING.every((key) => {
+    const recto = samples.recto.map(pickers[key]);
+    return ENGINES.slice(1).every((engine) => {
+      const mine = samples[engine].map(pickers[key]);
+      return mine.some((v) => !(v > 0)) || recto.some((v) => !(v > 0)) || decided(pairedRatio(mine, recto), tolerance);
+    });
+  });
 const samples = Object.fromEntries(ENGINES.map((engine) => [engine, []]));
-const runs = Number(values.runs);
-for (let run = 0; run < runs; run++) {
-  for (let k = 0; k < ENGINES.length; k++) {
-    const engine = ENGINES[(run + k) % ENGINES.length];
+const minRounds = Number(values.runs ?? values["min-rounds"]);
+const maxRounds = Number(values.runs ?? values["max-rounds"]);
+const tolerance = Number(values.tolerance) / 100;
+const random = seeded(Number(values.seed));
+let rounds = 0;
+for (let run = 0; run < maxRounds; run++) {
+  for (const engine of shuffled(ENGINES, random)) {
     await quiet();
     const started = Date.now();
     const page = await openPage(browser, engine, "/doc/report.pdf");
@@ -189,8 +234,10 @@ for (let run = 0; run < runs; run++) {
       await page.close();
     }
     samples[engine].push({ cold, warm, speed, large, load, heavy, sliced, memory: left });
-    console.error(`run ${run + 1}/${runs} ${engine}: ${Date.now() - started} ms`);
+    console.error(`round ${run + 1} ${engine}: ${Date.now() - started} ms`);
   }
+  rounds = run + 1;
+  if (rounds >= minRounds && settled()) break;
 }
 const abortPage = await openPage(browser, "pdf.js", "/doc/report.pdf");
 const pdfjsAbort = await abortPage.evaluate(`window.bench.abort("/doc/heavy.pdf")`);
@@ -199,40 +246,14 @@ await browser.close();
 await server.close();
 clearTimeout(deadline);
 
-const pickers = {
-  coldText: (s) => s.cold.text,
-  coldRender: (s) => s.cold.render,
-  warmText: (s) => s.warm.text,
-  warmRender: (s) => s.warm.render,
-  text: (s) => s.speed.text,
-  render: (s) => s.speed.render,
-  largeOpen: (s) => s.large.open,
-  largeText: (s) => s.large.text,
-  largeRender: (s) => s.large.render,
-  loadDone: (s) => s.load.done,
-  stutter: (s) => s.load.stutter,
-  longestTask: (s) => s.load.longestTask,
-  longestGapInWorker: (s) => s.load.longestGapInWorker,
-  heavyDone: (s) => s.heavy.done,
-  heavyStutter: (s) => s.heavy.stutter,
-  heavyLongestTask: (s) => s.heavy.longestTask,
-  heavyGapInWorker: (s) => s.heavy.longestGapInWorker,
-  slicedDone: (s) => s.sliced.done,
-  slicedGapInWorker: (s) => s.sliced.longestGapInWorker,
-  heap: (s) => s.memory.heap,
-  wasm: (s) => s.memory.wasm,
-};
 const summary = {};
 for (const [key, pick] of Object.entries(pickers)) {
-  summary[key] = {};
+  summary[key] = { measure: key === "heap" || key === "wasm" ? "bytes" : "wall", rounds, deciding: DECIDING.includes(key) };
   const recto = samples.recto.map(pick);
   for (const engine of ENGINES) {
     const mine = samples[engine].map(pick);
     summary[key][engine] = { median: Math.round(median(mine) * 10) / 10, runs: mine.map((v) => Math.round(v * 10) / 10) };
-    if (engine !== "recto" && median(recto) > 0) {
-      summary[key][engine].ratio = Math.round((median(mine) / median(recto)) * 100) / 100;
-      summary[key][engine].interval = interval(mine, recto);
-    }
+    if (engine !== "recto" && median(recto) > 0) Object.assign(summary[key][engine], compareRow(mine, recto));
   }
 }
 const results = {
@@ -241,6 +262,13 @@ const results = {
   loadAverage: os.loadavg()[0],
   // The 1-minute load average and the CPUs' idle share as each engine's run started.
   quiet: gate.summary(),
+  method: {
+    rounds: { min: minRounds, max: maxRounds, run: rounds },
+    tolerance,
+    order: "the four engines back to back, shuffled each round",
+    interval: "Hodges-Lehmann estimate of the paired ratio, exact Wilcoxon signed-rank interval",
+    seconds: Math.round((Date.now() - begun) / 1000),
+  },
   browser: browserVersion,
   slowdown: { how: "the browser's processes stopped and resumed", asked: Number(values.slowdown), factor: Math.round((slowSpin / fastSpin) * 10) / 10 },
   width: WIDTH,
@@ -251,5 +279,6 @@ const results = {
   summary,
 };
 fs.writeFileSync(values.out, `${JSON.stringify(results, null, 1)}\n`);
+if (values.raw) fs.writeFileSync(values.raw, `${JSON.stringify(samples)}\n`);
 console.log(JSON.stringify({ bundle: Object.fromEntries(ENGINES.map((e) => [e, { text: [bundle[e].text.raw, bundle[e].text.brotli], cjk: [bundle[e].cjk.raw, bundle[e].cjk.brotli], textOnly: [bundle[e].textOnly.raw, bundle[e].textOnly.brotli] }])), slowdown: results.slowdown, pdfjsCancel: results.pdfjsCancel, medians: Object.fromEntries(Object.entries(summary).map(([k, v]) => [k, ENGINES.map((e) => v[e].median)])) }, null, 0));
 process.exit(0);

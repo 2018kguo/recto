@@ -14,6 +14,7 @@ How recto compares with each, from the tables below. A ratio is the other engine
 above 1× recto is ahead; **bold** is where recto loses. "Level" means the 95% interval holds 1, with the median
 ratio beside it.
 
+<!-- bench:glance -->
 | | pdf.js | pdfium | MuPDF |
 |---|---|---|---|
 | **Size**: download with brotli, text only | 2% smaller (414 against 424 KB) | 4.1× smaller | 8.8× smaller |
@@ -39,6 +40,7 @@ ratio beside it.
 | **Text**: F1 against poppler, 84 documents | 98.55% against 97.84% | 98.55% against 98.33% | 98.55% against 97.35% |
 | **Text**: F1 against poppler, the 25 public documents alone | level (99.60% against 99.49%) | level (99.54%) | level (99.59%) |
 | **Char boxes**: IoU against the ink, median | not measured (items, not chars) | level (0.846 against 0.848) | 0.846 against 0.826 (`accurate-bboxes`) |
+<!-- /bench:glance -->
 
 What to take from it: recto is fastest at reading text and drawing pages in bulk, by 2.6–7× in Node, and of 7,000 web
 PDFs it did worse than another engine on none. A fresh Node process now reaches its first text and pixels ahead of
@@ -48,27 +50,113 @@ large report. In a fresh browser page, slowed, pdfium and MuPDF still have the l
 the interval. pdf.js downloads 0.30 MB less to draw, and holds no WebAssembly memory. The fidelity score has a
 built-in lean, explained in [the scorecard](#the-scorecard): read it as "rarely the odd one out", not "most correct".
 
-Each row, one command (after `npm run build`; PDFs aren't committed, so bring your own, as `pdfs/` here):
+The whole refresh is one command. It builds recto if its sources changed, runs everything below, and writes each
+result to [`bench/results/`](../bench/results); `scripts/bench-docs.mjs` then rewrites this page's tables from those
+files (each sits between `<!-- bench:… -->` markers), so no number is typed by hand. The prose around the tables is
+still the refresher's to read and correct. PDFs aren't committed: it reads the sets from `~/.cache/recto-corpus`
+(`--corpus` to move it; `pub/` is the public set, `suites/` the test suites, `wild/` the web sample).
 
 ```sh
-npm run bench -- pdfs --runs 7 --max-load 8 --min-idle 55                       # Node: cold start, open, render, text, memory, stopping
-npm run bench:browser -- pdfs --runs 7 --max-load 8 --min-idle 55               # Chromium slowed, and what a page downloads (--slowdown 1 for full speed)
-node bench/wild.mjs fetch && node bench/wild.mjs run --jobs 6 --results out.json # robustness, 7,000 web PDFs
-node bench/scorecard.mjs pub=pdfs --engines recto,pdfium,pdf.js,poppler,mupdf --out scratch  # fidelity
-node bench/text-compare.mjs pdfs                                                 # text against poppler
-node bench/box-compare.mjs pdfs --tight                                          # char boxes
+npm run bench:refresh -- --docs                    # everything, then the tables; --only node,browser or --skip wild for part
+npm run bench -- pdfs                              # Node: cold start, open, render, text, memory, stopping
+npm run bench:browser -- pdfs                      # Chromium slowed (--slowdown 1 for full speed), and what a page downloads
+node bench/wild.mjs fetch && node bench/wild.mjs run --results out.json      # robustness, 7,000 web PDFs
+node bench/scorecard.mjs public=pdfs --engines recto,pdfium,pdf.js,poppler,mupdf --out scratch  # fidelity
+node bench/text-compare.mjs pdfs                   # text against poppler
+node bench/box-compare.mjs pdfs --tight            # char boxes
 ```
 
 ## How it was measured
 
-Timed numbers are medians of 7 rounds, each in a fresh process or page, with the engines taking turns round by
-round. The brackets are 95% confidence intervals on the ratio to recto, bootstrapped: resampled from the rounds to
-see how much the ratio could move. The machine was shared: other work kept the 1-minute load average between about
-10 and 45 throughout, while leaving most of the 18 cores idle. So each measured process started only when the
-1-minute load was under 8 **or** the CPUs were at least 55% idle over a second (`--max-load 8 --min-idle 55`,
-`bench/quiet.mjs`); the results record what each started at. Read the ratios, not the absolute times, which are
-higher than a quiet machine's. The raw results are in [`bench/results/`](../bench/results), with files named by hash
-only. A megabyte here is 10^6 bytes.
+**The tables on this page were measured with the method before this one** (7 rounds per engine, each started only
+when the 1-minute load was under 8 or the CPUs at least 55% idle, with intervals bootstrapped from independent
+medians); the next refresh uses the one below. What follows is the method, and the data that chose it.
+
+A shared machine is noisy in one direction: a process that waits for a core takes longer, never shorter, and how
+long it waits changes from minute to minute. The old gate waited for a quiet minute, which on this machine (a
+1-minute load of 15 to 50 from other work, often past 100) took hours, and its intervals still held 1 on rows whose
+medians differed by 16–23%, because each engine's rounds were compared with another's as if independent. So:
+
+- **Rounds are paired.** Each round runs one job (cold start, the corpus, the large report, the poster, blocking,
+  stopping) for all four engines back to back, in an order shuffled each round, each in a fresh process, then the
+  next job. A round's ratio is taken within the round, so what the machine did in those seconds falls on both sides
+  of it. The estimate is the median of those ratios' pairwise means (Hodges–Lehmann, on their logarithms) and the
+  interval the exact Wilcoxon signed-rank interval around it, at least 95%: no resampling, so the same rounds always
+  give the same interval. It needs 6 rounds at least.
+- **Rounds stop when the answer is settled.** After 6, a job stops once every row it measures has an interval that
+  leaves out 1, or lies within 5% of its estimate on both sides (`--tolerance`), and at 20 in any case (15 in a
+  browser, where only the rows the tables state hold it). A clear row stops at 6 or 7; a row near 1 runs to the cap.
+  Stopping on the data makes a 95% interval a little less than 95%; the cap and the 6-round floor bound that.
+- **The engine's own work is timed on its thread.** Text, rendering, opening and the warm first page are the calling
+  thread's CPU time (`process.threadCpuUsage`): the engines here wait for nothing while they read or draw (in a
+  check on 3 documents the event loop sat idle for 0.1 ms or less of each stretch), so with a core to spare it
+  equals wall time, and without one it doesn't grow. Those rows are marked †. A cold start stays wall time, since a process starting waits on the
+  disk and compiles on other threads, which a user waits for too; so do the event loop's stalls, stopping a render
+  and everything in the browser, where the work crosses threads and processes and the slowdown is one of wall time.
+  The results keep wall time beside every CPU row.
+- **The gate is soft.** A measured process waits for a CPU at least 10% idle, at most 60 s, and then starts anyway
+  (`--min-idle 10 --max-wait 60`); the results count how many were forced.
+
+What chose the measure: 12 paired rounds of every Node job at a median load of 59 (288 starts, 16% idle at the
+median), each timed every way, against the last gated run's ratios. Over the three engines, the median interval
+width (upper end over lower) was:
+
+| | Wall | Calling thread's CPU | Process CPU | Cycles |
+|---|---:|---:|---:|---:|
+| Text, the corpus | 1.43 | 1.10 | 1.10 | 1.09 |
+| Render, the corpus | 1.44 | 1.12 | 1.12 | 1.13 |
+| A fresh process to the first pixels | 1.30 | 1.09 | 1.09 | 1.08 |
+| 2,000-page report, every page's text | 1.43 | 1.09 | 1.10 | 1.07 |
+| 2,000-page report, 5 pages drawn | 2.29 | 1.13 | 1.15 | 1.14 |
+
+Process CPU time and cycles are as steady, but they count V8's helper threads (compiling, collecting), which a quiet
+machine runs beside the work: pdf.js's render came out 9.2× where the gated run had 7.0×, and pdfium 0.64× on the
+large report's 5 pages where the gated run had 1.07×. The calling thread's CPU time gave 7.6× and 1.09×. Instructions
+and cycles are per process too, and need a helper to read on macOS, so they were left out. Wall time less the time
+the kernel says the process waited for a core is per process on macOS as well, and came out below the thread's own
+CPU time; it was dropped. A cold start in thread CPU time drops what a starting process waits for (pdf.js 3.1×
+against 4.4× gated, in wall time 3.9×), so cold starts stay in wall time.
+
+Then the old method and the new on the same build, one after the other, against the last gated run (51 ratios with
+an interval, over 17 Node rows):
+
+| | Wall time | Median interval width | Same verdict as the gated run | Opposite |
+|---|---:|---:|---:|---:|
+| The last gated run (7 rounds, load under 8 or 55% idle) | | 1.52 | | |
+| The same again, started at a load of 60 to 290 | 81 min | 1.54 | 44 | 0 |
+| The old method without the gate, 7 rounds, load about 30 | 7.3 min | 1.80 | 41 | 0 |
+| The new method, load 30 (90 at most), 0 starts forced | 13.0 min | 1.18 | 43 | 2 |
+| The new method again, in the full refresh, load 37 (105 at most) | 13.9 min | 1.19 | 41 | 2 |
+
+Of the new method's 8 other verdicts, 5 are rows the gated run called level that the new one decides, the same way
+as the gated run's median (the 2,000-page report's open against pdfium and MuPDF, its 5 pages against MuPDF, the
+poster against pdfium, peak memory on the corpus against pdfium); one is level where the gated run had MuPDF's
+cold start to pixels 14% behind (1.05× [0.96–1.08] against 1.14× [1.03–1.20]); and the 2 opposite are stopping, whose
+measure changed: the time to stop now runs from when the stop was asked for, 100 ms in, not from when the thread got
+round to running the request. `renderAsync` holds the thread for one slice before it sees the request, so recto's
+stop is now 10–45 ms where it read 0.3, behind `worker.terminate()`'s 2–4 ms. pdf.js's was already measured so
+whenever its draw ran past the request. Every other difference is a row near 1 decided one way by one run and not
+by the other; none is a row two runs decide opposite ways. The old method, run twice behind its gate, agreed with
+itself on 44 of the 51.
+
+In Chromium, slowed, the new method's 15 rounds took 12.6 min at a load of 17 and gave intervals a median 1.14× wide,
+against the last gated run's 1.77×, agreeing with it on every row it decides and deciding 8 it left level. MuPDF's
+lead to first pixels, 0.82× [0.68–1.03] there, came out 0.87× [0.83–0.93]; pdfium's, 0.84× [0.70–1.12], 0.95×
+[0.89–1.03]. At full speed: 5.5 min, 1.23× against 1.43×. The whole refresh, everything above, took 35 min at a
+load of 24 to 105, with the build and the web sample's runs cached; rerunning recto over the web sample after a
+change adds about 9 min at 17 processes.
+
+The counting runs (text, character boxes, the scorecard, the web sample) time nothing, so they use every core
+(`--jobs`, a core each but one, the default): the files are split over processes and their tallies added, and the
+totals are the same at any count. To make them so, pdfium now gets a fresh instance for each file in text-compare and
+box-compare: one instance read 8 of the 531 files' text differently depending on what it had read before, which
+moved recto against pdfium by 0.01 point. The web sample's time limit is CPU time, read with its memory, with 10 times
+it in wall time for a run that hangs, since at a load past 100, 74 runs once went past 20 s of wall time and none did
+when run again. Generated PDFs are cached in `~/.cache/recto-bench` by the hash of `bench/generate.mjs`, the build by
+the hash of its sources, and the scorecard's and web sample's runs by recto's wasm, as before.
+
+Read the ratios, not the absolute times, which are higher than a quiet machine's. The raw results are in
+[`bench/results/`](../bench/results), with files named by hash only. A megabyte here is 10^6 bytes.
 
 The timed PDFs are the 29 public documents of the scoreboard's `pub` set (25 MB), which all four engines open, and
 generated ones. [Text quality](#text-quality), [the scorecard](#the-scorecard), [character boxes](#character-boxes)
@@ -83,6 +171,7 @@ through its `FPDF_` functions; MuPDF through its own JavaScript API. All four en
 or its RGBA bytes. The PDFs are the 29 public documents of the [scoreboard](#the-scoreboard)'s `pub` set (25 MB),
 which all four open, and generated ones.
 
+<!-- bench:node-speed -->
 | | recto | pdf.js | pdfium | MuPDF |
 |---|---:|---:|---:|---:|
 | Text, first 20 pages of each (296 pages) | 220 ms | 1,064 ms (4.8× [4.4–6.0]) | 568 ms (2.6× [2.4–4.5]) | 636 ms (2.9× [2.7–3.9]) |
@@ -95,6 +184,7 @@ which all four open, and generated ones.
 | 2,000-page report: every page's text | 534 ms | 1,843 ms (3.5× [2.7–4.5]) | 898 ms (1.7× [1.3–1.9]) | 1,083 ms (2.0× [1.5–2.2]) |
 | 2,000-page report: render 5 pages | 31.3 ms | 98.8 ms (3.2× [2.3–3.9]) | 33.5 ms (1.07× [0.81–1.21]) | 24.2 ms (0.77× [0.55–1.26]) |
 | A generated poster: open, render at 1024 px | 472 ms | 1,054 ms (2.2× [2.0–2.9]) | 499 ms (1.06× [0.95–1.49]) | 531 ms (1.12× [1.02–1.17]) |
+<!-- /bench:node-speed -->
 
 - **The machine.** An Apple M5 Pro, 18 cores, 64 GB, shared with other work that keeps the load average high while
   leaving most cores idle. Each measured process started only when the 1-minute load was under 8 or the CPUs were at
@@ -127,10 +217,12 @@ which all four open, and generated ones.
 
 The peak resident size of a process of its own, doing what the table above did.
 
+<!-- bench:node-memory -->
 | | recto | pdf.js | pdfium | MuPDF |
 |---|---:|---:|---:|---:|
 | The 29 documents, text and render | 293 MB | 673 MB (2.3× [2.2–2.4]) | 299 MB (1.02× [1.00–1.03]) | 555 MB (1.9× [1.9–1.9]) |
 | The 2,000-page report | 172 MB | 450 MB (2.6× [2.6–2.7]) | 197 MB (1.15× [1.14–1.15]) | 224 MB (1.30× [1.30–1.32]) |
+<!-- /bench:node-memory -->
 
 pdf.js's includes its canvas package. **pdfium's lead is gone**: on the 29 documents the two are level, where pdfium
 used 6% less, and on the large report recto's peak fell from 218 MB to 172 MB, under pdfium's 197. MuPDF keeps
@@ -144,10 +236,12 @@ would be if it did that, over the 29 documents. `monitorEventLoopDelay` at a 1 m
 99th percentile equals the maximum on almost every document, since a document makes only a few dozen calls,
 so only the maximum is here.
 
+<!-- bench:node-blocking -->
 | | recto | pdf.js | pdfium | MuPDF |
 |---|---:|---:|---:|---:|
 | A typical document: its longest stall (median) | 2.9 ms | 13.6 ms | 3.9 ms | 3.2 ms |
 | The worst document: its longest stall | 17.6 ms | 51.9 ms | 289 ms | 258 ms |
+<!-- /bench:node-blocking -->
 
 A stall that short comes from small calls. A page that's slow to draw stalls for as long as it
 takes with `render`: use `renderAsync`, or put the work on a worker thread.
@@ -156,10 +250,12 @@ takes with `render`: use `renderAsync`, or put the work on a worker thread.
 
 One generated page of 300,000 small shapes, rendered at 1024 px.
 
+<!-- bench:node-abort -->
 | | recto | pdf.js | pdfium | MuPDF |
 |---|---:|---:|---:|---:|
 | Rendering it to the end | 344 ms | 2,236 ms | 765 ms | 1,305 ms |
 | Asked to stop 100 ms in: the time until the thread is free | 0.3 ms | 2,063 ms | 3.2 ms | 1.7 ms |
+<!-- /bench:node-abort -->
 
 recto's is `renderAsync` with a `signal`, on the same thread, and the document stays open. pdf.js has a
 real `cancel()`, but in Node the fake worker and the canvas share the thread, so the request waits for
@@ -183,7 +279,7 @@ one call whatever `sliceMs` says; every other slice keeps to it. On a 4.0 s page
 
 ```sh
 npm run build
-npm run bench -- path/to/pdfs --runs 7 --max-load 8 --min-idle 55 --out bench/results/node.json
+npm run bench -- path/to/pdfs --min-idle 10 --max-wait 60 --out bench/results/node.json
 node bench/sliced.mjs
 ```
 
@@ -201,6 +297,7 @@ the 4× it's set to. Two others were tried and rejected. DevTools CPU throttling
 so it would slow pdf.js's drawing and not recto's. macOS background QoS slowed everything, but it
 also made every timer and frame take 200 ms, which charged pdf.js 20× for the frames it waits on.
 
+<!-- bench:browser-speed -->
 | | recto | pdf.js | pdfium | MuPDF |
 |---|---:|---:|---:|---:|
 | Text, first 20 pages of each (79 pages) | 93.9 ms | 366 ms (3.9× [2.8–4.1]) | 265 ms (2.8× [2.2–3.5]) | 305 ms (3.3× [2.5–3.4]) |
@@ -223,6 +320,7 @@ also made every timer and frame take 200 ms, which charged pdf.js 20× for the f
 | at 3.4× | 671 ms | 1,824 ms (2.7× [2.0–3.8]) | 1,023 ms (1.5× [1.3–2.1]) | 1,360 ms (2.0× [1.7–2.8]) |
 | A 500-page report: render 5 pages | 12.2 ms | 76.8 ms (6.3× [5.6–7.0]) | 17.7 ms (1.4× [1.3–1.9]) | 14.9 ms (1.2× [1.05–1.6]) |
 | at 3.4× | 46.9 ms | 110 ms (2.4× [1.8–3.1]) | 64.5 ms (1.4× [1.03–1.8]) | 65.6 ms (1.4× [1.04–1.6]) |
+<!-- /bench:browser-speed -->
 
 - **A fresh page**: recto is first to text at full speed, 41 ms against 46 for pdfium and 51 for MuPDF; slowed, the
   three are level. **To pixels the medians favour pdfium and MuPDF**, by 10% at full speed and 16–18% slowed, but no
@@ -270,11 +368,13 @@ takes the same parts: a second wasm would add 2.8 MB to the package and a second
 From the responses a real page load made: JavaScript, wasm and assets, then the same with brotli in
 brackets.
 
+<!-- bench:browser-download -->
 | | recto | pdf.js | pdfium | MuPDF |
 |---|---:|---:|---:|---:|
 | A report, first page's text, never drawn | 1.46 MB (**0.41 MB**) | 1.75 MB (0.42 MB) | 4.94 MB (1.70 MB) | 10.54 MB (3.65 MB) |
 | A report, first page's text and pixels | 2.41 MB (0.72 MB) | 1.75 MB (**0.42 MB**) | 4.94 MB (1.70 MB) | 10.54 MB (3.65 MB) |
 | A CJK document without embedded fonts, first page | 7.81 MB (2.91 MB) | 1.82 MB (**0.48 MB**) | 4.94 MB (1.70 MB) | 10.54 MB (3.65 MB) |
+<!-- /bench:browser-download -->
 
 MuPDF's 3.65 MB is one 9.9 MB wasm (3.62 MB with brotli) that holds everything, whatever the
 page needs. **For text, recto is the smallest**: 414,494 bytes with brotli against pdf.js's 424,332 (420,868 in the last run, before #55 bundled the entry module),
@@ -301,10 +401,12 @@ they drew.
 With the 40-page report still open, after a full collection, in a page of its own. Canvases are not
 counted, and those are the same on all four.
 
+<!-- bench:browser-memory -->
 | | recto | pdf.js | pdfium | MuPDF |
 |---|---:|---:|---:|---:|
 | JS heap, page and workers | 1.7 MB | 5.6 MB | 2.0 MB | 1.6 MB |
 | WebAssembly memory | 12.6 MB | 0.0 MB | 18.6 MB | 27.7 MB |
+<!-- /bench:browser-memory -->
 
 pdf.js holds the least while the document is open. recto, pdfium and MuPDF keep the file and their state in
 WebAssembly memory, which never shrinks while the instance lives. The JS heap here doesn't count
@@ -327,6 +429,7 @@ reader feels as dropped frames and delayed input. **A stretch in a worker** is t
 worker took no timer: there, the longest call it couldn't interrupt. The floor at the slowdown is
 about 20 ms.
 
+<!-- bench:browser-threads -->
 | | recto | pdf.js | pdfium | MuPDF |
 |---|---:|---:|---:|---:|
 | 40-page report: main-thread stutter | 0 ms / 0 ms | 0 ms / 0 ms | 0 ms / 0 ms | 0 ms / 0 ms |
@@ -337,6 +440,7 @@ about 20 ms.
 | Heavy page: longest stretch in a worker | 274 ms / 1,078 ms | 271 ms / 1,010 ms | 688 ms / 3,123 ms | 1,145 ms / 5,091 ms |
 | Heavy page with `renderAsync`: all of it | 311 ms / 1,199 ms | | | |
 | Heavy page with `renderAsync`: longest stretch in a worker | 56.5 ms / 171 ms | | | |
+<!-- /bench:browser-threads -->
 
 The heavy page is the same 300,000 shapes.
 
@@ -350,8 +454,8 @@ The heavy page is the same 300,000 shapes.
   under a quarter of pdf.js's.
 
 ```sh
-npm run bench:browser -- path/to/pdfs --runs 7 --max-load 8 --min-idle 55 --slowdown 1 --out bench/results/browser-full-speed.json
-npm run bench:browser -- path/to/pdfs --runs 7 --max-load 8 --min-idle 55 --out bench/results/browser.json
+npm run bench:browser -- path/to/pdfs --min-idle 10 --max-wait 60 --slowdown 1 --out bench/results/browser-full-speed.json
+npm run bench:browser -- path/to/pdfs --min-idle 10 --max-wait 60 --out bench/results/browser.json
 ```
 
 ## Before and after 0.2.0
@@ -485,10 +589,12 @@ engines open, by matching the words. Poppler's output isn't truth, only a fourth
 over all words of the set, so a long document counts for more than a short one; the median by document
 is 100 or close to it for all four.
 
+<!-- bench:text-quality -->
 | F1 against poppler | recto | pdf.js | pdfium | MuPDF |
 |---|---:|---:|---:|---:|
 | 84 documents: the public set, and the pdf.js, pdfium and hayro test suites | **98.55%** | 97.84% | 98.33% | 97.35% |
 | The 25 of the public set alone | **99.60%** | 99.49% | 99.54% | 99.59% |
+<!-- /bench:text-quality -->
 
 On the public set all four are level: the spread is 0.1 point, recto on top by 0.01. recto's lead is on the suites,
 which are written to break things, and it's narrow over pdfium (0.2 point). The same measure among the engines, all
@@ -519,6 +625,7 @@ and pdfium open and that have text: 388,076 chars, 99.7% of them matched to one 
 content order, whitespace and the chars the engines add left out. IoU is the area two boxes share over the
 area of both; 1 is the same box.
 
+<!-- bench:boxes-pdfium -->
 | IoU against pdfium's tight box | Median | 10th percentile | At least 0.8 |
 |---|---:|---:|---:|
 | Chars: recto, `text(i, { boxes: "tight" })` | 0.998 | 0.982 | 96.5% |
@@ -531,6 +638,7 @@ area of both; 1 is the same box.
 | Chars: MuPDF's quads (its default) | 0.411 | 0.254 | 0.5% |
 | Text items: pdf.js | 0.629 | 0.415 | 0.3% |
 | Text items: recto's `textItems` | 0.629 | 0.448 | 0.2% |
+<!-- /bench:boxes-pdfium -->
 
 MuPDF's chars are the bounds of the quad its structured text gives each char, matched to pdfium's as recto's are
 (383,794 chars). By default a quad is the advance by the font's ascent and descent, like recto's font boxes; with
@@ -545,6 +653,7 @@ char, the bounds of the inked pixels around it in pdfium's render at 4 px a poin
 inside other chars' boxes, where that can be read cleanly (302,280 chars; not where ink runs on past the
 char, as a rule or a filled background does):
 
+<!-- bench:boxes-ink -->
 | IoU against the ink | Median | 10th percentile | At least 0.8 |
 |---|---:|---:|---:|
 | pdfium's tight boxes | 0.848 | 0.551 | 64.8% |
@@ -552,6 +661,7 @@ char, as a rule or a filled background does):
 | recto's font boxes | 0.471 | 0.321 | 0.3% |
 | MuPDF, `accurate-bboxes` | 0.826 | 0.529 | 59.1% |
 | MuPDF, its default | 0.456 | 0.311 | 0.3% |
+<!-- /bench:boxes-ink -->
 
 Neither engine's box is the ink to the pixel: a curve's control points reach past the curve, and the
 render's pixels and anti-aliasing blur the edges by a quarter of a point. On this measure recto and pdfium are
@@ -673,6 +783,7 @@ out and a missing word doesn't, two pages **agree** if under 1% of cells are off
 channel, and the mean error is under 3. An engine is judged only where two of the others agree with each other,
 by whether it agrees with either. Each engine gets the same test. On 0.7.1, 531 files:
 
+<!-- bench:scorecard -->
 | Of the pages two others agree on | recto | pdfium | pdf.js | poppler | MuPDF |
 |---|---:|---:|---:|---:|---:|
 | Agrees with them | **95.6%** of 568 | 88.6% of 580 | 87.0% of 592 | 77.5% of 595 | 83.8% of 588 |
@@ -686,6 +797,7 @@ by whether it agrees with either. Each engine gets the same test. On 0.7.1, 531 
 | 251 from pdf.js's test suite | 259 | 95.4% |
 | 100 from pdfium's | 103 | 98.1% |
 | 151 from hayro's | 141 | 95.7% |
+<!-- /bench:scorecard -->
 
 **A fifth engine lowered recto's score**, from 97.9% of 530 with the four (the scoreboard's measure, which stays four)
 to 95.6% of 568. That's the test working: MuPDF agrees with one of the others on 38 more pages, and on 14 of them recto
@@ -962,6 +1074,7 @@ read the page count, read the text of up to 5 pages, then draw the first 2 at 10
 environment; MuPDF opens the bytes as `PDFDocument`, since its `openDocument` would open an HTML error page as a
 document of its own. A process that dies or traps counts as a crash. recto at 0.7.1:
 
+<!-- bench:wild -->
 | 7,000 files | recto | pdf.js | pdfium | MuPDF |
 |---|---:|---:|---:|---:|
 | Opened, and every page asked for read and drawn | 6,974 | 6,963 | 6,968 | 6,975 |
@@ -975,6 +1088,7 @@ document of its own. A process that dies or traps counts as a crash. recto at 0.
 | Fewer than half the words all three others agree on (to look at) | 8 | 27 | 7 | 42 |
 | Time per file, median (99th percentile) | 124 ms (693) | 293 ms (1,970) | 97 ms (896) | 88 ms (757) |
 | Peak memory per process, median (largest) | 121 MB (728) | 221 MB (2,195) | 116 MB (1,072) | 134 MB (758) |
+<!-- /bench:wild -->
 
 **Worse than another engine** means that on a file another engine opened with at least one page, this one failed,
 ran out of time or memory, gave a different page count, drew a blank page where at least two others drew
@@ -1000,13 +1114,15 @@ slowest files are mostly the same: large scanned or Illustrator pages.
 ```sh
 node bench/wild.mjs fetch                    # 7 zips, 10.6 GB, into ~/.cache/recto-corpus/wild
 npm run build
-node bench/wild.mjs run --jobs 6 --results bench/results/wild.json
+node bench/wild.mjs run --results bench/results/wild.json
 ```
 
 A run caches one line per file and engine, with recto's keyed by its wasm, so a rerun after a change runs recto
 alone. It writes counts and file hashes to [`bench/results/wild.json`](../bench/results/wild.json), and each
-engine's worse files, by local name, to `~/.cache/recto-corpus/wild/worse.json`. Run it on an idle machine:
-with a load average past 100, 74 runs across the three engines then went past 20 s, and none did when they were run again.
+engine's worse files, by local name, to `~/.cache/recto-corpus/wild/worse.json`. The 20 s limit is the process's
+CPU time (with 200 s of wall time for one that hangs), so a busy machine and `--jobs` no longer push runs past it: it
+was wall time, and with a load average past 100, 74 runs across the three engines once went past 20 s, and none did
+when they were run again.
 
 ## What this doesn't show
 
