@@ -21,6 +21,13 @@
   finding words or renumbering fonts and runs it doesn't return: 2.2% fewer instructions over the benchmark's
   text pass (interval 2.2–2.3%). `text(i)` hands each column to JavaScript without cloning it in WebAssembly
   first (0.4% fewer, interval 0.2–0.4%). The text, the boxes and the corpus hash are unchanged.
+- **Drawing a page does less a glyph and a row.** A glyph the page has drawn before at the same size is drawn
+  from the cache in one lookup, without its outline; its cache key is its font program's hash with its ID in the
+  low bits rather than both hashed again; and its mask goes into the rasterizer's strips 4 bytes a column. Rows
+  of the page nothing draws in, and the parts of a row left and right of what draws in it, are the paper written
+  straight into the bitmap rather than filled and packed through the rasterizer's scratch row. The pixels are the
+  same. In WebAssembly, 7.5% fewer instructions a pass over the first two pages of the 29 public documents at
+  1024 px, and 6.7% fewer for 5 pages of the generated 2,000-page report.
 
 ### Benchmarks
 
