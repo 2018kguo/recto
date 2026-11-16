@@ -469,6 +469,10 @@ fn copies(glyphs: &[Glyph]) -> Vec<bool> {
 /// past it. A quarter, so that kerning that takes some off the letter pairs of tracked text changes
 /// nothing. Not CJK, whose lines are justified a char at a time and have no spaces to find.
 fn letter_spacing(glyphs: &[Glyph], copies: &[bool]) -> Vec<f64> {
+    // Most pages set no `Tc`, and then there's nothing to take off: the caller asks for none.
+    if glyphs.iter().all(|g| g.char_space <= 0.0) {
+        return Vec::new();
+    }
     // Sized up front: a growing Vec<f64> would be a function of its own, not in text's part of the wasm.
     let mut out = vec![0.0; glyphs.len()];
     let mut stretch = 0;
@@ -546,7 +550,7 @@ fn build_with(glyphs: &[Glyph], fonts: &[Font], runs: &[Run], words: bool) -> Te
             // on its own, and a scan's text layer sets a word per run. It can
             // only remove a space: a TJ that cancels `Tc` leaves no gap at all.
             let tracking = if p.run == g.run {
-                (if cjk(p) || cjk(g) { p.char_space } else { tracked[kept.len() - 1].min(p.char_space) }).max(0.0)
+                (if cjk(p) || cjk(g) { p.char_space } else { tracked.get(kept.len() - 1).map_or(p.char_space, |t| t.min(p.char_space)) }).max(0.0)
             } else {
                 0.0
             };
