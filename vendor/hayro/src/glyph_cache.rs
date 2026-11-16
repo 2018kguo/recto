@@ -70,16 +70,20 @@ pub(crate) struct PageGlyphs {
 }
 
 impl PageGlyphs {
+    /// recto: whether the page may draw a glyph from the cache: one it has drawn, or any while it's
+    /// within its limit.
+    fn may_draw(&self, key: &GlyphKey) -> bool {
+        self.bytes <= MAX_PAGE_GLYPH_BYTES || self.keys.contains(key)
+    }
+
     /// recto: notes a glyph the page draws, unless the page is past its limit and hasn't drawn it.
     fn note(&mut self, key: &GlyphKey, glyph: &Option<Arc<CachedGlyph>>) -> bool {
-        if self.keys.contains(key) {
-            return true;
-        }
         if self.bytes > MAX_PAGE_GLYPH_BYTES {
-            return false;
+            return self.keys.contains(key);
         }
-        self.keys.insert(*key);
-        self.bytes += mask_bytes(glyph);
+        if self.keys.insert(*key) {
+            self.bytes += mask_bytes(glyph);
+        }
         true
     }
 }
@@ -177,11 +181,8 @@ impl Renderer<'_> {
         color: AlphaColor<Srgb>,
     ) -> bool {
         let [a, b, c, d, _, _] = transform.as_coeffs();
-        {
-            let page = self.global.page_glyphs.borrow();
-            if !page.keys.contains(&key) && page.bytes > MAX_PAGE_GLYPH_BYTES {
-                return false;
-            }
+        if !self.global.page_glyphs.borrow().may_draw(&key) {
+            return false;
         }
         let offset = f64::from(key.subpixel) / SUBPIXEL_STEPS;
         let Some(rasterized) = rasterize(outline, Affine::new([a, b, c, d, offset, 0.0])) else {
@@ -340,6 +341,36 @@ fn rasterize(outline: &BezPath, transform: Affine) -> Option<Option<CachedGlyph>
 fn round_coverage(x: f32) -> u8 {
     let t = x.trunc();
     (t + if x - t >= 0.5 { 1.0 } else { 0.0 }) as u8
+}
+
+#[cfg(test)]
+mod rasterize_tests {
+    use kurbo::{Affine, BezPath, Shape};
+
+    /// recto: the mask is column by column, each pixel where `for_each_pixel_2d` puts it.
+    #[test]
+    fn a_mask_holds_each_pixel_at_its_column_and_row() {
+        let mut outline = BezPath::new();
+        outline.move_to((0.3, 0.2));
+        outline.curve_to((9.0, -1.0), (14.0, 6.0), (11.7, 17.4));
+        outline.line_to((2.0, 12.5));
+        outline.close_path();
+        let glyph = super::rasterize(&outline, Affine::IDENTITY).unwrap().unwrap();
+        let (w, h) = (usize::from(glyph.width), usize::from(glyph.height));
+        assert!(w != h && w > 4 && h > 4);
+        let bbox = outline.bounding_box();
+        let mut rasterizer = ab_glyph_rasterizer::Rasterizer::new(w, h);
+        // The reference: the same outline drawn into the same rasterizer, read in two dimensions.
+        let to = |p: kurbo::Point| ab_glyph_rasterizer::point((p.x - bbox.x0.floor()) as f32, (p.y - bbox.y0.floor()) as f32);
+        let [a, b, c, d] = [(0.3, 0.2), (9.0, -1.0), (14.0, 6.0), (11.7, 17.4)].map(|p| to(p.into()));
+        rasterizer.draw_cubic(a, b, c, d);
+        rasterizer.draw_line(d, to((2.0, 12.5).into()));
+        rasterizer.draw_line(to((2.0, 12.5).into()), a);
+        rasterizer.for_each_pixel_2d(|x, y, v| {
+            let want = super::round_coverage(v.min(1.0) * 255.0);
+            assert_eq!(glyph.coverage[x as usize * h + y as usize], want, "at {x}, {y}");
+        });
+    }
 }
 
 #[cfg(test)]

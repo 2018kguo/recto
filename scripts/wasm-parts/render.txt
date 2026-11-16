@@ -79,13 +79,15 @@
 <foldhash::seed::global::GlobalSeed>::init_slow
 <hashbrown::map::HashMap<(u128, u32), core::option::Option<alloc::rc::Rc<kurbo::bezpath::BezPath>>, rustc_hash::FxBuildHasher>>::insert
 <hashbrown::map::HashMap<alloc::vec::Vec<u8>, hayro_syntax::object::Object, rustc_hash::FxBuildHasher>>::insert
+<hashbrown::map::HashMap<hayro::glyph_cache::GlyphKey, (), rustc_hash::FxBuildHasher>>::contains_key::<hayro::glyph_cache::GlyphKey>
 <hashbrown::map::HashMap<hayro_syntax::object::ObjectIdentifier, (), std::hash::random::RandomState>>::insert
 <hashbrown::raw::RawTable<((u128, u32), core::option::Option<alloc::rc::Rc<kurbo::bezpath::BezPath>>)>>::reserve_rehash::<hashbrown::map::make_hasher<(u128, u32), core::option::Option<alloc::rc::Rc<kurbo::bezpath::BezPath>>, rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<((u128, u32), core::option::Option<alloc::rc::Rc<skrifa::scaler::ScalerFont>>)>>::reserve_rehash::<hashbrown::map::make_hasher<(u128, u32), core::option::Option<alloc::rc::Rc<skrifa::scaler::ScalerFont>>, rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<((usize, u32), core::option::Option<kurbo::rect::Rect>)>>::reserve_rehash::<hashbrown::map::make_hasher<(usize, u32), core::option::Option<kurbo::rect::Rect>, rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<(alloc::vec::Vec<u8>, hayro_syntax::object::Object)>>::reserve_rehash::<hashbrown::map::make_hasher<alloc::vec::Vec<u8>, hayro_syntax::object::Object, rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<(hayro::glyph_cache::GlyphKey, ())>>::reserve_rehash::<hashbrown::map::make_hasher<hayro::glyph_cache::GlyphKey, (), rustc_hash::FxBuildHasher>::{closure#0}>
-<hashbrown::raw::RawTable<(hayro::glyph_cache::GlyphKey, core::option::Option<alloc::sync::Arc<hayro::glyph_cache::CachedGlyph>>)>>::reserve_rehash::<hashbrown::map::make_hasher<hayro::glyph_cache::GlyphKey, core::option::Option<alloc::sync::Arc<hayro::glyph_cache::CachedGlyph>>, rustc_hash::FxBuildHasher>::{closure#0}>
+<hashbrown::raw::RawTable<(hayro::glyph_cache::GlyphKey, hayro::glyph_cache::CacheEntry)>>::reserve_rehash::<hashbrown::map::make_hasher<hayro::glyph_cache::GlyphKey, hayro::glyph_cache::CacheEntry, rustc_hash::FxBuildHasher>::{closure#0}>
+<hashbrown::raw::RawTable<(hayro::glyph_cache::GlyphKey, hayro::glyph_cache::CacheEntry)>>::reserve_rehash::<hashbrown::map::make_hasher<hayro::glyph_cache::GlyphKey, hayro::glyph_cache::CacheEntry, rustc_hash::FxBuildHasher>::{closure#0}>::{closure#0}
 <hashbrown::raw::RawTable<(hayro_syntax::object::ObjectIdentifier, ())>>::reserve_rehash::<hashbrown::map::make_hasher<hayro_syntax::object::ObjectIdentifier, (), std::hash::random::RandomState>::{closure#0}>
 <hashbrown::raw::RawTable<(hayro_syntax::object::ObjectIdentifier, i32)>>::reserve_rehash::<hashbrown::map::make_hasher<hayro_syntax::object::ObjectIdentifier, i32, rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<(u32, alloc::sync::Arc<dyn core::convert::AsRef<[u8]> + core::marker::Send + core::marker::Sync>)>>::reserve_rehash::<hashbrown::map::make_hasher<u32, alloc::sync::Arc<dyn core::convert::AsRef<[u8]> + core::marker::Send + core::marker::Sync>, std::hash::random::RandomState>::{closure#0}>
@@ -96,6 +98,7 @@
 <hayro::PixmapSettings>::target
 <hayro::Renderer>::apply_soft_mask
 <hayro::Renderer>::cached_outline
+<hayro::Renderer>::draw_cached_glyph
 <hayro::Renderer>::draw_glyph_run
 <hayro::Renderer>::draw_image::<hayro::image::RenderImageData>
 <hayro::Renderer>::draw_image::<hayro_interpret::types::ImageData>
@@ -114,11 +117,11 @@
 <hayro::Renderer>::set_stroke_properties
 <hayro::Renderer>::stroke_outline_run
 <hayro::Renderer>::stroke_path
+<hayro::glyph_cache::PageGlyphs>::note
 <hayro::image_cache::ImageCache>::insert
-<hayro_font::GlyphIdentifier>::cache_key
+<hayro_font::OutlineGlyph>::cache_key
 <hayro_font::OutlineGlyph>::glyph_id
 <hayro_font::OutlineGlyph>::hinted_outline
-<hayro_font::OutlineGlyph>::identifier
 <hayro_font::OutlineGlyph>::outline
 <hayro_font::program::pen::OutlinePath as read_fonts::model::glyph::outline::path::PathSink>::close
 <hayro_font::program::pen::OutlinePath as read_fonts::model::glyph::outline::path::PathSink>::curve_to
@@ -461,6 +464,7 @@
 <vello_cpu::fine::lowp::gradient::GradientPainter<fearless_simd::generated::wasm::WasmSimd128> as vello_cpu::fine::Painter>::paint_u8
 <vello_cpu::fine::lowp::image::PlainBilinearImagePainter<fearless_simd::generated::wasm::WasmSimd128> as vello_cpu::fine::Painter>::paint_u8
 <vello_cpu::region::Region>::from_rows
+<vello_cpu::region::Region>::sub_span
 <vello_cpu::render::RenderContext>::encode_current_paint
 <vello_cpu::render::RenderContext>::fill_coverage
 <vello_cpu::render::RenderContext>::fill_path
@@ -708,6 +712,7 @@ vello_common::rect::render
 vello_common::strip::render
 vello_common::util::strip_bbox
 vello_cpu::coverage::render
+vello_cpu::fine::clear_columns
 zune_jpeg::color_convert::scalar::ycbcr_to_rgb_inner_16_scalar::<false>
 zune_jpeg::headers::parse_app13::<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>
 zune_jpeg::headers::parse_app14::<zune_core::bytestream::reader::no_std_readers::ZCursor<&[u8]>>

@@ -467,13 +467,7 @@ pub(crate) fn rasterize_region<S: Simd, T: FineKernel<S>>(
     // packed out of it. The same bytes, without the scratch row's fill and transpose.
     if !has_cmds {
         if let TargetInit::Clear(color) = target_init {
-            let color = color.as_premul_rgba8().to_u8_array();
-            let rows = usize::from(region.height);
-            for row in region.areas().iter_mut().take(rows) {
-                for pixel in row.as_chunks_mut::<4>().0 {
-                    *pixel = color;
-                }
-            }
+            clear_columns(region, 0, region.width(), color);
         }
         return;
     }
@@ -520,23 +514,39 @@ pub(crate) fn rasterize_region<S: Simd, T: FineKernel<S>>(
     }
 
     // Pack the composited result back into the pixmap.
-    let Some(reached) = reached else {
-        fine.pack(region);
-        return;
-    };
     let width = region.width();
-    let (x0, x1) = (reached.pixel_x().min(width), reached.pixel_end().min(width));
+    let (x0, x1) = reached.map_or((0, width), |reached| {
+        (reached.pixel_x().min(width), reached.pixel_end().min(width))
+    });
     if x0 < x1 {
         fine.pack_span(x0, x1 - x0, region);
     }
-    if let TargetInit::Clear(color) = target_init {
-        let color = color.as_premul_rgba8().to_u8_array();
-        let rows = usize::from(region.height);
-        let (x0, x1, width) = (usize::from(x0), usize::from(x1), usize::from(width));
-        for row in region.areas().iter_mut().take(rows) {
-            let (left, rest) = row.as_chunks_mut::<4>().0[..width].split_at_mut(x0);
-            left.fill(color);
-            rest[x1 - x0..].fill(color);
+    if let TargetInit::Clear(color) = target_init
+        && reached.is_some()
+    {
+        clear_columns(region, 0, x0, color);
+        clear_columns(region, x1, width, color);
+    }
+}
+
+/// recto: the region's pixels from `x0` to `x1` set to `color`, four at a time.
+#[inline(never)]
+fn clear_columns(region: &mut Region<'_>, x0: u16, x1: u16, color: PremulColor) {
+    let color = color.as_premul_rgba8().to_u8_array();
+    let four: [u8; 16] = core::array::from_fn(|i| color[i % 4]);
+    let rows = usize::from(region.height);
+    for row in region.areas().iter_mut().take(rows) {
+        let row = &mut row[usize::from(x0) * 4..usize::from(x1) * 4];
+        // The last pixels are set by four ending at the end, over pixels set already.
+        if let Some(last) = row.last_chunk_mut::<16>() {
+            *last = four;
+        } else {
+            for pixel in row.as_chunks_mut::<4>().0 {
+                *pixel = color;
+            }
+        }
+        for pixels in row.as_chunks_mut::<16>().0 {
+            *pixels = four;
         }
     }
 }

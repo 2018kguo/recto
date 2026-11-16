@@ -1199,6 +1199,35 @@ pub(crate) fn normalized_glyph_name(mut name: &str) -> &str {
 }
 
 #[cfg(test)]
+mod glyph_key_tests {
+    use super::{FontData, FontProgram, GlyphId, GlyphIdentifier, glyph_key};
+    use std::sync::Arc;
+
+    fn program(bytes: &'static [u8]) -> FontProgram {
+        let data: FontData = Arc::new(bytes);
+        FontProgram::new(data, 0).unwrap()
+    }
+
+    /// recto: the key is the program's hash with the glyph in its low bits: the key the identifier
+    /// hashed for, a key of its own for each glyph of a program and for a hidden one, and none
+    /// shared by two programs.
+    #[test]
+    fn each_glyph_of_each_program_has_a_key_of_its_own() {
+        let sans = program(include_bytes!("../assets/FoxitSans.pfb"));
+        let serif = program(include_bytes!("../assets/FoxitSerif.pfb"));
+        let mut keys = std::collections::HashSet::new();
+        for program in [Some(&sans), Some(&serif), None] {
+            for glyph in (0..1 << 16).map(|id| Some(GlyphId::new(id))).chain([None]) {
+                let key = glyph_key(program, glyph);
+                let identifier = GlyphIdentifier { program: program.cloned(), glyph };
+                assert_eq!(identifier.cache_key(), key);
+                assert!(keys.insert(key), "{glyph:?} shares a key");
+            }
+        }
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::glyph_name_to_unicode;
     use hayro_cmap::BfString;
