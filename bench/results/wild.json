@@ -1,19 +1,19 @@
 {
- "date": "2026-11-13T08:15:32.547Z",
+ "date": "2026-11-16T22:37:44.683Z",
  "node": "v25.9.0",
  "machine": "Apple M5 Pro, 18 cores, 64 GB",
  "loadAverage": [
-  52.169921875,
-  37.67822265625,
-  26.802734375
+  81.931640625,
+  60.31298828125,
+  43.26416015625
  ],
- "jobs": 6,
+ "jobs": 17,
  "versions": {
   "pdfjs-dist": "6.5.438",
   "@embedpdf/pdfium": "2.15.1",
   "mupdf": "1.28.1"
  },
- "rectoBuild": "86c4157e918e",
+ "rectoBuild": "dcc88ccb7dde",
  "files": 7000,
  "bytes": 10609999466,
  "engines": {
@@ -31,28 +31,28 @@
     "open-error password-required": 8
    },
    "ms": {
-    "p50": 124,
-    "p90": 248,
-    "p99": 693,
-    "total": 1131039
+    "p50": 224,
+    "p90": 372,
+    "p99": 908,
+    "total": 1804574
    },
    "peakRssMb": {
-    "p50": 121,
-    "p99": 237,
-    "max": 728
+    "p50": 110,
+    "p99": 204,
+    "max": 723
    },
    "blankWhereOthersDraw": 0,
    "noTextWhereOthersHave": 0,
-   "softDisagreements": 8,
+   "softDisagreements": 16,
    "worseThanAnother": 0
   },
   "pdf.js": {
    "outcomes": {
-    "ok": 6963,
+    "ok": 6964,
     "page-error": 0,
     "open-error": 31,
     "timeout": 0,
-    "memory": 6,
+    "memory": 5,
     "crash": 0
    },
    "codes": {
@@ -60,20 +60,20 @@
     "open-error PasswordException": 8
    },
    "ms": {
-    "p50": 293,
-    "p90": 740,
-    "p99": 1970,
-    "total": 2880595
+    "p50": 398,
+    "p90": 993,
+    "p99": 5007,
+    "total": 4346209
    },
    "peakRssMb": {
     "p50": 221,
-    "p99": 662,
-    "max": 2195
+    "p99": 653,
+    "max": 2640
    },
    "blankWhereOthersDraw": 0,
    "noTextWhereOthersHave": 2,
    "softDisagreements": 27,
-   "worseThanAnother": 13
+   "worseThanAnother": 12
   },
   "pdfium": {
    "outcomes": {
@@ -89,15 +89,15 @@
     "open-error pdfium-4": 8
    },
    "ms": {
-    "p50": 97,
-    "p90": 290,
-    "p99": 896,
-    "total": 1062855
+    "p50": 131,
+    "p90": 400,
+    "p99": 1979,
+    "total": 1649280
    },
    "peakRssMb": {
     "p50": 116,
-    "p99": 216,
-    "max": 1072
+    "p99": 218,
+    "max": 1070
    },
    "blankWhereOthersDraw": 0,
    "noTextWhereOthersHave": 0,
@@ -120,19 +120,19 @@
     "open-error Invalid number of pages": 2
    },
    "ms": {
-    "p50": 88,
-    "p90": 224,
-    "p99": 757,
-    "total": 896454
+    "p50": 148,
+    "p90": 415,
+    "p99": 1276,
+    "total": 1557014
    },
    "peakRssMb": {
     "p50": 134,
-    "p99": 253,
-    "max": 758
+    "p99": 251,
+    "max": 719
    },
    "blankWhereOthersDraw": 0,
    "noTextWhereOthersHave": 3,
-   "softDisagreements": 42,
+   "softDisagreements": 41,
    "worseThanAnother": 7
   }
  },

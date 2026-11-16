@@ -420,6 +420,21 @@ test("a one-row image under a TIFF predictor is drawn", async () => {
   assert.deepEqual(page.at(50, 50), RED);
 });
 
+test("data behind a filter this can't decode is left out, not read as decoded", async () => {
+  // The bytes are red pixels as they stand: dropping the filter's name drew them. pdfium's and
+  // poppler's builds here can't read Brotli either, and draw nothing.
+  for (const filter of ["/BrotliDecode", "[/ASCIIHexDecode /BrotliDecode]", "[/NoSuchDecode /FlateDecode]"]) {
+    const data = filter.includes("Hex") ? "ff0000ff0000>" : filter.includes("Flate") ? String.fromCharCode(...deflateSync(Uint8Array.from([255, 0, 0, 255, 0, 0]))) : "\xff\x00\x00\xff\x00\x00";
+    const image = `<</Type/XObject/Subtype/Image/Width 2/Height 1/BitsPerComponent 8/ColorSpace/DeviceRGB/Filter ${filter}/Length ${data.length}>>\nstream\n${data}\nendstream`;
+    const page = await render(pdfOf({ content: "100 0 0 100 0 0 cm /I Do", resources: "/XObject <</I 5 0 R>>", objects: [image] }));
+    assert.deepEqual(page.at(50, 50), WHITE, filter);
+  }
+  // Content too: nothing drawn, rather than its encoded bytes read as operators.
+  const form = { dict: " /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Filter /BrotliDecode", data: "1 0 0 rg 0 0 100 100 re f" };
+  const page = await render(pdfOf({ content: "/F Do", resources: "/XObject <</F 5 0 R>>", objects: [form] }));
+  assert.deepEqual(page.at(50, 50), WHITE);
+});
+
 test("what a page's annotations with no appearance can draw is bounded in total", async () => {
   // A squiggle of 4,096 steps from 8 numbers, in a list too short for a cap per list to catch.
   const quad = "0 10 9000 10 0 0 9000 0";

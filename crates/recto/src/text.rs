@@ -460,6 +460,46 @@ fn copies(glyphs: &[Glyph]) -> Vec<bool> {
     copy
 }
 
+/// The letter spacing a stretch of glyphs shows, where the `TJ` adjustments cancel most of its `Tc`: the
+/// glyphs from the first on with its text object and its `Tc`, and how many those are. Over its pairs of
+/// letters or digits in a row on a line: where at least half are set under a quarter of the `Tc` apart, as
+/// one table of contents sets its words, the letters are tight, their spacing is the mean of those gaps,
+/// and a gap that's the `Tc` the adjustment between two words doesn't cancel is a word's. Otherwise
+/// (infinity) the `Tc` is letter spacing, which shows in every gap, and a gap is a space only past it. A
+/// quarter, so that kerning that takes some off the letter pairs of tracked text changes nothing. Not
+/// CJK, whose lines are justified a char at a time and have no spaces to find.
+fn letter_spacing<'a>(mut stretch: impl Iterator<Item = &'a Glyph>) -> (usize, f64) {
+    let letter = |g: &Glyph| g.text.is_one_char() && g.text.first().is_some_and(|c| c.is_alphanumeric() && u32::from(c) < 0x2E80);
+    let Some(mut p) = stretch.next() else { return (0, f64::INFINITY) };
+    let (mut count, mut pairs, mut tight, mut sum) = (1, 0u32, 0u32, 0.0);
+    let mut p_letter = letter(p);
+    for g in stretch {
+        if g.run != p.run || g.char_space != p.char_space {
+            break;
+        }
+        count += 1;
+        let g_letter = letter(g);
+        let d = g.origin - p.origin;
+        if p_letter && g_letter && g.dir.dot(p.dir) > 0.95 && d.dot(p.up).abs() <= p.em.max(g.em) * LINE_SHIFT {
+            let gap = d.dot(p.dir) - p.advance;
+            pairs += 1;
+            if gap < p.char_space * TIGHT {
+                tight += 1;
+                sum += gap;
+            }
+        }
+        (p, p_letter) = (g, g_letter);
+    }
+    (count, if tight > 0 && tight * 2 >= pairs { sum / f64::from(tight) } else { f64::INFINITY })
+}
+
+/// See `letter_spacing`.
+const TIGHT: f64 = 0.25;
+
+fn cjk(g: &Glyph) -> bool {
+    g.text.first().is_some_and(|c| u32::from(c) >= 0x2E80)
+}
+
 /// Chars, generated spaces and breaks, words, and the fonts and runs the
 /// chars use, renumbered in the order they first appear.
 pub(crate) fn build_page(glyphs: &[Glyph], fonts: &[Font], runs: &[Run]) -> TextPage {
@@ -481,7 +521,9 @@ fn build_with(glyphs: &[Glyph], fonts: &[Font], runs: &[Run], words: bool) -> Te
     // Each char's gap from the glyph before, in ems across (0 where none was measured), for
     // `join_letter_spaced`.
     let mut gaps: Vec<f32> = Vec::with_capacity(chars.capacity());
-    for (g, _) in glyphs.iter().zip(&copies).filter(|(_, copy)| !**copy) {
+    // The letter spacing of the stretch of kept glyphs up to `.0`, worked out when a pair in it first asks.
+    let mut tracked = (0, f64::INFINITY);
+    for (at, (g, _)) in glyphs.iter().zip(&copies).enumerate().filter(|(_, (_, copy))| !**copy) {
         let mut wide = 0.0;
         if let Some(&p) = kept.last() {
             let d = g.origin - p.origin;
@@ -495,7 +537,22 @@ fn build_with(glyphs: &[Glyph], fonts: &[Font], runs: &[Run], words: bool) -> Te
             // on its own, and a scan's text layer sets a word per run. It can
             // only remove a space: a TJ that cancels `Tc` leaves no gap at all.
             let tracking = if p.run == g.run {
-                p.char_space.max(0.0)
+                // What the stretch shows decides only a gap that's a space less its `Tc` and not with
+                // it; elsewhere the `Tc` is taken off as before, and the stretch isn't read.
+                let past = gap - SPACE_GAP * p.across.min(g.across);
+                if p.char_space <= 0.0 || past <= 0.0 || past > p.char_space || cjk(p) || cjk(g) {
+                    p.char_space.max(0.0)
+                } else {
+                    let i = kept.len() - 1;
+                    if i >= tracked.0 {
+                        // From the stretch's first glyph kept, through those still to come.
+                        let from = kept[..i].iter().rposition(|k| k.run != p.run || k.char_space != p.char_space).map_or(0, |k| k + 1);
+                        let rest = glyphs[at..].iter().zip(&copies[at..]).filter(|(_, copy)| !**copy).map(|(g, _)| g);
+                        let (count, spacing) = letter_spacing(kept[from..].iter().copied().chain(rest));
+                        tracked = (from + count, spacing);
+                    }
+                    tracked.1.min(p.char_space)
+                }
             } else {
                 0.0
             };
@@ -1308,6 +1365,43 @@ mod tests {
             })
             .collect();
         assert_eq!(build(tight).text(), "Doc");
+    }
+
+    #[test]
+    fn a_tc_that_tj_cancels_between_letters_leaves_word_gaps() {
+        // A table of contents set with `Tc` 2pt (0.2 em), each letter's `TJ` adjustment taking
+        // 1.9pt of it back and each word's taking none: letters 0.1pt apart, words 2pt. Tracked text,
+        // `Tc` and no adjustment, is every gap the `Tc`, and stays one word.
+        let line = |text: &str, letter_gap: f64, word_gap: f64| {
+            let mut x = 10.0;
+            let mut out = Vec::new();
+            for (w, word) in text.split(' ').enumerate() {
+                for (i, c) in word.chars().enumerate() {
+                    if i > 0 {
+                        x += letter_gap;
+                    } else if w > 0 {
+                        x += word_gap;
+                    }
+                    let t = Affine::new([0.01, 0.0, 0.0, -0.01, x, 100.0]);
+                    let mut g = glyph_from(t, Text::from_char(c), 500.0, false, (ASCENT, DESCENT)).unwrap();
+                    g.char_space = 2.0;
+                    out.push(g);
+                    x += 5.0;
+                }
+            }
+            build(out).text()
+        };
+        assert_eq!(line("assistance to Haiti", 0.1, 2.0), "assistance to Haiti");
+        assert_eq!(line("Doc", 2.0, 2.0), "Doc");
+        // Kerning that takes some off a few pairs of tracked text changes nothing.
+        let mut kerned = Vec::new();
+        for (i, (c, x)) in "Tracked".chars().zip([0.0, 6.0, 13.0, 20.0, 27.0, 34.0, 41.0]).enumerate() {
+            let t = Affine::new([0.01, 0.0, 0.0, -0.01, 10.0 + x - if i == 1 { 1.0 } else { 0.0 }, 100.0]);
+            let mut g = glyph_from(t, Text::from_char(c), 500.0, false, (ASCENT, DESCENT)).unwrap();
+            g.char_space = 2.0;
+            kerned.push(g);
+        }
+        assert_eq!(build(kerned).text(), "Tracked");
     }
 
     #[test]

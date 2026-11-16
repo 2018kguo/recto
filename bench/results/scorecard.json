@@ -1,5 +1,5 @@
 {
- "date": "2026-11-13T08:15:56.142Z",
+ "date": "2026-11-16T22:33:34.109Z",
  "settings": {
   "width": 800,
   "pagesPerFile": 3,
@@ -28,12 +28,12 @@
   "recto": {
    "pages": 615,
    "judged": 568,
-   "agrees": 543,
-   "differs": 25,
+   "agrees": 544,
+   "differs": 24,
    "blankWhereOthersDraw": 2,
    "failedWhereOthersDraw": 1,
    "wrongShape": 0,
-   "percent": 95.6
+   "percent": 95.77
   },
   "pdfium": {
    "pages": 618,
@@ -41,8 +41,8 @@
    "agrees": 514,
    "differs": 66,
    "blankWhereOthersDraw": 5,
-   "failedWhereOthersDraw": 7,
-   "wrongShape": 3,
+   "failedWhereOthersDraw": 9,
+   "wrongShape": 1,
    "percent": 88.62
   },
   "pdf.js": {
@@ -58,12 +58,12 @@
   "poppler": {
    "pages": 619,
    "judged": 595,
-   "agrees": 461,
-   "differs": 134,
+   "agrees": 460,
+   "differs": 135,
    "blankWhereOthersDraw": 9,
-   "failedWhereOthersDraw": 7,
+   "failedWhereOthersDraw": 8,
    "wrongShape": 3,
-   "percent": 77.48
+   "percent": 77.31
   },
   "mupdf": {
    "pages": 615,
@@ -111,9 +111,9 @@
     "percent": 95.37
    },
    "pdfium": {
-    "judged": 262,
-    "agrees": 235,
-    "percent": 89.69
+    "judged": 261,
+    "agrees": 234,
+    "percent": 89.66
    },
    "pdf.js": {
     "judged": 267,
@@ -121,9 +121,9 @@
     "percent": 89.14
    },
    "poppler": {
-    "judged": 268,
-    "agrees": 204,
-    "percent": 76.12
+    "judged": 267,
+    "agrees": 202,
+    "percent": 75.66
    },
    "mupdf": {
     "judged": 267,
@@ -134,13 +134,13 @@
   "pdfium": {
    "recto": {
     "judged": 103,
-    "agrees": 101,
-    "percent": 98.06
+    "agrees": 102,
+    "percent": 99.03
    },
    "pdfium": {
-    "judged": 103,
-    "agrees": 99,
-    "percent": 96.12
+    "judged": 104,
+    "agrees": 100,
+    "percent": 96.15
    },
    "pdf.js": {
     "judged": 107,
@@ -148,9 +148,9 @@
     "percent": 89.72
    },
    "poppler": {
-    "judged": 108,
-    "agrees": 96,
-    "percent": 88.89
+    "judged": 109,
+    "agrees": 97,
+    "percent": 88.99
    },
    "mupdf": {
     "judged": 108,
@@ -200,7 +200,8 @@
     "RuntimeError": 1
    },
    "pageFailed": {
-    "RuntimeError": 2
+    "RuntimeError": 2,
+    "Error": 2
    }
   },
   "pdf.js": {
@@ -217,7 +218,7 @@
     "Error": 40
    },
    "pageFailed": {
-    "timeout": 1
+    "timeout": 2
    }
   },
   "mupdf": {
@@ -230,49 +231,42 @@
   }
  },
  "rectoOpenFailedWhereTwoReferencesOpened": [
-  "pdfium/5dff20ab",
-  "pdfium/2c58a582"
+  "pdfium/bug_1238_2.pdf",
+  "pdfium/bug_782596.pdf"
  ],
  "pageCountDisagreements": 6,
  "maxRssMb": {
-  "recto": 277,
-  "pdfium": 130,
-  "pdf.js": 767,
-  "poppler": 73,
-  "mupdf": 267
+  "recto": 271,
+  "pdfium": 131,
+  "pdf.js": 781,
+  "poppler": 66,
+  "mupdf": 268
  },
  "contestedWhereRectoIsFurthest": 12,
  "nearMisses": 30,
  "ranking": [
   {
-   "id": "pdfium/5dff20ab",
+   "id": "pdfium/bug_1238_2.pdf",
    "page": 0,
    "score": null,
    "status": "invalid-file"
   },
   {
-   "id": "pdfium/fa887ee5",
-   "page": 0,
-   "score": 50,
-   "real": 50,
-   "mae": 98.6
-  },
-  {
-   "id": "pdfjs/53ed51e0",
+   "id": "pdfjs/knockout_nested.pdf",
    "page": 0,
    "score": 12.5,
    "real": 12.5,
-   "mae": 5.3
+   "mae": 10.6
   },
   {
-   "id": "pdfjs/c58a7721",
+   "id": "pdfjs/type3_d0_alpha.pdf",
    "page": 0,
    "score": 4,
    "real": 4,
    "mae": 3.4
   },
   {
-   "id": "pdfjs/17a9b61c",
+   "id": "pdfjs/issue11768_reduced.pdf",
    "page": 0,
    "score": 3.2,
    "real": 2.19,
@@ -286,7 +280,7 @@
    "mae": 9.2
   },
   {
-   "id": "pdfjs/1f209e2f",
+   "id": "pdfjs/issue8125.pdf",
    "page": 0,
    "score": 2.5,
    "real": 0.69,
@@ -300,53 +294,53 @@
    "mae": 9.9
   },
   {
-   "id": "hayro/6b60b6c2",
+   "id": "hayro/issue_cmap_lookup.pdf",
    "page": 1,
    "score": 1.8,
    "real": 0.46,
    "mae": 5.2
   },
   {
-   "id": "pdfjs/62b6d34a",
+   "id": "pdfjs/bug1606566.pdf",
    "page": 0,
    "score": 1.8,
    "real": 0.72,
    "mae": 2
   },
   {
-   "id": "hayro/d3d2f289",
+   "id": "hayro/issue50.pdf",
    "page": 2,
    "score": 1.7,
    "real": 1.01,
    "mae": 3.7
   },
   {
-   "id": "hayro/17841cb1",
+   "id": "pdfjs/knockout_groups_test.pdf",
+   "page": 2,
+   "score": 1.6,
+   "real": 1.04,
+   "mae": 5.3
+  },
+  {
+   "id": "hayro/InlineAbbreviations.pdf",
    "page": 0,
    "score": 1.6,
    "real": 0.07,
    "mae": 0.9
   },
   {
-   "id": "pdfjs/2347912a",
+   "id": "pdfjs/calgray.pdf",
    "page": 0,
    "score": 1.6,
    "real": 0.22,
    "mae": 5
   },
   {
-   "id": "pdfjs/2347912a",
+   "id": "pdfjs/calgray.pdf",
    "page": 2,
    "score": 1.6,
    "real": 0.22,
    "mae": 5
-  },
-  {
-   "id": "pdfjs/9e6088f3",
-   "page": 2,
-   "score": 1.6,
-   "real": 1,
-   "mae": 4.1
   },
   {
    "id": "public/5ba0c858",
@@ -356,7 +350,7 @@
    "mae": 10.7
   },
   {
-   "id": "hayro/193b3108",
+   "id": "hayro/xref_invalid_offsets.pdf",
    "page": 0,
    "score": 1.4,
    "real": 0.75,
@@ -370,21 +364,21 @@
    "mae": 6.2
   },
   {
-   "id": "hayro/6b60b6c2",
+   "id": "hayro/issue_cmap_lookup.pdf",
    "page": 0,
    "score": 1.3,
    "real": 0.75,
    "mae": 4.1
   },
   {
-   "id": "pdfjs/2347912a",
+   "id": "pdfjs/calgray.pdf",
    "page": 1,
    "score": 1.3,
    "real": 0.4,
    "mae": 4.2
   },
   {
-   "id": "pdfjs/f9d7871c",
+   "id": "pdfjs/perf_text_cff.pdf",
    "page": 0,
    "score": 1.3,
    "real": 0.8,
@@ -398,21 +392,21 @@
    "mae": 11.5
   },
   {
-   "id": "pdfjs/04434414",
+   "id": "pdfjs/radial_gradients.pdf",
    "page": 0,
    "score": 1.2,
    "real": 1.19,
    "mae": 2
   },
   {
-   "id": "hayro/0f79455d",
+   "id": "hayro/font_truetype_slow_post_lookup.pdf",
    "page": 0,
    "score": 1.2,
    "real": 1.43,
    "mae": 8.8
   },
   {
-   "id": "pdfjs/e3e3b3c0",
+   "id": "pdfjs/issue11913.pdf",
    "page": 0,
    "score": 1.1,
    "real": 1.3,
