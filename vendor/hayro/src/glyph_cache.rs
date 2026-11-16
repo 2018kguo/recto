@@ -2,7 +2,7 @@ use crate::Renderer;
 use ab_glyph_rasterizer::{Rasterizer, point};
 use kurbo::{Affine, BezPath, PathEl, Point, Rect, Shape};
 use rustc_hash::FxHashMap;
-use std::cell::OnceCell;
+use std::cell::{Cell, OnceCell};
 use std::sync::Arc;
 use vello_cpu::color::palette::css::BLACK;
 use vello_cpu::color::{AlphaColor, Srgb};
@@ -27,21 +27,38 @@ pub(crate) const MAX_CACHED_GLYPH_BYTES: usize = 16 << 20;
 
 #[derive(Default)]
 pub(crate) struct GlyphCache {
-    map: FxHashMap<GlyphKey, Option<Arc<CachedGlyph>>>,
+    map: FxHashMap<GlyphKey, CacheEntry>,
     /// recto: the bytes of the masks and images in `map`.
     bytes: usize,
+    /// recto: the stamp the next render takes; see `CacheEntry::stamp`.
+    next_stamp: u32,
+}
+
+/// recto: a cached glyph, and the stamp of the render that last drew it.
+struct CacheEntry {
+    glyph: Option<Arc<CachedGlyph>>,
+    /// A render's own stamp says the glyph is in its `PageGlyphs` already, so drawing it again
+    /// looks up nothing else. Any other is no answer: the render's `PageGlyphs` says.
+    stamp: Cell<u32>,
 }
 
 impl GlyphCache {
     /// recto: empties the cache if it's over its limit.
     pub(crate) fn trim(&mut self) {
         if self.bytes > MAX_CACHED_GLYPH_BYTES {
-            *self = Self::default();
+            self.map = FxHashMap::default();
+            self.bytes = 0;
         }
     }
 
     pub(crate) fn bytes(&self) -> usize {
         self.bytes
+    }
+
+    /// recto: a stamp for a render, not one another render holds while it's alive.
+    pub(crate) fn take_stamp(&mut self) -> u32 {
+        self.next_stamp = self.next_stamp.wrapping_add(1);
+        self.next_stamp
     }
 }
 
@@ -50,6 +67,21 @@ impl GlyphCache {
 pub(crate) struct PageGlyphs {
     keys: rustc_hash::FxHashSet<GlyphKey>,
     bytes: usize,
+}
+
+impl PageGlyphs {
+    /// recto: notes a glyph the page draws, unless the page is past its limit and hasn't drawn it.
+    fn note(&mut self, key: &GlyphKey, glyph: &Option<Arc<CachedGlyph>>) -> bool {
+        if self.keys.contains(key) {
+            return true;
+        }
+        if self.bytes > MAX_PAGE_GLYPH_BYTES {
+            return false;
+        }
+        self.keys.insert(*key);
+        self.bytes += mask_bytes(glyph);
+        true
+    }
 }
 
 fn mask_bytes(glyph: &Option<Arc<CachedGlyph>>) -> usize {
@@ -76,69 +108,99 @@ pub(crate) struct CachedGlyph {
     image: OnceCell<Arc<Pixmap>>,
 }
 
+/// recto: where a glyph drawn with `transform` is cached, and the whole pixel it's drawn at. `hinted`
+/// is whether its outline is asked for hinted: whether the hinted outline then exists depends on the
+/// glyph and its size alone, which the key holds, so the same key always draws the same mask.
+pub(crate) fn glyph_key(glyph: u128, hinted: bool, transform: Affine) -> (GlyphKey, i32, i32) {
+    let [a, b, c, d, e, f] = transform.as_coeffs();
+    let steps = (e * SUBPIXEL_STEPS).round() as i64;
+    let x = steps.div_euclid(SUBPIXEL_STEPS as i64) as i32;
+    let subpixel = steps.rem_euclid(SUBPIXEL_STEPS as i64) as u8;
+    let y = f.round() as i32;
+    let key = GlyphKey {
+        glyph,
+        hinted,
+        linear: [a.to_bits(), b.to_bits(), c.to_bits(), d.to_bits()],
+        subpixel,
+    };
+    (key, x, y)
+}
+
 impl Renderer<'_> {
-    pub(crate) fn fill_cached_glyph(
+    /// recto: draws a glyph already cached, without its outline. `None` where it isn't cached;
+    /// `Some(false)` where the page is past its limit and it has to be filled as a path.
+    pub(crate) fn draw_cached_glyph(
         &mut self,
-        glyph: u128,
-        hinted: bool,
-        outline: &BezPath,
-        transform: Affine,
+        key: &GlyphKey,
+        x: i32,
+        y: i32,
         color: AlphaColor<Srgb>,
-    ) -> bool {
-        let [a, b, c, d, e, f] = transform.as_coeffs();
-        let steps = (e * SUBPIXEL_STEPS).round() as i64;
-        let x = steps.div_euclid(SUBPIXEL_STEPS as i64) as i32;
-        let subpixel = steps.rem_euclid(SUBPIXEL_STEPS as i64) as u8;
-        let y = f.round() as i32;
-        let key = GlyphKey {
-            glyph,
-            hinted,
-            linear: [a.to_bits(), b.to_bits(), c.to_bits(), d.to_bits()],
-            subpixel,
-        };
-
-        // recto: past the page's limit, only glyphs it has drawn already come from the cache.
-        let seen = self.global.page_glyphs.borrow().keys.contains(&key);
-        if !seen && self.global.page_glyphs.borrow().bytes > MAX_PAGE_GLYPH_BYTES {
-            return false;
-        }
-        let cached = self.global.glyph_cache.borrow().map.get(&key).cloned();
-        let cached = match cached {
-            Some(cached) => cached,
-            None => {
-                let offset = f64::from(subpixel) / SUBPIXEL_STEPS;
-                let Some(rasterized) = rasterize(outline, Affine::new([a, b, c, d, offset, 0.0]))
-                else {
-                    return false;
-                };
-                let rasterized = rasterized.map(Arc::new);
-                let mut cache = self.global.glyph_cache.borrow_mut();
-                cache.bytes += mask_bytes(&rasterized);
-                cache.map.insert(key, rasterized.clone());
-                rasterized
+    ) -> Option<bool> {
+        let cache = self.global.glyph_cache.borrow();
+        let entry = cache.map.get(key)?;
+        if entry.stamp.get() != self.global.glyph_stamp {
+            // recto: past the page's limit, only glyphs it has drawn already come from the cache.
+            if !self.global.page_glyphs.borrow_mut().note(key, &entry.glyph) {
+                return Some(false);
             }
-        };
-        if !seen {
-            let mut page = self.global.page_glyphs.borrow_mut();
-            page.keys.insert(key);
-            page.bytes += mask_bytes(&cached);
+            entry.stamp.set(self.global.glyph_stamp);
         }
-
-        let Some(cached) = cached else {
-            return true;
+        let Some(glyph) = &entry.glyph else {
+            return Some(true);
         };
-
-        let (width, height) = (cached.width, cached.height);
         self.ctx.set_transform(Affine::translate((
-            f64::from(x + cached.x),
-            f64::from(y + cached.y),
+            f64::from(x + glyph.x),
+            f64::from(y + glyph.y),
         )));
         // recto: the mask as a solid fill's coverage, which is what the image below draws, to the
         // byte for black (see `vendor/README.md`).
         self.ctx.set_paint(color);
-        if self.ctx.fill_coverage(width, height, &cached.coverage) {
-            return true;
+        if self.ctx.fill_coverage(glyph.width, glyph.height, &glyph.coverage) {
+            return Some(true);
         }
+        let glyph = glyph.clone();
+        drop(cache);
+        self.draw_glyph_image(&glyph, color);
+        Some(true)
+    }
+
+    /// Rasterizes a glyph that isn't cached yet, caches it and draws it, at the place
+    /// `glyph_key` gave. False where it has to be filled as a path: too large to cache, or the
+    /// page past its limit.
+    pub(crate) fn fill_cached_glyph(
+        &mut self,
+        key: GlyphKey,
+        x: i32,
+        y: i32,
+        outline: &BezPath,
+        transform: Affine,
+        color: AlphaColor<Srgb>,
+    ) -> bool {
+        let [a, b, c, d, _, _] = transform.as_coeffs();
+        {
+            let page = self.global.page_glyphs.borrow();
+            if !page.keys.contains(&key) && page.bytes > MAX_PAGE_GLYPH_BYTES {
+                return false;
+            }
+        }
+        let offset = f64::from(key.subpixel) / SUBPIXEL_STEPS;
+        let Some(rasterized) = rasterize(outline, Affine::new([a, b, c, d, offset, 0.0])) else {
+            return false;
+        };
+        let rasterized = rasterized.map(Arc::new);
+        self.global.page_glyphs.borrow_mut().note(&key, &rasterized);
+        {
+            let mut cache = self.global.glyph_cache.borrow_mut();
+            cache.bytes += mask_bytes(&rasterized);
+            let stamp = Cell::new(self.global.glyph_stamp);
+            cache.map.insert(key, CacheEntry { glyph: rasterized, stamp });
+        }
+        self.draw_cached_glyph(&key, x, y, color) == Some(true)
+    }
+
+    /// The mask as an image, where `fill_coverage` can't draw it, made the first time it's needed.
+    fn draw_glyph_image(&mut self, cached: &CachedGlyph, color: AlphaColor<Srgb>) {
+        let (width, height) = (cached.width, cached.height);
         let image = cached.image.get_or_init(|| {
             let bytes = cached.coverage.len() * 4;
             self.global.glyph_cache.borrow_mut().bytes += bytes;
@@ -167,8 +229,6 @@ impl Renderer<'_> {
         if tint {
             self.ctx.set_tint(None);
         }
-
-        true
     }
 }
 

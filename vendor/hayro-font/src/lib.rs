@@ -576,6 +576,11 @@ impl<'a> OutlineGlyph<'a> {
             .hinted_outline(self.glyph_id(), ppem, cache)
     }
 
+    /// recto: `identifier().cache_key()`, without the identifier's copy of the program.
+    pub fn cache_key(&self) -> u128 {
+        glyph_key(self.font.program(), (!self.hidden).then(|| self.glyph_id()))
+    }
+
     /// Return the identifier of the glyph. You can use this to calculate the cache key
     /// for the outline of the glyph.
     pub fn identifier(&self) -> GlyphIdentifier {
@@ -689,10 +694,14 @@ impl GlyphIdentifier {
     /// differs; across programs two collide only if their hashes differ in no more than the low 33
     /// bits.
     pub fn cache_key(&self) -> u128 {
-        let program = self.program.as_ref().map_or(0, FontProgram::content_hash);
-        let glyph = self.glyph.map_or(1 << 32, |glyph| u128::from(glyph.to_u32()));
-        program ^ glyph
+        glyph_key(self.program.as_ref(), self.glyph)
     }
+}
+
+/// recto: see `GlyphIdentifier::cache_key`.
+fn glyph_key(program: Option<&FontProgram>, glyph: Option<GlyphId>) -> u128 {
+    let program = program.map_or(0, FontProgram::content_hash);
+    program ^ glyph.map_or(1 << 32, |glyph| u128::from(glyph.to_u32()))
 }
 
 /// A query for a font.

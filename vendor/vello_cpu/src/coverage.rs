@@ -37,42 +37,38 @@ pub(crate) fn render(placed: PlacedCoverage<'_>, strips: &mut Vec<Strip>, alphas
     let lead = usize::from(x0 - tile_x0);
     // The drawn part's columns in the mask.
     let first = (i64::from(x0) - x) as usize * height;
-    let drawn = &coverage[first..first + usize::from(x1 - x0) * height];
-    let trail = columns - lead - usize::from(x1 - x0);
+    let drawn_columns = usize::from(x1 - x0);
+    let drawn = &coverage[first..first + drawn_columns * height];
     let strip_rows = usize::from(y1).div_ceil(4) - usize::from(y0) / 4;
-    alphas.reserve(strip_rows * columns * 4);
+    // recto: every strip's alphas zeroed at once, then each drawn column written as 4 bytes known
+    // at compile time, rather than a variable length copied per column, which in wasm is a call
+    // to memmove for each.
+    let base = alphas.len();
+    alphas.resize(base + strip_rows * columns * 4, 0);
+    let out = alphas[base..].as_chunks_mut::<4>().0;
     strips.reserve(strip_rows + 1);
     let mut strip_y = u32::from(y0 / Tile::HEIGHT * Tile::HEIGHT);
-    while strip_y < u32::from(y1) {
-        let start = alphas.len();
+    let mut start = base;
+    for strip in out.chunks_exact_mut(columns) {
         // The strip's rows that are drawn, and where they are in the strip and in the mask.
         let top = strip_y.max(u32::from(y0));
         let bottom = (strip_y + 4).min(u32::from(y1));
         let (at, from) = ((top - strip_y) as usize, (i64::from(top) - y) as usize);
         let rows = (bottom - top) as usize;
-        // recto: a column at a time, 4 bytes known at compile time, rather than zeroing the strip
-        // and copying a variable length into it, a call to memset and memmove per column in wasm.
-        for _ in 0..lead {
-            alphas.extend_from_slice(&[0; 4]);
-        }
+        let strip = &mut strip[lead..lead + drawn_columns];
         if rows == 4 {
-            for mask in drawn.chunks_exact(height) {
-                let column: [u8; 4] = mask[from..from + 4].try_into().unwrap();
-                alphas.extend_from_slice(&column);
+            for (column, mask) in strip.iter_mut().zip(drawn.chunks_exact(height)) {
+                *column = *mask[from..].first_chunk().unwrap();
             }
         } else {
-            for mask in drawn.chunks_exact(height) {
-                let mut column = [0; 4];
+            for (column, mask) in strip.iter_mut().zip(drawn.chunks_exact(height)) {
                 for r in 0..rows {
                     column[at + r] = mask[from + r];
                 }
-                alphas.extend_from_slice(&column);
             }
         }
-        for _ in 0..trail {
-            alphas.extend_from_slice(&[0; 4]);
-        }
         strips.push(Strip::new(tile_x0, strip_y as u16, start as u32, false));
+        start += columns * 4;
         strip_y += u32::from(Tile::HEIGHT);
     }
     let last_strip_y = (strip_y - u32::from(Tile::HEIGHT)) as u16;
