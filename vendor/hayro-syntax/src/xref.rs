@@ -709,6 +709,9 @@ impl XRef {
         }
     }
 
+    // Out of line: it's called from every `get_with`'s instance.
+    #[cold]
+    #[inline(never)]
     fn mark_lost(&self) {
         if let Inner::Some(r) = &self.0 {
             r.map.put().lost = true;
