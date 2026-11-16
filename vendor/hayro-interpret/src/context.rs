@@ -178,6 +178,9 @@ pub struct Context<'a> {
     pub(crate) form_fields: Option<std::collections::HashSet<ObjectIdentifier>>,
     /// recto: what each form drawn here says of itself, read once.
     pub(crate) x_objects: crate::x_object::XObjectInfos<'a>,
+    /// recto: drawing a knockout group's element to take away what it covers, by its shape: the
+    /// opacities and soft masks its graphics states set don't apply (ISO 32000-2, 11.4.8).
+    pub(crate) shape_only: bool,
 }
 
 impl<'a> Context<'a> {
@@ -227,6 +230,7 @@ impl<'a> Context<'a> {
             glyph_scratch: Vec::new(),
             form_fields: None,
             x_objects: Default::default(),
+            shape_only: false,
         }
     }
 

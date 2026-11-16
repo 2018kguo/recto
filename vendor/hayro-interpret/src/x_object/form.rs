@@ -333,13 +333,17 @@ impl<'a> FormXObject<'a> {
         }
 
         // An element of a knockout group: first take away what the group holds where this paints.
+        // recto: by its shape, so what it draws at part opacity, at any depth, takes it all away.
         if is_element {
             context.save_state();
             context.fill_paint_mut().alpha = 1.0;
             context.stroke_paint_mut().alpha = 1.0;
+            context.compositing_mut().soft_mask = None;
+            let outer = std::mem::replace(&mut context.shape_only, true);
             device.push_knockout_erase();
             self.draw_contents(resources, context, device);
             device.pop_knockout_erase();
+            context.shape_only = outer;
             context.restore_state(device);
         }
 

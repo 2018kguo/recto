@@ -84,6 +84,10 @@ They are patched for what upstream does not have:
   **hayro**: an image drawn again in the same render, as a drawing of the page for a group's backdrop draws
   every image before the group, taken from that render's earlier drawing (`RenderImages` in
   `src/image_cache.rs`) rather than decoded again.
+- **hayro-syntax**: a stream naming a filter that isn't a standard one (`/BrotliDecode`) is undecodable, rather
+  than the filter dropped and the data handed out as if decoded. **hayro-interpret**: a knockout
+  group's element takes away what it covers by its shape, so opacities and soft masks its graphics states set,
+  at any depth, don't weaken that (`Context::shape_only`).
 - **hayro-syntax**: AES decryption a column at a time from tables of InvMixColumns of InvSubBytes, FIPS-197's
   equivalent inverse cipher, rather than byte by byte (`TD` in `src/crypto/aes.rs`).
 - **hayro** and **hayro-interpret**: a group that needs its backdrop kept once drawn, cut to where it paints,
