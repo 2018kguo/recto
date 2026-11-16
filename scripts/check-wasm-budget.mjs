@@ -28,7 +28,9 @@ const drawing = text + brotli(here("wasm/recto-render.wasm"));
 // outline crates at opt-level "s" (the lane hash adds about 0.9 KB to text).
 // Drawing's raised by 250 bytes (536 over the build before): a filter that isn't one failing the decode, a knockout
 // element's erase by shape, and text's letter spacing read from a stretch where a gap needs it.
-const BUDGET = { text: 418_000, drawing: 683_750 };
+// Drawing's raised by 1,000 bytes (777 over the build before, most of it the call each `get_with` makes) for
+// `damaged()`, with room for the 229 the soft-mask layer's clip (#65) adds.
+const BUDGET = { text: 418_000, drawing: 684_750 };
 console.log(`text ${text} of ${BUDGET.text} bytes, text and drawing ${drawing} of ${BUDGET.drawing}`);
 assert.ok(text <= BUDGET.text, "reading text downloads more than the budget");
 assert.ok(drawing <= BUDGET.drawing, "drawing downloads more than the budget");

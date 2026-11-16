@@ -10,7 +10,7 @@
   tree refers to wasn't there or didn't parse (a cut-off file's content streams, an image whose bytes are gone).
   Ask after drawing or reading the pages you show, and warn the reader. Of 7,000 web files, 235 are repaired and
   5 say true: the 5 that recto opens where pdfium and MuPDF both refuse. A repaired file with nothing lost says
-  false. `scripts/profile-wasm.mjs` works with the bundled package again.
+  false.
 
 ### Fixed
 
