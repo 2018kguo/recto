@@ -550,12 +550,13 @@ function renderArgs(options: PdfRenderOptions): [number, number, number, number,
 }
 
 /** A rendered page as `render` returns it: with a region, where it is on the page. */
-function bitmapOf(page: Glue.RenderedPage, region: boolean): PdfBitmap | PdfRegionBitmap {
+function bitmapOf(page: Glue.RenderedPage, region: boolean, memory: WebAssembly.Memory): PdfBitmap | PdfRegionBitmap {
   const bitmap: PdfBitmap = {
     width: page.width,
     height: page.height,
     truncated: page.truncated,
-    rgba: page.takeRgba(),
+    // A copy: the page's buffer is the next render's, once the page is freed.
+    rgba: new Uint8Array(memory.buffer, page.rgbaPointer, page.width * page.height * 4).slice(),
   };
   return region ? { ...bitmap, x: page.x, y: page.y, pageWidth: page.pageWidth, pageHeight: page.pageHeight } : bitmap;
 }
@@ -1054,7 +1055,7 @@ export class RectoDocument implements PdfDocument {
     this.#check(index);
     const args = renderArgs(options);
     this.#needsRender();
-    return this.#call(() => consume(this.#doc.render(index, ...args), (page) => bitmapOf(page, options.region !== undefined)));
+    return this.#call(() => consume(this.#doc.render(index, ...args), (page) => bitmapOf(page, options.region !== undefined, this.#instance.memory)));
   }
 
   renderAsync(index: number, options: PdfRenderAsyncOptions & { region: PdfBox }): Promise<PdfRegionBitmap>;
@@ -1088,7 +1089,7 @@ export class RectoDocument implements PdfDocument {
       }
       await nextTask();
       stopIfAsked();
-      return this.#call(() => consume(task.finish(), (page) => bitmapOf(page, options.region !== undefined)));
+      return this.#call(() => consume(task.finish(), (page) => bitmapOf(page, options.region !== undefined, this.#instance.memory)));
     } finally {
       if (!instance.dead && !instance.abandoned) {
         task.free();

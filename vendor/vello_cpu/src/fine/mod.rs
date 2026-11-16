@@ -529,25 +529,15 @@ pub(crate) fn rasterize_region<S: Simd, T: FineKernel<S>>(
     }
 }
 
-/// recto: the region's pixels from `x0` to `x1` set to `color`, four at a time.
+/// recto: the region's pixels from `x0` to `x1` set to `color`, as the u8 kernel's `copy_solid`
+/// fills its own buffer.
 #[inline(never)]
 fn clear_columns(region: &mut Region<'_>, x0: u16, x1: u16, color: PremulColor) {
-    let color = color.as_premul_rgba8().to_u8_array();
-    let four: [u8; 16] = core::array::from_fn(|i| color[i % 4]);
+    let color = u32::from_ne_bytes(color.as_premul_rgba8().to_u8_array());
     let rows = usize::from(region.height);
     for row in region.areas().iter_mut().take(rows) {
-        let row = &mut row[usize::from(x0) * 4..usize::from(x1) * 4];
-        // The last pixels are set by four ending at the end, over pixels set already.
-        if let Some(last) = row.last_chunk_mut::<16>() {
-            *last = four;
-        } else {
-            for pixel in row.as_chunks_mut::<4>().0 {
-                *pixel = color;
-            }
-        }
-        for pixels in row.as_chunks_mut::<16>().0 {
-            *pixels = four;
-        }
+        let row: &mut [u32] = bytemuck::cast_slice_mut(&mut row[usize::from(x0) * 4..usize::from(x1) * 4]);
+        row.fill(color);
     }
 }
 

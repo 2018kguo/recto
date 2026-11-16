@@ -112,6 +112,37 @@ thread_local! {
     static MAX_RECORDED: std::cell::Cell<usize> = const { std::cell::Cell::new(MAX_RECORDED_BYTES) };
 }
 
+thread_local! {
+    /// recto: a page's pixels given back once they've been copied out, for the next page's pixmap.
+    static SPARE_PIXELS: std::cell::Cell<Vec<u8>> = const { std::cell::Cell::new(Vec::new()) };
+}
+
+/// recto: gives a rendered page's pixels back, once they've been copied out, so the next page is
+/// drawn into the same allocation rather than a new one each time: a page's bitmap allocated and
+/// freed at every render left WebAssembly memory fragmented, and grown, by several pages' worth.
+/// One is kept, the last given back.
+pub fn recycle_pixels(pixels: Vec<u8>) {
+    SPARE_PIXELS.set(pixels);
+}
+
+/// recto: a page's pixmap, cleared, in the pixels last given back if there are any.
+fn page_pixmap(width: u16, height: u16) -> Pixmap {
+    let mut pixels = SPARE_PIXELS.take();
+    if pixels.capacity() % 4 != 0 {
+        return Pixmap::new(width, height);
+    }
+    let len = usize::from(width) * usize::from(height) * 4;
+    pixels.clear();
+    // Exactly, so the capacity stays a whole number of pixels.
+    pixels.reserve_exact(len);
+    pixels.resize(len, 0);
+    let metadata = vello_cpu::PixelMetadata {
+        may_have_transparency: true,
+        alpha_type: peniko::ImageAlphaType::AlphaPremultiplied,
+    };
+    Pixmap::from_parts(pixels, width, height, metadata)
+}
+
 /// recto: sets `MAX_RECORDED_BYTES` on this thread, for tests: a page rasterized in parts is the
 /// page rasterized at once.
 #[doc(hidden)]
@@ -149,7 +180,7 @@ impl GlobalState {
     fn target(&self, width: u16, height: u16) -> (Pixmap, vello_cpu::TargetInit) {
         match self.flushed.take() {
             Some(pixmap) => (pixmap, vello_cpu::TargetInit::SrcOver),
-            None => (Pixmap::new(width, height), vello_cpu::TargetInit::Clear(self.background)),
+            None => (page_pixmap(width, height), vello_cpu::TargetInit::Clear(self.background)),
         }
     }
 }

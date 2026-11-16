@@ -26,8 +26,13 @@
   low bits rather than both hashed again; and its mask goes into the rasterizer's strips 4 bytes a column. Rows
   of the page nothing draws in, and the parts of a row left and right of what draws in it, are the paper written
   straight into the bitmap rather than filled and packed through the rasterizer's scratch row. The pixels are the
-  same. In WebAssembly, 7.5% fewer instructions a pass over the first two pages of the 29 public documents at
-  1024 px, and 6.7% fewer for 5 pages of the generated 2,000-page report.
+  same. In WebAssembly, 6.9% fewer instructions a pass over the first two pages of the 29 public documents at
+  1024 px, and 6.5% fewer for 5 pages of the generated 2,000-page report.
+- **A page's bitmap is drawn into the buffer the last one was copied out of.** Each render allocated a page's
+  pixels and freed them once JavaScript had its copy, which left WebAssembly memory fragmented and grown by
+  several pages' worth. The buffer goes back when the rendered page is freed and the next page is drawn into
+  it. With the generated 40-page report open, every page read and drawn, 9.8 MB of WebAssembly memory is left
+  where it was 11.7 at 800 px, and 11.9 where it was 15.9 at 1024 px. `render` still returns a copy of its own.
 
 ### Benchmarks
 
