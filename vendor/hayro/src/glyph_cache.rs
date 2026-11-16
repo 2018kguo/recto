@@ -251,8 +251,17 @@ fn rasterize(outline: &BezPath, transform: Affine) -> Option<Option<CachedGlyph>
 
     let mut coverage = vec![0; usize::from(width) * usize::from(height)].into_boxed_slice();
     let (w, h) = (usize::from(width), usize::from(height));
+    // recto: the pixels come row by row, in order, so the column and row are counted rather than
+    // divided out of the index at every pixel.
+    let (mut column, mut row) = (0, 0);
     rasterizer.for_each_pixel(|idx, c| {
-        coverage[idx % w * h + idx / w] = round_coverage(c.min(1.0) * 255.0);
+        debug_assert_eq!(idx, row * w + column);
+        coverage[column * h + row] = round_coverage(c.min(1.0) * 255.0);
+        column += 1;
+        if column == w {
+            column = 0;
+            row += 1;
+        }
     });
 
     Some(Some(CachedGlyph {

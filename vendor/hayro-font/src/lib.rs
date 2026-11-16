@@ -683,8 +683,15 @@ pub struct GlyphIdentifier {
 
 impl GlyphIdentifier {
     /// Return the cache key of the glyph.
+    ///
+    /// recto: the program's content hash, already 128 random bits, with the glyph's ID in its low
+    /// bits, rather than both hashed again at every glyph drawn. Within a program each glyph's key
+    /// differs; across programs two collide only if their hashes differ in no more than the low 33
+    /// bits.
     pub fn cache_key(&self) -> u128 {
-        hash128(self)
+        let program = self.program.as_ref().map_or(0, FontProgram::content_hash);
+        let glyph = self.glyph.map_or(1 << 32, |glyph| u128::from(glyph.to_u32()));
+        program ^ glyph
     }
 }
 
