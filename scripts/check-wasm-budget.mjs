@@ -13,12 +13,15 @@ import { reportPdf } from "../bench/generate.mjs";
 const here = (...parts) => path.join(import.meta.dirname, "..", "js", ...parts);
 const brotli = (file) =>
   zlib.brotliCompressSync(fs.readFileSync(file), { params: { [zlib.constants.BROTLI_PARAM_LGWIN]: 24 } }).length;
-const dist = fs.readdirSync(here("dist")).filter((name) => /^(?!pool|ranged).*\.js$/u.test(name));
+// index.js and the chunk it imports, which holds the glue and the pins: everything but the pool's own files.
+const dist = fs.readdirSync(here("dist")).filter((name) => /^(?!pool).*\.js$/u.test(name));
+assert.equal(dist.length, 2, `dist/ is index.js and one chunk, not ${dist.join(", ")}`);
 const script = dist.reduce((sum, name) => sum + brotli(here("dist", name)), 0);
-const glue = brotli(here("wasm/recto.gen.mjs")) + brotli(here("wasm/pins.mjs"));
-const text = script + glue + brotli(here("wasm/recto.wasm"));
+const text = script + brotli(here("wasm/recto.wasm"));
 const drawing = text + brotli(here("wasm/recto-render.wasm"));
 
+// Since the bundle, the script counted is what a browser loads, ranged's code (9 KB) included, which the
+// count of dist/ before it left out: 259 bytes more counted, and 8.7 KB less downloaded.
 const BUDGET = { text: 420_000, drawing: 694_000 };
 console.log(`text ${text} of ${BUDGET.text} bytes, text and drawing ${drawing} of ${BUDGET.drawing}`);
 assert.ok(text <= BUDGET.text, "reading text downloads more than the budget");

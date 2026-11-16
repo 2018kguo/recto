@@ -275,7 +275,9 @@ stayed in `recto.wasm`, and 0.15 MB of them (before brotli) are read only by dra
 build now moves those into the parts that read them; see [how it works](how-it-works.md). A page that
 goes on to draw adds `recto-render.wasm` (0.26 MB) and only the standard fonts it uses (13 KB each
 here), 0.72 MB in all. **pdf.js is the smallest for drawing**, by 0.30 MB: its 0.42 MB
-covers that too, and it has the browser's canvas and system fonts to do it with.
+covers that too, and it has the browser's canvas and system fonts to do it with. recto doesn't try to close
+that: `recto-render.wasm` alone is 0.28 MB with brotli, because it carries its own rasterizer, image decoders
+and font outlines, which pdf.js gets from the browser.
 
 A file that runs a function the lists don't hold fetches more. With each of 38 public documents left out of the lists
 in turn, 28 fetched nothing more, 10 fetched `recto-more.wasm` (now 0.26 MB), and 4 of those also `recto-rare.wasm` (now 0.19 MB).

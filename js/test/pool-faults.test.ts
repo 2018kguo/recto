@@ -31,9 +31,10 @@ async function faulty(change: (source: string) => string): Promise<typeof create
 }
 /** At the top of a call's handling on the thread. */
 const onCall = (code: string) => (source: string) => {
-  const anchor = "async function answer({ doc: id, open, method, args }) {";
-  assert.ok(source.includes(anchor));
-  return source.replace(anchor, `${anchor} ${code}`);
+  // The bundle is minified: `code` sees `open`, `method` and `args` by those names all the same.
+  const anchor = /async function \w+\(\{\s*doc:\s*\w+,\s*open:\s*(\w+),\s*method:\s*(\w+),\s*args:\s*(\w+)\s*\}\)\s*\{/u;
+  assert.match(source, anchor);
+  return source.replace(anchor, (found, open: string, method: string, args: string) => `${found} { const open = ${open}, method = ${method}, args = ${args}; ${code} }`);
 };
 const assetDir = (...without: string[]) => {
   const dir = mkdtempSync(join(tmpdir(), "recto-pool-assets-"));

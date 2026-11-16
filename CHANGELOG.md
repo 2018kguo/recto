@@ -8,6 +8,14 @@
   interpretation, without building or copying out the per-char columns. In a pool too. The benchmark's text
   pass calls it, as pdfium's `FPDFText_GetText` and MuPDF's `asText` give a string alone.
 
+### Changed
+
+- **Startup is shorter in a browser.** `dist/index.js` is one minified module and a chunk it shares with the
+  pool, where it was a dozen modules four imports deep, each a round trip before `recto.wasm` was asked for. It
+  is about 8 KB smaller with brotli, the glue included. `recto.wasm` compiles as it streams in
+  (`WebAssembly.compileStreaming`, when the server sends `application/wasm`) while a copy is hashed with
+  `crypto.subtle`, rather than after the hash; a changed file is still never instantiated.
+
 ### Fixed
 
 - **Words kerned apart no longer run together.** A gap between two glyphs on a line is a space past 0.12 em
