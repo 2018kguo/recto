@@ -193,7 +193,7 @@ carries its horizontal scale (`Tz`) and each run its text rendering matrix. See 
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/benchmarks-dark.svg">
-  <img src="docs/benchmarks-light.svg" alt="Bar charts. Read text in Node: recto 213 ms, pdf.js 977 ms, pdfium 532 ms, MuPDF 622 ms. Render in Node: recto 139 ms, pdf.js 1.0 s, pdfium 849 ms, MuPDF 844 ms. A 40-page report in Chromium slowed 3.8×: recto 402 ms, pdf.js 1.2 s, pdfium 630 ms, MuPDF 493 ms. Peak memory in Node: recto 298 MB, pdf.js 684 MB, pdfium 280 MB, MuPDF 542 MB.">
+  <img src="docs/benchmarks-light.svg" alt="Bar charts. Read text in Node: recto 220 ms, pdf.js 1.1 s, pdfium 568 ms, MuPDF 636 ms. Render in Node: recto 152 ms, pdf.js 1.1 s, pdfium 878 ms, MuPDF 897 ms. A 40-page report in Chromium slowed 3.4×: recto 462 ms, pdf.js 1.4 s, pdfium 661 ms, MuPDF 618 ms. Peak memory in Node: recto 293 MB, pdf.js 673 MB, pdfium 299 MB, MuPDF 555 MB.">
 </picture>
 
 Medians of 7 alternating rounds on an Apple M5 Pro, with 29 public and generated PDFs in Node and 8 of them in Chromium,
@@ -202,16 +202,16 @@ is than each:
 
 | | pdf.js | pdfium | MuPDF |
 |---|---:|---:|---:|
-| Text in Node | 4.6× | 2.5× | 2.9× |
-| Render in Node | 7.3× | 6.1× | 6.1× |
-| Text in Chromium | 3.3× | 2.7× | 2.9× |
-| Render in Chromium | 4.9× | 1.3× | 1.5× |
+| Text in Node | 4.8× | 2.6× | 2.9× |
+| Render in Node | 7.0× | 5.8× | 5.9× |
+| Text in Chromium | 3.9× | 2.8× | 3.3× |
+| Render in Chromium | 4.5× | 1.3× | 1.6× |
 
 It isn't ahead everywhere. pdf.js downloads less to draw: 0.42 MB with brotli for everything, against recto's 0.72 MB
-for text and pixels; for text alone the two are level at 0.42 MB. A fresh process or page reaches its first text level
-with pdfium and MuPDF, and its first pixels in a fresh browser page, slowed, 7% behind pdfium and 15% behind MuPDF.
-MuPDF draws a generated report's pages 26% faster (21 against 28 ms for 5), and pdfium's process peaks 6% lower.
-pdf.js holds no WebAssembly memory while a page is open, against recto's 12.6 MB. Of 7,000 PDFs from the web, recto
+for text and pixels; for text alone recto's 0.41 MB is the smaller. A fresh Node process reaches its first text and
+pixels 10–18 ms ahead of pdfium and MuPDF, but in a fresh browser page, slowed, their medians to the first pixels are
+16–18% lower (within this run's intervals), and MuPDF's median on a generated report's 5 pages is lower too (24
+against 31 ms, also within the interval). Peak memory in Node is level with pdfium's. pdf.js holds no WebAssembly memory while a page is open, against recto's 12.6 MB. Of 7,000 PDFs from the web, recto
 did worse than another engine on none (pdf.js 13, pdfium 6, MuPDF 7). On text quality against poppler recto leads
 narrowly (F1 98.5%; pdf.js 97.8%, pdfium 98.3%, MuPDF 97.4%, on 84 documents; on the public ones alone all four are
 level), and it agrees with the other engines' pixels on 95.6% of the pages two of them agree on (small, mostly

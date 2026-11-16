@@ -1,19 +1,21 @@
 {
- "date": "2026-11-13T08:16:52.861Z",
+ "date": "2026-11-16T16:07:29.128Z",
  "documents": 226,
  "of": 400,
  "pagesEach": 5,
  "pages": 353,
  "rectoChars": 388076,
  "matched": 0.997,
- "tightTextDiffers": [],
+ "tightTextDiffers": [
+  "5a0e04c31091e09d#0"
+ ],
  "versions": {
   "pdfjs-dist": "6.5.438",
   "@embedpdf/pdfium": "2.15.1",
   "mupdf": "1.28.1"
  },
  "reference": "pdfium FPDFText_GetCharBox (@embedpdf/pdfium 2.15.1); ink: pdfium's rendering at 4 px a point, chars whose surroundings are clear",
- "seconds": 24,
+ "seconds": 26,
  "summary": {
   "chars: mupdf": {
    "median": 0.411,
@@ -91,19 +93,19 @@
    "median": 0.58,
    "p10": 0.426,
    "atLeast08": 0.045,
-   "n": 69325
+   "n": 69300
   },
   "words: recto (font box)": {
    "median": 0.634,
    "p10": 0.479,
    "atLeast08": 0.126,
-   "n": 69325
+   "n": 69300
   },
   "words: recto tight": {
    "median": 0.999,
    "p10": 0.984,
    "atLeast08": 0.997,
-   "n": 69325
+   "n": 69300
   }
  }
 }
