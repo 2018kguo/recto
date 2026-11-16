@@ -549,3 +549,52 @@ test("an axial or radial shading is sampled at pixel centres", async () => {
   // At (25.5, 49.5) the largest t with |p - c(t)| = r(t), c(t) = (40 + 20t, 50), r(t) = 10 + 30t, is 0.45.
   near(cone.at(25, 50), 115, "cone");
 });
+
+test("images whose soft mask is another size draw masked, and only where they are", async () => {
+  // A 2x1 image, red then blue, under a 4x2 mask opaque on the left and half on the right, drawn 10 times
+  // across the left half of the page over yellow: each is masked in a layer of its own, which is cut to the image.
+  const images = Array.from({ length: 10 }, (_, i) => `q 4 0 0 40 ${i * 5} 30 cm /Im Do Q`).join("\n");
+  const page = await render(
+    pdfOf({
+      content: `1 1 0 rg 0 0 100 100 re f\n${images}`,
+      resources: "/XObject <</Im 5 0 R>>",
+      objects: [
+        { dict: " /Type /XObject /Subtype /Image /Width 2 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /SMask 6 0 R", data: "\xff\x00\x00\x00\x00\xff" },
+        { dict: " /Type /XObject /Subtype /Image /Width 4 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8", data: "\xff\xff\x80\x80\xff\xff\x80\x80" },
+      ],
+    })
+  );
+  assert.deepEqual(page.at(11, 50), RED, "the left half, opaque");
+  assert.deepEqual(page.at(13, 50).map((v) => Math.round(v / 8)), [128, 128, 128].map((v) => Math.round(v / 8)), "blue half over yellow");
+  assert.deepEqual(page.at(50, 20), [255, 255, 0], "above the images");
+  assert.deepEqual(page.at(80, 50), [255, 255, 0], "past the last");
+});
+
+test("a soft mask of another size costs about what one of the image's own size does", async () => {
+  // 400 small images on a large page: each masked in a layer the size of the page took 20 times as long.
+  const page = (mask: string) => {
+    const images = Array.from({ length: 400 }, (_, i) => `q 4 0 0 4 ${(i % 20) * 5} ${Math.floor(i / 20) * 5} cm /Im Do Q`).join("\n");
+    return pdfOf({
+      content: images,
+      resources: "/XObject <</Im 5 0 R>>",
+      objects: [
+        { dict: " /Type /XObject /Subtype /Image /Width 2 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /SMask 6 0 R", data: "\xff\x00\x00\x00\x00\xff" },
+        { dict: ` /Type /XObject /Subtype /Image ${mask} /ColorSpace /DeviceGray /BitsPerComponent 8`, data: "\xff\xff\x80\x80\xff\xff\x80\x80".slice(0, mask.includes("/Width 4") ? 8 : 2) },
+      ],
+    });
+  };
+  const fastest = async (bytes: Uint8Array) => {
+    const doc = await engine.open(bytes);
+    let best = Infinity;
+    for (let i = 0; i < 3; i++) {
+      const start = performance.now();
+      doc.render(0, { width: 1500 });
+      best = Math.min(best, performance.now() - start);
+    }
+    doc.close();
+    return best;
+  };
+  const own = await fastest(page("/Width 2 /Height 1"));
+  const other = await fastest(page("/Width 4 /Height 2"));
+  assert.ok(other < own * 4 + 20, `${other.toFixed(1)} ms against ${own.toFixed(1)} ms`);
+});
