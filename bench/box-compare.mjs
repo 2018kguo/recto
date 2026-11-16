@@ -14,6 +14,7 @@
 //
 //   npm run build
 //   node bench/box-compare.mjs <directory of PDFs> [more directories] [--docs 400] [--pages 5] [--out bench/results/boxes.json] [--tight]
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { parseArgs } from "node:util";
@@ -371,7 +372,7 @@ async function scoreFile(file) {
     if (!ref || ref.chars.length === 0) continue;
     const mine = rectoChars(em);
     const tightBoxes = tight && rectoChars(tight).chars;
-    if (tight && (tight.text !== em.text || tight.count !== em.count)) textDiffers.push(`${path.basename(file)}#${p}`);
+    if (tight && (tight.text !== em.text || tight.count !== em.count)) textDiffers.push(`${createHash("sha256").update(bytes).digest("hex").slice(0, 16)}#${p}`);
     const pairs = align(
       mine.chars.map((c) => c.code),
       ref.chars.map((c) => c.code),

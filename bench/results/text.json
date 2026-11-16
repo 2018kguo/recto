@@ -1,42 +1,42 @@
 {
- "date": "2026-11-13T08:16:25.720Z",
+ "date": "2026-11-16T16:06:59.073Z",
  "documents": 84,
  "of": 531,
  "pagesEach": 10,
  "reference": null,
  "summary": {
   "recto against pdf.js": {
-   "precision": 98.44,
-   "recall": 98.89,
-   "microF1": 98.66,
+   "precision": 98.43,
+   "recall": 98.86,
+   "microF1": 98.64,
    "medianF1": 100,
-   "words": 132522
+   "words": 132492
   },
   "recto against pdfium": {
    "precision": 99.14,
-   "recall": 99.08,
-   "microF1": 99.11,
+   "recall": 99.06,
+   "microF1": 99.1,
    "medianF1": 100,
-   "words": 132522
+   "words": 132492
   },
   "recto against mupdf": {
-   "precision": 98.12,
-   "recall": 98.24,
-   "microF1": 98.18,
+   "precision": 98.11,
+   "recall": 98.2,
+   "microF1": 98.16,
    "medianF1": 100,
-   "words": 132522
+   "words": 132492
   },
   "recto against poppler": {
-   "precision": 98.58,
-   "recall": 98.46,
-   "microF1": 98.52,
+   "precision": 98.62,
+   "recall": 98.47,
+   "microF1": 98.55,
    "medianF1": 100,
-   "words": 132522
+   "words": 132492
   },
   "pdf.js against recto": {
-   "precision": 98.89,
-   "recall": 98.44,
-   "microF1": 98.66,
+   "precision": 98.86,
+   "recall": 98.43,
+   "microF1": 98.64,
    "medianF1": 100,
    "words": 131920
   },
@@ -62,9 +62,9 @@
    "words": 131920
   },
   "pdfium against recto": {
-   "precision": 99.08,
+   "precision": 99.06,
    "recall": 99.14,
-   "microF1": 99.11,
+   "microF1": 99.1,
    "medianF1": 100,
    "words": 132604
   },
@@ -90,9 +90,9 @@
    "words": 132604
   },
   "mupdf against recto": {
-   "precision": 98.24,
-   "recall": 98.12,
-   "microF1": 98.18,
+   "precision": 98.2,
+   "recall": 98.11,
+   "microF1": 98.16,
    "medianF1": 100,
    "words": 132372
   },
@@ -118,9 +118,9 @@
    "words": 132372
   },
   "poppler against recto": {
-   "precision": 98.46,
-   "recall": 98.58,
-   "microF1": 98.52,
+   "precision": 98.47,
+   "recall": 98.62,
+   "microF1": 98.55,
    "medianF1": 100,
    "words": 132682
   },
