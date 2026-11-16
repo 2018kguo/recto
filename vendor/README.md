@@ -92,8 +92,6 @@ They are patched for what upstream does not have:
   (`Device::backdrop_group_known`); a backdrop is no longer kept once used. Without it, n groups drew
   n^2 / 2 groups and held page-sized pixmaps for each.
 
-- **hayro**: a page's pixmap drawn into the pixels of the last one, once they're copied out and given back
-  (`recycle_pixels` in `src/lib.rs`), rather than allocated anew at every render.
 - **hayro**: a cached glyph drawn without its outline: its key is made from the transform and whether it's asked
   for hinted, which with the glyph and its size decides whether it is, so the outline is looked up only to rasterize
   it or fill it as a path (`draw_cached_glyph` in `src/glyph_cache.rs`). A cached glyph holds the stamp of the

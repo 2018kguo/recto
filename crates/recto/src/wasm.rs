@@ -401,18 +401,11 @@ fn region(x: f64, y: f64, width: f64, height: f64) -> Option<crate::Region> {
 
 #[wasm_bindgen]
 impl RenderedPage {
-    /// Where the pixels are in the instance's memory, `width * height * 4` bytes, for the caller
-    /// to copy out before it frees the page. Freed, their buffer goes back for the next render to
-    /// draw into (`hayro::recycle_pixels`) rather than being freed for it to allocate again.
+    /// Where the pixels are in the instance's memory, `width * height * 4` bytes, for the caller to
+    /// copy out before it frees the page: less glue than returning them.
     #[wasm_bindgen(getter, js_name = rgbaPointer)]
     pub fn rgba_pointer(&self) -> usize {
         self.rgba.as_ptr() as usize
-    }
-}
-
-impl Drop for RenderedPage {
-    fn drop(&mut self) {
-        hayro::recycle_pixels(std::mem::take(&mut self.rgba));
     }
 }
 

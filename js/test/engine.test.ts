@@ -286,29 +286,6 @@ test("render draws what we wrote, at pdf.js's size rule", async () => {
   }
 });
 
-test("a bitmap is the caller's copy, and the buffer it came from is the next render's", async () => {
-  const own = await createPdfEngine();
-  const doc = await own.open(truth.bytes);
-  try {
-    const first = doc.render(0, { width: 800 });
-    const kept = first.rgba.slice();
-    // Smaller, larger, and a region, each drawn into the buffer the one before gave back.
-    const small = doc.render(0, { width: 300 });
-    const region = doc.render(0, { width: 800, region: { x: 40, y: 230, width: 30, height: 20 } });
-    const again = doc.render(0, { width: 800 });
-    assert.deepEqual(first.rgba, kept, "an earlier bitmap is left alone");
-    assert.deepEqual(again.rgba, kept, "a reused buffer draws what a new one does");
-    assert.deepEqual([small.width, small.height], [300, 225]);
-    assert.ok(small.rgba.some((v) => v !== 255) && region.rgba.some((v) => v !== 255));
-    // Render after render, the memory stays what the first few took.
-    const settled = own.stats().heapBytes;
-    for (let i = 0; i < 30; i++) doc.render(0, { width: i % 2 ? 800 : 640 });
-    assert.equal(own.stats().heapBytes, settled);
-  } finally {
-    doc.close();
-  }
-});
-
 test("filled form widgets render (the form-fill pass)", async () => {
   const pdf = await PDFDocument.create();
   const page = pdf.addPage([300, 200]);

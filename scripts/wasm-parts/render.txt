@@ -92,7 +92,6 @@
 <hashbrown::raw::RawTable<(hayro_syntax::object::ObjectIdentifier, i32)>>::reserve_rehash::<hashbrown::map::make_hasher<hayro_syntax::object::ObjectIdentifier, i32, rustc_hash::FxBuildHasher>::{closure#0}>
 <hashbrown::raw::RawTable<(u32, alloc::sync::Arc<dyn core::convert::AsRef<[u8]> + core::marker::Send + core::marker::Sync>)>>::reserve_rehash::<hashbrown::map::make_hasher<u32, alloc::sync::Arc<dyn core::convert::AsRef<[u8]> + core::marker::Send + core::marker::Sync>, std::hash::random::RandomState>::{closure#0}>
 <hayro::GlobalState>::new
-<hayro::GlobalState>::target
 <hayro::PageJob>::finish
 <hayro::PageJob>::new
 <hayro::PageJob>::step
@@ -601,7 +600,6 @@ fmod
 foldhash::seed::gen_per_hasher_seed
 hayro::draw_page
 hayro::image::resize_image_data
-hayro::recycle_pixels
 hayro::render
 hayro_interpret::context::widen_covering_rect
 hayro_interpret::gradient::approximate_gradient_interval::<<hayro_interpret::encode::EncodedRadialAxialShading>::as_svg_gradient::{closure#0}>

@@ -22,9 +22,9 @@ const drawing = text + brotli(here("wasm/recto-render.wasm"));
 
 // Since the bundle, the script counted is what a browser loads, ranged's code (9 KB) included, which the
 // count of dist/ before it left out: 259 bytes more counted, and 8.7 KB less downloaded.
-// Drawing's raised by 500 bytes (887 over the build before) for what draws a page with fewer instructions and keeps its bitmap's buffer:
-// the glyph cache's one lookup, the rows written straight in, a page's pixels reused.
-const BUDGET = { text: 420_000, drawing: 694_500 };
+// Drawing's raised by 250 bytes (627 over the build before) for what draws a page with fewer instructions: the
+// glyph cache's one lookup and the rows written straight in.
+const BUDGET = { text: 420_000, drawing: 694_250 };
 console.log(`text ${text} of ${BUDGET.text} bytes, text and drawing ${drawing} of ${BUDGET.drawing}`);
 assert.ok(text <= BUDGET.text, "reading text downloads more than the budget");
 assert.ok(drawing <= BUDGET.drawing, "drawing downloads more than the budget");

@@ -555,7 +555,7 @@ function bitmapOf(page: Glue.RenderedPage, region: boolean, memory: WebAssembly.
     width: page.width,
     height: page.height,
     truncated: page.truncated,
-    // A copy: the page's buffer is the next render's, once the page is freed.
+    // A copy: the page's pixels are freed with it.
     rgba: new Uint8Array(memory.buffer, page.rgbaPointer, page.width * page.height * 4).slice(),
   };
   return region ? { ...bitmap, x: page.x, y: page.y, pageWidth: page.pageWidth, pageHeight: page.pageHeight } : bitmap;

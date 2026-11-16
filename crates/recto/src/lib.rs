@@ -840,13 +840,10 @@ fn bitmap_of(
         rgba
     } else {
         let (stride, row) = (width as usize * 4, w as usize * 4);
-        let cut = (0..h as usize).flat_map(|r| {
+        (0..h as usize).flat_map(|r| {
             let at = (dy + r) * stride + dx * 4;
             rgba[at..at + row].iter().copied()
-        }).collect();
-        // The window drawn round it is the next render's to draw into.
-        hayro::recycle_pixels(rgba);
-        cut
+        }).collect()
     };
     Bitmap { width: w, height: h, rgba, truncated, x, y, page_width: placed.page.0, page_height: placed.page.1 }
 }
@@ -2933,25 +2930,6 @@ mod tests {
             for (dx, dy) in [(1, 0), (2, 1), (3, 2), (5, 3), (6, 7)] {
                 let moved = render(dx, dy, clip);
                 assert!(window(&at_rest, 0, 0) == window(&moved, dx, dy), "moved by {dx}, {dy}, clipped {clip}");
-            }
-        }
-    }
-
-    /// A page's pixels given back are drawn into by the next render, whatever they held: what's
-    /// drawn is what a new buffer gives, smaller or larger than the one given back, in parts too.
-    #[test]
-    fn a_page_drawn_into_pixels_given_back_is_the_page() {
-        let doc = sparse_page("");
-        let fresh: Vec<_> = [240.0, 960.0, 517.0].iter().map(|&w| doc.render(0, w, f32::INFINITY).unwrap().rgba).collect();
-        for (i, width) in [240.0, 960.0, 517.0].into_iter().enumerate() {
-            for given in [vec![0x5a; 3 << 20], vec![0xa5; 64], vec![0x5a; 4_000_003]] {
-                hayro::recycle_pixels(given);
-                assert!(doc.render(0, width, f32::INFINITY).unwrap().rgba == fresh[i], "at {width} px");
-                hayro::recycle_pixels(vec![0x77; 8 << 20]);
-                hayro::set_max_recorded_bytes(1);
-                let parts = doc.render(0, width, f32::INFINITY);
-                hayro::set_max_recorded_bytes(2 << 20);
-                assert!(parts.unwrap().rgba == fresh[i], "in parts at {width} px");
             }
         }
     }
