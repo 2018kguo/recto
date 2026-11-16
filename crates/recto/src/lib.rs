@@ -544,7 +544,6 @@ impl Document {
         self.0.with_dependent(|pdf, _| pdf.xref().lost_objects())
     }
 
-
     /// The file as it was opened, in place.
     pub fn file_bytes(&self) -> &[u8] {
         self.0.borrow_owner().data().as_ref()
