@@ -26,10 +26,11 @@ const drawing = text + brotli(here("wasm/recto-render.wasm"));
 // glyph cache's one lookup and the rows written straight in.
 // Lowered by 11 KB for a first draw that compiles less: rare paths out of the large functions, and the font
 // outline crates at opt-level "s" (the lane hash adds about 0.9 KB to text).
-// Drawing's raised by 250 bytes (536 over the build before): a filter that isn't one failing the decode, a knockout
-// element's erase by shape, and text's letter spacing read from a stretch where a gap needs it.
-// Drawing's raised by 1,000 bytes (777 over the build before, most of it the call each `get_with` makes) for
-// `damaged()`, with room for the 229 the soft-mask layer's clip (#65) adds.
+// Raised by 1,250 bytes over #59's 683,500 for three changes after it, measured on its build of 683,105: a filter
+// that isn't one failing the decode, a knockout element's erase by shape and text's letter spacing read from a
+// stretch where a gap needs it (#64, 683,641); an image's soft mask of another size masked in a layer cut to the
+// image (#65, 683,334 alone, 684,526 with #64, as the two compress together); and `damaged()` (#63, 684,164 with
+// both, less than without it, for the same reason).
 const BUDGET = { text: 418_000, drawing: 684_750 };
 console.log(`text ${text} of ${BUDGET.text} bytes, text and drawing ${drawing} of ${BUDGET.drawing}`);
 assert.ok(text <= BUDGET.text, "reading text downloads more than the budget");
