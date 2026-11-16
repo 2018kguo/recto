@@ -1098,7 +1098,9 @@ are 5 files past 2 GB, 2 pages with no text, and 5 damaged files it refuses that
 files it refuses; MuPDF's 7 are 3 pages with no text, 2 files it refuses ("Invalid number of pages"), one page count
 and one file past 20 s while reading text. MuPDF's 6,975 include 4 damaged files the other three refuse, in
 which it finds no page, so it reads pages from 6,971. One truncated file that the others refuse or
-read as empty, recto opens as 45 blank pages; it isn't counted against anyone.
+read as empty, recto opens as 45 blank pages; it isn't counted against anyone. It, and the 4 others recto opens
+where pdfium and MuPDF both refuse, say `doc.damaged()` once a page is read or drawn: the repair found something
+the file refers to missing or unreadable. Of the 235 files recto repairs, those 5 are the only ones.
 
 **Fewer than half the words** flags pages where every other engine found at least 30 words and agrees within a
 factor of two. recto's 16, read against `pdftotext`: in 3 the others count each dot of a leader as a word, and

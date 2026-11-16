@@ -451,6 +451,14 @@ export interface PdfDocument {
    * mean those passed a limit, and may be wrong or incomplete. A page's own limits are `truncated` on its results.
    */
   structureTruncated(): { pages: boolean; pageLabels: boolean; outline: boolean };
+  /**
+   * Whether the file is damaged and something read from it so far was lost: its cross-reference had to
+   * be rebuilt by scanning the file, and an object a page or its text refers to wasn't there, or didn't
+   * parse, so what was read or drawn may be incomplete or blank. Warn the reader. Only the reads so far
+   * count: ask after drawing or reading the pages you show. It never turns back to false. A file
+   * repaired with nothing lost, as most are, says false.
+   */
+  damaged(): boolean;
   pageInfo(index: number): PdfPageInfo;
   text(index: number, options?: PdfTextOptions): PdfPageText;
   /**
@@ -966,6 +974,11 @@ export class RectoDocument implements PdfDocument {
     this.#check(null);
     const [pages, pageLabels, outline] = this.#call(() => this.#doc.structureTruncated() as Uint8Array);
     return { pages: pages === 1, pageLabels: pageLabels === 1, outline: outline === 1 };
+  }
+
+  damaged(): boolean {
+    this.#check(null);
+    return this.#call(() => this.#doc.damaged());
   }
 
   outline(): PdfOutlineItem[] {

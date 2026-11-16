@@ -511,6 +511,8 @@
 <hayro_syntax::xref::XRef>::get_with::<smallvec::SmallVec<[f32; 4usize]>>
 <hayro_syntax::xref::XRef>::is_repaired
 <hayro_syntax::xref::XRef>::locate
+<hayro_syntax::xref::XRef>::lost_objects
+<hayro_syntax::xref::XRef>::mark_lost
 <hayro_syntax::xref::XRef>::new
 <hayro_syntax::xref::XRef>::new::{closure#2}
 <hayro_syntax::xref::XRef>::root_id
@@ -944,6 +946,7 @@ core::unicode::unicode_data::alphabetic::lookup_slow
 core::unicode::unicode_data::n::lookup_slow
 document_annotations
 document_annotations multivalue shim
+document_damaged
 document_fileLength
 document_filePointer
 document_open

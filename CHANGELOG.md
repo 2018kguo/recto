@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Added
+
+- **`doc.damaged()`: whether what was read may be incomplete.** recto opens damaged files other engines refuse,
+  which showed pages blank or partial as if they were whole. `damaged()` is true once a read has needed something
+  the file lost: the cross-reference had to be rebuilt by scanning the file, and an object a page, its text or a
+  tree refers to wasn't there or didn't parse (a cut-off file's content streams, an image whose bytes are gone).
+  Ask after drawing or reading the pages you show, and warn the reader. Of 7,000 web files, 235 are repaired and
+  5 say true: the 5 that recto opens where pdfium and MuPDF both refuse. A repaired file with nothing lost says
+  false. `scripts/profile-wasm.mjs` works with the bundled package again.
+
 ### Fixed
 
 - **Words a table of contents sets tight no longer run together.** Some files set a line with a `Tc` and take it

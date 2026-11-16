@@ -517,7 +517,7 @@ impl XRef {
 
         let mut xref = Self(Inner::Some(Arc::new(SomeRepr {
             data: Arc::new(Data::new(data)),
-            map: Arc::new(RwLock::new(MapRepr { xref_map, repaired })),
+            map: Arc::new(RwLock::new(MapRepr { xref_map, repaired, lost: false })),
             decryptor: Arc::new(Decryptor::None),
             trailer_data,
             password: password.to_vec(),
@@ -699,6 +699,22 @@ impl XRef {
         }
     }
 
+    /// recto: whether the file was damaged and a read since its repair asked for an object it no
+    /// longer holds intact: referred to, but not found by the scan, or found and not readable. What
+    /// was drawn or read from it then may be missing parts. Only the reads so far count.
+    pub fn lost_objects(&self) -> bool {
+        match &self.0 {
+            Inner::Some(r) => r.map.get().lost,
+            Inner::Dummy => false,
+        }
+    }
+
+    fn mark_lost(&self) {
+        if let Inner::Some(r) = &self.0 {
+            r.map.put().lost = true;
+        }
+    }
+
     /// recto: repairs, and says whether that's new.
     pub(crate) fn repair_if_not_repaired(&self) -> bool {
         let Inner::Some(r) = &self.0 else {
@@ -822,8 +838,19 @@ impl XRef {
         // The flag must describe the map this entry came from.
         let (entry, was_repaired) = {
             let locked = repr.map.get();
-            // References to undefined objects are treated as null.
-            (*locked.xref_map.get(&id)?, locked.repaired)
+            // References to undefined objects are treated as null. recto: in a file that had to be
+            // repaired, as lost: a cut file's references to what was cut read as undefined.
+            match locked.xref_map.get(&id) {
+                Some(entry) => (*entry, locked.repaired),
+                None => {
+                    let repaired = locked.repaired;
+                    drop(locked);
+                    if repaired {
+                        self.mark_lost();
+                    }
+                    return None;
+                }
+            }
         };
 
         let mut ctx = ctx.clone();
@@ -932,6 +959,7 @@ impl XRef {
     {
         // The xref table is broken, try to repair if not already repaired.
         if was_repaired {
+            self.mark_lost();
             None
         } else {
             self.repair();
@@ -1004,6 +1032,8 @@ type XrefMap = FxHashMap<ObjectIdentifier, EntryType>;
 struct MapRepr {
     xref_map: XrefMap,
     repaired: bool,
+    /// recto: since the repair, a read asked for an object the file no longer holds intact.
+    lost: bool,
 }
 
 #[derive(Debug, Copy, Clone)]

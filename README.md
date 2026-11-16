@@ -290,8 +290,11 @@ anything a user might upload, use one of those two.
   a stale appearance isn't redrawn under `NeedAppearances`.
 - **Page sizes:** `/UserUnit` doesn't scale `pageInfo` or the boxes, where pdf.js scales them. A page with no usable
   `/MediaBox` is Letter. An empty `/CropBox`, or one outside the media box, gives way to the media box.
-- **Damaged files:** a page whose object header is damaged isn't found by the repair, so the file can open with no pages,
-  where another engine may report one from `/Count`. A repair won't bring back what a later revision removed.
+- **Damaged files:** recto opens what it can of them, often where other engines refuse. When something a read needed
+  was lost (a cut-off file's content streams, an image whose bytes are gone), `doc.damaged()` turns true after that
+  read: warn the reader that pages may be incomplete or blank. A file repaired with nothing lost says false. A page
+  whose object header is damaged isn't found by the repair, so the file can open with no pages, where another engine
+  may report one from `/Count`. A repair won't bring back what a later revision removed.
 - **Files built to cost:** a page stops drawing at a budget and is incomplete, with `truncated` true on what `text`,
   `objects`, `render` and `renderAsync` return for it. A page tree, labels or an outline cut short shows in
   `doc.structureTruncated()`. A stream or image that decodes past `maxDecodedBytes` (768 MiB) is left out, with

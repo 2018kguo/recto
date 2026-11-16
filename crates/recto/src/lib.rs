@@ -535,6 +535,16 @@ impl Document {
         })
     }
 
+    /// Whether the file is damaged and something a read so far needed from it was lost: its
+    /// cross-reference had to be rebuilt by scanning the file, and an object a page, its text or the
+    /// document's trees refer to wasn't found, or didn't parse. What was read or drawn may then be
+    /// missing parts, or blank. Only reads so far count, so it can turn true after a page is drawn;
+    /// it never turns false. A file repaired with nothing lost (most are) says false.
+    pub fn damaged(&self) -> bool {
+        self.0.with_dependent(|pdf, _| pdf.xref().lost_objects())
+    }
+
+
     /// The file as it was opened, in place.
     pub fn file_bytes(&self) -> &[u8] {
         self.0.borrow_owner().data().as_ref()
