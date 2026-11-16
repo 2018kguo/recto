@@ -195,6 +195,21 @@ struct Caches<'a> {
     glyphs: std::cell::RefCell<Vec<text::Glyph>>,
 }
 
+/// The most glyphs a page's buffer may hold and still be kept for the next page: 2.9 MB of them.
+/// A larger one goes with its page, rather than staying for as long as the document is open (one
+/// page of 500,000 glyphs left 92 MB behind it).
+const KEEP_GLYPHS: usize = 1 << 14;
+
+impl Caches<'_> {
+    /// Keeps a page's glyph buffer, emptied, for the next page to fill, unless it's past `KEEP_GLYPHS`.
+    fn keep_glyphs(&self, mut glyphs: Vec<text::Glyph>) {
+        if glyphs.capacity() <= KEEP_GLYPHS {
+            glyphs.clear();
+            self.glyphs.replace(glyphs);
+        }
+    }
+}
+
 self_cell::self_cell!(
     struct Inner {
         owner: Pdf,
@@ -388,6 +403,17 @@ impl Document {
         self.scan_with(index, false, false, boxes).map(|s| s.text)
     }
 
+    /// `text`'s chars alone, in the same order, and whether a limit cut the page short: what its
+    /// string is made of, without the words, fonts and runs `text` adds.
+    pub fn text_chars(&self, index: usize) -> Result<(Vec<text::Char>, bool), EngineError> {
+        self.page_pass(index, false, Boxes::Font, false, |_, caches, _, pass| {
+            let PagePass { mut device, tripped, .. } = pass;
+            let chars = text::build_chars(&device.glyphs);
+            caches.keep_glyphs(device.glyphs);
+            (chars, device.text_truncated || tripped)
+        })
+    }
+
     /// Text, and when asked the page's objects and annotations, from one
     /// interpretation of the page.
     pub fn scan(
@@ -414,8 +440,7 @@ impl Document {
             if tripped && let Some(objects) = &mut device.objects {
                 objects.truncated = true;
             }
-            device.glyphs.clear();
-            caches.glyphs.replace(device.glyphs);
+            caches.keep_glyphs(device.glyphs);
             Scan {
                 text,
                 budget_used,
@@ -437,8 +462,7 @@ impl Document {
             let PagePass { mut device, .. } = pass;
             let text = text::build_page(&device.glyphs, &device.fonts, &device.runs);
             let kept = device.font_glyphs.take().unwrap_or_default();
-            device.glyphs.clear();
-            caches.glyphs.replace(device.glyphs);
+            caches.keep_glyphs(device.glyphs);
             fonts::describe(page, &text.fonts, &text.font_order, &kept)
         })
     }
@@ -529,6 +553,12 @@ impl Document {
             page_labels: labels::walked(pdf).stopped,
             outline: outline::walked(pdf).stopped,
         })
+    }
+
+    /// For tests: the glyphs the buffer kept for the next page's text has room for.
+    #[doc(hidden)]
+    pub fn kept_glyph_capacity(&self) -> usize {
+        self.0.with_dependent(|_, caches| caches.glyphs.borrow().capacity())
     }
 
     /// For tests and `examples/budgets.rs`: the bytes of glyph images the render cache holds.
@@ -895,6 +925,31 @@ mod tests {
         s.extend_from_slice(data);
         s.extend_from_slice(b"\nendstream");
         s
+    }
+
+    /// `text_chars`, which `plainText` reads, skips the words and the fonts and runs, and is the same
+    /// chars as `text`: the generated spaces and breaks, a joined hyphen, right-to-left order.
+    #[test]
+    fn text_chars_are_texts_chars() {
+        let font = "/Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >>";
+        let data = b"BT /F1 10 Tf 10 80 Td (two  words and a hyphen-) Tj 0 -12 Td (ated one) Tj 0 -12 Td (fake) Tj 0.2 0 Td (fake) Tj ET";
+        let doc = Document::open(
+            pdf(&[
+                b"<< /Type /Catalog /Pages 2 0 R >>",
+                b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                format!("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 100] /Contents 4 0 R /Resources << {font} >> >>").as_bytes(),
+                &stream("", data),
+            ]),
+            "",
+        )
+        .unwrap();
+        let text = doc.text(0).unwrap();
+        let (chars, truncated) = doc.text_chars(0).unwrap();
+        let joined: String = chars.iter().map(|c| &*c.text).collect();
+        assert_eq!(joined, text.text());
+        assert!(text.text().contains("hyphen\u{2}ated"), "{:?}", text.text());
+        assert_eq!(chars.iter().map(|c| c.bbox).collect::<Vec<_>>(), text.chars.iter().map(|c| c.bbox).collect::<Vec<_>>());
+        assert!(!truncated);
     }
 
     /// `stream` followed by spaces or a tab before its end of line, as some report writers put it,

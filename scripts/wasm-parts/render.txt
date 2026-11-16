@@ -637,16 +637,10 @@ pageobjects_imageBoxes
 pageobjects_imageBoxes multivalue shim
 pageobjects_imagePixels
 pageobjects_imagePixels multivalue shim
-pageobjects_pathBoxes
-pageobjects_pathBoxes multivalue shim
 pageobjects_pathFlags
 pageobjects_pathFlags multivalue shim
-pageobjects_pathStart
-pageobjects_pathStart multivalue shim
 pageobjects_segmentKinds
 pageobjects_segmentKinds multivalue shim
-pageobjects_segmentPoints
-pageobjects_segmentPoints multivalue shim
 pageobjects_textObjects
 pageobjects_truncated
 pagescan_takeObjects

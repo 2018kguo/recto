@@ -66,6 +66,9 @@ They are patched for what upstream does not have:
 - **hayro-interpret**: what a form's dictionary says read once per page rather than at every `Do`
   (`XObjectInfo` in `src/x_object/form.rs`); **hayro-syntax**: `XRef::is_repaired`, after which it's
   read again.
+- **hayro-syntax**: a built page keeps its dictionary and what it inherits, not its resources: `Page::resources`
+  reads them from those at each call, so a document read through holds about 1 KB a page, not 3 KB and more
+  the more fonts its resources list.
 - **hayro-syntax**: spaces or tabs between `stream` and its end of line skipped (`stream_eol` in
   `src/object/stream.rs`), as pdf.js and pdfium do.
 - **hayro-cmap**: `host-cmaps`, so a WebAssembly build gets its CMaps from the host on first

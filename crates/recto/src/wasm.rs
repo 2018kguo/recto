@@ -47,14 +47,44 @@ pub fn sha256(bytes: &[u8]) -> Vec<u8> {
 #[wasm_bindgen]
 pub struct Document(std::rc::Rc<crate::Document>);
 
+/// A column handed to JavaScript: moved out, so it's copied once (into JavaScript) rather than cloned
+/// in WebAssembly first. Each is read once (`toText` and the like); a second read finds it empty.
+trait Column {
+    fn hand_over(&mut self) -> Self;
+}
+
+impl<T> Column for Vec<T> {
+    fn hand_over(&mut self) -> Self {
+        std::mem::take(self)
+    }
+}
+
+impl Column for String {
+    fn hand_over(&mut self) -> Self {
+        std::mem::take(self)
+    }
+}
+
+impl Column for u32 {
+    fn hand_over(&mut self) -> Self {
+        *self
+    }
+}
+
+impl Column for bool {
+    fn hand_over(&mut self) -> Self {
+        *self
+    }
+}
+
 macro_rules! getters {
     ($ty:ident { $($field:ident : $t:ty => $js:literal),* $(,)? }) => {
         #[wasm_bindgen]
         impl $ty {
             $(
                 #[wasm_bindgen(getter, js_name = $js)]
-                pub fn $field(&self) -> $t {
-                    self.$field.clone()
+                pub fn $field(&mut self) -> $t {
+                    self.$field.hand_over()
                 }
             )*
         }
@@ -479,9 +509,9 @@ impl Document {
     /// `pageText`'s `text` alone: the same interpretation, with none of the columns built or copied out.
     #[wasm_bindgen(js_name = pageString)]
     pub fn page_string(&self, index: usize) -> Result<String, JsValue> {
-        let page = self.0.text_with(index, crate::Boxes::Font).map_err(js_error)?;
-        let mut text = String::new();
-        for c in &page.chars {
+        let (chars, _) = self.0.text_chars(index).map_err(js_error)?;
+        let mut text = String::with_capacity(chars.len());
+        for c in &chars {
             char_text(c, &mut text);
         }
         Ok(text)
