@@ -1,6 +1,6 @@
 # Benchmarks
 
-recto from main after 0.8.2, with the changes for 0.9.0 (#52–#55), against pdf.js 6.5.438, stock pdfium
+recto 0.9.0, against pdf.js 6.5.438, stock pdfium
 (`@embedpdf/pdfium` 2.15.1) and MuPDF 1.28.1 (Artifex's `mupdf` package, its own WebAssembly build). The timed runs,
 text quality and character boxes were measured November 16, 2026 on an Apple M5 Pro (18 cores, 64 GB), macOS 26.6.1,
 Node 25.9.0 and Chromium 156; the scorecard and the real-world files are from 0.7.1 (November 12–13) and weren't
@@ -77,7 +77,7 @@ the set they were measured on, and aren't comparable with the tables here.
 
 ## In Node
 
-recto from main after 0.8.2, with the changes for 0.9.0 (#52–#55), Node 25.9.0 on macOS 26.6.1, 7 rounds, November 16.
+recto 0.9.0, Node 25.9.0 on macOS 26.6.1, 7 rounds, November 16.
 Every engine runs on the calling thread: pdf.js with its fake worker, drawing through `@napi-rs/canvas`; pdfium
 through its `FPDF_` functions; MuPDF through its own JavaScript API. All four end with the same thing, a page's text
 or its RGBA bytes. The PDFs are the 29 public documents of the [scoreboard](#the-scoreboard)'s `pub` set (25 MB),
