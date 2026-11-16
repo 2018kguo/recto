@@ -435,6 +435,33 @@ test("data behind a filter this can't decode is left out, not read as decoded", 
   assert.deepEqual(page.at(50, 50), WHITE);
 });
 
+test("a cut-off file says it's damaged once a read needs what was cut; a repaired whole one doesn't", async () => {
+  // A page drawing an image, the file cut in the image's dictionary and something else appended (a
+  // web server's error page, as in files from the web): no xref, and the image doesn't parse.
+  const whole = pdfOf({ content: "100 0 0 100 0 0 cm /I Do", resources: "/XObject <</I 5 0 R>>", objects: [`<</Type/XObject/Subtype/Image/Width 1/Height 1/BitsPerComponent 8/ColorSpace/DeviceRGB/Length 3>>\nstream\n\xff\x00\x00\nendstream`] });
+  const cut = new Uint8Array([...whole.subarray(0, new TextDecoder("latin1").decode(whole).indexOf("/Width")), ...latin1("\n</div></body></html>\n")]);
+  const doc = await engine.open(cut);
+  assert.equal(doc.pageCount, 1);
+  assert.equal(doc.damaged(), false, "nothing lost yet");
+  doc.render(0, { width: 50 });
+  assert.equal(doc.damaged(), true, "the image was lost");
+  doc.close();
+  // The same file whole, with its xref pointing nowhere: repaired, nothing lost.
+  const text = new TextDecoder("latin1").decode(whole);
+  const offset = text.slice(text.lastIndexOf("startxref") + 10).trim().split("\n")[0];
+  const moved = latin1(text.replace(`startxref\n${offset}`, `startxref\n${Number(offset) + 7}`));
+  const repaired = await engine.open(moved);
+  assert.deepEqual((await render(moved)).at(50, 50), RED);
+  repaired.render(0, { width: 50 });
+  repaired.text(0);
+  assert.equal(repaired.damaged(), false);
+  repaired.close();
+  const intact = await engine.open(whole);
+  intact.render(0, { width: 50 });
+  assert.equal(intact.damaged(), false);
+  intact.close();
+});
+
 test("what a page's annotations with no appearance can draw is bounded in total", async () => {
   // A squiggle of 4,096 steps from 8 numbers, in a list too short for a cap per list to catch.
   const quad = "0 10 9000 10 0 0 9000 0";

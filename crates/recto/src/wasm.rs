@@ -550,6 +550,11 @@ impl Document {
         vec![cut.pages as u8, cut.page_labels as u8, cut.outline as u8]
     }
 
+    /// See `Document::damaged`.
+    pub fn damaged(&self) -> bool {
+        self.0.damaged()
+    }
+
     /// Flat, in order: `[title, url or "", level, page, target]` per item, `target` as `links` gives one.
     pub fn outline(&self) -> js_sys::Array {
         self.0

@@ -88,6 +88,8 @@ They are patched for what upstream does not have:
   than the filter dropped and the data handed out as if decoded. **hayro-interpret**: a knockout
   group's element takes away what it covers by its shape, so opacities and soft masks its graphics states set,
   at any depth, don't weaken that (`Context::shape_only`).
+- **hayro-syntax**: `XRef::lost_objects`, whether a read since a repair asked for an object the scan didn't
+  find, or found unreadable.
 - **hayro-syntax**: AES decryption a column at a time from tables of InvMixColumns of InvSubBytes, FIPS-197's
   equivalent inverse cipher, rather than byte by byte (`TD` in `src/crypto/aes.rs`).
 - **hayro** and **hayro-interpret**: a group that needs its backdrop kept once drawn, cut to where it paints,

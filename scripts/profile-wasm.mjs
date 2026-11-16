@@ -86,6 +86,7 @@ const text = await profile("text", async (doc, openRanged) => {
   doc.outline();
   doc.pageLabels();
   doc.structureTruncated();
+  doc.damaged();
   for (let i = 0; i < Math.min(doc.pageCount, 40); i++) {
     doc.pageInfo(i);
     doc.text(i);
