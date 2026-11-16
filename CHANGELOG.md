@@ -9,7 +9,7 @@
   as letter spacing and read `Supplementaryobservations` and `community’sassistancetoHaiti`. Where at least half
   of a stretch's letter pairs are set under a quarter of its `Tc` apart, the spacing they show is what's taken
   off, not the `Tc`, so those read as poppler, pdfium and pdf.js read them. Tracked text, where every gap is the
-  `Tc`, is one word as before, and CJK is left alone. 95 of 7,000 web files read differently, nearly all words
+  `Tc`, is one word as before, and CJK is left alone. 114 pages of 63 of 7,000 web files read differently, nearly all words
   parted where they ran together (`©2021ElsevierB.V.Allrightsreserved.`).
 - **Data behind a filter recto can't decode is left out.** A stream naming a filter that isn't a standard one,
   `/BrotliDecode` or a misspelling, had the name dropped and its encoded bytes read as if decoded: an image drew
