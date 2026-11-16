@@ -239,7 +239,8 @@ for (const [dimension, { sizes, make }] of Object.entries(GROWTH)) {
 // ---- Measuring
 
 const node = (args, timeout = 1_800_000) => {
-  const result = spawnSync(process.execPath, args, { encoding: "utf8", maxBuffer: 1 << 28, timeout });
+  // Node 25.9's concurrent Sparkplug can deadlock a child in process.exit; both trees run with the same flag.
+  const result = spawnSync(process.execPath, ["--no-concurrent-sparkplug", ...args], { encoding: "utf8", maxBuffer: 1 << 28, timeout });
   if (result.status !== 0) throw new Error(`node ${args.join(" ")}: ${result.stderr || result.signal}`);
   return JSON.parse(result.stdout.trim().split("\n").at(-1));
 };
