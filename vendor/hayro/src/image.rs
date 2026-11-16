@@ -449,6 +449,117 @@ impl Renderer<'_> {
             .fill_rect(&Rect::new(0.0, 0.0, width as f64, height as f64));
     }
 
+    /// recto: a stencil mask's drawing, out of `draw_pdf_image`: a first draw of a page without one
+    /// doesn't compile it.
+    #[inline(never)]
+    fn draw_stencil_image(
+        &mut self,
+        s: hayro_interpret::StencilImage<'_, '_>,
+        mut transform: Affine,
+        (target_width, target_height): (u32, u32),
+    ) {
+        s.with_stencil(
+            |stencil, paint| {
+                transform *= Affine::scale_non_uniform(
+                    stencil.scale_factors.0 as f64,
+                    stencil.scale_factors.1 as f64,
+                );
+
+                match paint {
+                    Paint::Color(c) => {
+                        let color = c.to_rgba().to_rgba8();
+                        let alpha = color[3];
+
+                        let blend_mode = self.ctx.blend_mode();
+                        let push_layer =
+                            alpha != 255 || blend_mode != peniko::BlendMode::default();
+                        self.ctx.set_transform(transform);
+                        if push_layer {
+                            self.ctx.push_layer(
+                                None,
+                                Some(blend_mode),
+                                Some(alpha as f32 / 255.0),
+                                None,
+                                None,
+                            );
+                        }
+                        let old_rule = *self.ctx.fill_rule();
+                        self.ctx.set_fill_rule(Fill::NonZero);
+
+                        self.draw_image(
+                            RenderImageData::Solid(SolidColorImage {
+                                color: [color[0], color[1], color[2]],
+                                width: stencil.width,
+                                height: stencil.height,
+                                interpolate: stencil.interpolate,
+                            }),
+                            Some(stencil),
+                        );
+
+                        if push_layer {
+                            self.ctx.pop_layer();
+                        }
+
+                        self.ctx.set_fill_rule(old_rule);
+                    }
+                    Paint::Pattern(_) => {
+                        let (width, height) = (self.ctx.width(), self.ctx.height());
+                        let stencil_rect = Rect::new(
+                            0.0,
+                            0.0,
+                            stencil.width as f64,
+                            stencil.height as f64,
+                        );
+                        let mask_pix = {
+                            let rgb_bytes = ImageData::Rgb(RgbData {
+                                data: vec![
+                                    255;
+                                    stencil.width as usize
+                                        * stencil.height as usize
+                                        * 3
+                                ],
+                                width: stencil.width,
+                                height: stencil.height,
+                                interpolate: stencil.interpolate,
+                                scale_factors: stencil.scale_factors,
+                            });
+                            let mut ctx = self.child_context(width, height);
+                            let mut sub_renderer = Renderer::new(&mut ctx, self.global);
+                            let mut sub_pix = Pixmap::new(width, height);
+                            sub_renderer.ctx.set_transform(transform);
+                            sub_renderer.draw_image(rgb_bytes, Some(stencil));
+                            sub_renderer.ctx.flush();
+                            let mut resources = vello_cpu::Resources::default();
+                            sub_renderer.ctx.render(&mut sub_pix, &mut resources);
+                            sub_pix
+                        };
+
+                        self.ctx.push_layer(
+                            None,
+                            Some(self.ctx.blend_mode()),
+                            None,
+                            Some(Mask::new_luminance(&mask_pix)),
+                            None,
+                        );
+                        self.ctx.set_transform(transform);
+
+                        let clip_path = self.set_paint(paint, || stencil_rect, false);
+                        if let Some(clip_path) = clip_path.as_ref() {
+                            self.push_clip_path_inner(clip_path, FillRule::NonZero);
+                        }
+                        self.ctx.fill_rect(&stencil_rect);
+                        if clip_path.is_some() {
+                            self.ctx.pop_clip();
+                        }
+
+                        self.ctx.pop_layer();
+                    }
+                };
+            },
+            Some((target_width, target_height)),
+        );
+    }
+
     pub(super) fn draw_pdf_image<'a>(
         &mut self,
         image: hayro_interpret::Image<'a, '_>,
@@ -470,106 +581,7 @@ impl Renderer<'_> {
 
         match image {
             hayro_interpret::Image::Stencil(s) => {
-                s.with_stencil(
-                    |stencil, paint| {
-                        transform *= Affine::scale_non_uniform(
-                            stencil.scale_factors.0 as f64,
-                            stencil.scale_factors.1 as f64,
-                        );
-
-                        match paint {
-                            Paint::Color(c) => {
-                                let color = c.to_rgba().to_rgba8();
-                                let alpha = color[3];
-
-                                let blend_mode = self.ctx.blend_mode();
-                                let push_layer =
-                                    alpha != 255 || blend_mode != peniko::BlendMode::default();
-                                self.ctx.set_transform(transform);
-                                if push_layer {
-                                    self.ctx.push_layer(
-                                        None,
-                                        Some(blend_mode),
-                                        Some(alpha as f32 / 255.0),
-                                        None,
-                                        None,
-                                    );
-                                }
-                                let old_rule = *self.ctx.fill_rule();
-                                self.ctx.set_fill_rule(Fill::NonZero);
-
-                                self.draw_image(
-                                    RenderImageData::Solid(SolidColorImage {
-                                        color: [color[0], color[1], color[2]],
-                                        width: stencil.width,
-                                        height: stencil.height,
-                                        interpolate: stencil.interpolate,
-                                    }),
-                                    Some(stencil),
-                                );
-
-                                if push_layer {
-                                    self.ctx.pop_layer();
-                                }
-
-                                self.ctx.set_fill_rule(old_rule);
-                            }
-                            Paint::Pattern(_) => {
-                                let (width, height) = (self.ctx.width(), self.ctx.height());
-                                let stencil_rect = Rect::new(
-                                    0.0,
-                                    0.0,
-                                    stencil.width as f64,
-                                    stencil.height as f64,
-                                );
-                                let mask_pix = {
-                                    let rgb_bytes = ImageData::Rgb(RgbData {
-                                        data: vec![
-                                            255;
-                                            stencil.width as usize
-                                                * stencil.height as usize
-                                                * 3
-                                        ],
-                                        width: stencil.width,
-                                        height: stencil.height,
-                                        interpolate: stencil.interpolate,
-                                        scale_factors: stencil.scale_factors,
-                                    });
-                                    let mut ctx = self.child_context(width, height);
-                                    let mut sub_renderer = Renderer::new(&mut ctx, self.global);
-                                    let mut sub_pix = Pixmap::new(width, height);
-                                    sub_renderer.ctx.set_transform(transform);
-                                    sub_renderer.draw_image(rgb_bytes, Some(stencil));
-                                    sub_renderer.ctx.flush();
-                                    let mut resources = vello_cpu::Resources::default();
-                                    sub_renderer.ctx.render(&mut sub_pix, &mut resources);
-                                    sub_pix
-                                };
-
-                                self.ctx.push_layer(
-                                    None,
-                                    Some(self.ctx.blend_mode()),
-                                    None,
-                                    Some(Mask::new_luminance(&mask_pix)),
-                                    None,
-                                );
-                                self.ctx.set_transform(transform);
-
-                                let clip_path = self.set_paint(paint, || stencil_rect, false);
-                                if let Some(clip_path) = clip_path.as_ref() {
-                                    self.push_clip_path_inner(clip_path, FillRule::NonZero);
-                                }
-                                self.ctx.fill_rect(&stencil_rect);
-                                if clip_path.is_some() {
-                                    self.ctx.pop_clip();
-                                }
-
-                                self.ctx.pop_layer();
-                            }
-                        };
-                    },
-                    Some((target_width, target_height)),
-                );
+                self.draw_stencil_image(s, transform, (target_width, target_height));
             }
             hayro_interpret::Image::Raster(r) => {
                 let target = Some((target_width, target_height));
@@ -718,6 +730,8 @@ fn resize_image_data_impl<const N: usize>(
     out
 }
 
+// recto: not inlined: only an image with alpha drawn smaller takes it.
+#[inline(never)]
 fn downscale_with_alpha<const N: usize>(
     level: Level,
     scaler: &Scaler,
@@ -843,6 +857,8 @@ fn premultiply_with_alpha<const N: usize>(level: Level, color: &mut [u8], alpha:
     }
 }
 
+// recto: not inlined: only an image with alpha, or drawn smaller, takes it.
+#[inline(never)]
 fn premultiply_rgba(level: Level, data: &mut [u8]) {
     let simd_len = data.len() / 32 * 32;
     let (simd_data, tail) = data.split_at_mut(simd_len);

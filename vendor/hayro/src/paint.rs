@@ -18,125 +18,140 @@ impl Renderer<'_> {
         path_bbox: impl Fn() -> Rect,
         is_stroke: bool,
     ) -> Option<BezPath> {
-        let mut paint_transform = Affine::IDENTITY;
-        let mut clip_path = None;
-
-        let paint: PaintType = match paint.clone() {
+        match paint {
             Paint::Color(c) => {
                 let c = c.to_rgba().to_rgba8();
-                AlphaColor::from_rgba8(c[0], c[1], c[2], c[3]).into()
+                self.ctx.set_paint_transform(Affine::IDENTITY);
+                self.ctx
+                    .set_paint(AlphaColor::from_rgba8(c[0], c[1], c[2], c[3]));
+                None
             }
-            Paint::Pattern(p) => {
-                let path_transform = self.ctx.transform();
-                // recto: `painted` is uncut, for a tiling pattern in a window's render.
-                let painted = {
-                    let mut bbox = path_transform.transform_rect_bbox(path_bbox());
+            // recto: a pattern's paint, not inlined into every caller's copy of this: a first draw
+            // compiles it only when a page paints with one.
+            Paint::Pattern(p) => self.set_pattern_paint(p, path_bbox(), is_stroke),
+        }
+    }
 
-                    if is_stroke {
-                        // Try to account for stroke in bbox.
-                        let (a1, a2) = x_y_advances(path_transform);
-                        let factor = a1.length().max(a2.length()) * self.ctx.stroke().width;
-                        bbox = bbox.inflate(factor, factor);
-                    }
+    #[inline(never)]
+    fn set_pattern_paint(
+        &mut self,
+        p: &Pattern<'_>,
+        path_bbox: Rect,
+        is_stroke: bool,
+    ) -> Option<BezPath> {
+        let mut clip_path = None;
+        let paint_transform;
 
-                    bbox
-                };
-                let bbox = painted.intersect(Rect::new(
-                    0.0,
-                    0.0,
-                    self.ctx.width() as f64,
-                    self.ctx.height() as f64,
-                ));
+        let paint: PaintType = {
+            let path_transform = self.ctx.transform();
+            // recto: `painted` is uncut, for a tiling pattern in a window's render.
+            let painted = {
+                let mut bbox = path_transform.transform_rect_bbox(path_bbox);
 
-                match *p {
-                    Pattern::Shading(s) => {
-                        const NATIVE_GRADIENT_TOLERANCE: f32 = 0.01;
+                if is_stroke {
+                    // Try to account for stroke in bbox.
+                    let (a1, a2) = x_y_advances(path_transform);
+                    let factor = a1.length().max(a2.length()) * self.ctx.stroke().width;
+                    bbox = bbox.inflate(factor, factor);
+                }
 
-                        clip_path = s.shading.clip_path.clone();
-                        let encoded = s.encode_within(Some(bbox));
+                bbox
+            };
+            let bbox = painted.intersect(Rect::new(
+                0.0,
+                0.0,
+                self.ctx.width() as f64,
+                self.ctx.height() as f64,
+            ));
 
-                        if let EncodedShadingType::RadialAxial(gradient) = &encoded.shading_type
-                            && let Some(native) =
-                                gradient.as_svg_gradient(&encoded, bbox, NATIVE_GRADIENT_TOLERANCE)
-                        {
-                            // recto: no half-pixel translation: vello_cpu already samples a gradient
-                            // at pixel centres, so upstream's (-0.5, -0.5) drew it half a pixel up
-                            // and left of where the shading's own texture fallback puts it.
-                            paint_transform = path_transform.inverse() * native.transform;
+            match p.clone() {
+                Pattern::Shading(s) => {
+                    const NATIVE_GRADIENT_TOLERANCE: f32 = 0.01;
 
-                            let stops = native
-                                .stops
-                                .iter()
-                                .map(|stop| ColorStop {
-                                    offset: stop.offset,
-                                    color: DynamicColor::from_alpha_color(AlphaColor::<Srgb>::new(
-                                        stop.color,
-                                    )),
-                                })
-                                .collect::<Vec<_>>();
+                    clip_path = s.shading.clip_path.clone();
+                    let encoded = s.encode_within(Some(bbox));
 
-                            let gradient = match native.kind {
-                                SvgGradientKind::Linear { start, end } => {
-                                    Gradient::new_linear(start, end)
-                                }
-                                SvgGradientKind::Radial {
-                                    start_center,
-                                    start_radius,
-                                    end_center,
-                                    end_radius,
-                                } => Gradient::new_two_point_radial(
-                                    start_center,
-                                    start_radius,
-                                    end_center,
-                                    end_radius,
-                                ),
+                    if let EncodedShadingType::RadialAxial(gradient) = &encoded.shading_type
+                        && let Some(native) =
+                            gradient.as_svg_gradient(&encoded, bbox, NATIVE_GRADIENT_TOLERANCE)
+                    {
+                        // recto: no half-pixel translation: vello_cpu already samples a gradient
+                        // at pixel centres, so upstream's (-0.5, -0.5) drew it half a pixel up
+                        // and left of where the shading's own texture fallback puts it.
+                        paint_transform = path_transform.inverse() * native.transform;
+
+                        let stops = native
+                            .stops
+                            .iter()
+                            .map(|stop| ColorStop {
+                                offset: stop.offset,
+                                color: DynamicColor::from_alpha_color(AlphaColor::<Srgb>::new(
+                                    stop.color,
+                                )),
+                            })
+                            .collect::<Vec<_>>();
+
+                        let gradient = match native.kind {
+                            SvgGradientKind::Linear { start, end } => {
+                                Gradient::new_linear(start, end)
                             }
-                            .with_extend(peniko::Extend::Pad)
-                            .with_stops(stops.as_slice());
-
-                            PaintType::Gradient(gradient)
-                        } else {
-                            let (width, height) = texture_dimensions(bbox, 1.0);
-                            let mut image = Vec::with_capacity(width as usize * height as usize);
-                            let mut may_have_transparency = false;
-                            let (width, height, transform) =
-                                encoded.sample_texture(bbox, 1.0, |sample| {
-                                    let pixel =
-                                        AlphaColor::<Srgb>::new(sample).premultiply().to_rgba8();
-                                    may_have_transparency |= pixel.a != 255;
-                                    image.push(pixel);
-                                });
-                            paint_transform = path_transform.inverse() * transform;
-
-                            let pixmap = Pixmap::from_parts(
-                                bytemuck::cast_vec(image),
-                                width as u16,
-                                height as u16,
-                                PixelMetadata {
-                                    may_have_transparency,
-                                    ..Default::default()
-                                },
-                            );
-
-                            let image = Image {
-                                image: ImageSource::Pixmap(Arc::new(pixmap)),
-                                sampler: ImageSampler {
-                                    x_extend: peniko::Extend::Repeat,
-                                    y_extend: peniko::Extend::Repeat,
-                                    quality: ImageQuality::Medium,
-                                    alpha: 1.0,
-                                },
-                            };
-
-                            PaintType::Image(image)
+                            SvgGradientKind::Radial {
+                                start_center,
+                                start_radius,
+                                end_center,
+                                end_radius,
+                            } => Gradient::new_two_point_radial(
+                                start_center,
+                                start_radius,
+                                end_center,
+                                end_radius,
+                            ),
                         }
-                    }
-                    Pattern::Tiling(t) => {
-                        let (image, transform) = self.tiling_paint(&t, bbox, painted, is_stroke);
+                        .with_extend(peniko::Extend::Pad)
+                        .with_stops(stops.as_slice());
+
+                        PaintType::Gradient(gradient)
+                    } else {
+                        let (width, height) = texture_dimensions(bbox, 1.0);
+                        let mut image = Vec::with_capacity(width as usize * height as usize);
+                        let mut may_have_transparency = false;
+                        let (width, height, transform) =
+                            encoded.sample_texture(bbox, 1.0, |sample| {
+                                let pixel =
+                                    AlphaColor::<Srgb>::new(sample).premultiply().to_rgba8();
+                                may_have_transparency |= pixel.a != 255;
+                                image.push(pixel);
+                            });
                         paint_transform = path_transform.inverse() * transform;
+
+                        let pixmap = Pixmap::from_parts(
+                            bytemuck::cast_vec(image),
+                            width as u16,
+                            height as u16,
+                            PixelMetadata {
+                                may_have_transparency,
+                                ..Default::default()
+                            },
+                        );
+
+                        let image = Image {
+                            image: ImageSource::Pixmap(Arc::new(pixmap)),
+                            sampler: ImageSampler {
+                                x_extend: peniko::Extend::Repeat,
+                                y_extend: peniko::Extend::Repeat,
+                                quality: ImageQuality::Medium,
+                                alpha: 1.0,
+                            },
+                        };
 
                         PaintType::Image(image)
                     }
+                }
+                Pattern::Tiling(t) => {
+                    let (image, transform) = self.tiling_paint(&t, bbox, painted, is_stroke);
+                    paint_transform = path_transform.inverse() * transform;
+
+                    PaintType::Image(image)
                 }
             }
         };

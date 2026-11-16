@@ -14,6 +14,8 @@ pub(crate) mod sweep;
 
 const GRADIENT_INVALID_POS: u32 = u32::MAX;
 
+// recto: not inlined into `indexed_fill`: a first draw compiles only the kinds of gradient it paints.
+#[inline(never)]
 pub(crate) fn calculate_t_vals<S: Simd, U: SimdGradientKind<S>>(
     simd: S,
     kind: U,

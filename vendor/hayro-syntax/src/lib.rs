@@ -94,6 +94,18 @@ mod crypto;
 pub fn sha256(data: &[u8]) -> [u8; 32] {
     crypto::sha256::calculate(data)
 }
+
+/// recto: SHA-256's round constants and starting state, and the end of a message whose earlier blocks
+/// left `state`, for a caller that hashes blocks its own way.
+#[doc(hidden)]
+pub mod sha256_parts {
+    pub use crate::crypto::sha256::{H0, K};
+
+    /// SHA-256 of a message `total` bytes long whose blocks before `rest` left `state`.
+    pub fn sha256_finish(state: [u32; 8], rest: &[u8], total: usize) -> [u8; 32] {
+        crate::crypto::sha256::finish(state, rest, total)
+    }
+}
 pub mod object;
 pub mod page;
 pub mod transform;

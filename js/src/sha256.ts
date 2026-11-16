@@ -1,6 +1,9 @@
 // Synchronous SHA-256 (FIPS 180-4), for assets the engine asks for from inside a call, where
 // crypto.subtle's promise cannot be awaited (and crypto.subtle does not exist at all on a
 // page served over plain http). Node's own is faster, and Node has one.
+//
+// What a file is checked by is SHA-256 over eight lanes' SHA-256 (`LANE_PINS`), the hash the wasm
+// computes with its lanes side by side (crates/recto/src/sha256_lanes.rs).
 
 const K = new Uint32Array([
   0x42_8a_2f_98, 0x71_37_44_91, 0xb5_c0_fb_cf, 0xe9_b5_db_a5, 0x39_56_c2_5b,
@@ -20,11 +23,26 @@ const K = new Uint32Array([
 
 const rotr = (x: number, n: number) => (x >>> n) | (x << (32 - n));
 
-export function sha256Hex(bytes: Uint8Array): string {
+/** A file's eight lanes: each a whole number of 64-byte blocks, as few as cover it, the last ones shorter or empty. */
+export function lanesOf(bytes: Uint8Array): Uint8Array[] {
+  const lane = Math.ceil(Math.ceil(bytes.byteLength / 8) / 64) * 64;
+  return Array.from({ length: 8 }, (_, i) =>
+    bytes.subarray(Math.min(i * lane, bytes.byteLength), Math.min((i + 1) * lane, bytes.byteLength))
+  );
+}
+
+export const hexOf = (digest: Uint8Array) => Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("");
+
+/** The lanes hash, from a synchronous SHA-256: Node's if there is one, else this file's. */
+export function sha256LanesHex(bytes: Uint8Array): string {
   const node = globalThis.process?.getBuiltinModule?.("node:crypto");
-  if (node) {
-    return node.createHash("sha256").update(bytes).digest("hex");
-  }
+  const digest = node ? (data: Uint8Array) => node.createHash("sha256").update(data).digest() : sha256;
+  const digests = new Uint8Array(32 * 8);
+  lanesOf(bytes).forEach((lane, i) => digests.set(digest(lane), 32 * i));
+  return hexOf(digest(digests));
+}
+
+function sha256(bytes: Uint8Array): Uint8Array {
   const bitLength = bytes.byteLength * 8;
   const padded = new Uint8Array(((bytes.byteLength + 9 + 63) >> 6) << 6);
   padded.set(bytes);
@@ -77,5 +95,8 @@ export function sha256Hex(bytes: Uint8Array): string {
       h[i] = (h[i] ?? 0) + (next[i] ?? 0);
     }
   }
-  return Array.from(h, (x) => x.toString(16).padStart(8, "0")).join("");
+  const out = new Uint8Array(32);
+  const words = new DataView(out.buffer);
+  h.forEach((word, i) => words.setUint32(4 * i, word));
+  return out;
 }

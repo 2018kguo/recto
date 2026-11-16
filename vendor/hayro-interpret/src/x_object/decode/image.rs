@@ -243,6 +243,8 @@ impl<'a, 'b> ImageDecoder<'a, 'b> {
         }
     }
 
+    // recto: not inlined, as a `/Matte` is rare.
+    #[inline(never)]
     fn resolve_matte(&self) -> Option<(LumaData, [u8; 3])> {
         let s_mask = self.obj.stream.dict().get::<Stream<'_>>(SMASK)?;
         let matte = s_mask.dict().get::<ColorComponents>(MATTE)?;
@@ -262,6 +264,8 @@ impl<'a, 'b> ImageDecoder<'a, 'b> {
         Some((alpha, matte_rgb))
     }
 
+    // recto: not inlined, as a colour-key mask is rare.
+    #[inline(never)]
     fn decode_color_key_mask(&self) -> Option<LumaData> {
         let color_key_mask = self.color_key_mask.as_deref()?;
         let num_components = self.ctx.color_space.num_components() as usize;

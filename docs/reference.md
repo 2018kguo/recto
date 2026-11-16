@@ -572,13 +572,17 @@ The wasm and assets are found with `new URL("../wasm/…", import.meta.url)`.
 - No headers (COOP, COEP) are needed anywhere.
 
 The files can also be reached by name, through `@2018kguo/recto/wasm/*`: `@2018kguo/recto/wasm/pins.mjs` exports
-`PINS`, each file's SHA-256 by name, which is also the list of what a deploy must ship.
+`PINS`, each file's SHA-256 by name, which is also the list of what a deploy must ship, and `LANE_PINS`, the hash
+the engine checks each file by: SHA-256 over the SHA-256 digests of the file's eight lanes (each a whole number of
+64-byte blocks, as few as cover it in eight, the last ones shorter or empty). It is as hard to forge as SHA-256,
+and the wasm hashes the eight lanes side by side, in SIMD.
 
-Every file is pinned by SHA-256, and every byte is hashed before it's used, so a dev server's HTML
+Every file is pinned, and every byte is hashed before it's used, so a dev server's HTML
 fallback page cannot read as a font, and a changed wasm is never instantiated. `recto.wasm` is compiled
 as it streams in (`WebAssembly.compileStreaming`, when the server sends `application/wasm`) while a copy
 of it is hashed with `crypto.subtle`, or in JavaScript where there is none (a page on plain http), and
-used only once the hash matches. A part read in the middle of a call is hashed before it's compiled. A missing asset throws from the call that needed it; it never reads
+used only once the hash matches. A part read in the middle of a call is hashed before it's compiled, by
+the running instance in a browser, which is about twice as quick as one SHA-256 of the whole file. A missing asset throws from the call that needed it; it never reads
 as blank text.
 
 ## The Rust crate

@@ -145,5 +145,13 @@ libjpeg's `jidctred.c`, into a plane at the reduced size, chroma at as many pixe
 gives it, so nothing is upsampled. A decoder only scales where its sampling allows and falls back to the
 full decode otherwise.
 
+A first draw compiles each function it runs, so the hayro crates and `vello_cpu` keep rarely taken code out of
+the large functions every draw runs, with `#[inline(never)]` and no change to what anything does: the operators
+a page seldom uses, out of `run_ops` (`hayro-interpret`); a pattern's paint, out of `set_paint`, and a stencil
+image's drawing, premultiplication and downscaling with alpha out of the image path (`hayro`); samples other than plain 8-bit, `/Matte`
+and colour-key decoding out of the image decoder (`hayro-interpret`); and a painter's composite, tint and blend,
+and each kind of gradient, out of `vello_cpu`'s `indexed_fill`, so one copy serves every painter. `hayro-syntax`
+makes its SHA-256 constants and last blocks public (`sha256_parts`), for recto's lane hash.
+
 Every change is marked with a `recto:` comment, and `vello_cpu/src/coverage.rs` is recto's own. The Foxit fonts and their licence are in
 `hayro-font/assets`, the CMaps and theirs in `hayro-cmap/assets`.

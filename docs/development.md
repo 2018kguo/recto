@@ -28,6 +28,9 @@ directories you give it, adding to the lists (`--replace` starts over). A functi
 from them still works, from a later part, at the cost of a fetch; the output doesn't depend on the lists. The
 lists hold function names, without build hashes, and nothing about the files.
 
+`node scripts/first-draw-code.mjs file.pdf...` lists the functions a fresh engine's first draw runs and their
+bytes, which a browser compiles before the first pixels.
+
 `build-wasm.sh` tells cargo one host (`scripts/rustc-fixed-host.sh`), so that any machine builds the same bytes as the
 release, on Linux; CI compares a Linux and a macOS build. `node scripts/check-wasm-budget.mjs` holds the build to its download
 budget and to reading text with no part.

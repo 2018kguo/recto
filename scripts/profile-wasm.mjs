@@ -8,6 +8,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
+import { repin } from "./lanes.mjs";
 import { functionNames, readList, stableName, wasmSplit, writeList } from "./split-wasm.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
@@ -29,13 +30,8 @@ const wasm = (name) => path.join(work, "wasm", name);
 wasmSplit(["--instrument", input, "-g", "-o", wasm("recto.wasm")]);
 const empty = Uint8Array.of(0, 97, 115, 109, 1, 0, 0, 0);
 for (const name of PARTS) fs.writeFileSync(wasm(name), empty);
-const { createHash } = await import("node:crypto");
-const pins = await import(path.join(root, "js/wasm/pins.mjs"));
-const repinned = { ...pins.PINS };
-for (const name of ["recto.wasm", ...PARTS]) {
-  repinned[name] = createHash("sha256").update(fs.readFileSync(wasm(name))).digest("hex");
-}
-fs.writeFileSync(wasm("pins.mjs"), `export const PINS = ${JSON.stringify(repinned)};\n`);
+// The bundle carries the pins inline.
+repin(work, ["recto.wasm", ...PARTS], await import(path.join(root, "js/wasm/pins.mjs")));
 
 const Instance = WebAssembly.Instance;
 let live;
@@ -65,7 +61,7 @@ async function profile(label, pass) {
       }
     }
     // Not reached from Node, which has its own hash, but a browser's asset check runs it.
-    live.sha256(0, 0);
+    live.sha256Lanes(0, 0);
     const size = 1 << 20;
     const at = live.__wbindgen_malloc(size, 1);
     const length = live.__write_profile(at, size);
