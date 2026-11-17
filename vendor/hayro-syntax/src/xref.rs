@@ -718,7 +718,7 @@ impl XRef {
     fn mark_lost(&self, id: ObjectIdentifier, found: bool) {
         if let Inner::Some(r) = &self.0 {
             let mut map = r.map.put();
-            if found || map.unfound.as_ref().is_none_or(|unfound| unfound.contains_key(&id)) {
+            if found || map.unfound.as_ref().is_none_or(|unfound| unfound.binary_search(&(id.obj_number as usize)).is_ok()) {
                 map.lost = true;
             }
         }
@@ -751,8 +751,14 @@ impl XRef {
             let (xref_map, _) = fallback_xref_map(r.data.get(), &r.password);
             let read = std::mem::replace(&mut locked.xref_map, xref_map);
             let placed = |entry: &EntryType| !matches!(entry, EntryType::Normal(0));
-            // As a map like the others, not a set: no more code for it.
-            let unfound: XrefMap = read.into_iter().filter(|(id, entry)| placed(entry) && !locked.xref_map.contains_key(id)).collect();
+            // Their numbers, sorted as `starts` is: no more code for it, and a generation apart
+            // is the same object here.
+            let mut unfound: Vec<usize> = read
+                .iter()
+                .filter(|(id, entry)| placed(entry) && !locked.xref_map.contains_key(id))
+                .map(|(id, _)| id.obj_number as usize)
+                .collect();
+            unfound.sort_unstable();
             locked.unfound = Some(unfound);
         }
         locked.repaired = true;
@@ -1051,7 +1057,7 @@ struct MapRepr {
     /// recto: once a repair replaced the map read from the file's xref with the scan's, the objects
     /// that map placed somewhere real (not at offset 0) and the scan didn't find. `None` where there
     /// was no xref to read, and the file was scanned from the start: any object it lacks is lost.
-    unfound: Option<XrefMap>,
+    unfound: Option<Vec<usize>>,
 }
 
 #[derive(Debug, Copy, Clone)]
