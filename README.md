@@ -193,28 +193,33 @@ carries its horizontal scale (`Tz`) and each run its text rendering matrix. See 
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/benchmarks-dark.svg">
-  <img src="docs/benchmarks-light.svg" alt="Bar charts. Read text in Node: recto 220 ms, pdf.js 1.1 s, pdfium 568 ms, MuPDF 636 ms. Render in Node: recto 152 ms, pdf.js 1.1 s, pdfium 878 ms, MuPDF 897 ms. A 40-page report in Chromium slowed 3.4×: recto 462 ms, pdf.js 1.4 s, pdfium 661 ms, MuPDF 618 ms. Peak memory in Node: recto 293 MB, pdf.js 673 MB, pdfium 299 MB, MuPDF 555 MB.">
+  <img src="docs/benchmarks-light.svg" alt="Bar charts. Read text in Node: recto 216 ms, pdf.js 1.0 s, pdfium 570 ms, MuPDF 676 ms. Render in Node: recto 133 ms, pdf.js 1.0 s, pdfium 912 ms, MuPDF 920 ms. A 40-page report in Chromium slowed 3.9×: recto 473 ms, pdf.js 1.3 s, pdfium 807 ms, MuPDF 677 ms. Peak memory in Node: recto 285 MB, pdf.js 703 MB, pdfium 298 MB, MuPDF 571 MB.">
 </picture>
 
-Medians of 7 alternating rounds on an Apple M5 Pro, with 29 public and generated PDFs in Node and 8 of them in Chromium,
+recto 0.10.0, in paired rounds (the four engines back to back, 6 to 20 rounds until each answer settled) on an Apple
+M5 Pro, with 29 public and generated PDFs in Node and 8 of them in Chromium,
 against pdf.js 6.5.438, stock pdfium and MuPDF 1.28.1 (its own WebAssembly package, AGPL-3.0). How much faster recto
 is than each:
 
 | | pdf.js | pdfium | MuPDF |
 |---|---:|---:|---:|
-| Text in Node | 4.8× | 2.6× | 2.9× |
-| Render in Node | 7.0× | 5.8× | 5.9× |
-| Text in Chromium | 3.9× | 2.8× | 3.3× |
-| Render in Chromium | 4.5× | 1.3× | 1.6× |
+| Text in Node | 4.7× | 2.6× | 3.2× |
+| Render in Node | 7.9× | 6.8× | 7.2× |
+| Text in Chromium | 3.4× | 2.8× | 3.0× |
+| Render in Chromium | 3.6× | 1.2× | 1.5× |
 
-It isn't ahead everywhere. pdf.js downloads less to draw: 0.42 MB with brotli for everything, against recto's 0.72 MB
-for text and pixels; for text alone recto's 0.41 MB is the smaller. A fresh Node process reaches its first text and
-pixels 10–18 ms ahead of pdfium and MuPDF, but in a fresh browser page, slowed, their medians to the first pixels are
-16–18% lower (within this run's intervals), and MuPDF's median on a generated report's 5 pages is lower too (24
-against 31 ms, also within the interval). Peak memory in Node is level with pdfium's. pdf.js holds no WebAssembly memory while a page is open, against recto's 12.6 MB. Of 7,000 PDFs from the web, recto
-did worse than another engine on none (pdf.js 13, pdfium 6, MuPDF 7). On text quality against poppler recto leads
-narrowly (F1 98.5%; pdf.js 97.8%, pdfium 98.3%, MuPDF 97.4%, on 84 documents; on the public ones alone all four are
-level), and it agrees with the other engines' pixels on 95.6% of the pages two of them agree on (small, mostly
+It isn't ahead everywhere. pdf.js downloads less to draw: 0.42 MB with brotli for everything, against recto's 0.71 MB
+for text and pixels; for text alone recto's 0.41 MB is the smaller. A fresh Node process reaches its first text 10 ms
+ahead of pdfium and MuPDF, and its first pixels 11 and 5 ms ahead. In a fresh browser page, slowed, recto's first text
+is 16–18% ahead of both and its first pixels level with them. MuPDF draws a generated 2,000-page report's 5 pages
+faster in a fresh process (24.6 against 27.2 ms), mostly recto compiling its drawing code on first use, and pdfium
+opens a 500-page report in Chromium in 0.4 ms against recto's 0.5. Peak memory in Node is level with pdfium's on the
+corpus and under it on the large report. pdf.js holds no WebAssembly memory while a page is open, against recto's
+12.5 MB. Stopping a slow render on the same thread takes recto 2.1 ms; pdfium and MuPDF can only have their worker
+terminated. Of 7,000 PDFs from the web, recto did worse than another engine on none (pdf.js 12, pdfium 6, MuPDF 7).
+On text quality against poppler recto leads narrowly (F1 98.6%; pdf.js 97.8%, pdfium 98.3%, MuPDF 97.4%, on 84
+documents; on the public ones alone all four are level), and it agrees with the other engines' pixels on 95.8% of the
+pages two of them agree on (small, mostly
 adversarial files, and the threshold can hide a missing line). [benchmarks.md](docs/benchmarks.md#at-a-glance) has
 all of it, what each number means and how it's measured. To rerun it on PDFs of your own (it commits none):
 
