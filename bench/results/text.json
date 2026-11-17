@@ -1,5 +1,5 @@
 {
- "date": "2026-11-16T16:06:59.073Z",
+ "date": "2026-11-16T23:36:31.430Z",
  "documents": 84,
  "of": 531,
  "pagesEach": 10,
@@ -10,28 +10,28 @@
    "recall": 98.86,
    "microF1": 98.64,
    "medianF1": 100,
-   "words": 132492
+   "words": 132493
   },
   "recto against pdfium": {
    "precision": 99.14,
-   "recall": 99.06,
-   "microF1": 99.1,
+   "recall": 99.08,
+   "microF1": 99.11,
    "medianF1": 100,
-   "words": 132492
+   "words": 132493
   },
   "recto against mupdf": {
    "precision": 98.11,
    "recall": 98.2,
    "microF1": 98.16,
    "medianF1": 100,
-   "words": 132492
+   "words": 132493
   },
   "recto against poppler": {
    "precision": 98.62,
-   "recall": 98.47,
+   "recall": 98.48,
    "microF1": 98.55,
    "medianF1": 100,
-   "words": 132492
+   "words": 132493
   },
   "pdf.js against recto": {
    "precision": 98.86,
@@ -42,8 +42,8 @@
   },
   "pdf.js against pdfium": {
    "precision": 98.53,
-   "recall": 98.03,
-   "microF1": 98.28,
+   "recall": 98.05,
+   "microF1": 98.29,
    "medianF1": 100,
    "words": 131920
   },
@@ -62,32 +62,32 @@
    "words": 131920
   },
   "pdfium against recto": {
-   "precision": 99.06,
+   "precision": 99.08,
    "recall": 99.14,
-   "microF1": 99.1,
+   "microF1": 99.11,
    "medianF1": 100,
-   "words": 132604
+   "words": 132572
   },
   "pdfium against pdf.js": {
-   "precision": 98.03,
+   "precision": 98.05,
    "recall": 98.53,
-   "microF1": 98.28,
+   "microF1": 98.29,
    "medianF1": 100,
-   "words": 132604
+   "words": 132572
   },
   "pdfium against mupdf": {
-   "precision": 97.97,
+   "precision": 97.99,
    "recall": 98.14,
-   "microF1": 98.06,
+   "microF1": 98.07,
    "medianF1": 100,
-   "words": 132604
+   "words": 132572
   },
   "pdfium against poppler": {
-   "precision": 98.36,
+   "precision": 98.38,
    "recall": 98.3,
-   "microF1": 98.33,
+   "microF1": 98.34,
    "medianF1": 100,
-   "words": 132604
+   "words": 132572
   },
   "mupdf against recto": {
    "precision": 98.2,
@@ -105,8 +105,8 @@
   },
   "mupdf against pdfium": {
    "precision": 98.14,
-   "recall": 97.97,
-   "microF1": 98.06,
+   "recall": 97.99,
+   "microF1": 98.07,
    "medianF1": 100,
    "words": 132372
   },
@@ -118,7 +118,7 @@
    "words": 132372
   },
   "poppler against recto": {
-   "precision": 98.47,
+   "precision": 98.48,
    "recall": 98.62,
    "microF1": 98.55,
    "medianF1": 100,
@@ -133,8 +133,8 @@
   },
   "poppler against pdfium": {
    "precision": 98.3,
-   "recall": 98.36,
-   "microF1": 98.33,
+   "recall": 98.38,
+   "microF1": 98.34,
    "medianF1": 100,
    "words": 132682
   },

@@ -1,0 +1,149 @@
+{
+ "date": "2026-11-16T23:36:33.516Z",
+ "documents": 25,
+ "of": 29,
+ "pagesEach": 10,
+ "reference": null,
+ "summary": {
+  "recto against pdf.js": {
+   "precision": 99.81,
+   "recall": 99.67,
+   "microF1": 99.74,
+   "medianF1": 100,
+   "words": 94292
+  },
+  "recto against pdfium": {
+   "precision": 99.85,
+   "recall": 99.75,
+   "microF1": 99.8,
+   "medianF1": 100,
+   "words": 94292
+  },
+  "recto against mupdf": {
+   "precision": 99.83,
+   "recall": 99.7,
+   "microF1": 99.76,
+   "medianF1": 100,
+   "words": 94292
+  },
+  "recto against poppler": {
+   "precision": 99.71,
+   "recall": 99.49,
+   "microF1": 99.6,
+   "medianF1": 100,
+   "words": 94292
+  },
+  "pdf.js against recto": {
+   "precision": 99.67,
+   "recall": 99.81,
+   "microF1": 99.74,
+   "medianF1": 100,
+   "words": 94419
+  },
+  "pdf.js against pdfium": {
+   "precision": 99.74,
+   "recall": 99.78,
+   "microF1": 99.76,
+   "medianF1": 100,
+   "words": 94419
+  },
+  "pdf.js against mupdf": {
+   "precision": 99.85,
+   "recall": 99.85,
+   "microF1": 99.85,
+   "medianF1": 100,
+   "words": 94419
+  },
+  "pdf.js against poppler": {
+   "precision": 99.53,
+   "recall": 99.45,
+   "microF1": 99.49,
+   "medianF1": 100,
+   "words": 94419
+  },
+  "pdfium against recto": {
+   "precision": 99.75,
+   "recall": 99.85,
+   "microF1": 99.8,
+   "medianF1": 100,
+   "words": 94384
+  },
+  "pdfium against pdf.js": {
+   "precision": 99.78,
+   "recall": 99.74,
+   "microF1": 99.76,
+   "medianF1": 100,
+   "words": 94384
+  },
+  "pdfium against mupdf": {
+   "precision": 99.82,
+   "recall": 99.78,
+   "microF1": 99.8,
+   "medianF1": 100,
+   "words": 94384
+  },
+  "pdfium against poppler": {
+   "precision": 99.6,
+   "recall": 99.48,
+   "microF1": 99.54,
+   "medianF1": 100,
+   "words": 94384
+  },
+  "mupdf against recto": {
+   "precision": 99.7,
+   "recall": 99.83,
+   "microF1": 99.76,
+   "medianF1": 100,
+   "words": 94419
+  },
+  "mupdf against pdf.js": {
+   "precision": 99.85,
+   "recall": 99.85,
+   "microF1": 99.85,
+   "medianF1": 100,
+   "words": 94419
+  },
+  "mupdf against pdfium": {
+   "precision": 99.78,
+   "recall": 99.82,
+   "microF1": 99.8,
+   "medianF1": 100,
+   "words": 94419
+  },
+  "mupdf against poppler": {
+   "precision": 99.64,
+   "recall": 99.55,
+   "microF1": 99.59,
+   "medianF1": 100,
+   "words": 94419
+  },
+  "poppler against recto": {
+   "precision": 99.49,
+   "recall": 99.71,
+   "microF1": 99.6,
+   "medianF1": 100,
+   "words": 94499
+  },
+  "poppler against pdf.js": {
+   "precision": 99.45,
+   "recall": 99.53,
+   "microF1": 99.49,
+   "medianF1": 100,
+   "words": 94499
+  },
+  "poppler against pdfium": {
+   "precision": 99.48,
+   "recall": 99.6,
+   "microF1": 99.54,
+   "medianF1": 100,
+   "words": 94499
+  },
+  "poppler against mupdf": {
+   "precision": 99.55,
+   "recall": 99.64,
+   "microF1": 99.59,
+   "medianF1": 100,
+   "words": 94499
+  }
+ }
+}
