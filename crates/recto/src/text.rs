@@ -285,9 +285,13 @@ fn cell_key(level: i32, x: i32, y: i32) -> u64 {
 
 const NONE: u32 = u32::MAX;
 
-/// Each cell's newest glyph, by key: open addressing with linear probing, sized once to more than
-/// one and a half times the glyphs, so it never fills or rehashes. Insert-only, as `copies` uses it;
-/// a general hash map's probing cost more than the rest of the pass.
+/// Each cell's newest glyph, by key: open addressing with linear probing, insert-only, as `copies`
+/// uses it; a general hash map's probing cost more than the rest of the pass. Sized once to at least
+/// twice the glyphs, so it never fills or rehashes. The key is folded before the multiply: a multiply
+/// alone maps a page's grid of cells onto the table along lines, and on one 2,000-page report a cell
+/// a line down and a cell back landed in runs of neighbouring slots, 1.3 extra probes a lookup where
+/// random keys take 0.5, while this pass took a fifth of reading the report's text. Four times the glyphs
+/// took a few more points off that report and nothing measurable elsewhere, for twice the memory.
 struct Cells {
     keys: Vec<u64>,
     glyphs: Vec<u32>,
@@ -299,7 +303,7 @@ impl Cells {
     const EMPTY: u64 = u64::MAX;
 
     fn with_capacity(n: usize) -> Self {
-        let size = (n.saturating_add(n / 2) + 1).max(16).next_power_of_two();
+        let size = (n.saturating_add(n) + 1).max(16).next_power_of_two();
         Self {
             keys: vec![Self::EMPTY; size],
             glyphs: vec![NONE; size],
@@ -307,13 +311,24 @@ impl Cells {
         }
     }
 
+    /// The slot `key` is tried in first.
+    fn home(&self, key: u64) -> usize {
+        ((key ^ key >> 28).wrapping_mul(0x9E37_79B9_7F4A_7C15) >> self.shift) as usize
+    }
+
     fn slot(&self, key: u64) -> usize {
         let mask = self.keys.len() - 1;
-        let mut at = (key.wrapping_mul(0x9E37_79B9_7F4A_7C15) >> self.shift) as usize;
+        let mut at = self.home(key);
         while self.keys[at] != key && self.keys[at] != Self::EMPTY {
             at = (at + 1) & mask;
         }
         at
+    }
+
+    /// How many slots past its first `key` is found, for the test that a page's cells spread.
+    #[cfg(test)]
+    fn displacement(&self, key: u64) -> usize {
+        (self.slot(key) + self.keys.len() - self.home(key)) & (self.keys.len() - 1)
     }
 
     /// The cell's newest glyph, or `NONE`.
@@ -350,7 +365,7 @@ fn copies(glyphs: &[Glyph]) -> Vec<bool> {
     let mut kept: Vec<&Glyph> = Vec::with_capacity(glyphs.len());
     // Kept glyphs by origin cell: the cell's newest glyph, then each glyph's
     // older neighbour in `next` (a chain through one flat array, no Vec per
-    // cell). Sized once, so it never rehashes.
+    // cell).
     let mut head = Cells::with_capacity(glyphs.len());
     let mut next: Vec<u32> = Vec::with_capacity(glyphs.len());
     // Bit `L - MIN_LEVEL` set once a glyph is indexed on level L.
@@ -1160,6 +1175,30 @@ mod tests {
             assert_eq!(cells.get(key), map.get(&key).copied().unwrap_or(NONE));
             assert_eq!(cells.replace(key, i), map.insert(key, i).unwrap_or(NONE));
         }
+    }
+
+    /// A page's glyphs spread over the table: a grid of cells, as lines of text fill, takes about a
+    /// probe a lookup as random keys do, not runs of neighbouring slots. Over pages of lines at every
+    /// spacing from 2 to 12 cells and every size from 1,000 to 4,000 glyphs.
+    #[test]
+    fn a_pages_cells_spread_over_the_table() {
+        let mut worst = 0.0f64;
+        for spacing in 2..=12 {
+            for n in [1000, 1500, 2138, 3000, 4000] {
+                let mut cells = Cells::with_capacity(n);
+                let per_line = 90;
+                let keys: Vec<u64> = (0..n as i32)
+                    .map(|i| cell_key(2, 40 + (i % per_line) * 2, 3000 - (i / per_line) * spacing))
+                    .collect();
+                for (i, &key) in keys.iter().enumerate() {
+                    cells.replace(key, i as u32);
+                }
+                let mean = keys.iter().map(|&k| cells.displacement(k) as f64).sum::<f64>() / n as f64;
+                worst = worst.max(mean);
+            }
+        }
+        // About 0.54 at worst; a multiply alone gave 3.2 here.
+        assert!(worst < 1.0, "{worst}");
     }
 
     #[test]

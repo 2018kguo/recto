@@ -33,7 +33,9 @@ const drawing = text + brotli(here("wasm/recto-render.wasm"));
 // both, less than without it, for the same reason).
 // Raised by 500 bytes for parsing with fewer instructions, a dictionary's one-pass read and `TJ`'s array read once:
 // 685,192 (text 414,997) against 0.10.1's 683,737 (text 413,589).
-const BUDGET = { text: 418_000, drawing: 685_250 };
+// Raised by 250 bytes for the glyph-cell table's folded hash, which takes a tenth off reading a long report's text: CI's
+// build measured 685,254, 4 over (62 bytes more than the build before it); a local one, 685,237.
+const BUDGET = { text: 418_000, drawing: 685_500 };
 console.log(`text ${text} of ${BUDGET.text} bytes, text and drawing ${drawing} of ${BUDGET.drawing}`);
 assert.ok(text <= BUDGET.text, "reading text downloads more than the budget");
 assert.ok(drawing <= BUDGET.drawing, "drawing downloads more than the budget");
