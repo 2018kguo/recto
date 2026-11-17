@@ -1834,6 +1834,72 @@ mod tests {
         .unwrap()
     }
 
+    /// hayro-syntax reads the plain forms of a dictionary in one pass (`scan::dict`), and the rest
+    /// the full way. Wherever that pass reads one, the full read reads it the same: the same length,
+    /// and the same keys at the same offsets. Over dictionaries of every kind of value, clean and with
+    /// a byte changed, dropped or doubled.
+    #[test]
+    fn a_dictionarys_fast_read_agrees_with_the_full_one() {
+        use hayro::hayro_syntax::object::dict_both;
+        const VALUES: &[&str] = &[
+            "/Name", "/", "/A#20B", "0", "12", "-3", "+4", ".5", "-.5", "6.", "7.25", "--1", "1-2",
+            "3 0 R", "3 0 Rx", "-3 0 R", "3 -1 R", "3 0.0 R", "3.0 0 R", "3  0\nR", "3 0R", "3 0 R 4",
+            "1 2 3 R", "(s)", "(a(b)c)", "(e\\)s)", "(\\\\)", "<41 42>", "<4G>", "<>", "[]",
+            "[1 2 R /N (x) [3]]", "[1 0 R 2 0 R]", "<< /A 1 >>", "<</A<</B[1 0 R]>>>>", "true",
+            "false", "null", "trueX", "nul", "%c\n1", "x", "R", "]", ">>", "<<", "1e5", "[[[[1]]]]",
+        ];
+        let mut seed = 0x2545_f491_4f6c_dd1du64;
+        let mut rand = move |n: usize| {
+            seed ^= seed << 13;
+            seed ^= seed >> 7;
+            seed ^= seed << 17;
+            (seed % n as u64) as usize
+        };
+        let seps = [" ", "\n", "", "\r\n ", "\0", "\t"];
+        let mut fast_read = 0;
+        const N: usize = 60_000;
+        for _ in 0..N {
+            let mut s = String::from("<<");
+            for _ in 0..rand(6) {
+                s.push_str(seps[rand(seps.len())]);
+                s.push_str(["/Type", "/K", "/A#42", "/", "/Kids"][rand(5)]);
+                s.push_str(seps[rand(seps.len())]);
+                s.push_str(VALUES[rand(VALUES.len())]);
+            }
+            s.push_str(seps[rand(seps.len())]);
+            s.push_str(">>");
+            s.push_str([" ", "", "x", "/N", ">"][rand(5)]);
+            let mut d = s.into_bytes();
+            match rand(4) {
+                0 => {
+                    let at = rand(d.len());
+                    d[at] = b"<>[]()/% 0R#\\x."[rand(15)];
+                }
+                1 => {
+                    d.remove(rand(d.len()));
+                }
+                2 => {
+                    let at = rand(d.len());
+                    d.insert(at, d[at]);
+                }
+                _ => {}
+            }
+            let [fast, full] = dict_both(&d);
+            if fast.is_some() {
+                fast_read += 1;
+                assert_eq!(fast, full, "{:?}", String::from_utf8_lossy(&d));
+            }
+        }
+        // Enough of them take the fast path (about one in six, with the odd values and the
+        // changed bytes), and a page's dictionary does.
+        assert!(fast_read * 10 > N, "{fast_read} of {N}");
+        let page = b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 5 0 R \
+            /Resources << /Font << /F1 3 0 R >> /ProcSet [/PDF /Text] >> >>";
+        let [fast, full] = dict_both(page);
+        assert!(fast.is_some());
+        assert_eq!(fast, full);
+    }
+
     #[test]
     fn text_only_interpreter_reads_text_as_the_full_one_does() {
         // `text` runs hayro-interpret's text-only interpreter, `scan` with
@@ -1925,6 +1991,14 @@ mod tests {
             ("Tj", "<48 69>"),
             ("TJ", "[(A) -120 (B) 300 <4344>]"),
             ("TJ", "[(D) [1] /N (E)]"),
+            // Arrays the lexer reads once for `TJ` (numbers and strings alone), and ones it leaves
+            // to hayro's reader: a comment, escapes and line breaks, odd numbers, a stray `>>`.
+            ("TJ", "[(a\\)b) <41 42> %c\n -3.5 (x\ny) (p(ar)en)]"),
+            ("TJ", "[(A)+.5(B)-(C).(D)]"),
+            ("TJ", "[(A) 1.2.3 (B)]"),
+            ("TJ", "[(A)>>(B)]"),
+            ("TJ", "[<4 1> <4G>]"),
+            ("TJ", "[ ]"),
             ("'", "(quote)"),
             ("\"", "2 1 (dq)"),
             ("Tf", "/F1 9"),

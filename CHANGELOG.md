@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **Opening a file and reading its text parse less.** A dictionary in its plain forms is read in one pass, so a
+  number that isn't a reference is read once, not again after the reference it might have started fails; anything
+  else is read as before, with the same result (a test compares the two over 60,000 generated dictionaries).
+  Opening a 2,000-page report, which reads every page's dictionary, takes about a tenth less. The text pass reads
+  a `TJ` array of numbers and strings once, while finding its end, where it scanned it three times, and checks an
+  operator's operands only when one is a dictionary or an array.
+
 ## 0.10.1
 
 ### Fixed

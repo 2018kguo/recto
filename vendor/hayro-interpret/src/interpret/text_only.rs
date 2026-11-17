@@ -5,7 +5,7 @@
 //! same glyph runs. Paths, images and shadings are skipped (a malformed path
 //! operator still ends the stream, as it does there).
 
-use super::lex::{self, Lexer, Operand};
+use super::lex::{self, Item, Lexer, Operand};
 use super::state::{TextStateFont, handle_gs};
 use super::text::{self, TextRenderingMode};
 use crate::FillRule;
@@ -91,61 +91,6 @@ fn string_at<'s>(d: &'s [u8], s: usize, e: usize, buf: &'s mut Vec<u8>) -> Optio
     Some(buf)
 }
 
-/// One TJ array, read in place; `false` when it holds anything but numbers
-/// and strings, for `TJ` to read it the slow way.
-fn show_texts<'a>(
-    d: &[u8],
-    s: usize,
-    e: usize,
-    context: &mut Context<'a>,
-    resources: &Resources<'a>,
-    buf: &mut Vec<u8>,
-) -> bool {
-    // Checked whole before anything is applied.
-    let mut i = s + 1;
-    loop {
-        i = lex::skip_white(d, i);
-        match d.get(i) {
-            Some(b']') if i + 1 == e => break,
-            Some(b'0'..=b'9' | b'+' | b'-' | b'.') => match lex::number(d, i) {
-                (Some(_), end) => i = end,
-                _ => return false,
-            },
-            Some(b'(') => i = lex::skip_literal(d, i),
-            Some(b'<') if d.get(i + 1) != Some(&b'<') => match lex::hex_end(d, i) {
-                Some(end) => i = end,
-                None => return false,
-            },
-            _ => return false,
-        }
-    }
-    text::begin_glyph_run(context);
-    let mut i = s + 1;
-    loop {
-        i = lex::skip_white(d, i);
-        match d[i] {
-            b'(' | b'<' => {
-                let end = if d[i] == b'(' {
-                    lex::skip_literal(d, i)
-                } else {
-                    lex::hex_end(d, i).unwrap_or(e)
-                };
-                if let Some(t) = string_at(d, i, end, buf) {
-                    text::append_text_string(context, resources, t);
-                }
-                i = end;
-            }
-            b']' => break,
-            _ => {
-                let (n, end) = lex::number(d, i);
-                text::apply_glyph_run_adjustment(context, n.unwrap_or_default() as f32);
-                i = end;
-            }
-        }
-    }
-    true
-}
-
 fn object<'d>(d: &'d [u8], o: &Operand) -> Option<Object<'d>> {
     match *o {
         Operand::Num(_) => None,
@@ -193,14 +138,18 @@ pub(crate) fn interpret<'a>(
         // hayro reads every operand while tokenizing, and one it can't read
         // ends the stream. TJ reads its array itself, BDC (after a tag) its
         // property list.
-        let own = usize::from(match op {
-            b"TJ" => matches!(ops.last(), Some(Operand::Array(..))),
-            b"BDC" => ops.len() >= 2 && matches!(ops[ops.len() - 2], Operand::Name(..)),
-            _ => false,
-        });
-        let unreadable = !ops[..ops.len() - own.min(ops.len())]
-            .iter()
-            .all(|o| lex::readable(d, o));
+        // recto: numbers, strings and names always read, so only an operator
+        // with a dict or an array among its operands is checked.
+        let unreadable = lexer.checks() && {
+            let own = usize::from(match op {
+                b"TJ" => matches!(ops.last(), Some(Operand::Array(..))),
+                b"BDC" => ops.len() >= 2 && matches!(ops[ops.len() - 2], Operand::Name(..)),
+                _ => false,
+            });
+            !ops[..ops.len() - own.min(ops.len())]
+                .iter()
+                .all(|o| lex::readable(d, o))
+        };
         if unreadable {
             break;
         }
@@ -452,7 +401,26 @@ pub(crate) fn interpret<'a>(
                 if context.text_state().font.is_none() {
                     context.text_state_mut().font = context.fallback_font();
                 }
-                if !show_texts(d, s as usize, e as usize, context, resources, &mut buf) {
+                if let Some(items) = lexer.items(s) {
+                    // recto: numbers and strings alone, read once by the lexer.
+                    text::begin_glyph_run(context);
+                    for item in items {
+                        match *item {
+                            Item::Num(n) => text::apply_glyph_run_adjustment(context, n as f32),
+                            Item::Str(s, e, true) => text::append_text_string(
+                                context,
+                                resources,
+                                &d[s as usize + 1..e as usize - 1],
+                            ),
+                            Item::Str(s, e, false) => {
+                                if let Some(t) = string_at(d, s as usize, e as usize, &mut buf) {
+                                    text::append_text_string(context, resources, t);
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // Anything else in it, such as a name or another array, as hayro reads it.
                     let Some(array) = read::<Array<'_>>(d, s, e) else {
                         break;
                     };

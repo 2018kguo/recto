@@ -90,6 +90,9 @@ mod null;
 mod number;
 mod rect;
 mod r#ref;
+mod scan;
+#[doc(hidden)]
+pub use scan::dict_both;
 mod string;
 mod tuple;
 

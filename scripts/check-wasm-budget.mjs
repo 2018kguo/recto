@@ -31,7 +31,9 @@ const drawing = text + brotli(here("wasm/recto-render.wasm"));
 // stretch where a gap needs it (#64, 683,641); an image's soft mask of another size masked in a layer cut to the
 // image (#65, 683,334 alone, 684,526 with #64, as the two compress together); and `damaged()` (#63, 684,164 with
 // both, less than without it, for the same reason).
-const BUDGET = { text: 418_000, drawing: 684_750 };
+// Raised by 500 bytes for parsing with fewer instructions, a dictionary's one-pass read and `TJ`'s array read once:
+// 685,192 (text 414,997) against 0.10.1's 683,737 (text 413,589).
+const BUDGET = { text: 418_000, drawing: 685_250 };
 console.log(`text ${text} of ${BUDGET.text} bytes, text and drawing ${drawing} of ${BUDGET.drawing}`);
 assert.ok(text <= BUDGET.text, "reading text downloads more than the budget");
 assert.ok(drawing <= BUDGET.drawing, "drawing downloads more than the budget");

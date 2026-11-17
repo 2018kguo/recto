@@ -18,12 +18,31 @@ pub enum Operand {
     Dict(u32, u32),
 }
 
+/// One element of an array of only numbers and strings, as `TJ` takes it.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Item {
+    Num(f64),
+    /// A string with its delimiters, and whether it's a literal whose bytes are
+    /// its inside as they stand: closed, with no `\\` or line break in it.
+    Str(u32, u32, bool),
+}
+
 pub struct Lexer<'a> {
     data: &'a [u8],
     pos: usize,
     op_start: usize,
     /// The operands of the operator `next` returned.
     pub operands: Vec<Operand>,
+    /// The elements of the last array read, when it held only numbers and
+    /// strings, and where that array starts (`u32::MAX` when it didn't): read
+    /// once while finding its end, so `TJ` doesn't scan it again. One buffer,
+    /// reused for every array.
+    items: Vec<Item>,
+    items_of: u32,
+    /// Whether an operand of the operator `next` returned is one `readable`
+    /// may refuse: a dict or an array (a name always reads, its bad escapes
+    /// kept as they are).
+    checks: bool,
 }
 
 use hayro_syntax::object::{Name, Number};
@@ -100,8 +119,7 @@ const POW10: [f64; 19] = [
 ];
 
 /// Whether hayro reads the operand: the lexer only finds where a dict or
-/// array ends and leaves a name's escapes, and an operand hayro can't read
-/// ends the stream.
+/// array ends, and an operand hayro can't read ends the stream.
 pub(crate) fn readable(d: &[u8], o: &Operand) -> bool {
     use hayro_syntax::object::{Array, Dict};
     match *o {
@@ -111,10 +129,7 @@ pub(crate) fn readable(d: &[u8], o: &Operand) -> bool {
         Operand::Array(s, e) => Reader::new(&d[s as usize..e as usize])
             .read_without_context::<Array<'_>>()
             .is_some(),
-        Operand::Name(s, e) => {
-            let raw = &d[s as usize..e as usize];
-            !raw.contains(&b'#') || Name::new_escaped(raw).is_some()
-        }
+        // A name always reads: `Name::new_escaped` keeps a bad escape as it is.
         _ => true,
     }
 }
@@ -171,12 +186,16 @@ impl<'a> Lexer<'a> {
             pos: 0,
             op_start: 0,
             operands: Vec::with_capacity(8),
+            items: Vec::new(),
+            items_of: u32::MAX,
+            checks: false,
         }
     }
 
     /// The next operator, its operands in `self.operands`; `None` at the end.
     pub fn next(&mut self) -> Option<&'a [u8]> {
         self.operands.clear();
+        self.checks = false;
         loop {
             self.pos = skip_white(self.data, self.pos);
             let &b = self.data.get(self.pos)?;
@@ -208,6 +227,7 @@ impl<'a> Lexer<'a> {
                     Operand::Str(start as u32, self.pos as u32)
                 }
                 b'<' if self.data.get(start + 1) == Some(&b'<') => {
+                    self.checks = true;
                     self.pos = skip_nested(self.data, start);
                     Operand::Dict(start as u32, self.pos as u32)
                 }
@@ -220,7 +240,17 @@ impl<'a> Lexer<'a> {
                     None => return self.stop(),
                 },
                 b'[' => {
-                    self.pos = skip_nested(self.data, start);
+                    self.checks = true;
+                    self.pos = match flat_array(self.data, start, &mut self.items) {
+                        Some(end) => {
+                            self.items_of = start as u32;
+                            end
+                        }
+                        None => {
+                            self.items_of = u32::MAX;
+                            skip_nested(self.data, start)
+                        }
+                    };
                     Operand::Array(start as u32, self.pos as u32)
                 }
                 // Not an operand, nor an operator: the stream ends.
@@ -255,6 +285,18 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    /// Whether any operand of the operator `next` returned may be one
+    /// `readable` refuses; when not, all of them read.
+    pub fn checks(&self) -> bool {
+        self.checks
+    }
+
+    /// The elements of the array starting at `start`, if it was the last one
+    /// read and held only numbers and strings that read.
+    pub fn items(&self, start: u32) -> Option<&[Item]> {
+        (self.items_of == start).then_some(&self.items[..])
+    }
+
     /// Where the operator `next` returned starts.
     pub fn op_start(&self) -> usize {
         self.op_start
@@ -266,7 +308,6 @@ impl<'a> Lexer<'a> {
     }
 }
 
-/// Past the `)` closing the literal string at `start`.
 /// Past the `>` closing the hex string at `start`, if only hex digits and
 /// white space come before it.
 pub(crate) fn hex_end(d: &[u8], start: usize) -> Option<usize> {
@@ -276,24 +317,81 @@ pub(crate) fn hex_end(d: &[u8], start: usize) -> Option<usize> {
     (d[start + 1 + p] == b'>').then_some(start + p + 2)
 }
 
-pub(crate) fn skip_literal(d: &[u8], start: usize) -> usize {
+/// The elements of the array at `start` and where it ends, when it holds only
+/// numbers, literal strings and hex strings that read (with white space and
+/// comments between); `None` for anything else, which `skip_nested` ends. Where
+/// it ends is where `skip_nested` would: neither of those holds a bracket or
+/// `>>` of its own outside a string.
+fn flat_array(d: &[u8], start: usize, items: &mut Vec<Item>) -> Option<usize> {
+    items.clear();
+    let mut i = start + 1;
+    loop {
+        i = skip_white(d, i);
+        match *d.get(i)? {
+            b']' => return Some(i + 1),
+            b'(' => {
+                let (end, plain) = literal(d, i);
+                items.push(Item::Str(i as u32, end as u32, plain));
+                i = end;
+            }
+            b'<' if d.get(i + 1) != Some(&b'<') => {
+                let end = hex_end(d, i)?;
+                items.push(Item::Str(i as u32, end as u32, false));
+                i = end;
+            }
+            b'0'..=b'9' | b'+' | b'-' | b'.' => {
+                let (n, end) = number(d, i);
+                items.push(Item::Num(n?));
+                i = end;
+            }
+            _ => return None,
+        }
+    }
+}
+
+/// Past the `)` closing the literal string at `start`, and whether the string
+/// is closed with no `\\`, CR or LF in it.
+#[inline]
+fn literal(d: &[u8], start: usize) -> (usize, bool) {
     let mut depth = 0u32;
+    let mut plain = true;
     let mut i = start;
     while let Some(&b) = d.get(i) {
-        match b {
-            b'\\' => i += 1,
-            b'(' => depth += 1,
-            b')' => {
-                depth -= 1;
-                if depth == 0 {
-                    return i + 1;
+        if LITERAL[b as usize] {
+            match b {
+                b'\\' => {
+                    plain = false;
+                    i += 1;
                 }
+                b'(' => depth += 1,
+                b')' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        return (i + 1, plain);
+                    }
+                }
+                _ => plain = false,
             }
-            _ => {}
         }
         i += 1;
     }
-    d.len()
+    (d.len(), false)
+}
+
+/// The bytes `literal` stops at.
+static LITERAL: [bool; 256] = {
+    let mut t = [false; 256];
+    t[b'\\' as usize] = true;
+    t[b'(' as usize] = true;
+    t[b')' as usize] = true;
+    t[b'\n' as usize] = true;
+    t[b'\r' as usize] = true;
+    t
+};
+
+/// Past the `)` closing the literal string at `start`.
+fn skip_literal(d: &[u8], start: usize) -> usize {
+    literal(d, start).0
 }
 
 /// Past the bracket closing the array or dict at `start`, strings skipped.
