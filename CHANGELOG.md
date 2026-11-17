@@ -10,6 +10,11 @@
   Opening a 2,000-page report, which reads every page's dictionary, takes about a tenth less. The text pass reads
   a `TJ` array of numbers and strings once, while finding its end, where it scanned it three times, and checks an
   operator's operands only when one is a dictionary or an array.
+- **Finding text drawn twice takes fewer probes.** The table of where each glyph landed, which tells a fake-bold or
+  shadow copy from the text it repeats, folds its key before hashing it: a multiply alone put a page's grid of
+  cells in runs of neighbouring slots, 1.3 extra probes a lookup on a 2,000-page report where random keys take
+  0.5. It is sized to twice the page's glyphs rather than one and a half. Reading every page of that report takes
+  about 8% less CPU; the text is the same.
 
 ## 0.10.1
 
