@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **`doc.damaged()` no longer fires for an xref entry at offset 0.** Some writers, Word among them, list objects at
+  offset 0, the file's header, where none can be. Reading one repairs the file by scanning it, which finds the
+  object if it's there; if it isn't, a reference to it is to an undefined object, null as ISO 32000-2 7.3.10 says,
+  and every engine reads the page the same. `damaged()` said true for that, typically once `links(i)` followed a
+  link to one. Now an object counts as lost only if the scan found it unreadable, or the file's xref placed it
+  somewhere real (or there was no xref to read) and the scan didn't find it. The 7,000 web files say what they did.
+
 ## 0.10.0
 
 ### Added

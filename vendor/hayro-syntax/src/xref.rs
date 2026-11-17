@@ -517,7 +517,7 @@ impl XRef {
 
         let mut xref = Self(Inner::Some(Arc::new(SomeRepr {
             data: Arc::new(Data::new(data)),
-            map: Arc::new(RwLock::new(MapRepr { xref_map, repaired, lost: false })),
+            map: Arc::new(RwLock::new(MapRepr { xref_map, repaired, lost: false, read: None })),
             decryptor: Arc::new(Decryptor::None),
             trailer_data,
             password: password.to_vec(),
@@ -700,8 +700,11 @@ impl XRef {
     }
 
     /// recto: whether the file was damaged and a read since its repair asked for an object it no
-    /// longer holds intact: referred to, but not found by the scan, or found and not readable. What
-    /// was drawn or read from it then may be missing parts. Only the reads so far count.
+    /// longer holds intact: found by the scan and not readable, or not found where the file's xref
+    /// put it, or where there was no xref to read. What was drawn or read from it then may be missing
+    /// parts. Only the reads so far count. An object the xref didn't list, or listed at offset 0
+    /// (the header, where no object can be: a common writer's mistake), and that the scan didn't
+    /// find, is an undefined one, null as ISO 32000-2 7.3.10 says, not one lost.
     pub fn lost_objects(&self) -> bool {
         match &self.0 {
             Inner::Some(r) => r.map.get().lost,
@@ -712,9 +715,17 @@ impl XRef {
     // Out of line: it's called from every `get_with`'s instance.
     #[cold]
     #[inline(never)]
-    fn mark_lost(&self) {
+    fn mark_lost(&self, id: ObjectIdentifier, found: bool) {
         if let Inner::Some(r) = &self.0 {
-            r.map.put().lost = true;
+            let mut map = r.map.put();
+            let placed = |read: &XrefMap| match read.get(&id) {
+                Some(EntryType::Normal(offset)) => *offset != 0,
+                Some(EntryType::ObjStream(..)) => true,
+                None => false,
+            };
+            if found || map.read.as_ref().is_none_or(placed) {
+                map.lost = true;
+            }
         }
     }
 
@@ -743,7 +754,7 @@ impl XRef {
         // recto: a repair scans the whole file. Not one that's zeros after a failed read.
         if r.data.get().ensure(0, usize::MAX) {
             let (xref_map, _) = fallback_xref_map(r.data.get(), &r.password);
-            locked.xref_map = xref_map;
+            locked.read = Some(std::mem::replace(&mut locked.xref_map, xref_map));
         }
         locked.repaired = true;
     }
@@ -842,14 +853,15 @@ impl XRef {
         let (entry, was_repaired) = {
             let locked = repr.map.get();
             // References to undefined objects are treated as null. recto: in a file that had to be
-            // repaired, as lost: a cut file's references to what was cut read as undefined.
+            // repaired, as lost where the xref placed them: a cut file's references to what was cut
+            // read as undefined (see `mark_lost`).
             match locked.xref_map.get(&id) {
                 Some(entry) => (*entry, locked.repaired),
                 None => {
                     let repaired = locked.repaired;
                     drop(locked);
                     if repaired {
-                        self.mark_lost();
+                        self.mark_lost(id, false);
                     }
                     return None;
                 }
@@ -962,7 +974,7 @@ impl XRef {
     {
         // The xref table is broken, try to repair if not already repaired.
         if was_repaired {
-            self.mark_lost();
+            self.mark_lost(id, true);
             None
         } else {
             self.repair();
@@ -1037,6 +1049,9 @@ struct MapRepr {
     repaired: bool,
     /// recto: since the repair, a read asked for an object the file no longer holds intact.
     lost: bool,
+    /// recto: the map read from the file's xref, kept once a repair replaced it with the scan's;
+    /// `None` where there was none to read, and the file was scanned from the start.
+    read: Option<XrefMap>,
 }
 
 #[derive(Debug, Copy, Clone)]

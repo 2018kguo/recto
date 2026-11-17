@@ -640,3 +640,48 @@ test("a soft mask of another size costs about what one of the image's own size d
   const other = await fastest(page("/Width 4 /Height 2"));
   assert.ok(other < own * 4 + 20, `${other.toFixed(1)} ms against ${own.toFixed(1)} ms`);
 });
+
+test("an xref entry at offset 0 doesn't make a file damaged, whether or not the scan finds its object", async () => {
+  // Word writes some entries at offset 0, the header, where no object can be. Where the object is in
+  // the file the scan finds it; where it isn't, a reference to it is to an undefined object, null.
+  // Object 6 is in no file below; `zero` lists the entries written at 0, and `gone` an object whose
+  // entry is right but whose bytes were overwritten.
+  const file = ({ zero = [] as number[], gone = 0, annots = "5 0 R", dest = "3 0 R" }) => {
+    const content = "0 0 1 rg 0 0 100 100 re f";
+    const objects = [
+      "<</Type /Catalog /Pages 2 0 R>>",
+      "<</Type /Pages /Count 1 /Kids [3 0 R]>>",
+      `<</Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R /Annots [${annots}]>>`,
+      `<</Length ${content.length}>>\nstream\n${content}\nendstream`,
+      `<</Type /Annot /Subtype /Link /Rect [10 10 50 50] /P 3 0 R /A <</S /GoTo /D [${dest} /Fit]>>>>`,
+    ];
+    let out = "%PDF-1.7\n";
+    const offsets = objects.map((body, i) => {
+      const at = out.length;
+      out += i + 1 === gone ? `${"%".repeat(body.length + 20)}\n` : `${i + 1} 0 obj\n${body}\nendobj\n`;
+      return at;
+    });
+    const xref = out.length;
+    out += "xref\n0 7\n0000000000 65535 f \n";
+    for (let n = 1; n <= 6; n++) out += `${String(n === 6 || zero.includes(n) ? 0 : offsets[n - 1]).padStart(10, "0")} 00000 n \n`;
+    out += `trailer\n<</Size 7 /Root 1 0 R>>\nstartxref\n${xref}\n%%EOF\n`;
+    return latin1(out);
+  };
+  const damaged = async (bytes: Uint8Array) => {
+    const doc = await engine.open(bytes);
+    doc.text(0);
+    doc.render(0, { width: 50 });
+    const links = doc.links(0);
+    const out = [doc.damaged(), links.length];
+    doc.close();
+    return out;
+  };
+  // The page tree, the page and the link at 0, all found by the scan.
+  assert.deepEqual(await damaged(file({ zero: [2, 3, 5] })), [false, 1]);
+  // A link to an object at 0 that isn't there, and the page listing one as an annotation.
+  assert.deepEqual(await damaged(file({ dest: "6 0 R" })), [false, 1]);
+  assert.deepEqual(await damaged(file({ annots: "5 0 R 6 0 R" })), [false, 1]);
+  assert.deepEqual(await damaged(file({ zero: [2], annots: "5 0 R 6 0 R", dest: "6 0 R" })), [false, 1]);
+  // The link's entry is right and its bytes are gone: lost, as the scan can't find it either.
+  assert.deepEqual(await damaged(file({ gone: 5 })), [true, 0]);
+});
