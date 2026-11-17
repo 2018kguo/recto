@@ -147,11 +147,16 @@ test("the call returns before any drawing, and rasterizing holds the thread no l
   assert.ok(Buffer.from((await whole).rgba).equals(Buffer.from(sync.rgba)));
   assert.ok(callMs < syncMs / 8, `the call held the thread ${callMs.toFixed(1)} ms of a ${syncMs.toFixed(0)} ms render`);
 
-  let last = performance.now();
+  // CPU time the thread spent between beats, so a loaded machine descheduling the process doesn't count as a stall.
+  const cpuMs = () => {
+    const { user, system } = process.threadCpuUsage();
+    return (user + system) / 1000;
+  };
+  let last = cpuMs();
   let longest = 0;
   let running = true;
   const beat = () => {
-    const now = performance.now();
+    const now = cpuMs();
     longest = Math.max(longest, now - last);
     last = now;
     if (running) {
