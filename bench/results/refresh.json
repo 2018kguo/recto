@@ -1,0 +1,50 @@
+{
+ "date": "2026-11-16T23:35:58.853Z",
+ "machine": "Apple M5 Pro, 18 cores",
+ "loadAtStart": 38.68798828125,
+ "steps": {
+  "build": {
+   "seconds": 9
+  },
+  "install": {
+   "seconds": 1
+  },
+  "text": {
+   "command": "bench/text-compare.mjs ~/.cache/recto-corpus/pub ~/.cache/recto-corpus/suites/pdfjs ~/.cache/recto-corpus/suites/pdfium ~/.cache/recto-corpus/suites/hayro --docs 1000 --jobs 17 --out bench/results/text.json",
+   "seconds": 23
+  },
+  "text-public": {
+   "command": "bench/text-compare.mjs ~/.cache/recto-corpus/pub --jobs 17 --out bench/results/text-public.json",
+   "seconds": 2
+  },
+  "boxes": {
+   "command": "bench/box-compare.mjs ~/.cache/recto-corpus/pub ~/.cache/recto-corpus/suites/pdfjs ~/.cache/recto-corpus/suites/pdfium ~/.cache/recto-corpus/suites/hayro --tight --jobs 17 --out bench/results/boxes.json",
+   "seconds": 13
+  },
+  "scorecard": {
+   "command": "bench/scorecard.mjs public=/Users/kevinguo/.cache/recto-corpus/pub pdfjs=/Users/kevinguo/.cache/recto-corpus/suites/pdfjs pdfium=/Users/kevinguo/.cache/recto-corpus/suites/pdfium hayro=/Users/kevinguo/.cache/recto-corpus/suites/hayro --private public --engines recto,pdfium,pdf.js,poppler,mupdf --jobs 17 --out ~/.cache/recto-bench/scorecard --results bench/results/scorecard.json",
+   "seconds": 17
+  },
+  "wild": {
+   "command": "bench/wild.mjs run --dir ~/.cache/recto-corpus/wild --jobs 17 --results bench/results/wild.json",
+   "seconds": 278
+  },
+  "node": {
+   "command": "bench/bench.mjs ~/.cache/recto-corpus/pub --min-idle 10 --max-wait 60 --out bench/results/node.json",
+   "seconds": 538
+  },
+  "browser": {
+   "command": "bench/browser.mjs ~/.cache/recto-corpus/pub --min-idle 10 --max-wait 60 --out bench/results/browser.json",
+   "seconds": 932
+  },
+  "browser-full-speed": {
+   "command": "bench/browser.mjs ~/.cache/recto-corpus/pub --min-idle 10 --max-wait 60 --slowdown 1 --out bench/results/browser-full-speed.json",
+   "seconds": 368
+  },
+  "docs": {
+   "seconds": 0
+  }
+ },
+ "seconds": 2181,
+ "loadAtEnd": 29.16455078125
+}

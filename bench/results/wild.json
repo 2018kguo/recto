@@ -1,11 +1,11 @@
 {
- "date": "2026-11-16T22:37:44.683Z",
+ "date": "2026-11-16T23:41:40.725Z",
  "node": "v25.9.0",
  "machine": "Apple M5 Pro, 18 cores, 64 GB",
  "loadAverage": [
-  81.931640625,
-  60.31298828125,
-  43.26416015625
+  94.5869140625,
+  67.76123046875,
+  47.31884765625
  ],
  "jobs": 17,
  "versions": {
@@ -13,7 +13,7 @@
   "@embedpdf/pdfium": "2.15.1",
   "mupdf": "1.28.1"
  },
- "rectoBuild": "dcc88ccb7dde",
+ "rectoBuild": "ea129bb40d63",
  "files": 7000,
  "bytes": 10609999466,
  "engines": {
@@ -31,14 +31,14 @@
     "open-error password-required": 8
    },
    "ms": {
-    "p50": 224,
-    "p90": 372,
-    "p99": 908,
-    "total": 1804574
+    "p50": 252,
+    "p90": 424,
+    "p99": 1055,
+    "total": 2023270
    },
    "peakRssMb": {
-    "p50": 110,
-    "p99": 204,
+    "p50": 109,
+    "p99": 202,
     "max": 723
    },
    "blankWhereOthersDraw": 0,
