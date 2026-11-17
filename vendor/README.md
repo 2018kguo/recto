@@ -111,6 +111,13 @@ They are patched for what upstream does not have:
   an image paint; the image is made from the mask only where that can't draw it (`src/glyph_cache.rs`). A page
   rasterized in parts once what it has drawn holds more than 2 MB, at its own level, outside any layer or group
   (`MAX_RECORDED_BYTES` in `src/lib.rs`): a part's rasterization is one call a sliced render can't stop in.
+- **hayro-syntax**: a dictionary outside a content stream read in one pass when it holds only plain forms (names
+  without `#`, plain numbers, references, strings, arrays, dictionaries, `true`, `false`, `null`), so that a
+  number that isn't a reference is read once, not again after the reference it might have started fails
+  (`scan::dict` in `src/object/scan.rs`); anything else is read the full way, which gives the same keys and end.
+- **hayro-interpret**: the text pass's lexer reads an array of only numbers and strings once, while finding its
+  end, so that `TJ` doesn't scan it twice more (`flat_array` in `src/interpret/lex.rs`), and checks that an
+  operator's operands read only when one is a dictionary or an array.
 
 `vello_cpu` (0.3.0, by the Vello authors, MIT or Apache-2.0) is vendored as well, without its examples, for
 two things it lacks. `RenderContext::fill_coverage` (`src/coverage.rs`) fills a coverage mask with a solid

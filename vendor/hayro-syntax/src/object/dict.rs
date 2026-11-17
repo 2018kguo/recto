@@ -229,6 +229,25 @@ fn read_inner<'a>(
     // that can be reused.
     let mut offsets = FxHashMap::with_capacity_and_hasher(8, rustc_hash::FxBuildHasher);
 
+    // recto: the common forms in one pass (`scan::dict`), the rest the full way.
+    if start_tag == Some(b"<<") && !ctx.in_content_stream() {
+        let tail = r.tail()?;
+        let fast = super::scan::dict(tail, &mut |name, offset| {
+            offsets.insert(Name::new_unescaped(name), offset);
+        });
+        match fast {
+            Some(len) => {
+                r.jump(r.offset() + len);
+                return Some(Dict(Inner::Some(Arc::new(Repr {
+                    data: &tail[..len],
+                    offsets,
+                    ctx: ctx.clone(),
+                }))));
+            }
+            None => offsets.clear(),
+        }
+    }
+
     let data = parse_dict_with(
         r,
         ctx,
@@ -305,6 +324,24 @@ impl<'a> DictHead<'a> {
 impl<'a> Readable<'a> for DictHead<'a> {
     fn read(r: &mut Reader<'a>, ctx: &ReaderContext<'a>) -> Option<Self> {
         let mut type_at = None;
+        // recto: the common forms in one pass (`scan::dict`), the rest the full way.
+        if !ctx.in_content_stream() {
+            let tail = r.tail()?;
+            if let Some(len) = super::scan::dict(tail, &mut |name, offset| {
+                if name == keys::TYPE {
+                    type_at = Some(offset);
+                }
+            }) {
+                r.jump(r.offset() + len);
+                return Some(Self::Parsed {
+                    data: &tail[..len],
+                    ctx: ctx.clone(),
+                    type_at,
+                    built_once: false,
+                });
+            }
+            type_at = None;
+        }
         let data = parse_dict_with(
             r,
             ctx,
@@ -382,7 +419,7 @@ pub(crate) fn probe_dict<'a>(
     })
 }
 
-fn parse_dict_with<'a, F>(
+pub(crate) fn parse_dict_with<'a, F>(
     r: &mut Reader<'a>,
     ctx: &ReaderContext<'a>,
     start_tag: Option<&[u8]>,

@@ -189,6 +189,7 @@
 <hashbrown::map::HashMap<hayro_syntax::object::ObjectIdentifier, hayro_syntax::xref::EntryType, rustc_hash::FxBuildHasher>>::insert
 <hashbrown::map::HashMap<hayro_syntax::object::ObjectIdentifier, hayro_syntax::xref::EntryType, rustc_hash::FxBuildHasher>>::remove::<hayro_syntax::object::ObjectIdentifier>
 <hashbrown::map::HashMap<hayro_syntax::object::name::Name, usize, rustc_hash::FxBuildHasher>>::contains_key::<[u8]>
+<hashbrown::map::HashMap<hayro_syntax::object::name::Name, usize, rustc_hash::FxBuildHasher>>::insert
 <hashbrown::map::HashMap<u128, (core::option::Option<alloc::boxed::Box<dyn core::any::Any + core::marker::Send + core::marker::Sync>>, bool), rustc_hash::FxBuildHasher>>::insert
 <hashbrown::map::HashMap<u128, (core::option::Option<alloc::boxed::Box<dyn core::any::Any + core::marker::Send + core::marker::Sync>>, bool), rustc_hash::FxBuildHasher>>::rustc_entry
 <hashbrown::map::HashMap<u128, (core::option::Option<hayro_font::program::FontProgram>, bool), rustc_hash::FxBuildHasher>>::insert
@@ -446,6 +447,7 @@
 <hayro_syntax::object::dict::Dict>::get_raw::<usize, &[u8]>
 <hayro_syntax::object::dict::Dict>::get_ref::<&[u8]>
 <hayro_syntax::object::dict::DictHead as hayro_syntax::reader::Readable>::read
+<hayro_syntax::object::dict::DictHead as hayro_syntax::reader::Readable>::read::{closure#0}
 <hayro_syntax::object::indirect::IndirectObject<hayro_syntax::object::Object> as hayro_syntax::reader::Readable>::read
 <hayro_syntax::object::indirect::IndirectObject<hayro_syntax::object::dict::Dict> as hayro_syntax::reader::Readable>::read
 <hayro_syntax::object::name::Name as core::convert::TryFrom<hayro_syntax::object::Object>>::try_from
@@ -1028,7 +1030,6 @@ hayro_interpret::interpret::text_only::interpret::<recto::device::PageDevice>
 hayro_interpret::interpret::text_only::name
 hayro_interpret::interpret::text_only::nums::<6usize>
 hayro_interpret::interpret::text_only::object
-hayro_interpret::interpret::text_only::show_texts
 hayro_interpret::interpret::text_only::string
 hayro_interpret::interpret::text_only::string_at
 hayro_interpret::interpret::x_object
@@ -1060,7 +1061,10 @@ hayro_syntax::filter::lzw_flate::flate::fallback::generate_huffman_table
 hayro_syntax::filter::lzw_flate::flate::inflate
 hayro_syntax::filter::png::unfilter
 hayro_syntax::object::dict::read_inner
+hayro_syntax::object::dict::read_inner::{closure#0}
 hayro_syntax::object::rect::from_arr
+hayro_syntax::object::scan::dict
+hayro_syntax::object::scan::value
 hayro_syntax::object::stream::stream_eol
 hayro_syntax::page::counts_add_up
 hayro_syntax::page::inherit
