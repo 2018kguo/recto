@@ -517,7 +517,7 @@ impl XRef {
 
         let mut xref = Self(Inner::Some(Arc::new(SomeRepr {
             data: Arc::new(Data::new(data)),
-            map: Arc::new(RwLock::new(MapRepr { xref_map, repaired, lost: false, read: None })),
+            map: Arc::new(RwLock::new(MapRepr { xref_map, repaired, lost: false, unfound: None })),
             decryptor: Arc::new(Decryptor::None),
             trailer_data,
             password: password.to_vec(),
@@ -718,12 +718,7 @@ impl XRef {
     fn mark_lost(&self, id: ObjectIdentifier, found: bool) {
         if let Inner::Some(r) = &self.0 {
             let mut map = r.map.put();
-            let placed = |read: &XrefMap| match read.get(&id) {
-                Some(EntryType::Normal(offset)) => *offset != 0,
-                Some(EntryType::ObjStream(..)) => true,
-                None => false,
-            };
-            if found || map.read.as_ref().is_none_or(placed) {
+            if found || map.unfound.as_ref().is_none_or(|unfound| unfound.binary_search(&id).is_ok()) {
                 map.lost = true;
             }
         }
@@ -754,7 +749,12 @@ impl XRef {
         // recto: a repair scans the whole file. Not one that's zeros after a failed read.
         if r.data.get().ensure(0, usize::MAX) {
             let (xref_map, _) = fallback_xref_map(r.data.get(), &r.password);
-            locked.read = Some(std::mem::replace(&mut locked.xref_map, xref_map));
+            let read = std::mem::replace(&mut locked.xref_map, xref_map);
+            let placed = |entry: &EntryType| !matches!(entry, EntryType::Normal(0));
+            let mut unfound: Vec<ObjectIdentifier> =
+                read.iter().filter(|(id, entry)| placed(entry) && !locked.xref_map.contains_key(id)).map(|(id, _)| *id).collect();
+            unfound.sort_unstable();
+            locked.unfound = Some(unfound);
         }
         locked.repaired = true;
     }
@@ -1049,9 +1049,10 @@ struct MapRepr {
     repaired: bool,
     /// recto: since the repair, a read asked for an object the file no longer holds intact.
     lost: bool,
-    /// recto: the map read from the file's xref, kept once a repair replaced it with the scan's;
-    /// `None` where there was none to read, and the file was scanned from the start.
-    read: Option<XrefMap>,
+    /// recto: once a repair replaced the map read from the file's xref with the scan's, the objects
+    /// that map placed somewhere real (not at offset 0) and the scan didn't find. `None` where there
+    /// was no xref to read, and the file was scanned from the start: any object it lacks is lost.
+    unfound: Option<Vec<ObjectIdentifier>>,
 }
 
 #[derive(Debug, Copy, Clone)]
