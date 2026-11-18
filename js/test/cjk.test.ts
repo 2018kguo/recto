@@ -3,7 +3,7 @@
 
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { copyFileSync, mkdtempSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -66,6 +66,7 @@ function cjkPdf(): Uint8Array {
 /** A directory of the package's assets without those named, for assetBase. */
 function assetsWithout(...missing: string[]): string {
   const dir = mkdtempSync(join(tmpdir(), "recto-assets-"));
+  process.on("exit", () => rmSync(dir, { recursive: true, force: true }));
   for (const name of Object.keys(PINS)) {
     if (!missing.includes(name)) {
       copyFileSync(new URL(`../wasm/${name}`, import.meta.url), join(dir, name));

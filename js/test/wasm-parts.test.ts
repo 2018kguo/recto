@@ -23,6 +23,7 @@ const ASSETS = Object.keys(PINS);
 const FONTS = ASSETS.filter((name) => name.endsWith(".pfb"));
 function assetDir(...without: string[]): string {
   const dir = mkdtempSync(join(tmpdir(), "recto-parts-"));
+  process.on("exit", () => rmSync(dir, { recursive: true, force: true }));
   for (const name of ASSETS) {
     if (!without.includes(name)) {
       copyFileSync(packaged(name), join(dir, name));

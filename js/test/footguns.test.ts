@@ -23,6 +23,7 @@ const packaged = (name: string) => new URL(`../wasm/${name}`, import.meta.url);
 /** A copy of the package's assets, to break. */
 function assetDir(): string {
   const dir = mkdtempSync(join(tmpdir(), "recto-assets-"));
+  process.on("exit", () => rmSync(dir, { recursive: true, force: true }));
   for (const name of ASSETS) {
     copyFileSync(packaged(name), join(dir, name));
   }
