@@ -43,6 +43,7 @@ test("a pool's render takes text too", async () => {
 test("without text, no font is loaded", async () => {
   // Only the wasm, no fonts: drawing the text needs Helvetica's file, drawing without it doesn't.
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "recto-no-text-"));
+  process.on("exit", () => fs.rmSync(dir, { recursive: true, force: true }));
   for (const name of ["recto.wasm", "recto-render.wasm"]) {
     fs.copyFileSync(path.join(import.meta.dirname, "..", "wasm", name), path.join(dir, name));
   }

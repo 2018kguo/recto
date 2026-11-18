@@ -24,6 +24,7 @@ const here = (path: string) => new URL(`../${path}`, import.meta.url);
 /** The package, in a directory of its own, with something changed in the thread's file. */
 async function faulty(change: (source: string) => string): Promise<typeof createPdfPool> {
   const dir = mkdtempSync(join(tmpdir(), "recto-pool-faults-"));
+  process.on("exit", () => rmSync(dir, { recursive: true, force: true }));
   for (const name of ["dist", "wasm", "package.json"]) cpSync(here(name), join(dir, name), { recursive: true });
   const file = join(dir, "dist/pool-worker.js");
   writeFileSync(file, change(readFileSync(file, "utf8")));
@@ -38,6 +39,7 @@ const onCall = (code: string) => (source: string) => {
 };
 const assetDir = (...without: string[]) => {
   const dir = mkdtempSync(join(tmpdir(), "recto-pool-assets-"));
+  process.on("exit", () => rmSync(dir, { recursive: true, force: true }));
   cpSync(here("wasm"), dir, { recursive: true });
   for (const name of without) rmSync(join(dir, name));
   return dir;
